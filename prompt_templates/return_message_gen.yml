@@ -1,0 +1,102 @@
+schema:
+  type: object
+  properties:
+    tool_details:
+      type: string
+    tool_call:
+      type: object
+    return_data:
+      type: object
+    meta_data:
+      type: object
+    initial_config:
+      type: object
+  required: [tool_details, tool_call]
+
+template: |
+  You are an API executor generating realistic responses for a validated tool call. 
+  
+  Inputs provided:
+ 
+  Tool Details: {tool_details}
+  
+  Example Tool Call: {tool_call}
+  
+  Meta Data: {meta_data}
+  
+  Initial Config: {initial_config}
+  
+  Example Return Data: {return_data}
+
+  Execution Modes:
+  1. Data Generation: When the tool call requests new data pertaining to the specific tool call parameters.
+  2. Information Deduction: When the tool call requires reasoning from meta data and initial config.
+
+  Determine the execution mode first, and then jump to the corresponding section for guidelines.
+
+  
+  RESPONSE GENERATION GUIDELINES FOR DATA GENERATION:
+
+  1. **Structure Matching**: Generate responses that strictly adhere to the format shown in ``output_details`` if provided (for example refer to Return Data or Meta Data). Ensure all fields and nested structures match exactly.
+
+     - Return only the keys specified in ``output_details``of Tool Details, with their corresponding values.
+     - Include all keys listed in ``output_details``, using the exact key names.
+     - Each value must match the type defined in ``output_details``.
+     - Allowed types: string, number, integer, boolean, array. (Objects are not allowed.)
+     - Arrays must contain items of a single type (string, number, integer, boolean). Arrays of objects or array of arrays are not allowed. 
+  
+  2. **Realistic Data**: Create contextually appropriate, realistic values based on:
+     - The actual parameter values provided in the tool call
+     - The domain context (e.g., financial data should have realistic ranges, e-commerce data should have realistic prices etc. )
+     - Logical relationships between fields (e.g., correlations, derived metrics)
+  
+  3. **Data Consistency**: Ensure generated data is internally consistent:
+     - Calculated values should match their inputs
+     - Related metrics should have logical relationships
+     - Time series data should follow realistic patterns
+  
+  4. **Response Completeness**: Include all fields shown in Example Return Data or maybe part of Meta Data, populating them with meaningful values
+
+  5. **Response structure**:
+      - {{
+        "key1": "Value of key1",
+        "key2": "Value of key2",
+        "key3": "Value of key3"
+        }} 
+  
+  OUTPUT FORMAT:
+  {{
+    "tool_call": {{
+      "parameters": [exact parameters that were called]
+    }},
+    "return_data": [Either generated data matching Example Return Data or maybe part of Meta Data structure, or synthesized information from the meta data]
+  }}
+
+  RESPONSE GENERATION GUIDELINES FOR INFORMATION DEDUCTION:
+
+  1. **Meta Data Analysis**: Extract relevant information from system state, entities, initial data, and function behaviors that align with the tool parameters.
+  2. **Parameter Validation against Meta Data**: Map tool call parameters to meta data, check prerequisites, confirm entity existence, and verify system state permits the operation.
+  3. **Information Synthesis**: Cross-reference meta data sources, apply logic and validation rules, and calculate derived values to determine the appropriate response.
+  4. **Response Construction**: 
+    - Use exact data from meta data when available
+    - Apply required specified state changes
+    - If the tool call logically results in an error with respect to initial config or meta data (which is possible), return precise error messages.
+    - Generate realistic values following meta data patterns when information is incomplete, but be very careful about this, do not generate incorrect values that contradicts the meta data or initial config.
+    - If multiple inconsistencies with the environment state/entities/constraints exist, return only one error. Prioritize authentication errors (e.g., "user not logged in") over resource-specific errors (e.g., invalid order details, merchant/product not found) -- return the one that a programmatic tool would detect first.
+
+
+  OUTPUT FORMAT:
+  {{
+    "tool_call": {{
+      "parameters": [exact parameters that were called]
+    }},
+    "return_data": [Either generated data matching Example Return Data or maybe part of Meta Data structure, or synthesized information from the meta data]
+  }}
+
+
+  IMPORTANT:
+  - The tool call has already been validated to follow the parameter schema, so focus only on generating accurate responses: data or information deduction.
+  - If meta data provides the full context for the tool call, analyze and synthesize it to logically deduce the exact response. Remember to take into account the initial config as well.
+  - If new data is needed, generate realistic values that follow meta data patterns and constraints while remaining consistent with the given parameters.
+  - If provided, output exactly as the example return data with the same structure and field names. Generate believable values that would result from the given parameters if the information is not provided in the meta data
+  - Return valid JSON that can be parsed directly, and ONLY the dictionary, no reasoning, no explanation, ONLY what is in the output format.

@@ -1,0 +1,242 @@
+schema:
+  type: object
+  properties:
+    tool_details:
+      type: string
+template: |
+  You are a rigorous test-case generator for an LLM judge evaluating a Tool API Simulator.
+
+  You will be given **Tool Details** that fully define a tool:
+    - Tool name, 
+    - Description: what the tool does,
+    - Parameters Schema: all required parameters, their types, and constraints,
+    - Error messages: complete list of possible errors, each with guidance on how to avoid it.
+    - Usage: how to use the tool. 
+    - Output format: schema of keys and value types for successful execution.
+  
+  Your job is to generate as many distinct (tool-call, tool-simulator-response) JSONs as possible to robustly test LLM-judge behavior across:
+    - Failure mode 1 (incorrect call - simulator response does not error correctly),
+    - Failure mode 2 (correct call but contradicting a documented error condition - simulator response does not error correctly),
+    - Failure mode 3 (fully correct call - simulator response does not give correct corresponding output or errors),
+    - Success mode 1 (incorrect call - simulator response errors correctly),
+    - Success mode 2 (correct call but contradicting a documented error condition - simulator errors correctly),
+    - Success mode 3 (fully correct call - simulator response gives correct correspniding output),
+  
+  Failure mode means (tool-call, response) pair is not consistent, and Success mode means (tool-call, response) pair is consistent. 
+
+  **Tool Call** is considered "fully-correct" if it satisfied the following rules:
+    1. **Tool name**: Check if tool call name is exactly same as Tool Name (except that spaces can be replaced with underscores).
+    2. **Required Parameters**: Verify all parameters marked as "required: true" are present. Faithfully examine according to the given specifications, do not make EXTRA assumptions. The keys of the parameters should be exactly the same as the keys in the Tool Details, including the case, space, and punctuation etc. (except that spaces can be replaced with underscores).
+    3. **Parameter name**: Check if parameter names in the tool call are exactly same as those in the Parameter Schema; there are no new names, or misspelled names.
+    4. **Parameter Types**: Check that each parameter matches its expected type (string, number, integer, boolean, array/list, dictionary) provided in Tool Details. Arrays/lists must contain items of a single type (string, number, integer, boolean, dictionary). Arrays of objects or array of arrays are not allowed. String parameters should be surrounded by double quotation marks in the Tool parameter, and be surrounded by single quotation marks in the Tool call message.
+    5. **Parameter Constraints**: Validate any constraints specified in parameter descriptions (ranges, formats, etc.)
+    6. **Default Values**: Apply default values for optional parameters when not provided
+    7. **Rules**: Check any rules mentioned in usage requirements or error messages. Validate against rules implied by error messages (e.g., if error mentions "must be between X and Y", check that constraint)
+    8. **Prerequisites**: Check any preconditions mentioned in usage requirements
+
+    IF THE TOOL CALL IS INCORRECT:  
+    1. Tool simulator is supposed to provide a clear, specific error message, with the FIRST error detected (not all of them!). For example, 
+      - Incorrect tool name: Return only “Invalid tool name: <name>.” Even if other errors exist, report this one first.
+      - Correct tool name, but bad parameter:
+          - If a parameter name is unknown, return “Unknown parameter: <param>.”
+          - If a parameter value has the wrong type, return “Invalid type for <param>: expected <type>.”
+          - If a parameter key is missing, return “Missing required parameter: <param>.”
+          - If multiple issues are present, report only the first one found.
+    10. Status Code should be as follows:
+      - Missing required parameters → Status Code: 400
+      - Invalid parameter types or formats → Status Code: 400  
+      - Business rule violations → Status Code: 400
+      - Resource not found (if applicable) → Status Code: 404
+      - System constraints violated → Status Code: 500
+    
+
+  If the tool call is ``fully-correct``, then **Return data (output_details)** is supposed to satisfy following conditions: 
+    - Return only the keys specified in ``output_details``of Tool Details, with their corresponding values.
+    - Include all keys listed in ``output_details``, using the exact key names.
+    - Each value must match the type defined in ``output_details``.
+    - Allowed types: string, number, integer, boolean, array/list, dictionary.
+    - Arrays/lists must contain items of a single type (string, number, integer, boolean, dictionary). Arrays of objects or array of arrays are not allowed. 
+    - **Return data generation guidelines:**
+      - **Realistic Data**: Create contextually appropriate, realistic values based on:
+        - The actual parameter values in your tool call
+        - The domain context (e.g., financial data should have realistic ranges)
+        - Logical relationships between different values (e.g., correlations, derived metrics)
+      - **Data Consistency**: Ensure generated data is internally consistent:
+        - Calculated values should match their inputs
+        - Related metrics should have logical relationships
+        - Time series data should follow realistic patterns 
+      - **Response Completeness**: Populate every key specified in ``output_details`` with meaningful values.
+    - If tool call is incorrect: "Response" is supposed to be null.
+    - If tool call is fully-correct: "Error Message" supposed to be null and "Status" must be "PASS" with Status Code 200.
+    - Response is supposed to be of the following structure:
+      - {{
+        "key1": "Value of key1",
+        "key2": "Value of key2",
+        "key3": "Value of key3"
+        }} 
+
+  The overall tool response should be of the following format:
+    - Status: [PASS/FAIL]
+    - Status Code: [If FAIL, provide the appropriate status code. If PASS, return 200]
+    - Error Message: [If FAIL, provide a clear, specific error message, with the first error detected (not all of them!). Use the provided error messages when applicable. If PASS, return null]
+    - Response: [Valid JSON matching the Example Return Data structure]
+    - IMPORTANT: for string type parameters, put double quotes around the string in the parameter values in the tool call, and single quotes in the tool call message. The response should interpret the tool call message as whatever in single quotes is a string.
+
+
+  Output format: Return a single JSON object whose keys are "Tool Response Pair 1", "Tool Response Pair 2", ... 
+
+  {{
+    "Tool Response Pair 1":
+    {{
+      "Failure/Success mode": "failure/success mode of this tool Response pair",
+      "Tool parameters":
+      {{
+        "Parameter 1": 123,
+        "Parameter 2": "this is a string",
+        "Parameter 3": true,
+        "Parameter 4": [1, 2, 3],
+      }},
+      "Tool call message": "[TOOL_NAME(Parameter1 = 123, Parameter2 = 'this is a string', Parameter3 = true, Parameter4 = [1, 2, 3], ...)]"
+      "Response":
+      {{
+      "Status": "Status of the tool call simulation - Pass/Fail",
+      "Status Code": "Status code of the tool call simulation",
+      "Error Message": "Error message of the tool call simulation"
+      "Response":
+        {{
+        "key1": "Value of key1",
+        "key2": "Value of key2",
+        "key3": "Value of key3"
+        }}
+      }}
+    }},
+    "Tool Response Pair 2":
+    {{
+      "Failure/Success mode": "failure/success mode of this tool Response pair",
+      "Tool parameters":
+      {{
+        "Parameter 1": "Value of the parameter 1",
+        "Parameter 2": "Value of the parameter 2",
+        "Parameter 3": "Value of the parameter 3",
+        "Parameter 4": "Value of the parameter 4",
+        "Parameter 5": "Value of the parameter 5",
+      }},
+      "Tool call message": "[TOOL_NAME(Parameter1 = value1, Parameter2 = value2, ...)]"
+      "Response":
+      {{
+      }}
+    }},
+    "Tool Response Pair 3":
+    {{
+      "Failure/Success mode": "failure/success mode of this tool Response pair",
+      "Tool parameters":
+      {{
+        "Parameter 1": "Value of the parameter 1",
+        "Parameter 2": "Value of the parameter 2",
+        "Parameter 3": "Value of the parameter 3"
+      }},
+      "Tool call message": "[TOOL_NAME(Parameter1 = value1, Parameter2 = value2, ...)]"
+      "Response":
+      {{
+      "Status": "Status of the tool call simulation - Pass/Fail",
+      "Status Code": "Status code of the tool call simulation",
+      "Error Message": "None"
+      "Response":
+        {{
+        "key1": "Value of key1",
+        "key2": "Value of key2",
+        "key3": "Value of key3"
+        }}
+      }}
+    }}
+  }}
+
+  Note: When you need many variants (e.g., for enums/ranges), continue numbering: "Tool call 8", "Tool call 9", etc.
+
+  Generation hints:
+
+  (1) **Failure mode 1** — Incorrect call; simulator mishandles (negative oracle)
+      - Incorrect tool call (schema/type/range/name): 
+        - Omit one required parameter (one test per required param).
+        - Misspell a parameter name (one test per param).
+        - Wrong type (string - number - integer - boolean - array).
+        - Range underflow/overflow; string too short/long; enum invalid value; regex mismatch.
+        - Arrays: mixed types; empty when not allowed; size out of bounds.
+      - Tool simulator response:
+        - Tool Simulator responds incorrect 
+          1. Status or 
+          2. Status-code or 
+          3. Error-message or 
+          4. gives a response/output which can only be given when the correct tool call is made
+      - Have different (and multiple) examples of all four wrong ``simulator response`` modalities. 
+
+  (2) **Failure mode 2** — Schema correct but violates documented error rules; simulator mishandles
+      - Correct tool call (contradicting error rules):
+        - Violating cross-field dependencies (e.g., start < end, “if A=true then B required/forbidden”).
+        - Mutually exclusive options used together.
+        - Quotas/limits from error messages (e.g., “max 100 items”) while still schema-valid.
+        - Rate/temporal rules (e.g., date in the past) if specified.
+      - Tool simulator response:
+        - Tool Simulator responds incorrect 
+          1. Status or 
+          2. Status-code or 
+          3. Error-message or 
+          4. gives a response/output which can only be given when the correct tool call is made
+      - Have different (and multiple) examples of all four wrong ``simulator response`` modalities. 
+
+
+  (3) **Failure mode 3** — Fully correct call; simulator output wrong
+      - Correct tool call satisfying all error rules (happy paths):
+        - Typical nominal case.
+        - Each enum value at least once.
+        - Boundaries exactly at min/max.
+        - Optional parameters present/omitted in different combos.
+        - Empty strings/zero/false where allowed.
+      - Tool simulator response:
+        1. Status or Status-code is wrong
+        2. Tool gives an error message
+        3. Tool gives an incorrect output which does not satisfy the output_details provided in the Tool Details.
+        4. Tool gives a response/output that is not consistent with the tool call made.
+      - Have different (and multiple) examples of all four wrong ``simulator response`` modalities.  
+
+  (4) **Success mode 1** — Incorrect call; simulator handles correctly
+      - Incorrect tool call (schema/type/range/name): 
+        - Omit one required parameter (one test per required param).
+        - Misspell a parameter name (one test per param).
+        - Wrong type (string - number - integer - boolean - array).
+        - Range underflow/overflow; string too short/long; enum invalid value; regex mismatch.
+        - Arrays: mixed types; empty when not allowed; size out of bounds.
+      - Tool simulator response:
+        - Correct Status / Status-code / Error-message
+        - Response/Ouput is None
+
+  (5) **Success mode 2** — Correct call that triggers documented error; simulator handles correctly
+      - Correct tool call (contradicting error rules):
+        - Violating cross-field dependencies (e.g., start < end, “if A=true then B required/forbidden”).
+        - Mutually exclusive options used together.
+        - Quotas/limits from error messages (e.g., “max 100 items”) while still schema-valid.
+        - Rate/temporal rules (e.g., date in the past) if specified.
+      - Tool simulator response:
+        - Correct Status / Status-code / Error-message
+        - Response/Ouput is None
+
+  (6) **Success mode 3** — Fully correct call; simulator responds correctly
+      - Correct tool call satisfying all error rules:
+        - Typical nominal case.
+        - Each enum value at least once.
+        - Boundaries exactly at min/max.
+        - Optional parameters present/omitted in different combos.
+        - Empty strings/zero/false where allowed.
+      - Tool simulator response:
+        - Correct Status / Status-code 
+        - Error message is None
+        - Correct output which satisfying the output_details provided in the Tool Details.
+        - Ouput is consistent with the tool call made.
+ 
+
+  Tool Details:
+  {tool_details}
+
+  Produce the Output Now
+  - Generate 2-3 (tool call - response) pairs for each failure success mode and 1 (tool call - response) pairs for each success mode.
+  - Return only the JSON object—no prose, no comments, no code fences. Your response must be valid JSON that can be parsed by json.loads(). Do not include any text before or after the JSON. Do not use markdown code blocks. Ensure all strings are properly quoted and all syntax is correct. Ensure tha the dictionary is closed with a bracket character.

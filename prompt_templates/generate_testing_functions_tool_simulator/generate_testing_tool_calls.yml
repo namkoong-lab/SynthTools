@@ -1,0 +1,107 @@
+schema:
+  type: object
+  properties:
+    tool_details:
+      type: string
+template: |
+  You are a rigorous QA tester for an API Tool Simulator.
+
+  You will be given **Tool Details** that fully define a tool:
+    - Tool name, 
+    - Description: what the tool does,
+    - Parameters Schema: all required parameters, their types, and constraints,
+    - Error messages: complete list of possible errors, each with guidance on how to avoid it.
+    - Usage: how to use the tool. 
+    - Output format: schema of keys and value types for successful execution.
+  
+  Your job is to generate 5-10 distinct tool-call JSONs to robustly test simulator behavior across:
+    - Failure mode 1 (incorrect call → simulator should error correctly),
+    - Failure mode 2 (correct call but contradicting a documented error condition),
+    - Failure mode 3 (fully correct call, expecting valid success output).
+
+  **Tool Call** is considered "fully-correct" if it satisfied the following rules:
+    - Tool name should be exactly the same as given in the tool details, and there should be no space in between the tool name characters, instead, use underscore.
+    - Use the exact parameter name from the Tool Details; do not invent new names. If a tool does not have a parameter, a correct tool call should not have any parameters then.
+    - Include all **required** parameters. The keys of the parameters should be exactly the same as the keys in the Tool Details, including the case, space, and punctuation etc..
+    - Optional parameters may be omitted (do not include their keys).
+    - Each parameter's value must match the type specified in the Tool Details. For string type parameters, put double quotes around the string in the parameter values, and single quotes in the tool call message. 
+    - Ensure the tool call does not violate any ``error_messages`` constraints in the Tool Details. 
+    - Allowed types: string, number, integer, boolean, array. **Objects are not allowed.**
+    - Arrays must contain items of a single type (string, number, integer, boolean). Arrays of objects or array of arrays are not allowed. 
+
+  
+  Output format: Return a single JSON object whose keys are "Tool call 1", "Tool call 2", ... 
+
+  {{
+    "Tool call 1":
+    {{
+      "Failure mode": "failure mode of this tool call",
+      "Tool parameters":
+      {{
+        "Parameter 1": 123,
+        "Parameter 2": "this is a string",
+        "Parameter 3": true,
+        "Parameter 4": [1, 2, 3],
+      }}
+      "Tool call message": "[TOOL_NAME(Parameter1 = 123, Parameter2 = 'this is a string', Parameter3 = true, Parameter4 = [1, 2, 3], ...)]"
+    }},
+    "Tool call 2":
+    {{
+      "Failure mode": "failure mode of this tool call",
+      "Tool parameters":
+      {{
+        "Parameter 1": "Value of the parameter 1",
+        "Parameter 2": "Value of the parameter 2",
+        "Parameter 3": "Value of the parameter 3",
+        "Parameter 4": "Value of the parameter 4",
+        "Parameter 5": "Value of the parameter 5",
+      }}
+      "Tool call message": "[TOOL_NAME(Parameter1 = value1, Parameter2 = value2, ...)]"
+    }},
+    "Tool call 3":
+    {{
+      "Failure mode": "failure mode of this tool call",
+      "Tool parameters":
+      {{
+        "Parameter 1": "Value of the parameter 1",
+        "Parameter 2": "Value of the parameter 2",
+        "Parameter 3": "Value of the parameter 3"
+      }}
+      "Tool call message": "[TOOL_NAME(Parameter1 = value1, Parameter2 = value2, ...)]"
+    }}
+  }}
+
+  Note: When you need many variants (e.g., for enums/ranges), continue numbering: "Tool call 3", "Tool call 4", etc.
+
+  Generation hints:
+
+  (1) **Failure mode 1** (schema/type/range/name): 
+      - Omit one required parameter (one test per required param).
+      - Misspell a parameter name (one test per param).
+      - Wrong type (string - number - integer - boolean - array).
+      - Range underflow/overflow; string too short/long; enum invalid value; regex mismatch.
+      - Arrays: mixed types; empty when not allowed; size out of bounds.
+      - Arrays of objects
+
+  (2) **Failure mode 2** (contradict error rules):
+      - Violating cross-field dependencies (e.g., start < end, “if A=true then B required/forbidden”).
+      - Mutually exclusive options used together.
+      - Quotas/limits from error messages (e.g., “max 100 items”) while still schema-valid.
+      - Rate/temporal rules (e.g., date in the past) if specified.
+
+  (3) **Failure mode 3** (happy paths):
+      - Typical nominal case.
+      - Each enum value at least once.
+      - Boundaries exactly at min/max.
+      - Optional parameters present/omitted in different combos.
+      - Empty strings/zero/false where allowed.
+
+  Tool Details:
+  {tool_details}
+
+  Produce the Output Now
+  - Generate 2-3 tool calls for each failure mode.
+  - Return only the JSON object—no prose, no comments, no code fences.Your response must be valid JSON that can be parsed by json.loads(). Do not include any text before or after the JSON. Do not use markdown code blocks. Ensure all strings are enclosed in double quotes in the parameter values, and single quotes in the tool call message, and all syntax is correct. Ensure tha the dictionary is closed with a bracket character.
+  - The tool call message should very strictly follow the format that is parsable programmatically, i.e. TOOL_NAME(Parameter1 = value1, Parameter2 = value2, ...), with no extra spaces or characters (except in the case of intentially failure mode). The tool name should be exactly the same as specified in the tool details, replace spaces with underscores.
+
+

@@ -1,0 +1,173 @@
+schema:
+  type: object
+  properties:
+    tool_description:
+      type: string
+template: |
+  You are an API tool simulator. 
+
+  You will be given **Tool Details** that completely defines a tool. Your job is to produce:
+  
+  (1) **A correct tool call** - containing all required parameter keys and their corresponding values provided in the tool description. 
+
+  (2) **The return data** - exactly as defined by the Tool Details ``output_details``, corresponding to your tool call.
+
+  **Strictly adhere to the following rules:**
+  
+  **Parameters (Tool call)**:
+      - Tool call name is exactly same as the Tool Name.
+      - Use the exact parameter name from the Tool Details; do not invent new names.
+      - Include all **required** parameters.
+      - Optional parameters may be omitted (do not include their keys).
+      - Each parameter's value must match the type specified in the Tool Details.
+      - Ensure the tool call does not violate any ``error_messages`` constraints in the Tool Details. 
+      - Allowed types: string, number, integer, boolean, array. **Objects are not allowed.**
+      - Arrays must contain items of a single type (string, number, integer, boolean). Arrays of objects or array of arrays are not allowed. 
+
+  **Return data (output_details)**: 
+      - Return only the keys specified in ``output_details``, with their corresponding values.
+      - Include all keys listed in ``output_details``, using the exact key names.
+      - Each value must match the type defined in ``output_details``.
+      - Allowed types: string, number, integer, boolean, array. (Objects are not allowed.)
+      - Arrays must contain items of a single type (string, number, integer, boolean). Arrays of objects or array of arrays are not allowed. 
+
+  **Return data generation guidelines:**
+      - **Realistic Data**: Create contextually appropriate, realistic values based on:
+        - The actual parameter values in your tool call
+        - The domain context (e.g., financial data should have realistic ranges)
+        - Logical relationships between different values (e.g., correlations, derived metrics)
+  
+      - **Data Consistency**: Ensure generated data is internally consistent:
+        - Calculated values should match their inputs
+        - Related metrics should have logical relationships
+        - Time series data should follow realistic patterns
+      
+      - **Response Completeness**: Populate every key specified in ``output_details`` with meaningful values.
+
+  **Output format**: Include only the tool call and the return data. Do not add any other information about the tool itself.
+
+  For example:
+
+  Tool Details:
+  {{
+    "tool_name": "ML Model Trainer",
+    "tool_description": "A tool that assists in selecting, training, and evaluating machine learning models for supervised learning tasks.",
+    "parameters": {{
+      "training_data_path": {{
+        "type": "string",
+        "required": true,
+        "description": "Provide the path to the dataset file."
+      }},
+      "feature_columns": {{
+        "type": "array",
+        "required": true,
+        "description": "Provide the names of feature columns.",
+        "items": {{ "type": "string" }},
+        "minItems": 1,
+        "maxItems": 100
+      }},
+      "label_column": {{
+        "type": "string",
+        "required": true,
+        "description": "Name of the label column."
+      }},
+      "model_type": {{
+        "type": "string",
+        "required": true,
+        "description": "Model family, e.g., linear regression, logistic regression, decision tree, gradient boosting, neural network, transformer, LSTM."
+      }},
+      "learning_rate": {{
+        "type": "number",
+        "required": false,
+        "description": "Optimizer step size (> 0)."
+        "default": 0.01
+      }},
+      "weight_decay": {{
+        "type": "number",
+        "required": false,
+        "description": "L2 penalty strength (> 0)."
+        "default": 0.1
+      }},
+      "optimizer": {{
+        "type": "string",
+        "required": false,
+        "description": "Optimizer name, either Adam or SGD."
+        "default": Adam
+      }},
+      "epochs": {{
+        "type": "integer",
+        "required": false,
+        "description": "Number of training epochs (>= 1)."
+        "default": 1000
+      }}
+    }},
+    "error_messages": [
+      "Insufficient training data: Ensure the dataset has enough samples for training.",
+      "Invalid training data format: Ensure the data is in the correct format (Feature1, Feature2, ..., FeatureN, Label).",
+      "Invalid model type: Use one of [linear regression, logistic regression, decision tree, gradient boosting, neural network, transformer, LSTM].",
+      "Incorrect hyperparameter value: learning_rate and weight_decay must be greater than 0; optimizer must be either Adam or SGD; epochs must be an integer >= 1."
+    ],
+    "usage": "Provide training_data_path, feature_columns, label_column, and model_type; optionally set learning_rate, weight_decay, optimizer, and epochs. The tool returns training metrics and an artifacts summary.",
+    "output_details": {{
+      "summary": "string",
+      "training_loss": "array",
+      "test_loss": "array",
+      "final_training_loss": "number",
+      "final_test_loss": "number"
+      "summary": {{
+        "type": "string",
+        "description": "Provides a summary of the results."
+      }},
+      "training_loss": {{
+        "type": "array",
+        "items": {{
+        "type": "number"
+        }},
+        "description": "An array reporting the training loss at end of each epoch."
+      }} 
+      "test_loss": {{
+        "type": "array",
+        "items": {{
+        "type": "number"
+        }},
+        "description": "An array reporting the test loss at end of each epoch."
+      }},
+      "final_trainig_loss": {{
+        "type": "string",
+        "description": "The training loss at the end of training."
+      }},
+      "final_test_loss": {{
+        "type": "number",
+        "description": "The test loss at the end of training."
+      }} 
+    }}
+  }}
+
+  Output:
+  {{
+    "Tool Call":
+    {{
+      "training_data_path": "/user/mittal/desktop/training_data.csv",
+      "feature_columns": ["A", "B", "C", "D", "E", "F", "G", "H"],
+      "model_type": "linear regression"
+      "learning_rate": 0.001,
+      "epochs": 10
+    }}
+
+    "Return Data":
+    {{
+      "summary": "Successfully trained a linear regression model on the provided data. Used default values for optimizer (Adam) and weight decay (0.1) as they were not specified",
+      "training_loss": [0.5, 0.49, 0.48, 0.47, 0.4, 0.35, 0.32, 0.31, 0.305, 0.295],
+      "test_loss": [0.6, 0.58, 0.57, 0.55, 0.49, 0.40, 0.39, 0.37, 0.365, 0.35],
+      "final_training_loss": 0.295,
+      "final_test_loss": 0.35
+    }}
+  }}
+  
+  Now, generate the correct tool call parameters and return data for the following tool description:
+  
+  Tool Details:
+  {tool_description}
+
+  Output:
+
