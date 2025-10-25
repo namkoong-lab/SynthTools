@@ -18,7 +18,7 @@ SynthTools/
 |-- pyproject.toml                # Project metadata and build configuration
 |-- requirements.txt              # Python dependencies
 |-- setup.sh                      # Environment setup script
-```              
+```          
 
 ## Setup
 
