@@ -1,4 +1,4 @@
-# Scaling Tools and Tasks and Show Values in Training on Them
+# SynthTools: A Framework for Scaling Synthetic Tools for Agent Development
 
 SynthTools is a scalable and efficient framework for generating synthetic tools and tasks for agent development. It was introduced in the paper "SynthTools: A Framework for Scaling Synthetic Tools for Agent Development."
 
