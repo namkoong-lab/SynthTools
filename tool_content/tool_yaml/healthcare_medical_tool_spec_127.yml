@@ -1,0 +1,805 @@
+field_name: healthcare_medical
+subfield: Medical Imaging and Radiology
+task: Automated anomaly detection and preliminary screening in medical images
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to its high scope involving multiple imaging modalities and pathology types, significant ambiguity in anomaly classification requiring domain expertise, complex dependencies between image processing and clinical validation, critical risk where false negatives could delay treatment, and substantial data infrastructure requirements for handling large medical image datasets with strict compliance standards.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'll target **17 tools** within the 15-20 range to handle the comprehensive workflow from image ingestion through anomaly detection to clinical reporting.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Medical Image Loader** - Consumes: file paths, formats → Produces: standardized image data
+  2. **DICOM Metadata Extractor** - Consumes: DICOM files → Produces: patient/study metadata
+  3. **Image Quality Validator** - Consumes: raw images → Produces: quality metrics, validation status
+  4. **Image Preprocessor** - Consumes: raw images → Produces: normalized, standardized images
+  5. **ROI Segmentation Tool** - Consumes: preprocessed images → Produces: region coordinates
+  6. **Feature Extractor** - Consumes: segmented images → Produces: feature vectors
+  7. **Anomaly Detection Model** - Consumes: feature vectors → Produces: anomaly scores, classifications
+  8. **Confidence Score Calculator** - Consumes: model outputs → Produces: confidence metrics
+  9. **Multi-Modal Image Comparator** - Consumes: multiple image types → Produces: comparative analysis
+  10. **Reference Database Matcher** - Consumes: image features → Produces: similar case matches
+  11. **Clinical Rule Engine** - Consumes: anomaly data → Produces: clinical flags, priorities
+  12. **Report Generator** - Consumes: analysis results → Produces: structured reports
+  13. **Visualization Creator** - Consumes: images, annotations → Produces: annotated visualizations
+  14. **Quality Assurance Checker** - Consumes: detection results → Produces: QA validation
+  15. **Batch Processing Manager** - Consumes: image batches → Produces: processed results
+  16. **Performance Metrics Calculator** - Consumes: predictions, ground truth → Produces: accuracy metrics
+  17. **Alert System** - Consumes: critical findings → Produces: urgency notifications
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic anomaly screening: Medical Image Loader → Image Preprocessor → Anomaly Detection Model → Report Generator
+  2. Quality validation: Medical Image Loader → Image Quality Validator → Visualization Creator
+
+  **Medium Plans:**
+  1. Standard screening workflow: Medical Image Loader → DICOM Metadata Extractor → Image Preprocessor → ROI Segmentation Tool → Feature Extractor → Anomaly Detection Model → Confidence Score Calculator → Report Generator
+  2. Comparative analysis: Medical Image Loader → Image Preprocessor → Multi-Modal Image Comparator → Reference Database Matcher → Clinical Rule Engine → Alert System
+
+  **Complex Plans:**
+  1. Full clinical pipeline: Medical Image Loader → DICOM Metadata Extractor → Image Quality Validator → Image Preprocessor → ROI Segmentation Tool → Feature Extractor → Anomaly Detection Model → Confidence Score Calculator → Clinical Rule Engine → Quality Assurance Checker → Report Generator → Visualization Creator → Alert System
+  2. Research validation workflow: Batch Processing Manager → Medical Image Loader → Image Preprocessor → Feature Extractor → Anomaly Detection Model → Performance Metrics Calculator → Reference Database Matcher → Quality Assurance Checker
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Medical Image Loader",
+    "tool_description": "Loads medical images from various formats (DICOM, NIFTI, PNG, JPEG) and converts them to a standardized format for processing.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Full path to the medical image file"
+      },
+      "image_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format of the input image: DICOM, NIFTI, PNG, JPEG"
+      },
+      "normalize_intensity": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to normalize pixel intensity values"
+      }
+    },
+    "error_messages": [
+      "File not found: The specified file_path does not exist. Verify the path is correct.",
+      "Unsupported format: Use one of [DICOM, NIFTI, PNG, JPEG] for image_format.",
+      "Corrupted file: The image file is corrupted or unreadable. Try a different file.",
+      "Memory error: Image too large to load. Consider resizing or using batch processing."
+    ],
+    "usage": "Provide the file_path and image_format. Optionally set normalize_intensity to false if raw pixel values are needed.",
+    "output_details": {
+      "image_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Flattened array of pixel intensity values"
+      },
+      "dimensions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Image dimensions [width, height, depth]"
+      },
+      "pixel_spacing": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Physical spacing between pixels in mm"
+      },
+      "success": {
+        "type": "boolean",
+        "description": "Whether the image was loaded successfully"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "DICOM Metadata Extractor",
+    "tool_description": "Extracts patient information, study details, and imaging parameters from DICOM files for clinical context.",
+    "parameters": {
+      "dicom_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the DICOM file"
+      },
+      "extract_patient_info": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to extract patient demographic information"
+      },
+      "extract_study_info": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to extract study and series information"
+      },
+      "extract_acquisition_params": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to extract imaging acquisition parameters"
+      },
+      "anonymize": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to anonymize patient identifiable information"
+      }
+    },
+    "error_messages": [
+      "Invalid DICOM file: The file is not a valid DICOM format. Ensure the file has proper DICOM headers.",
+      "Missing metadata: Required DICOM tags are missing. Check if the file is complete.",
+      "Access denied: Insufficient permissions to read the file. Verify file permissions."
+    ],
+    "usage": "Provide dicom_file_path and optionally configure which metadata categories to extract. Set anonymize to true for privacy protection.",
+    "output_details": {
+      "patient_id": {
+        "type": "string",
+        "description": "Patient identifier (anonymized if requested)"
+      },
+      "study_date": {
+        "type": "string",
+        "description": "Date when the study was performed"
+      },
+      "modality": {
+        "type": "string",
+        "description": "Imaging modality (CT, MRI, X-ray, etc.)"
+      },
+      "body_part": {
+        "type": "string",
+        "description": "Body part examined"
+      },
+      "acquisition_parameters": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key imaging parameters as key-value pairs"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Quality Validator",
+    "tool_description": "Assesses medical image quality by checking resolution, contrast, noise levels, and artifacts to determine suitability for analysis.",
+    "parameters": {
+      "image_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Flattened array of pixel intensity values"
+      },
+      "image_dimensions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Image dimensions [width, height, depth]"
+      },
+      "modality": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging modality: CT, MRI, X-ray, Ultrasound"
+      },
+      "min_resolution": {
+        "type": "integer",
+        "required": false,
+        "default": 256,
+        "description": "Minimum acceptable resolution in pixels"
+      },
+      "max_noise_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.15,
+        "description": "Maximum acceptable noise ratio (0-1)"
+      }
+    },
+    "error_messages": [
+      "Invalid image dimensions: Dimensions must be positive integers matching the data size.",
+      "Unsupported modality: Use one of [CT, MRI, X-ray, Ultrasound].",
+      "Invalid threshold values: min_resolution must be > 0, max_noise_threshold must be between 0-1."
+    ],
+    "usage": "Provide image_data, image_dimensions, and modality. Adjust quality thresholds based on clinical requirements.",
+    "output_details": {
+      "quality_score": {
+        "type": "number",
+        "description": "Overall quality score from 0-1"
+      },
+      "resolution_adequate": {
+        "type": "boolean",
+        "description": "Whether resolution meets minimum requirements"
+      },
+      "noise_level": {
+        "type": "number",
+        "description": "Measured noise ratio in the image"
+      },
+      "contrast_score": {
+        "type": "number",
+        "description": "Image contrast quality score"
+      },
+      "artifacts_detected": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of detected image artifacts"
+      },
+      "suitable_for_analysis": {
+        "type": "boolean",
+        "description": "Whether image quality is sufficient for anomaly detection"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Preprocessor",
+    "tool_description": "Performs standardized preprocessing including normalization, resizing, denoising, and enhancement for optimal anomaly detection.",
+    "parameters": {
+      "image_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Input image pixel data"
+      },
+      "target_size": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Target dimensions [width, height] for resizing"
+      },
+      "normalization_method": {
+        "type": "string",
+        "required": false,
+        "default": "z-score",
+        "description": "Normalization technique: z-score, min-max, histogram-equalization"
+      },
+      "apply_denoising": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to apply noise reduction"
+      },
+      "enhance_contrast": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to enhance image contrast"
+      }
+    },
+    "error_messages": [
+      "Invalid target size: Target dimensions must be positive integers.",
+      "Unsupported normalization: Use one of [z-score, min-max, histogram-equalization].",
+      "Processing failed: Image preprocessing encountered an error. Check input data quality."
+    ],
+    "usage": "Provide image_data and target_size. Configure preprocessing options based on the specific imaging modality and analysis requirements.",
+    "output_details": {
+      "processed_image": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Preprocessed image data"
+      },
+      "final_dimensions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Final image dimensions after processing"
+      },
+      "preprocessing_applied": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of preprocessing steps applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "ROI Segmentation Tool",
+    "tool_description": "Identifies and segments regions of interest in medical images using various segmentation algorithms for focused analysis.",
+    "parameters": {
+      "image_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Preprocessed image data"
+      },
+      "image_dimensions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Image dimensions [width, height]"
+      },
+      "segmentation_method": {
+        "type": "string",
+        "required": true,
+        "description": "Segmentation algorithm: watershed, region-growing, edge-detection, deep-learning"
+      },
+      "target_structure": {
+        "type": "string",
+        "required": true,
+        "description": "Anatomical structure to segment: lung, liver, brain, bone, soft-tissue"
+      },
+      "sensitivity": {
+        "type": "number",
+        "required": false,
+        "default": 0.7,
+        "description": "Segmentation sensitivity (0.1-1.0)"
+      },
+      "min_region_size": {
+        "type": "integer",
+        "required": false,
+        "default": 100,
+        "description": "Minimum size for valid regions in pixels"
+      }
+    },
+    "error_messages": [
+      "Unsupported segmentation method: Use one of [watershed, region-growing, edge-detection, deep-learning].",
+      "Invalid target structure: Use one of [lung, liver, brain, bone, soft-tissue].",
+      "Invalid sensitivity value: Must be between 0.1 and 1.0.",
+      "Segmentation failed: Unable to identify regions. Try adjusting sensitivity or method."
+    ],
+    "usage": "Provide image_data, dimensions, segmentation_method, and target_structure. Adjust sensitivity and min_region_size for optimal results.",
+    "output_details": {
+      "roi_coordinates": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Bounding box coordinates for each ROI [x1,y1,x2,y2,...]"
+      },
+      "roi_masks": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Binary mask data for segmented regions"
+      },
+      "region_count": {
+        "type": "integer",
+        "description": "Number of regions identified"
+      },
+      "segmentation_confidence": {
+        "type": "number",
+        "description": "Overall confidence in segmentation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Feature Extractor",
+    "tool_description": "Extracts relevant features from segmented regions including texture, shape, intensity statistics, and radiomics features for anomaly detection.",
+    "parameters": {
+      "image_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Image data within ROI"
+      },
+      "roi_mask": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Binary mask defining the region of interest"
+      },
+      "feature_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Types of features to extract: texture, shape, intensity, radiomics, deep-features"
+      },
+      "texture_window_size": {
+        "type": "integer",
+        "required": false,
+        "default": 7,
+        "description": "Window size for texture analysis (3-15)"
+      },
+      "intensity_bins": {
+        "type": "integer",
+        "required": false,
+        "default": 64,
+        "description": "Number of bins for intensity histogram"
+      }
+    },
+    "error_messages": [
+      "Invalid feature types: Use combination of [texture, shape, intensity, radiomics, deep-features].",
+      "Mismatched dimensions: ROI mask dimensions must match image data dimensions.",
+      "Invalid parameters: texture_window_size must be 3-15, intensity_bins must be 8-256.",
+      "Feature extraction failed: Unable to compute features. Check ROI mask validity."
+    ],
+    "usage": "Provide image_data, roi_mask, and desired feature_types. Adjust texture_window_size and intensity_bins based on image characteristics.",
+    "output_details": {
+      "feature_vector": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Extracted feature values"
+      },
+      "feature_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Names corresponding to each feature"
+      },
+      "feature_count": {
+        "type": "integer",
+        "description": "Total number of features extracted"
+      },
+      "extraction_time": {
+        "type": "number",
+        "description": "Time taken for feature extraction in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Anomaly Detection Model",
+    "tool_description": "Applies machine learning models to detect anomalies in medical images using extracted features and returns classification results with probability scores.",
+    "parameters": {
+      "feature_vector": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Input feature vector from feature extraction"
+      },
+      "model_type": {
+        "type": "string",
+        "required": true,
+        "description": "ML model to use: isolation-forest, one-class-svm, autoencoder, deep-anomaly"
+      },
+      "sensitivity_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.5,
+        "description": "Threshold for anomaly classification (0-1)"
+      },
+      "model_version": {
+        "type": "string",
+        "required": false,
+        "default": "latest",
+        "description": "Version of the pre-trained model to use"
+      }
+    },
+    "error_messages": [
+      "Unsupported model type: Use one of [isolation-forest, one-class-svm, autoencoder, deep-anomaly].",
+      "Invalid feature vector: Feature vector must contain numeric values and match model input requirements.",
+      "Invalid threshold: sensitivity_threshold must be between 0 and 1.",
+      "Model loading failed: Unable to load the specified model version. Check model availability."
+    ],
+    "usage": "Provide feature_vector and select appropriate model_type for the anomaly detection task. Adjust sensitivity_threshold based on clinical requirements.",
+    "output_details": {
+      "anomaly_score": {
+        "type": "number",
+        "description": "Anomaly score from 0-1 (higher = more anomalous)"
+      },
+      "is_anomaly": {
+        "type": "boolean",
+        "description": "Binary classification result"
+      },
+      "confidence": {
+        "type": "number",
+        "description": "Model confidence in the prediction"
+      },
+      "anomaly_type": {
+        "type": "string",
+        "description": "Predicted type of anomaly if detected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Confidence Score Calculator",
+    "tool_description": "Calculates comprehensive confidence metrics for anomaly detection results by analyzing model uncertainty, feature quality, and prediction consistency.",
+    "parameters": {
+      "anomaly_score": {
+        "type": "number",
+        "required": true,
+        "description": "Primary anomaly score from detection model"
+      },
+      "model_confidence": {
+        "type": "number",
+        "required": true,
+        "description": "Model's internal confidence score"
+      },
+      "feature_quality_score": {
+        "type": "number",
+        "required": false,
+        "default": 0.8,
+        "description": "Quality score of extracted features (0-1)"
+      },
+      "image_quality_score": {
+        "type": "number",
+        "required": false,
+        "default": 0.9,
+        "description": "Overall image quality score (0-1)"
+      },
+      "ensemble_predictions": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "default": null,
+        "description": "Array of predictions from multiple models for consensus"
+      }
+    },
+    "error_messages": [
+      "Invalid score values: All scores must be between 0 and 1.",
+      "Missing required data: anomaly_score and model_confidence are required.",
+      "Inconsistent ensemble data: Ensemble predictions must contain valid probability scores."
+    ],
+    "usage": "Provide anomaly_score and model_confidence as minimum inputs. Include feature_quality_score, image_quality_score, and ensemble_predictions for more robust confidence assessment.",
+    "output_details": {
+      "overall_confidence": {
+        "type": "number",
+        "description": "Combined confidence score (0-1)"
+      },
+      "uncertainty_level": {
+        "type": "string",
+        "description": "Uncertainty classification: low, medium, high"
+      },
+      "reliability_factors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Factors contributing to confidence assessment"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Recommendation for result interpretation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi-Modal Image Comparator",
+    "tool_description": "Compares and analyzes multiple imaging modalities of the same patient to provide comprehensive anomaly assessment across different image types.",
+    "parameters": {
+      "primary_image_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Primary image modality data"
+      },
+      "secondary_image_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Secondary image modality data"
+      },
+      "primary_modality": {
+        "type": "string",
+        "required": true,
+        "description": "Type of primary image: CT, MRI, X-ray, Ultrasound"
+      },
+      "secondary_modality": {
+        "type": "string",
+        "required": true,
+        "description": "Type of secondary image: CT, MRI, X-ray, Ultrasound"
+      },
+      "registration_method": {
+        "type": "string",
+        "required": false,
+        "default": "rigid",
+        "description": "Image registration method: rigid, affine, deformable"
+      },
+      "comparison_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["correlation", "mutual-information"],
+        "description": "Metrics for comparison: correlation, mutual-information, structural-similarity"
+      },
+      "roi_coordinates": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": false,
+        "default": null,
+        "description": "Focus comparison on specific regions [x1,y1,x2,y2]"
+      }
+    },
+    "error_messages": [
+      "Incompatible modalities: The specified modality combination cannot be effectively compared.",
+      "Registration failed: Unable to align images for comparison. Check image quality and overlap.",
+      "Invalid comparison metrics: Use combination of [correlation, mutual-information, structural-similarity].",
+      "Dimension mismatch: Images must have compatible dimensions for comparison."
+    ],
+    "usage": "Provide both image datasets with their modality types. Specify registration method and comparison metrics based on clinical needs. Use roi_coordinates to focus on specific areas.",
+    "output_details": {
+      "correlation_score": {
+        "type": "number",
+        "description": "Cross-modal correlation coefficient"
+      },
+      "concordance_level": {
+        "type": "string",
+        "description": "Agreement level between modalities: high, medium, low"
+      },
+      "discrepancy_regions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Coordinates of regions with significant differences"
+      },
+      "combined_anomaly_score": {
+        "type": "number",
+        "description": "Multi-modal anomaly assessment score"
+      },
+      "registration_quality": {
+        "type": "number",
+        "description": "Quality of image alignment (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reference Database Matcher",
+    "tool_description": "Matches detected anomalies against a reference database of known pathologies to provide similar case examples and differential diagnosis suggestions.",
+    "parameters": {
+      "feature_vector": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Feature vector of the detected anomaly"
+      },
+      "modality": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging modality: CT, MRI, X-ray, Ultrasound"
+      },
+      "anatomical_region": {
+        "type": "string",
+        "required": true,
+        "description": "Body region: chest, abdomen, head, spine, extremities"
+      },
+      "top_matches": {
+        "type": "integer",
+        "required": false,
+        "default": 5,
+        "description": "Number of top similar cases to return (1-20)"
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.7,
+        "description": "Minimum similarity score for matches (0.5-0.95)"
+      },
+      "pathology_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Filter matches by pathology types"
+      }
+    },
+    "error_messages": [
+      "Invalid modality: Use one of [CT, MRI, X-ray, Ultrasound].",
+      "Invalid anatomical region: Use one of [chest, abdomen, head, spine, extremities].",
+      "Invalid parameters: top_matches must be 1-20, similarity_threshold must be 0.5-0.95.",
+      "Database connection failed: Unable to access reference database. Check connectivity.",
+      "No matches found: No similar cases found above the similarity threshold."
+    ],
+    "usage": "Provide feature_vector, modality, and anatomical_region. Adjust top_matches and similarity_threshold based on diagnostic needs. Use pathology_filter to narrow search scope.",
+    "output_details": {
+      "matched_cases": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "IDs of matched reference cases"
+      },
+      "similarity_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Similarity scores for each matched case"
+      },
+      "pathology_suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Suggested pathologies based on matches"
+      },
+      "confidence_in_matches": {
+        "type": "number",
+        "description": "Overall confidence in the matching results"
+      },
+      "differential_diagnoses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Potential differential diagnoses"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Clinical Rule Engine",
+    "tool_description": "Applies clinical decision rules and guidelines to anomaly detection results to generate appropriate flags, priorities, and recommendations for radiologist review.",
+    "parameters": {
+      "anomaly_score": {
+        "type": "number",
+        "required": true,
+        "description": "Anomaly detection score (0-1)"
+      },
+      "anomaly_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of detected anomaly"
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "patient_gender": {
+        "type": "string",
+        "required": true,
+        "description": "Patient gender: male, female, other"
+      },
+      "clinical_history": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Relevant clinical history keywords"
+      },
+      "urgency_factors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Factors requiring urgent attention"
+      },
+      "modality": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging modality used"
+      },
+      "confidence_score": {
+        "type": "number",
+        "required": true,
+        "description": "Overall confidence in detection (0-1)"
+      }
+    },
+    "error_messages": [
+      "Invalid patient data: patient_age must be 0-150, patient_gender must be [male, female, other].",
+      "Invalid scores: anomaly_score and confidence_score must be between 0 and 1.",
+      "Missing critical data: anomaly_score, anomaly_type, patient demographics are required.",
+      "Rule processing error: Clinical rules could not be applied. Check input data validity."
+    ],
+    "usage": "Provide anomaly detection results along with patient demographics. Include clinical_history and urgency_factors for more accurate rule application.",
+    "output_details": {
+      "priority_level": {
+        "type": "string",
+        "description": "Priority classification: routine, urgent, stat"
+      },
+      "clinical_flags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Clinical attention flags raised"
+      },
+      "recommended_followup": {
+        "type": "string",
+        "description": "Suggested follow-up actions"
+      },
+      "review_timeline": {
+        "type": "string",
+        "description": "Recommended timeframe for radiologist review"
+      },
+      "risk_assessment": {
+        "type": "string",
+        "description": "Overall risk level: low, moderate, high"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Report Generator",
+    "tool_description": "Generates structured preliminary screening reports combining anomaly detection results, clinical context, and recommendations in a standardized medical format.",
+    "parameters": {
+      "patient_id": {

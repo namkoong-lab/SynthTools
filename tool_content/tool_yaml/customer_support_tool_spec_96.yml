@@ -1,0 +1,852 @@
+field_name: customer_support
+subfield: call_center_operations
+task: Route incoming calls to appropriate agents based on caller needs and agent availability
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves real-time decision making with multiple dynamic variables (caller needs, agent skills, availability, queue management) and requires coordination across different systems. The complexity comes from handling concurrent requests, optimizing routing decisions, and managing escalations. I rate this as **medium** difficulty due to moderate coordination requirements and the need for real-time processing of multiple data streams.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'm targeting **12 tools** within the 10-15 range. This allows for comprehensive coverage of call routing workflows including caller identification, skill matching, queue management, and performance tracking.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools with upstream dependencies and downstream affordances:**
+
+  1. **Call Information Extractor** - Consumes: incoming call metadata → Produces: structured caller data
+  2. **Caller Authentication Validator** - Consumes: caller credentials → Produces: authentication status
+  3. **Call Purpose Classifier** - Consumes: caller input/history → Produces: categorized intent
+  4. **Agent Skills Matcher** - Consumes: call requirements, agent profiles → Produces: suitable agent list
+  5. **Agent Availability Checker** - Consumes: agent IDs, current time → Produces: availability status
+  6. **Queue Position Calculator** - Consumes: call priority, current queues → Produces: queue assignment
+  7. **Wait Time Estimator** - Consumes: queue data, agent performance → Produces: estimated wait time
+  8. **Call Priority Assessor** - Consumes: caller profile, issue type → Produces: priority level
+  9. **Routing Decision Engine** - Consumes: all routing factors → Produces: final agent assignment
+  10. **Call Transfer Coordinator** - Consumes: transfer requests → Produces: transfer execution
+  11. **Queue Status Monitor** - Consumes: real-time queue data → Produces: queue metrics
+  12. **Performance Metrics Tracker** - Consumes: call outcomes → Produces: routing effectiveness data
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple workflows (2-4 tools):**
+  - **Basic Call Routing**: Call Information Extractor → Call Purpose Classifier → Agent Skills Matcher → Routing Decision Engine
+  - **Queue Management**: Queue Position Calculator → Wait Time Estimator → Queue Status Monitor
+
+  **Medium workflows (5-8 tools):**
+  - **Priority Call Handling**: Call Information Extractor → Caller Authentication Validator → Call Priority Assessor → Agent Skills Matcher → Agent Availability Checker → Routing Decision Engine
+  - **Queue Optimization**: Call Purpose Classifier → Call Priority Assessor → Queue Position Calculator → Wait Time Estimator → Queue Status Monitor → Performance Metrics Tracker
+
+  **Complex workflows (9+ tools):**
+  - **Complete Call Routing**: Call Information Extractor → Caller Authentication Validator → Call Purpose Classifier → Call Priority Assessor → Agent Skills Matcher → Agent Availability Checker → Queue Position Calculator → Wait Time Estimator → Routing Decision Engine → Queue Status Monitor → Performance Metrics Tracker
+  - **Escalation with Transfer**: Call Information Extractor → Call Purpose Classifier → Agent Skills Matcher → Agent Availability Checker → Routing Decision Engine → Call Transfer Coordinator → Queue Position Calculator → Wait Time Estimator → Queue Status Monitor → Performance Metrics Tracker
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Call Information Extractor",
+    "tool_description": "Extracts and structures essential information from incoming calls including caller ID, phone number, and initial call metadata.",
+    "parameters": {
+      "call_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the incoming call"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": true,
+        "description": "Caller's phone number in E.164 format"
+      },
+      "call_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Timestamp when call was received",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid phone number format: Phone number must be in E.164 format (e.g., +1234567890).",
+      "Missing call_id: Call ID cannot be empty or null.",
+      "Invalid timestamp: Timestamp must be in ISO 8601 format."
+    ],
+    "usage": "Provide the call_id, phone_number, and call_timestamp to extract structured caller information for routing decisions.",
+    "output_details": {
+      "caller_id": {
+        "type": "string",
+        "description": "Extracted caller identification"
+      },
+      "formatted_number": {
+        "type": "string",
+        "description": "Standardized phone number format"
+      },
+      "call_origin": {
+        "type": "string",
+        "description": "Geographic origin of the call"
+      },
+      "is_existing_customer": {
+        "type": "boolean",
+        "description": "Whether caller is recognized as existing customer"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Caller Authentication Validator",
+    "tool_description": "Validates caller identity through various authentication methods to determine access level and routing permissions.",
+    "parameters": {
+      "caller_id": {
+        "type": "string",
+        "required": true,
+        "description": "Caller identification from previous extraction"
+      },
+      "account_number": {
+        "type": "string",
+        "required": false,
+        "description": "Customer account number if provided",
+        "default": "None"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": true,
+        "description": "Caller's phone number"
+      },
+      "authentication_method": {
+        "type": "string",
+        "required": true,
+        "description": "Method used for authentication: phone_verification, account_number, security_questions, or pin"
+      },
+      "provided_credentials": {
+        "type": "array",
+        "required": false,
+        "description": "Array of credential values provided by caller",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid authentication method: Must be one of [phone_verification, account_number, security_questions, pin].",
+      "Authentication failed: Provided credentials do not match customer records.",
+      "Account locked: Customer account is temporarily locked due to multiple failed attempts.",
+      "Missing credentials: Required authentication information not provided."
+    ],
+    "usage": "Provide caller_id, phone_number, authentication_method, and optionally account_number and provided_credentials to validate caller identity.",
+    "output_details": {
+      "is_authenticated": {
+        "type": "boolean",
+        "description": "Whether caller authentication was successful"
+      },
+      "authentication_level": {
+        "type": "string",
+        "description": "Level of authentication achieved (none, basic, full)"
+      },
+      "customer_tier": {
+        "type": "string",
+        "description": "Customer service tier (standard, premium, vip)"
+      },
+      "account_status": {
+        "type": "string",
+        "description": "Current account status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Call Purpose Classifier",
+    "tool_description": "Analyzes caller input and interaction history to classify the purpose and category of the call for appropriate routing.",
+    "parameters": {
+      "caller_input": {
+        "type": "string",
+        "required": true,
+        "description": "Initial input or response from caller describing their need"
+      },
+      "call_history": {
+        "type": "array",
+        "required": false,
+        "description": "Array of previous call categories for this caller",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "ivr_selections": {
+        "type": "array",
+        "required": false,
+        "description": "Array of IVR menu selections made by caller",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty caller input: Caller input cannot be empty or contain only whitespace.",
+      "Classification timeout: Unable to classify call purpose within time limit.",
+      "Ambiguous intent: Multiple possible classifications detected, manual routing required."
+    ],
+    "usage": "Provide caller_input and optionally call_history and ivr_selections to classify the call purpose and determine routing category.",
+    "output_details": {
+      "primary_category": {
+        "type": "string",
+        "description": "Main category of the call purpose"
+      },
+      "subcategory": {
+        "type": "string",
+        "description": "Specific subcategory within the main category"
+      },
+      "urgency_level": {
+        "type": "string",
+        "description": "Assessed urgency level (low, medium, high, critical)"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence score for the classification (0-1)"
+      },
+      "keywords": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key terms that influenced the classification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Agent Skills Matcher",
+    "tool_description": "Matches call requirements with agent skills and expertise to identify the most suitable agents for handling the call.",
+    "parameters": {
+      "call_category": {
+        "type": "string",
+        "required": true,
+        "description": "Primary category of the call"
+      },
+      "call_subcategory": {
+        "type": "string",
+        "required": true,
+        "description": "Specific subcategory of the call"
+      },
+      "required_skills": {
+        "type": "array",
+        "required": true,
+        "description": "Array of skills required to handle this call",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "language_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred language for the call",
+        "default": "english"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Customer service tier requiring specific agent level",
+        "default": "standard"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Urgency level affecting agent selection",
+        "default": "medium"
+      },
+      "minimum_experience": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum years of experience required",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "No matching agents: No agents found with required skills and availability.",
+      "Invalid skill category: One or more required skills not recognized in system.",
+      "Insufficient agent pool: Not enough qualified agents available for current demand.",
+      "Language not supported: Requested language preference not available."
+    ],
+    "usage": "Provide call_category, call_subcategory, and required_skills, with optional language_preference, customer_tier, urgency_level, and minimum_experience to find matching agents.",
+    "output_details": {
+      "qualified_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of agent IDs that match the requirements"
+      },
+      "skill_match_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Skill matching scores for each qualified agent"
+      },
+      "specialization_flags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Special qualifications of matched agents"
+      },
+      "total_matches": {
+        "type": "integer",
+        "description": "Total number of agents that match requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Agent Availability Checker",
+    "tool_description": "Checks real-time availability status of specified agents including current call status, schedule, and capacity.",
+    "parameters": {
+      "agent_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of agent IDs to check availability for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "current_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Current timestamp for availability check",
+        "format": "date-time"
+      },
+      "include_scheduled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include agents scheduled to be available soon",
+        "default": false
+      },
+      "max_queue_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum acceptable queue length for an agent",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Invalid agent ID: One or more agent IDs not found in system.",
+      "System unavailable: Agent status system temporarily unavailable.",
+      "Too many agents requested: Maximum 50 agents can be checked simultaneously.",
+      "Invalid timestamp: Timestamp must be current or recent (within last 5 minutes)."
+    ],
+    "usage": "Provide agent_ids and current_timestamp, optionally set include_scheduled and max_queue_length to check real-time agent availability.",
+    "output_details": {
+      "available_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Agent IDs that are currently available"
+      },
+      "busy_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Agent IDs that are currently busy"
+      },
+      "offline_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Agent IDs that are currently offline"
+      },
+      "queue_lengths": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Current queue length for each agent"
+      },
+      "estimated_availability": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Estimated time when busy agents will become available"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Queue Position Calculator",
+    "tool_description": "Calculates optimal queue position and assignment based on call priority, agent availability, and current queue status.",
+    "parameters": {
+      "call_priority": {
+        "type": "string",
+        "required": true,
+        "description": "Priority level of the call (low, medium, high, critical)"
+      },
+      "available_agents": {
+        "type": "array",
+        "required": true,
+        "description": "Array of available agent IDs",
+        "items": {"type": "string"}
+      },
+      "agent_queue_lengths": {
+        "type": "array",
+        "required": true,
+        "description": "Current queue length for each available agent",
+        "items": {"type": "integer"}
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Customer tier affecting queue priority",
+        "default": "standard"
+      },
+      "call_category": {
+        "type": "string",
+        "required": false,
+        "description": "Category of call for queue balancing",
+        "default": "general"
+      }
+    },
+    "error_messages": [
+      "Invalid priority level: Priority must be one of [low, medium, high, critical].",
+      "Array length mismatch: Available agents and queue lengths arrays must have same length.",
+      "No available queues: All agent queues are at maximum capacity.",
+      "Invalid customer tier: Customer tier must be one of [standard, premium, vip]."
+    ],
+    "usage": "Provide call_priority, available_agents, and agent_queue_lengths, with optional customer_tier and call_category to calculate optimal queue assignment.",
+    "output_details": {
+      "assigned_agent": {
+        "type": "string",
+        "description": "Agent ID assigned for this call"
+      },
+      "queue_position": {
+        "type": "integer",
+        "description": "Position in the assigned agent's queue"
+      },
+      "assignment_reason": {
+        "type": "string",
+        "description": "Explanation for the queue assignment decision"
+      },
+      "alternative_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative agent options if primary becomes unavailable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Wait Time Estimator",
+    "tool_description": "Estimates expected wait time for calls based on queue position, agent performance metrics, and historical data.",
+    "parameters": {
+      "agent_id": {
+        "type": "string",
+        "required": true,
+        "description": "Agent ID for which to estimate wait time"
+      },
+      "queue_position": {
+        "type": "integer",
+        "required": true,
+        "description": "Position in the agent's queue"
+      },
+      "call_category": {
+        "type": "string",
+        "required": true,
+        "description": "Category of the call affecting handling time"
+      },
+      "current_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Current timestamp for calculation",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid agent ID: Agent not found in performance database.",
+      "Invalid queue position: Position must be a positive integer.",
+      "Historical data insufficient: Not enough data to provide accurate estimate.",
+      "Agent performance data unavailable: Unable to access agent metrics for calculation."
+    ],
+    "usage": "Provide agent_id, queue_position, call_category, and current_timestamp to estimate expected wait time for the caller.",
+    "output_details": {
+      "estimated_wait_minutes": {
+        "type": "integer",
+        "description": "Estimated wait time in minutes"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence level of the estimate (low, medium, high)"
+      },
+      "factors_considered": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Factors included in the wait time calculation"
+      },
+      "alternative_wait_times": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Wait times if transferred to alternative agents"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Call Priority Assessor",
+    "tool_description": "Assesses and assigns priority level to incoming calls based on caller profile, issue urgency, and business rules.",
+    "parameters": {
+      "caller_profile": {
+        "type": "string",
+        "required": true,
+        "description": "Caller's profile information including tier and status"
+      },
+      "call_category": {
+        "type": "string",
+        "required": true,
+        "description": "Primary category of the call"
+      },
+      "issue_type": {
+        "type": "string",
+        "required": true,
+        "description": "Specific type of issue or inquiry"
+      },
+      "urgency_indicators": {
+        "type": "array",
+        "required": false,
+        "description": "Array of urgency keywords or indicators",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Customer service tier",
+        "default": "standard"
+      },
+      "account_status": {
+        "type": "string",
+        "required": false,
+        "description": "Current account status",
+        "default": "active"
+      },
+      "previous_escalations": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of previous escalations for this caller",
+        "default": 0
+      },
+      "callback_request": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this is a callback from previous interaction",
+        "default": false
+      },
+      "business_hours": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether call is during business hours",
+        "default": true
+      },
+      "service_level_agreement": {
+        "type": "string",
+        "required": false,
+        "description": "SLA tier affecting priority",
+        "default": "standard"
+      },
+      "complaint_flag": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this is flagged as a complaint",
+        "default": false
+      },
+      "financial_impact": {
+        "type": "string",
+        "required": false,
+        "description": "Assessed financial impact level",
+        "default": "low"
+      },
+      "regulatory_concern": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether issue involves regulatory compliance",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid customer tier: Must be one of [standard, premium, vip].",
+      "Invalid priority assessment: Unable to determine priority from provided information.",
+      "Missing required profile data: Caller profile information incomplete or invalid.",
+      "Conflicting priority indicators: Multiple contradictory priority signals detected."
+    ],
+    "usage": "Provide caller_profile, call_category, and issue_type with optional parameters to assess call priority level for routing decisions.",
+    "output_details": {
+      "priority_level": {
+        "type": "string",
+        "description": "Assigned priority level (low, medium, high, critical)"
+      },
+      "priority_score": {
+        "type": "integer",
+        "description": "Numerical priority score (1-100)"
+      },
+      "priority_factors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Factors that influenced priority assessment"
+      },
+      "escalation_flag": {
+        "type": "boolean",
+        "description": "Whether immediate escalation is recommended"
+      },
+      "sla_target": {
+        "type": "integer",
+        "description": "Target response time in minutes based on priority"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Routing Decision Engine",
+    "tool_description": "Makes final routing decisions by weighing all factors including agent match, availability, queue status, and call priority to optimize call assignment.",
+    "parameters": {
+      "qualified_agents": {
+        "type": "array",
+        "required": true,
+        "description": "Array of agent IDs qualified to handle the call",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "skill_match_scores": {
+        "type": "array",
+        "required": true,
+        "description": "Skill matching scores for qualified agents",
+        "items": {"type": "number"}
+      },
+      "agent_availability": {
+        "type": "array",
+        "required": true,
+        "description": "Availability status for each qualified agent",
+        "items": {"type": "string"}
+      },
+      "wait_times": {
+        "type": "array",
+        "required": true,
+        "description": "Estimated wait times for each qualified agent",
+        "items": {"type": "integer"}
+      },
+      "call_priority": {
+        "type": "string",
+        "required": true,
+        "description": "Priority level of the call"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Customer service tier",
+        "default": "standard"
+      },
+      "routing_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Routing optimization strategy: balanced, skill_first, speed_first, or load_balancing",
+        "default": "balanced"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All agent-related arrays must have the same length.",
+      "Invalid routing strategy: Must be one of [balanced, skill_first, speed_first, load_balancing].",
+      "No viable routing option: No acceptable routing decision could be made with current parameters.",
+      "Priority conflict: Call priority conflicts with available routing options."
+    ],
+    "usage": "Provide qualified_agents, skill_match_scores, agent_availability, wait_times, and call_priority with optional customer_tier and routing_strategy to make optimal routing decision.",
+    "output_details": {
+      "selected_agent": {
+        "type": "string",
+        "description": "Agent ID selected for handling the call"
+      },
+      "routing_confidence": {
+        "type": "number",
+        "description": "Confidence score for the routing decision (0-1)"
+      },
+      "decision_factors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key factors that influenced the routing decision"
+      },
+      "expected_outcome": {
+        "type": "string",
+        "description": "Expected outcome quality based on routing decision"
+      },
+      "backup_options": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative agents if primary selection fails"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Call Transfer Coordinator",
+    "tool_description": "Coordinates call transfers between agents, departments, or external systems while maintaining call context and history.",
+    "parameters": {
+      "current_agent": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the agent currently handling the call"
+      },
+      "target_agent": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the target agent or department for transfer"
+      },
+      "transfer_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for the transfer"
+      },
+      "call_context": {
+        "type": "string",
+        "required": true,
+        "description": "Summary of call context to preserve during transfer"
+      },
+      "transfer_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of transfer: warm, cold, or conference",
+        "default": "warm"
+      }
+    },
+    "error_messages": [
+      "Invalid transfer type: Must be one of [warm, cold, conference].",
+      "Target agent unavailable: Selected target agent is not available for transfer.",
+      "Transfer failed: Technical issue prevented successful call transfer.",
+      "Context preservation failed: Unable to maintain call context during transfer.",
+      "Circular transfer detected: Transfer would create a routing loop."
+    ],
+    "usage": "Provide current_agent, target_agent, transfer_reason, and call_context with optional transfer_type to coordinate call transfer.",
+    "output_details": {
+      "transfer_status": {
+        "type": "string",
+        "description": "Status of the transfer attempt (successful, failed, pending)"
+      },
+      "new_agent_id": {
+        "type": "string",
+        "description": "ID of the agent now handling the call"
+      },
+      "transfer_timestamp": {
+        "type": "string",
+        "description": "Timestamp when transfer was completed"
+      },
+      "context_preserved": {
+        "type": "boolean",
+        "description": "Whether call context was successfully preserved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Queue Status Monitor",
+    "tool_description": "Monitors real-time queue status across all agents and departments providing comprehensive queue metrics and alerts.",
+    "parameters": {
+      "monitoring_scope": {
+        "type": "string",
+        "required": true,
+        "description": "Scope of monitoring: all_agents, department, or specific_agents"
+      },
+      "department_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Array of department names to monitor",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "agent_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Array of specific agent IDs to monitor",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "include_historical": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include historical trend data",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid monitoring scope: Must be one of [all_agents, department, specific_agents].",
+      "Department not found: One or more specified departments do not exist.",
+      "Agent not found: One or more specified agent IDs are invalid.",
+      "Monitoring system unavailable: Queue monitoring system temporarily unavailable."
+    ],
+    "usage": "Provide monitoring_scope and optionally department_filter, agent_filter, and include_historical to monitor queue status.",
+    "output_details": {
+      "total_calls_queued": {
+        "type": "integer",
+        "description": "Total number of calls currently in all queues"
+      },
+      "average_wait_time": {
+        "type": "integer",
+        "description": "Average wait time across all monitored queues in minutes"
+      },
+      "longest_wait_time": {
+        "type": "integer",
+        "description": "Longest current wait time in minutes"
+      },
+      "agents_available": {
+        "type": "integer",
+        "description": "Number of agents currently available"
+      },
+      "agents_busy": {
+        "type": "integer",
+        "description": "Number of agents currently handling calls"
+      },
+      "queue_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current queue alerts or warnings"
+      },
+      "performance_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key performance indicators for current queue status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Metrics Tracker",
+    "tool_description": "Tracks and analyzes call routing performance metrics to optimize future routing decisions and identify improvement opportunities.",
+    "parameters": {
+      "metric_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of metrics to track: routing_effectiveness, agent_performance, or customer_satisfaction"
+      },
+      "time_period": {
+        "type": "string",
+        "required": true,
+        "description": "Time period for analysis: hourly, daily, weekly, or monthly"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for metrics analysis",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for metrics analysis",
+        "format": "date-time"
+      },
+      "agent_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Array of agent IDs to include in analysis",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid metric type: Must be one of [routing_effectiveness, agent_performance, customer_satisfaction].",
+      "Invalid time period: Must be one of [hourly, daily, weekly, monthly].",
+      "Invalid date range: End date must be after start date and within acceptable range.",
+      "Insufficient

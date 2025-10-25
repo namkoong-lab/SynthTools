@@ -1,0 +1,838 @@
+field_name: security_and_iam_identity_and_access_management
+subfield: User Authentication and Multi-Factor Authentication
+task: User identity verification and authentication credential validation
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. It involves multiple authentication methods, credential validation across different systems, real-time security decisions, and coordination between various identity providers and MFA systems. The risk of security vulnerabilities is high, requiring careful error handling and logging.
+
+  **STEP 2 — Set a tool budget**
+
+  Target: **12 tools** (within the 10-15 range for medium difficulty tasks)
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Credential Parser** - Consumes: raw credential data → Produces: structured credential objects
+  2. **Password Strength Validator** - Consumes: password strings → Produces: validation results
+  3. **Username Availability Checker** - Consumes: username, domain → Produces: availability status
+  4. **MFA Token Generator** - Consumes: user ID, method type → Produces: tokens and delivery info
+  5. **MFA Token Validator** - Consumes: tokens, user context → Produces: validation results
+  6. **Biometric Data Processor** - Consumes: biometric samples → Produces: processed templates
+  7. **Identity Provider Connector** - Consumes: provider config, user data → Produces: authentication results
+  8. **Session Token Manager** - Consumes: user info, policies → Produces: session tokens
+  9. **Authentication Policy Engine** - Consumes: user context, policies → Produces: authentication requirements
+  10. **Login Attempt Monitor** - Consumes: attempt data → Produces: risk assessments
+  11. **User Lockout Controller** - Consumes: user ID, violation data → Produces: lockout status
+  12. **Authentication Event Logger** - Consumes: event data → Produces: structured audit logs
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  - Basic password validation: Credential Parser → Password Strength Validator → Authentication Event Logger
+  - Username check: Username Availability Checker → Authentication Event Logger
+
+  **Medium plans:**
+  - Standard login: Credential Parser → Authentication Policy Engine → Identity Provider Connector → Session Token Manager → Authentication Event Logger
+  - MFA setup: Username Availability Checker → MFA Token Generator → Authentication Event Logger
+
+  **Complex plans:**
+  - Full secure authentication: Login Attempt Monitor → Credential Parser → Authentication Policy Engine → Password Strength Validator → Identity Provider Connector → MFA Token Generator → MFA Token Validator → Session Token Manager → Authentication Event Logger
+  - Biometric authentication with monitoring: Login Attempt Monitor → Biometric Data Processor → Authentication Policy Engine → Identity Provider Connector → User Lockout Controller → Session Token Manager → Authentication Event Logger
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Credential Parser",
+    "tool_description": "Parses and validates raw authentication credentials from various input formats into standardized structures for further processing.",
+    "parameters": {
+      "credential_data": {
+        "type": "string",
+        "required": true,
+        "description": "Raw credential data in JSON, XML, or form-encoded format"
+      },
+      "input_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format of input data: json, xml, form-encoded"
+      },
+      "expected_fields": {
+        "type": "array",
+        "required": true,
+        "description": "List of expected credential field names",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      }
+    },
+    "error_messages": [
+      "Invalid input format: Use one of [json, xml, form-encoded]",
+      "Malformed credential data: Ensure data matches the specified input format",
+      "Missing required fields: All fields in expected_fields must be present in credential_data"
+    ],
+    "usage": "Provide credential_data in the specified input_format with expected_fields list. Returns parsed and validated credential components.",
+    "output_details": {
+      "parsed_credentials": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of parsed credential field values"
+      },
+      "field_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of credential field names"
+      },
+      "parsing_status": {
+        "type": "string",
+        "description": "Success or failure status of parsing operation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Password Strength Validator",
+    "tool_description": "Evaluates password strength against configurable security policies including length, complexity, and common password checks.",
+    "parameters": {
+      "password": {
+        "type": "string",
+        "required": true,
+        "description": "Password to validate"
+      },
+      "min_length": {
+        "type": "integer",
+        "required": false,
+        "default": 8,
+        "description": "Minimum password length (4-128)"
+      },
+      "require_uppercase": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether uppercase letters are required"
+      },
+      "require_lowercase": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether lowercase letters are required"
+      },
+      "require_digits": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether digits are required"
+      },
+      "require_special_chars": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether special characters are required"
+      },
+      "check_common_passwords": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to check against common password lists"
+      }
+    },
+    "error_messages": [
+      "Invalid min_length: Must be between 4 and 128",
+      "Empty password: Password cannot be empty or null"
+    ],
+    "usage": "Provide password and optional strength requirements. Returns validation result with specific feedback on password strength.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether password meets all requirements"
+      },
+      "strength_score": {
+        "type": "integer",
+        "description": "Password strength score from 0-100"
+      },
+      "failed_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of requirements that the password failed"
+      },
+      "suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommendations for improving password strength"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Username Availability Checker",
+    "tool_description": "Checks username availability across multiple identity providers and validates username format against naming policies.",
+    "parameters": {
+      "username": {
+        "type": "string",
+        "required": true,
+        "description": "Username to check for availability"
+      },
+      "domain": {
+        "type": "string",
+        "required": true,
+        "description": "Domain or organization context for username check"
+      },
+      "check_format": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to validate username format"
+      },
+      "reserved_names": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "description": "List of reserved usernames that cannot be used",
+        "items": {"type": "string"}
+      }
+    },
+    "error_messages": [
+      "Invalid username format: Username must contain only alphanumeric characters, hyphens, and underscores",
+      "Empty username: Username cannot be empty or null",
+      "Invalid domain: Domain must be a valid domain name format"
+    ],
+    "usage": "Provide username and domain to check availability. Optionally enable format checking and specify reserved names.",
+    "output_details": {
+      "is_available": {
+        "type": "boolean",
+        "description": "Whether the username is available"
+      },
+      "format_valid": {
+        "type": "boolean",
+        "description": "Whether username format is valid"
+      },
+      "conflict_reason": {
+        "type": "string",
+        "description": "Reason if username is unavailable"
+      },
+      "suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative username suggestions if unavailable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "MFA Token Generator",
+    "tool_description": "Generates multi-factor authentication tokens using various methods including TOTP, SMS, email, and push notifications.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the user"
+      },
+      "mfa_method": {
+        "type": "string",
+        "required": true,
+        "description": "MFA method: totp, sms, email, push, backup_codes"
+      },
+      "contact_info": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Phone number for SMS or email address for email MFA"
+      },
+      "token_length": {
+        "type": "integer",
+        "required": false,
+        "default": 6,
+        "description": "Length of generated token (4-8 digits)"
+      },
+      "expiry_seconds": {
+        "type": "integer",
+        "required": false,
+        "default": 300,
+        "description": "Token expiry time in seconds (30-1800)"
+      },
+      "backup_codes_count": {
+        "type": "integer",
+        "required": false,
+        "default": 10,
+        "description": "Number of backup codes to generate (5-20)"
+      }
+    },
+    "error_messages": [
+      "Invalid MFA method: Use one of [totp, sms, email, push, backup_codes]",
+      "Missing contact info: SMS requires phone number, email requires email address",
+      "Invalid token_length: Must be between 4 and 8 digits",
+      "Invalid expiry_seconds: Must be between 30 and 1800 seconds",
+      "Invalid backup_codes_count: Must be between 5 and 20",
+      "User not found: The specified user_id does not exist"
+    ],
+    "usage": "Provide user_id and mfa_method. Include contact_info for SMS/email methods. Optionally customize token_length, expiry_seconds, and backup_codes_count.",
+    "output_details": {
+      "token": {
+        "type": "string",
+        "description": "Generated MFA token or secret key"
+      },
+      "delivery_method": {
+        "type": "string",
+        "description": "Method used to deliver the token"
+      },
+      "expires_at": {
+        "type": "string",
+        "description": "Token expiration timestamp in ISO 8601 format"
+      },
+      "backup_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of backup codes if method is backup_codes"
+      },
+      "qr_code_url": {
+        "type": "string",
+        "description": "QR code URL for TOTP setup"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "MFA Token Validator",
+    "tool_description": "Validates MFA tokens against stored secrets and handles token replay prevention and timing windows.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the user"
+      },
+      "token": {
+        "type": "string",
+        "required": true,
+        "description": "MFA token to validate"
+      },
+      "mfa_method": {
+        "type": "string",
+        "required": true,
+        "description": "MFA method used: totp, sms, email, push, backup_codes"
+      },
+      "time_window": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Time window in seconds for TOTP validation (15-300)"
+      },
+      "allow_replay": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to allow token replay within time window"
+      }
+    },
+    "error_messages": [
+      "Invalid MFA method: Use one of [totp, sms, email, push, backup_codes]",
+      "Invalid time_window: Must be between 15 and 300 seconds",
+      "Empty token: Token cannot be empty or null",
+      "User not found: The specified user_id does not exist",
+      "Token expired: The provided token has expired",
+      "Token already used: Token replay detected and not allowed"
+    ],
+    "usage": "Provide user_id, token, and mfa_method. Optionally set time_window for TOTP and allow_replay for token reuse policy.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the token is valid"
+      },
+      "validation_timestamp": {
+        "type": "string",
+        "description": "Timestamp of validation in ISO 8601 format"
+      },
+      "remaining_attempts": {
+        "type": "integer",
+        "description": "Number of remaining validation attempts before lockout"
+      },
+      "method_verified": {
+        "type": "string",
+        "description": "The MFA method that was successfully verified"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Biometric Data Processor",
+    "tool_description": "Processes biometric authentication data including fingerprints, facial recognition, and voice patterns with privacy-preserving template generation.",
+    "parameters": {
+      "biometric_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded biometric sample data"
+      },
+      "biometric_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of biometric: fingerprint, face, voice, iris"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the user"
+      },
+      "quality_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.7,
+        "description": "Minimum quality score for biometric sample (0.1-1.0)"
+      },
+      "template_format": {
+        "type": "string",
+        "required": false,
+        "default": "iso",
+        "description": "Biometric template format: iso, ansi, proprietary"
+      },
+      "enrollment_mode": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether this is enrollment or verification mode"
+      },
+      "liveness_check": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to perform liveness detection"
+      },
+      "max_samples": {
+        "type": "integer",
+        "required": false,
+        "default": 3,
+        "description": "Maximum number of samples to process (1-10)"
+      },
+      "matching_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.8,
+        "description": "Threshold for biometric matching (0.1-1.0)"
+      },
+      "encryption_enabled": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to encrypt biometric templates"
+      },
+      "retention_days": {
+        "type": "integer",
+        "required": false,
+        "default": 365,
+        "description": "Number of days to retain biometric data (1-3650)"
+      },
+      "vendor_sdk": {
+        "type": "string",
+        "required": false,
+        "default": "generic",
+        "description": "Biometric SDK vendor: generic, neurotechnology, aware, innovatrics"
+      },
+      "anti_spoofing": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to enable anti-spoofing measures"
+      }
+    },
+    "error_messages": [
+      "Invalid biometric_type: Use one of [fingerprint, face, voice, iris]",
+      "Invalid biometric_data: Must be valid base64-encoded data",
+      "Invalid quality_threshold: Must be between 0.1 and 1.0",
+      "Invalid template_format: Use one of [iso, ansi, proprietary]",
+      "Invalid max_samples: Must be between 1 and 10",
+      "Invalid matching_threshold: Must be between 0.1 and 1.0",
+      "Invalid retention_days: Must be between 1 and 3650",
+      "Invalid vendor_sdk: Use one of [generic, neurotechnology, aware, innovatrics]",
+      "Poor biometric quality: Sample quality below threshold",
+      "Liveness check failed: Sample appears to be from non-living source",
+      "User not found: The specified user_id does not exist"
+    ],
+    "usage": "Provide biometric_data (base64), biometric_type, and user_id. Configure quality_threshold, template_format, and other security settings as needed.",
+    "output_details": {
+      "processing_status": {
+        "type": "string",
+        "description": "Status of biometric processing: success, failed, poor_quality"
+      },
+      "quality_score": {
+        "type": "number",
+        "description": "Quality score of the biometric sample (0.0-1.0)"
+      },
+      "template_id": {
+        "type": "string",
+        "description": "Unique identifier for generated biometric template"
+      },
+      "match_score": {
+        "type": "number",
+        "description": "Matching score if in verification mode (0.0-1.0)"
+      },
+      "liveness_passed": {
+        "type": "boolean",
+        "description": "Whether liveness detection passed"
+      },
+      "anti_spoofing_passed": {
+        "type": "boolean",
+        "description": "Whether anti-spoofing checks passed"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Processing time in milliseconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Identity Provider Connector",
+    "tool_description": "Connects to external identity providers (LDAP, Active Directory, SAML, OAuth) to authenticate users and retrieve identity information.",
+    "parameters": {
+      "provider_type": {
+        "type": "string",
+        "required": true,
+        "description": "Identity provider type: ldap, active_directory, saml, oauth2, oidc"
+      },
+      "provider_url": {
+        "type": "string",
+        "required": true,
+        "description": "URL endpoint for the identity provider"
+      },
+      "username": {
+        "type": "string",
+        "required": true,
+        "description": "Username for authentication"
+      },
+      "credentials": {
+        "type": "string",
+        "required": true,
+        "description": "Password or token for authentication"
+      },
+      "domain": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Domain name for Active Directory authentication"
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Connection timeout in seconds (5-120)"
+      },
+      "ssl_verify": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to verify SSL certificates"
+      },
+      "attributes_to_fetch": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "description": "List of user attributes to retrieve",
+        "items": {"type": "string"}
+      }
+    },
+    "error_messages": [
+      "Invalid provider_type: Use one of [ldap, active_directory, saml, oauth2, oidc]",
+      "Invalid provider_url: Must be a valid URL format",
+      "Invalid timeout_seconds: Must be between 5 and 120 seconds",
+      "Connection failed: Unable to connect to identity provider",
+      "Authentication failed: Invalid credentials provided",
+      "SSL verification failed: Certificate verification error when ssl_verify is enabled"
+    ],
+    "usage": "Provide provider_type, provider_url, username, and credentials. Optionally specify domain for AD, timeout settings, and attributes to fetch.",
+    "output_details": {
+      "authentication_status": {
+        "type": "string",
+        "description": "Authentication result: success, failed, error"
+      },
+      "user_attributes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Retrieved user attributes from identity provider"
+      },
+      "groups": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "User group memberships"
+      },
+      "provider_response_time": {
+        "type": "number",
+        "description": "Response time from provider in milliseconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Session Token Manager",
+    "tool_description": "Creates, validates, and manages authentication session tokens with configurable expiration, refresh capabilities, and security policies.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the user"
+      },
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Token operation: create, validate, refresh, revoke"
+      },
+      "existing_token": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Existing token for validate, refresh, or revoke operations"
+      },
+      "session_duration": {
+        "type": "integer",
+        "required": false,
+        "default": 3600,
+        "description": "Session duration in seconds (300-86400)"
+      },
+      "refresh_enabled": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether refresh tokens are enabled"
+      }
+    },
+    "error_messages": [
+      "Invalid operation: Use one of [create, validate, refresh, revoke]",
+      "Invalid session_duration: Must be between 300 and 86400 seconds",
+      "Missing existing_token: Required for validate, refresh, and revoke operations",
+      "Invalid token: Token is malformed or corrupted",
+      "Token expired: The provided token has expired",
+      "User not found: The specified user_id does not exist"
+    ],
+    "usage": "Specify user_id and operation. For validate/refresh/revoke operations, provide existing_token. Configure session_duration and refresh_enabled as needed.",
+    "output_details": {
+      "operation_status": {
+        "type": "string",
+        "description": "Status of the token operation: success, failed, expired"
+      },
+      "access_token": {
+        "type": "string",
+        "description": "New or validated access token"
+      },
+      "refresh_token": {
+        "type": "string",
+        "description": "Refresh token if refresh_enabled is true"
+      },
+      "expires_at": {
+        "type": "string",
+        "description": "Token expiration timestamp in ISO 8601 format"
+      },
+      "token_type": {
+        "type": "string",
+        "description": "Type of token: bearer, jwt"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Authentication Policy Engine",
+    "tool_description": "Evaluates authentication policies and determines required authentication factors based on user context, risk level, and organizational policies.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the user"
+      },
+      "user_role": {
+        "type": "string",
+        "required": true,
+        "description": "User role: admin, user, guest, service_account"
+      },
+      "resource_classification": {
+        "type": "string",
+        "required": true,
+        "description": "Resource security level: public, internal, confidential, restricted"
+      },
+      "client_ip": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Client IP address for location-based policies"
+      },
+      "device_type": {
+        "type": "string",
+        "required": false,
+        "default": "unknown",
+        "description": "Device type: desktop, mobile, tablet, server"
+      },
+      "time_of_access": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Access timestamp in ISO 8601 format"
+      },
+      "risk_score": {
+        "type": "number",
+        "required": false,
+        "default": 0.0,
+        "description": "Calculated risk score (0.0-1.0)"
+      }
+    },
+    "error_messages": [
+      "Invalid user_role: Use one of [admin, user, guest, service_account]",
+      "Invalid resource_classification: Use one of [public, internal, confidential, restricted]",
+      "Invalid device_type: Use one of [desktop, mobile, tablet, server, unknown]",
+      "Invalid risk_score: Must be between 0.0 and 1.0",
+      "Invalid time_of_access: Must be valid ISO 8601 timestamp",
+      "User not found: The specified user_id does not exist"
+    ],
+    "usage": "Provide user_id, user_role, and resource_classification. Optionally include client_ip, device_type, time_of_access, and risk_score for enhanced policy evaluation.",
+    "output_details": {
+      "authentication_required": {
+        "type": "boolean",
+        "description": "Whether authentication is required"
+      },
+      "required_factors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of required authentication factors"
+      },
+      "policy_decision": {
+        "type": "string",
+        "description": "Policy decision: allow, deny, step_up_auth"
+      },
+      "session_restrictions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of session restrictions to apply"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Assessed risk level: low, medium, high, critical"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Login Attempt Monitor",
+    "tool_description": "Monitors and analyzes login attempts to detect suspicious patterns, brute force attacks, and anomalous behavior for security threat assessment.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the user"
+      },
+      "client_ip": {
+        "type": "string",
+        "required": true,
+        "description": "Client IP address of login attempt"
+      },
+      "user_agent": {
+        "type": "string",
+        "required": true,
+        "description": "Client user agent string"
+      },
+      "attempt_result": {
+        "type": "string",
+        "required": true,
+        "description": "Result of login attempt: success, failure, blocked"
+      },
+      "timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Timestamp of attempt in ISO 8601 format"
+      }
+    },
+    "error_messages": [
+      "Invalid attempt_result: Use one of [success, failure, blocked]",
+      "Invalid timestamp: Must be valid ISO 8601 timestamp",
+      "Invalid IP address: Must be valid IPv4 or IPv6 address",
+      "Empty user_agent: User agent string cannot be empty"
+    ],
+    "usage": "Provide user_id, client_ip, user_agent, attempt_result, and timestamp for each login attempt to monitor and analyze patterns.",
+    "output_details": {
+      "risk_assessment": {
+        "type": "string",
+        "description": "Risk level: low, medium, high, critical"
+      },
+      "anomaly_detected": {
+        "type": "boolean",
+        "description": "Whether anomalous behavior was detected"
+      },
+      "threat_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of detected threat indicators"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Recommended security action: monitor, alert, block, lockout"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence score for risk assessment (0.0-1.0)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "User Lockout Controller",
+    "tool_description": "Manages user account lockouts based on failed login attempts, security violations, and administrative actions with configurable lockout policies.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the user"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Lockout action: check_status, apply_lockout, remove_lockout, extend_lockout"
+      },
+      "violation_type": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Type of violation: failed_login, suspicious_activity, policy_violation, admin_action"
+      },
+      "lockout_duration": {
+        "type": "integer",
+        "required": false,
+        "default": 900,
+        "description": "Lockout duration in seconds (60-86400)"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Use one of [check_status, apply_lockout, remove_lockout, extend_lockout]",
+      "Invalid violation_type: Use one of [failed_login, suspicious_activity, policy_violation, admin_action]",
+      "Invalid lockout_duration: Must be between 60 and 86400 seconds",
+      "User not found: The specified user_id does not exist"
+    ],
+    "usage": "Provide user_id and action. For apply_lockout and extend_lockout actions, include violation_type and optionally specify lockout_duration.",
+    "output_details": {
+      "lockout_status": {
+        "type": "string",
+        "description": "Current lockout status: active, inactive, expired"
+      },
+      "locked_until": {
+        "type": "string",
+        "description": "Lockout expiration timestamp in ISO 8601 format"
+      },
+      "lockout_reason": {
+        "type": "string",
+        "description": "Reason for the lockout"
+      },
+      "failed_attempts": {
+        "type": "integer",
+        "description": "Number of failed login attempts"
+      }

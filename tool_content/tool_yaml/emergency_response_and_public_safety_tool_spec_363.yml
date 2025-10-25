@@ -1,0 +1,781 @@
+field_name: emergency_response_and_public_safety
+subfield: Emergency Medical Services and Ambulance Operations
+task: Patient assessment and vital signs monitoring during transport
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to the critical nature of patient care during transport where errors can be life-threatening, the need for real-time monitoring of multiple vital signs simultaneously, complex decision-making under time pressure, coordination between multiple medical personnel, and strict regulatory compliance requirements for medical data handling.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I will target **17 tools** to cover the comprehensive workflow of patient assessment, vital signs monitoring, data recording, alert management, and communication during ambulance transport.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  - **Patient Information Recorder** → produces patient demographics for other tools
+  - **Vital Signs Monitor** → produces real-time vital data for trend analysis and alerts
+  - **Medical History Assessor** → produces medical background for clinical decisions
+  - **Medication Tracker** → produces current medication data for interaction checks
+  - **Glasgow Coma Calculator** → produces neurological assessment scores
+  - **Pain Scale Assessor** → produces pain measurement data
+  - **ECG Analyzer** → produces cardiac rhythm analysis for arrhythmia detection
+  - **Blood Pressure Classifier** → produces BP categorization for clinical interpretation
+  - **Respiratory Pattern Analyzer** → produces breathing assessment data
+  - **Alert Generator** → consumes vital signs data to produce emergency notifications
+  - **Trend Analyzer** → consumes historical vital signs to produce trend analysis
+  - **Clinical Decision Supporter** → consumes multiple assessment data to produce recommendations
+  - **Transport Documentation Generator** → consumes all patient data to produce transport records
+  - **Hospital Communication Interface** → consumes patient data to produce hospital notifications
+  - **Equipment Status Monitor** → produces equipment functionality data
+  - **Time Logger** → produces timestamp data for all interventions
+  - **Handoff Report Generator** → consumes all collected data to produce transfer summaries
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic vital monitoring: Patient Information Recorder → Vital Signs Monitor → Alert Generator
+  2. Pain assessment workflow: Patient Information Recorder → Pain Scale Assessor → Time Logger
+
+  **Medium Plans:**
+  1. Comprehensive assessment: Patient Information Recorder → Medical History Assessor → Vital Signs Monitor → Glasgow Coma Calculator → Clinical Decision Supporter
+  2. Cardiac monitoring: Vital Signs Monitor → ECG Analyzer → Blood Pressure Classifier → Alert Generator → Hospital Communication Interface
+
+  **Complex Plans:**
+  1. Complete transport workflow: Patient Information Recorder → Medical History Assessor → Medication Tracker → Vital Signs Monitor → ECG Analyzer → Respiratory Pattern Analyzer → Alert Generator → Trend Analyzer → Clinical Decision Supporter → Transport Documentation Generator → Hospital Communication Interface → Handoff Report Generator
+  2. Critical patient monitoring: Vital Signs Monitor → ECG Analyzer → Blood Pressure Classifier → Glasgow Coma Calculator → Alert Generator → Equipment Status Monitor → Hospital Communication Interface → Time Logger → Clinical Decision Supporter → Handoff Report Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Patient Information Recorder",
+    "tool_description": "Records essential patient demographics and identification information at the start of emergency transport to establish patient identity and basic details for medical record keeping.",
+    "parameters": {
+      "patient_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of the patient"
+      },
+      "age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years (0-120)"
+      },
+      "gender": {
+        "type": "string",
+        "required": true,
+        "description": "Patient gender (Male, Female, Other, Unknown)"
+      },
+      "weight": {
+        "type": "number",
+        "required": false,
+        "description": "Patient weight in kilograms (1-300)",
+        "default": null
+      },
+      "height": {
+        "type": "number",
+        "required": false,
+        "description": "Patient height in centimeters (30-250)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid age range: Age must be between 0 and 120 years.",
+      "Invalid gender value: Use Male, Female, Other, or Unknown.",
+      "Invalid weight: Weight must be between 1 and 300 kg if provided.",
+      "Invalid height: Height must be between 30 and 250 cm if provided.",
+      "Missing required fields: Patient name, age, and gender are mandatory."
+    ],
+    "usage": "Enter patient_name, age, and gender as required fields. Optionally add weight and height if available. This creates the foundation record for all subsequent assessments.",
+    "output_details": {
+      "patient_id": {
+        "type": "string",
+        "description": "Unique identifier generated for this patient encounter"
+      },
+      "record_timestamp": {
+        "type": "string",
+        "description": "When the patient record was created"
+      },
+      "bmi_calculated": {
+        "type": "boolean",
+        "description": "Whether BMI could be calculated from provided height and weight"
+      },
+      "record_status": {
+        "type": "string",
+        "description": "Status of record creation (Complete, Partial)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Vital Signs Monitor",
+    "tool_description": "Continuously monitors and records patient vital signs including heart rate, blood pressure, respiratory rate, oxygen saturation, and temperature during emergency transport.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier from patient record"
+      },
+      "heart_rate": {
+        "type": "integer",
+        "required": true,
+        "description": "Heart rate in beats per minute (20-300)"
+      },
+      "systolic_bp": {
+        "type": "integer",
+        "required": true,
+        "description": "Systolic blood pressure in mmHg (50-300)"
+      },
+      "diastolic_bp": {
+        "type": "integer",
+        "required": true,
+        "description": "Diastolic blood pressure in mmHg (20-200)"
+      },
+      "respiratory_rate": {
+        "type": "integer",
+        "required": true,
+        "description": "Respiratory rate per minute (0-100)"
+      },
+      "oxygen_saturation": {
+        "type": "integer",
+        "required": true,
+        "description": "Oxygen saturation percentage (0-100)"
+      },
+      "temperature": {
+        "type": "number",
+        "required": true,
+        "description": "Body temperature in Celsius (25-45)"
+      },
+      "measurement_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method used for measurement (Automated, Manual)",
+        "default": "Automated"
+      }
+    },
+    "error_messages": [
+      "Invalid vital sign ranges: Heart rate (20-300), Systolic BP (50-300), Diastolic BP (20-200), Respiratory rate (0-100), O2 Sat (0-100), Temperature (25-45°C).",
+      "Invalid blood pressure combination: Systolic pressure must be higher than diastolic pressure.",
+      "Patient ID not found: Ensure patient record exists before recording vitals.",
+      "Invalid measurement method: Use 'Automated' or 'Manual'.",
+      "Missing required vitals: All vital signs must be provided for complete assessment."
+    ],
+    "usage": "Provide patient_id and all vital sign measurements. The tool validates ranges and stores the data with timestamp. Use for continuous monitoring during transport.",
+    "output_details": {
+      "vital_signs_id": {
+        "type": "string",
+        "description": "Unique identifier for this vital signs reading"
+      },
+      "measurement_timestamp": {
+        "type": "string",
+        "description": "Exact time when measurements were taken"
+      },
+      "abnormal_flags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of vital signs outside normal ranges"
+      },
+      "severity_level": {
+        "type": "string",
+        "description": "Overall assessment (Normal, Concerning, Critical)"
+      },
+      "requires_immediate_attention": {
+        "type": "boolean",
+        "description": "Whether any vital signs require immediate medical intervention"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Medical History Assessor",
+    "tool_description": "Collects and evaluates patient medical history, current conditions, and relevant background information that may impact emergency treatment decisions during transport.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "chief_complaint": {
+        "type": "string",
+        "required": true,
+        "description": "Primary reason for emergency call"
+      },
+      "current_medications": {
+        "type": "array",
+        "required": false,
+        "description": "List of medications patient is currently taking",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "allergies": {
+        "type": "array",
+        "required": false,
+        "description": "Known allergies and adverse reactions",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "medical_conditions": {
+        "type": "array",
+        "required": false,
+        "description": "Pre-existing medical conditions",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "previous_surgeries": {
+        "type": "array",
+        "required": false,
+        "description": "History of surgical procedures",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "family_history": {
+        "type": "string",
+        "required": false,
+        "description": "Relevant family medical history",
+        "default": null
+      },
+      "social_history": {
+        "type": "string",
+        "required": false,
+        "description": "Smoking, alcohol, drug use history",
+        "default": null
+      },
+      "last_meal_time": {
+        "type": "string",
+        "required": false,
+        "description": "When patient last ate (date-time format)",
+        "default": null
+      },
+      "onset_time": {
+        "type": "string",
+        "required": false,
+        "description": "When current symptoms began (date-time format)",
+        "default": null
+      },
+      "pain_duration": {
+        "type": "string",
+        "required": false,
+        "description": "Duration of current pain or symptoms",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Patient ID not found: Ensure patient record exists before recording medical history.",
+      "Invalid date-time format: Use ISO 8601 format for last_meal_time and onset_time.",
+      "Missing chief complaint: Primary reason for emergency call is required.",
+      "Invalid medication format: Provide medication names as strings in array format.",
+      "Invalid allergy format: Provide allergies as strings in array format.",
+      "Excessive array length: Maximum 50 items allowed for medications, allergies, conditions, or surgeries arrays."
+    ],
+    "usage": "Provide patient_id and chief_complaint as required. Add available medical history information including medications, allergies, and conditions. Use to inform treatment decisions during transport.",
+    "output_details": {
+      "history_id": {
+        "type": "string",
+        "description": "Unique identifier for this medical history assessment"
+      },
+      "assessment_timestamp": {
+        "type": "string",
+        "description": "When medical history was recorded"
+      },
+      "risk_factors_identified": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Medical risk factors relevant to current emergency"
+      },
+      "contraindications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Treatments or medications to avoid based on history"
+      },
+      "history_completeness": {
+        "type": "string",
+        "description": "Assessment of how complete the medical history is (Complete, Partial, Limited)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Medication Tracker",
+    "tool_description": "Tracks medications administered during transport, checks for drug interactions, and maintains accurate dosage records for patient safety and continuity of care.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "medication_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of medication being administered"
+      },
+      "dosage": {
+        "type": "string",
+        "required": true,
+        "description": "Dosage amount and units (e.g., '10mg', '2ml')"
+      },
+      "route": {
+        "type": "string",
+        "required": true,
+        "description": "Administration route (IV, IM, PO, SL, Inhalation, Topical)"
+      },
+      "indication": {
+        "type": "string",
+        "required": true,
+        "description": "Medical reason for administration"
+      }
+    },
+    "error_messages": [
+      "Patient ID not found: Ensure patient record exists before recording medication administration.",
+      "Invalid administration route: Use IV, IM, PO, SL, Inhalation, or Topical.",
+      "Missing required fields: Medication name, dosage, route, and indication are all required.",
+      "Invalid dosage format: Provide dosage with amount and units (e.g., '10mg', '2ml').",
+      "Drug interaction warning: Check for interactions with patient's current medications before administering."
+    ],
+    "usage": "Record each medication given during transport by providing patient_id, medication_name, dosage, route, and indication. The tool tracks all medications and checks for potential interactions.",
+    "output_details": {
+      "medication_record_id": {
+        "type": "string",
+        "description": "Unique identifier for this medication administration record"
+      },
+      "administration_timestamp": {
+        "type": "string",
+        "description": "Exact time medication was administered"
+      },
+      "interaction_warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any drug interaction warnings identified"
+      },
+      "administration_status": {
+        "type": "string",
+        "description": "Status of medication administration (Completed, Partial, Held)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Glasgow Coma Calculator",
+    "tool_description": "Calculates Glasgow Coma Scale score to assess patient level of consciousness by evaluating eye opening, verbal response, and motor response during emergency transport.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "eye_opening": {
+        "type": "integer",
+        "required": true,
+        "description": "Eye opening response score (1-4): 4=Spontaneous, 3=To voice, 2=To pain, 1=None"
+      },
+      "verbal_response": {
+        "type": "integer",
+        "required": true,
+        "description": "Verbal response score (1-5): 5=Oriented, 4=Confused, 3=Inappropriate, 2=Incomprehensible, 1=None"
+      },
+      "motor_response": {
+        "type": "integer",
+        "required": true,
+        "description": "Motor response score (1-6): 6=Obeys commands, 5=Localizes pain, 4=Withdraws, 3=Flexion, 2=Extension, 1=None"
+      }
+    },
+    "error_messages": [
+      "Invalid eye opening score: Must be between 1-4 (4=Spontaneous, 3=To voice, 2=To pain, 1=None).",
+      "Invalid verbal response score: Must be between 1-5 (5=Oriented, 4=Confused, 3=Inappropriate, 2=Incomprehensible, 1=None).",
+      "Invalid motor response score: Must be between 1-6 (6=Obeys commands, 5=Localizes pain, 4=Withdraws, 3=Flexion, 2=Extension, 1=None).",
+      "Patient ID not found: Ensure patient record exists before calculating GCS.",
+      "Missing required assessments: All three components (eye, verbal, motor) must be assessed."
+    ],
+    "usage": "Assess patient's eye opening (1-4), verbal response (1-5), and motor response (1-6) based on standard GCS criteria. Provide patient_id and all three scores for complete neurological assessment.",
+    "output_details": {
+      "gcs_assessment_id": {
+        "type": "string",
+        "description": "Unique identifier for this GCS assessment"
+      },
+      "total_gcs_score": {
+        "type": "integer",
+        "description": "Combined Glasgow Coma Scale score (3-15)"
+      },
+      "assessment_timestamp": {
+        "type": "string",
+        "description": "When GCS assessment was performed"
+      },
+      "consciousness_level": {
+        "type": "string",
+        "description": "Interpretation of GCS score (Severe <9, Moderate 9-12, Mild 13-15)"
+      },
+      "neurological_concern": {
+        "type": "boolean",
+        "description": "Whether GCS indicates significant neurological impairment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pain Scale Assessor",
+    "tool_description": "Assesses patient pain level using standardized pain scales appropriate for patient age and condition, tracks pain progression, and evaluates effectiveness of pain management interventions.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "pain_score": {
+        "type": "integer",
+        "required": true,
+        "description": "Pain level on 0-10 scale (0=no pain, 10=worst possible pain)"
+      },
+      "pain_scale_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of pain scale used (Numeric, Wong-Baker, Behavioral, Verbal)"
+      },
+      "pain_location": {
+        "type": "string",
+        "required": false,
+        "description": "Primary location of pain",
+        "default": null
+      },
+      "pain_quality": {
+        "type": "string",
+        "required": false,
+        "description": "Description of pain quality (Sharp, Dull, Burning, Throbbing, etc.)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid pain score: Must be integer between 0-10 where 0=no pain and 10=worst possible pain.",
+      "Invalid pain scale type: Use Numeric, Wong-Baker, Behavioral, or Verbal.",
+      "Patient ID not found: Ensure patient record exists before recording pain assessment.",
+      "Inconsistent scale and score: Ensure pain scale type matches the scoring method used.",
+      "Missing required fields: Patient ID, pain score, and scale type are mandatory."
+    ],
+    "usage": "Record patient pain level using patient_id, pain_score (0-10), and appropriate pain_scale_type. Optionally include pain_location and pain_quality for comprehensive assessment.",
+    "output_details": {
+      "pain_assessment_id": {
+        "type": "string",
+        "description": "Unique identifier for this pain assessment"
+      },
+      "assessment_timestamp": {
+        "type": "string",
+        "description": "When pain assessment was performed"
+      },
+      "pain_severity": {
+        "type": "string",
+        "description": "Categorized pain level (None 0, Mild 1-3, Moderate 4-6, Severe 7-10)"
+      },
+      "requires_pain_management": {
+        "type": "boolean",
+        "description": "Whether pain level warrants intervention"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "ECG Analyzer",
+    "tool_description": "Analyzes electrocardiogram readings to identify cardiac rhythms, arrhythmias, and other cardiac abnormalities that require immediate attention during emergency transport.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "heart_rate": {
+        "type": "integer",
+        "required": true,
+        "description": "Heart rate measured from ECG in beats per minute (20-300)"
+      },
+      "rhythm_type": {
+        "type": "string",
+        "required": true,
+        "description": "Primary cardiac rhythm observed (Sinus, Atrial Fibrillation, Ventricular Tachycardia, Ventricular Fibrillation, Asystole, PEA)"
+      },
+      "pr_interval": {
+        "type": "integer",
+        "required": false,
+        "description": "PR interval in milliseconds (120-300)",
+        "default": null
+      },
+      "qrs_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "QRS complex duration in milliseconds (80-180)",
+        "default": null
+      },
+      "qt_interval": {
+        "type": "integer",
+        "required": false,
+        "description": "QT interval in milliseconds (300-500)",
+        "default": null
+      },
+      "st_elevation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Presence of ST elevation indicating possible MI",
+        "default": false
+      },
+      "lead_configuration": {
+        "type": "string",
+        "required": false,
+        "description": "ECG lead configuration used (3-lead, 12-lead, 15-lead)",
+        "default": "12-lead"
+      }
+    },
+    "error_messages": [
+      "Invalid heart rate range: Must be between 20-300 beats per minute.",
+      "Invalid rhythm type: Use Sinus, Atrial Fibrillation, Ventricular Tachycardia, Ventricular Fibrillation, Asystole, or PEA.",
+      "Invalid interval measurements: PR (120-300ms), QRS (80-180ms), QT (300-500ms) if provided.",
+      "Invalid lead configuration: Use 3-lead, 12-lead, or 15-lead.",
+      "Patient ID not found: Ensure patient record exists before recording ECG analysis.",
+      "Critical rhythm detected: Ventricular Fibrillation, Ventricular Tachycardia, or Asystole require immediate intervention."
+    ],
+    "usage": "Input patient_id, heart_rate, and rhythm_type as minimum requirements. Add interval measurements and ST elevation status when available. The tool identifies life-threatening rhythms requiring immediate treatment.",
+    "output_details": {
+      "ecg_analysis_id": {
+        "type": "string",
+        "description": "Unique identifier for this ECG analysis"
+      },
+      "analysis_timestamp": {
+        "type": "string",
+        "description": "When ECG analysis was performed"
+      },
+      "rhythm_interpretation": {
+        "type": "string",
+        "description": "Clinical interpretation of the cardiac rhythm"
+      },
+      "abnormalities_detected": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of cardiac abnormalities identified"
+      },
+      "urgency_level": {
+        "type": "string",
+        "description": "Priority level for treatment (Routine, Urgent, Critical)"
+      },
+      "recommended_interventions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggested immediate interventions based on ECG findings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Blood Pressure Classifier",
+    "tool_description": "Classifies blood pressure readings according to clinical guidelines and identifies hypertensive emergencies or hypotensive states requiring immediate intervention during transport.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "systolic_pressure": {
+        "type": "integer",
+        "required": true,
+        "description": "Systolic blood pressure in mmHg (50-300)"
+      },
+      "diastolic_pressure": {
+        "type": "integer",
+        "required": true,
+        "description": "Diastolic blood pressure in mmHg (20-200)"
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years for age-appropriate classification (0-120)"
+      }
+    },
+    "error_messages": [
+      "Invalid systolic pressure: Must be between 50-300 mmHg.",
+      "Invalid diastolic pressure: Must be between 20-200 mmHg.",
+      "Invalid pressure relationship: Systolic pressure must be higher than diastolic pressure.",
+      "Invalid patient age: Must be between 0-120 years.",
+      "Patient ID not found: Ensure patient record exists before classifying blood pressure.",
+      "Hypertensive emergency detected: Blood pressure >180/120 may require immediate intervention."
+    ],
+    "usage": "Provide patient_id, systolic_pressure, diastolic_pressure, and patient_age. The tool classifies BP according to clinical guidelines and identifies emergency situations requiring immediate treatment.",
+    "output_details": {
+      "bp_classification_id": {
+        "type": "string",
+        "description": "Unique identifier for this blood pressure classification"
+      },
+      "classification_timestamp": {
+        "type": "string",
+        "description": "When blood pressure classification was performed"
+      },
+      "bp_category": {
+        "type": "string",
+        "description": "Blood pressure classification (Normal, Elevated, Stage 1 HTN, Stage 2 HTN, Hypertensive Crisis, Hypotensive)"
+      },
+      "clinical_significance": {
+        "type": "string",
+        "description": "Clinical interpretation of the blood pressure reading"
+      },
+      "requires_intervention": {
+        "type": "boolean",
+        "description": "Whether blood pressure requires immediate medical intervention"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Respiratory Pattern Analyzer",
+    "tool_description": "Analyzes respiratory patterns, breathing quality, and oxygenation status to identify respiratory distress or failure requiring immediate intervention during patient transport.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "respiratory_rate": {
+        "type": "integer",
+        "required": true,
+        "description": "Respiratory rate per minute (0-100)"
+      },
+      "oxygen_saturation": {
+        "type": "integer",
+        "required": true,
+        "description": "Oxygen saturation percentage (0-100)"
+      },
+      "breathing_pattern": {
+        "type": "string",
+        "required": true,
+        "description": "Observed breathing pattern (Normal, Shallow, Deep, Irregular, Labored, Absent)"
+      },
+      "use_of_accessory_muscles": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether patient is using accessory muscles to breathe",
+        "default": false
+      },
+      "breath_sounds": {
+        "type": "string",
+        "required": false,
+        "description": "Auscultated breath sounds (Clear, Diminished, Absent, Wheezes, Rales, Rhonchi)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid respiratory rate: Must be between 0-100 breaths per minute.",
+      "Invalid oxygen saturation: Must be between 0-100 percent.",
+      "Invalid breathing pattern: Use Normal, Shallow, Deep, Irregular, Labored, or Absent.",
+      "Invalid breath sounds: Use Clear, Diminished, Absent, Wheezes, Rales, or Rhonchi if provided.",
+      "Patient ID not found: Ensure patient record exists before analyzing respiratory pattern.",
+      "Critical respiratory status: Respiratory rate <8 or >40, or O2 sat <90% indicates respiratory emergency."
+    ],
+    "usage": "Record patient_id, respiratory_rate, oxygen_saturation, and breathing_pattern as required fields. Add use_of_accessory_muscles and breath_sounds when observed for complete respiratory assessment.",
+    "output_details": {
+      "respiratory_analysis_id": {
+        "type": "string",
+        "description": "Unique identifier for this respiratory analysis"
+      },
+      "analysis_timestamp": {
+        "type": "string",
+        "description": "When respiratory analysis was performed"
+      },
+      "respiratory_status": {
+        "type": "string",
+        "description": "Overall respiratory assessment (Normal, Mild Distress, Moderate Distress, Severe Distress, Failure)"
+      },
+      "oxygenation_adequacy": {
+        "type": "string",
+        "description": "Assessment of oxygenation (Adequate, Concerning, Critical)"
+      },
+      "intervention_needed": {
+        "type": "boolean",
+        "description": "Whether respiratory intervention is required"
+      },
+      "recommended_interventions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggested respiratory interventions if needed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Generator",
+    "tool_description": "Generates priority-based alerts and notifications for critical patient conditions, vital sign abnormalities, and emergency situations requiring immediate medical attention during transport.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "alert_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of alert (Vital Signs, Cardiac, Respiratory, Neurological, Equipment, Medication)"
+      },
+      "severity_level": {
+        "type": "string",
+        "required": true,
+        "description": "Alert severity (Low, Medium, High, Critical)"
+      },
+      "alert_message": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed alert message describing the condition"
+      },
+      "triggering_values": {
+        "type": "array",
+        "required": false,
+        "description": "Specific values that triggered the alert",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "recommended_actions": {
+        "type": "array",
+        "required": false,
+        "description": "Recommended immediate actions to address the alert",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid alert type: Use Vital Signs, Cardiac, Respiratory, Neurological, Equipment, or Medication.",
+      "Invalid severity level: Use Low, Medium, High, or Critical.",

@@ -1,0 +1,853 @@
+field_name: personal_finance
+subfield: Budget Planning and Expense Tracking
+task: Create and customize personal budgets with income and expense categories
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium complexity due to the need to handle diverse income sources, multiple expense categories, validation rules, goal setting, and time-based tracking. While the individual components are straightforward, the coordination between budget creation, customization, tracking, and analysis requires careful orchestration.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover budget creation, income management, expense categorization, tracking, analysis, and reporting functionalities.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Budget Template Creator** - Creates base budget structure → feeds into Budget Configuration Manager
+  2. **Income Source Manager** - Manages income streams → feeds into Budget Calculator and Income Tracker
+  3. **Expense Category Manager** - Manages expense categories → feeds into Budget Calculator and Expense Tracker
+  4. **Budget Configuration Manager** - Configures budget parameters → feeds into Budget Calculator
+  5. **Budget Calculator** - Calculates budget allocations ← consumes from Income/Expense managers, Budget Config
+  6. **Income Tracker** - Records income transactions ← consumes from Income Source Manager
+  7. **Expense Tracker** - Records expense transactions ← consumes from Expense Category Manager
+  8. **Budget Variance Analyzer** - Analyzes budget vs actuals ← consumes from trackers and calculator
+  9. **Spending Pattern Analyzer** - Analyzes spending trends ← consumes from Expense Tracker
+  10. **Budget Goal Setter** - Sets and manages financial goals → feeds into Budget Progress Monitor
+  11. **Budget Progress Monitor** - Monitors goal progress ← consumes from trackers and goal setter
+  12. **Budget Report Generator** - Generates comprehensive reports ← consumes from all tracking and analysis tools
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic Budget Setup: Budget Template Creator → Income Source Manager → Expense Category Manager → Budget Calculator
+  - Daily Expense Logging: Expense Category Manager → Expense Tracker → Budget Variance Analyzer
+
+  **Medium Plans:**
+  - Monthly Budget Review: Income Tracker → Expense Tracker → Budget Variance Analyzer → Spending Pattern Analyzer → Budget Report Generator
+  - Goal-Oriented Budgeting: Budget Goal Setter → Budget Configuration Manager → Budget Calculator → Budget Progress Monitor
+
+  **Complex Plans:**
+  - Complete Budget Lifecycle: Budget Template Creator → Income/Expense Category Managers → Budget Configuration Manager → Budget Calculator → Income/Expense Trackers → Budget Variance Analyzer → Spending Pattern Analyzer → Budget Progress Monitor → Budget Report Generator
+  - Advanced Financial Analysis: All tracking tools → Budget Variance Analyzer → Spending Pattern Analyzer → Budget Goal Setter → Budget Progress Monitor → Budget Report Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Budget Template Creator",
+    "tool_description": "Creates customizable budget templates with predefined income and expense categories, allowing users to establish a foundation for their personal budget planning.",
+    "parameters": {
+      "template_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name for the budget template"
+      },
+      "budget_period": {
+        "type": "string",
+        "required": true,
+        "description": "Budget period: monthly, quarterly, or yearly"
+      },
+      "template_type": {
+        "type": "string",
+        "required": false,
+        "description": "Template type: basic, detailed, or custom",
+        "default": "basic"
+      }
+    },
+    "error_messages": [
+      "Invalid template name: Template name must be 1-50 characters and contain only letters, numbers, spaces, and hyphens.",
+      "Invalid budget period: Use one of [monthly, quarterly, yearly].",
+      "Invalid template type: Use one of [basic, detailed, custom]."
+    ],
+    "usage": "Provide template_name and budget_period, optionally specify template_type. The tool creates a structured budget template with default categories that can be customized later.",
+    "output_details": {
+      "template_id": {
+        "type": "string",
+        "description": "Unique identifier for the created template"
+      },
+      "template_name": {
+        "type": "string",
+        "description": "Name of the created template"
+      },
+      "default_income_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of default income category names"
+      },
+      "default_expense_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of default expense category names"
+      },
+      "creation_date": {
+        "type": "string",
+        "description": "Template creation timestamp in ISO 8601 format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Income Source Manager",
+    "tool_description": "Manages multiple income sources including salary, freelance work, investments, and other revenue streams with frequency and amount tracking capabilities.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: add, update, delete, or list"
+      },
+      "source_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name of the income source",
+        "default": null
+      },
+      "source_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of income: salary, freelance, investment, rental, business, other",
+        "default": null
+      },
+      "amount": {
+        "type": "number",
+        "required": false,
+        "description": "Expected income amount per period",
+        "default": null
+      },
+      "frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Income frequency: weekly, biweekly, monthly, quarterly, yearly, irregular",
+        "default": null
+      },
+      "is_active": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether the income source is currently active",
+        "default": true
+      },
+      "source_id": {
+        "type": "string",
+        "required": false,
+        "description": "Unique identifier for existing income source (required for update/delete)",
+        "default": null
+      },
+      "tax_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Expected tax rate as percentage (0-50)",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid action: Use one of [add, update, delete, list].",
+      "Missing required fields: For add action, source_name, source_type, amount, and frequency are required.",
+      "Invalid source type: Use one of [salary, freelance, investment, rental, business, other].",
+      "Invalid frequency: Use one of [weekly, biweekly, monthly, quarterly, yearly, irregular].",
+      "Invalid amount: Amount must be a positive number.",
+      "Invalid tax rate: Tax rate must be between 0 and 50.",
+      "Source not found: The specified source_id does not exist."
+    ],
+    "usage": "Specify action and provide required parameters based on the action. For add/update, include source details. For delete/update, provide source_id. For list, only action is needed.",
+    "output_details": {
+      "action_result": {
+        "type": "string",
+        "description": "Result of the performed action"
+      },
+      "income_sources": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of income source summaries"
+      },
+      "total_monthly_income": {
+        "type": "number",
+        "description": "Total expected monthly income from all active sources"
+      },
+      "total_annual_income": {
+        "type": "number",
+        "description": "Total expected annual income from all active sources"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expense Category Manager",
+    "tool_description": "Creates and manages expense categories with customizable hierarchies, spending limits, and priority levels for comprehensive budget organization.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: add, update, delete, list, or reorganize"
+      },
+      "category_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name of the expense category",
+        "default": null
+      },
+      "parent_category": {
+        "type": "string",
+        "required": false,
+        "description": "Parent category name for subcategory creation",
+        "default": null
+      },
+      "category_type": {
+        "type": "string",
+        "required": false,
+        "description": "Category type: fixed, variable, discretionary, or emergency",
+        "default": null
+      },
+      "spending_limit": {
+        "type": "number",
+        "required": false,
+        "description": "Monthly spending limit for this category",
+        "default": null
+      },
+      "priority_level": {
+        "type": "integer",
+        "required": false,
+        "description": "Priority level from 1 (highest) to 5 (lowest)",
+        "default": 3
+      },
+      "category_id": {
+        "type": "string",
+        "required": false,
+        "description": "Unique identifier for existing category (required for update/delete)",
+        "default": null
+      },
+      "is_active": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether the category is currently active",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid action: Use one of [add, update, delete, list, reorganize].",
+      "Missing required fields: For add action, category_name and category_type are required.",
+      "Invalid category type: Use one of [fixed, variable, discretionary, emergency].",
+      "Invalid priority level: Priority must be an integer between 1 and 5.",
+      "Invalid spending limit: Spending limit must be a positive number.",
+      "Category not found: The specified category_id does not exist.",
+      "Parent category not found: The specified parent_category does not exist.",
+      "Circular reference: Category cannot be its own parent or child."
+    ],
+    "usage": "Specify action and provide required parameters. For add/update, include category details. For delete/update, provide category_id. Use parent_category to create hierarchical structures.",
+    "output_details": {
+      "action_result": {
+        "type": "string",
+        "description": "Result of the performed action"
+      },
+      "expense_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of expense category summaries"
+      },
+      "category_hierarchy": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Hierarchical structure of categories"
+      },
+      "total_spending_limits": {
+        "type": "number",
+        "description": "Sum of all category spending limits"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Budget Configuration Manager",
+    "tool_description": "Configures budget parameters including allocation rules, savings targets, emergency fund goals, and automated distribution settings for comprehensive budget management.",
+    "parameters": {
+      "budget_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the budget to configure"
+      },
+      "savings_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Target savings rate as percentage of income (0-50)",
+        "default": 20
+      },
+      "emergency_fund_months": {
+        "type": "integer",
+        "required": false,
+        "description": "Target emergency fund in months of expenses (1-12)",
+        "default": 6
+      },
+      "allocation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Budget allocation method: percentage, priority_based, or envelope",
+        "default": "percentage"
+      },
+      "auto_adjust": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to automatically adjust allocations based on income changes",
+        "default": false
+      },
+      "rollover_unused": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to rollover unused category funds to next period",
+        "default": true
+      },
+      "alert_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Alert when category spending exceeds this percentage (50-100)",
+        "default": 80
+      },
+      "budget_rules": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Custom budget rules and constraints",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Budget not found: The specified budget_id does not exist.",
+      "Invalid savings rate: Savings rate must be between 0 and 50.",
+      "Invalid emergency fund months: Must be an integer between 1 and 12.",
+      "Invalid allocation method: Use one of [percentage, priority_based, envelope].",
+      "Invalid alert threshold: Must be between 50 and 100.",
+      "Invalid budget rules: Rules must be an array of strings with max 10 items."
+    ],
+    "usage": "Provide budget_id and optionally configure savings_rate, emergency_fund_months, allocation_method, and other parameters. The tool applies configuration settings to the specified budget.",
+    "output_details": {
+      "configuration_id": {
+        "type": "string",
+        "description": "Unique identifier for the configuration"
+      },
+      "applied_settings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of configuration settings that were applied"
+      },
+      "monthly_savings_target": {
+        "type": "number",
+        "description": "Calculated monthly savings target amount"
+      },
+      "emergency_fund_target": {
+        "type": "number",
+        "description": "Calculated emergency fund target amount"
+      },
+      "configuration_date": {
+        "type": "string",
+        "description": "Configuration timestamp in ISO 8601 format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Budget Calculator",
+    "tool_description": "Calculates budget allocations across income sources and expense categories using configured rules, providing optimized distribution recommendations and variance analysis.",
+    "parameters": {
+      "budget_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the budget to calculate"
+      },
+      "calculation_period": {
+        "type": "string",
+        "required": true,
+        "description": "Period for calculation: monthly, quarterly, or yearly"
+      },
+      "include_projections": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include future period projections",
+        "default": false
+      },
+      "projection_months": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of months to project (1-24, required if include_projections is true)",
+        "default": null
+      },
+      "override_income": {
+        "type": "number",
+        "required": false,
+        "description": "Override total income for what-if scenarios",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Budget not found: The specified budget_id does not exist.",
+      "Invalid calculation period: Use one of [monthly, quarterly, yearly].",
+      "Invalid projection months: Must be an integer between 1 and 24.",
+      "Missing projection months: projection_months is required when include_projections is true.",
+      "Invalid override income: Must be a positive number.",
+      "Insufficient data: Budget must have at least one income source and expense category."
+    ],
+    "usage": "Provide budget_id and calculation_period. Optionally enable projections with projection_months, or override income for scenario analysis. The tool returns detailed allocation calculations.",
+    "output_details": {
+      "calculation_id": {
+        "type": "string",
+        "description": "Unique identifier for this calculation"
+      },
+      "total_income": {
+        "type": "number",
+        "description": "Total income for the calculation period"
+      },
+      "total_expenses": {
+        "type": "number",
+        "description": "Total allocated expenses for the period"
+      },
+      "available_surplus": {
+        "type": "number",
+        "description": "Available surplus after all allocations"
+      },
+      "category_allocations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed allocation amounts for each expense category"
+      },
+      "allocation_percentages": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Percentage allocation for each category"
+      },
+      "calculation_date": {
+        "type": "string",
+        "description": "Calculation timestamp in ISO 8601 format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Income Tracker",
+    "tool_description": "Records and tracks actual income transactions against budgeted amounts, providing real-time income monitoring with source attribution and variance tracking.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: add, update, delete, or query"
+      },
+      "transaction_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date of income transaction in ISO 8601 format",
+        "default": null
+      },
+      "income_source_id": {
+        "type": "string",
+        "required": false,
+        "description": "ID of the income source for this transaction",
+        "default": null
+      },
+      "amount": {
+        "type": "number",
+        "required": false,
+        "description": "Actual income amount received",
+        "default": null
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "description": "Optional description or notes for the transaction",
+        "default": null
+      },
+      "transaction_id": {
+        "type": "string",
+        "required": false,
+        "description": "Unique identifier for existing transaction (required for update/delete)",
+        "default": null
+      },
+      "start_date": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for query range in ISO 8601 format",
+        "default": null
+      },
+      "end_date": {
+        "type": "string",
+        "required": false,
+        "description": "End date for query range in ISO 8601 format",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid action: Use one of [add, update, delete, query].",
+      "Missing required fields: For add action, transaction_date, income_source_id, and amount are required.",
+      "Invalid date format: Use ISO 8601 format for all date fields.",
+      "Invalid amount: Amount must be a positive number.",
+      "Transaction not found: The specified transaction_id does not exist.",
+      "Income source not found: The specified income_source_id does not exist.",
+      "Invalid date range: start_date must be before end_date for query action."
+    ],
+    "usage": "Specify action and provide required parameters. For add, include transaction details. For update/delete, provide transaction_id. For query, optionally specify date range.",
+    "output_details": {
+      "action_result": {
+        "type": "string",
+        "description": "Result of the performed action"
+      },
+      "transaction_count": {
+        "type": "integer",
+        "description": "Number of transactions processed or found"
+      },
+      "total_income": {
+        "type": "number",
+        "description": "Total income amount for the period or query"
+      },
+      "income_by_source": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Income breakdown by source"
+      },
+      "budget_variance": {
+        "type": "number",
+        "description": "Variance between actual and budgeted income"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expense Tracker",
+    "tool_description": "Records and categorizes actual expenses with receipt management, vendor tracking, and real-time budget comparison capabilities for comprehensive spending monitoring.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: add, update, delete, query, or categorize"
+      },
+      "transaction_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date of expense transaction in ISO 8601 format",
+        "default": null
+      },
+      "category_id": {
+        "type": "string",
+        "required": false,
+        "description": "ID of the expense category for this transaction",
+        "default": null
+      },
+      "amount": {
+        "type": "number",
+        "required": false,
+        "description": "Expense amount spent",
+        "default": null
+      },
+      "vendor": {
+        "type": "string",
+        "required": false,
+        "description": "Vendor or merchant name",
+        "default": null
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "description": "Description of the expense",
+        "default": null
+      },
+      "payment_method": {
+        "type": "string",
+        "required": false,
+        "description": "Payment method: cash, credit, debit, check, or electronic",
+        "default": null
+      },
+      "is_recurring": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this is a recurring expense",
+        "default": false
+      },
+      "transaction_id": {
+        "type": "string",
+        "required": false,
+        "description": "Unique identifier for existing transaction (required for update/delete)",
+        "default": null
+      },
+      "start_date": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for query range in ISO 8601 format",
+        "default": null
+      },
+      "end_date": {
+        "type": "string",
+        "required": false,
+        "description": "End date for query range in ISO 8601 format",
+        "default": null
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Optional tags for expense classification",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid action: Use one of [add, update, delete, query, categorize].",
+      "Missing required fields: For add action, transaction_date, category_id, amount, and description are required.",
+      "Invalid date format: Use ISO 8601 format for all date fields.",
+      "Invalid amount: Amount must be a positive number.",
+      "Transaction not found: The specified transaction_id does not exist.",
+      "Category not found: The specified category_id does not exist.",
+      "Invalid payment method: Use one of [cash, credit, debit, check, electronic].",
+      "Invalid date range: start_date must be before end_date for query action.",
+      "Too many tags: Maximum 5 tags allowed per transaction."
+    ],
+    "usage": "Specify action and provide required parameters. For add, include transaction details. For update/delete, provide transaction_id. For query, optionally specify date range and filters.",
+    "output_details": {
+      "action_result": {
+        "type": "string",
+        "description": "Result of the performed action"
+      },
+      "transaction_count": {
+        "type": "integer",
+        "description": "Number of transactions processed or found"
+      },
+      "total_expenses": {
+        "type": "number",
+        "description": "Total expense amount for the period or query"
+      },
+      "expenses_by_category": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Expense breakdown by category"
+      },
+      "budget_remaining": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Remaining budget amounts for each category"
+      },
+      "over_budget_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Categories that have exceeded their budget limits"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Budget Variance Analyzer",
+    "tool_description": "Analyzes differences between budgeted and actual income/expenses, identifying trends, anomalies, and providing actionable insights for budget optimization.",
+    "parameters": {
+      "budget_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the budget to analyze"
+      },
+      "analysis_period": {
+        "type": "string",
+        "required": true,
+        "description": "Period for analysis: weekly, monthly, quarterly, or yearly"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period in ISO 8601 format"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period in ISO 8601 format"
+      },
+      "variance_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage threshold for significant variances (5-50)",
+        "default": 10
+      },
+      "include_projections": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include projected vs actual comparisons",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Budget not found: The specified budget_id does not exist.",
+      "Invalid analysis period: Use one of [weekly, monthly, quarterly, yearly].",
+      "Invalid date format: Use ISO 8601 format for start_date and end_date.",
+      "Invalid date range: start_date must be before end_date.",
+      "Invalid variance threshold: Must be between 5 and 50.",
+      "Insufficient data: Not enough transactions found for meaningful analysis."
+    ],
+    "usage": "Provide budget_id, analysis_period, start_date, and end_date. Optionally adjust variance_threshold and enable projections. The tool analyzes budget performance and identifies significant variances.",
+    "output_details": {
+      "analysis_id": {
+        "type": "string",
+        "description": "Unique identifier for this analysis"
+      },
+      "overall_variance": {
+        "type": "number",
+        "description": "Overall budget variance percentage"
+      },
+      "income_variance": {
+        "type": "number",
+        "description": "Income variance percentage (actual vs budgeted)"
+      },
+      "expense_variance": {
+        "type": "number",
+        "description": "Expense variance percentage (actual vs budgeted)"
+      },
+      "significant_variances": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Categories with variances above threshold"
+      },
+      "trend_analysis": {
+        "type": "string",
+        "description": "Summary of spending and income trends"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Actionable recommendations based on variance analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Spending Pattern Analyzer",
+    "tool_description": "Analyzes spending behaviors, identifies patterns, seasonal trends, and unusual transactions to provide insights for better financial decision-making and budget optimization.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the user whose spending to analyze"
+      },
+      "analysis_timeframe": {
+        "type": "string",
+        "required": true,
+        "description": "Timeframe for analysis: last_month, last_quarter, last_year, or custom"
+      },
+      "custom_start_date": {
+        "type": "string",
+        "required": false,
+        "description": "Custom start date in ISO 8601 format (required if analysis_timeframe is custom)",
+        "default": null
+      },
+      "custom_end_date": {
+        "type": "string",
+        "required": false,
+        "description": "Custom end date in ISO 8601 format (required if analysis_timeframe is custom)",
+        "default": null
+      },
+      "pattern_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Types of patterns to analyze: seasonal, weekly, category_trends, anomalies, vendor_patterns",
+        "default": null
+      },
+      "anomaly_sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Sensitivity for anomaly detection: low, medium, or high",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "User not found: The specified user_id does not exist.",
+      "Invalid analysis timeframe: Use one of [last_month, last_quarter, last_year, custom].",
+      "Missing custom dates: custom_start_date and custom_end_date are required when analysis_timeframe is custom.",
+      "Invalid date format: Use ISO 8601 format for custom date fields.",
+      "Invalid date range: custom_start_date must be before custom_end_date.",
+      "Invalid pattern types: Use combinations of [seasonal, weekly, category_trends, anomalies, vendor_patterns].",
+      "Invalid anomaly sensitivity: Use one of [low, medium, high].",
+      "Insufficient data: Not enough transaction history for pattern analysis."
+    ],
+    "usage": "Provide user_id and analysis_timeframe. For custom timeframe, include start and end dates. Optionally specify pattern_types and anomaly_sensitivity for focused analysis.",
+    "output_details": {
+      "analysis_id": {
+        "type": "string",
+        "description": "Unique identifier for this pattern analysis"
+      },
+      "spending_summary": {
+        "type": "string",
+        "description": "Overall spending behavior summary"
+      },
+      "identified_patterns": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of identified spending patterns"
+      },
+      "seasonal_trends": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Seasonal spending trends and variations"
+      },
+      "anomalous_transactions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Unusual transactions that deviate from normal patterns"
+      },
+      "top_vendors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Most frequently used vendors and spending amounts"
+      },

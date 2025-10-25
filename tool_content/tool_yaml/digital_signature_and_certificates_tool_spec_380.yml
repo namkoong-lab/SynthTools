@@ -1,0 +1,821 @@
+field_name: digital_signature_and_certificates
+subfield: Certificate Authority Operations
+task: Certificate validation and verification services
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves complex cryptographic operations, handling multiple certificate formats and standards, real-time validation against various sources (CRL, OCSP), chain building, and policy enforcement. The scope includes certificate parsing, path validation, revocation checking, trust anchoring, and compliance verification across different PKI infrastructures. **Hard** difficulty due to high coordination between validation components, strict security requirements, and potential cascading failures.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'm targeting **17 tools** within the 15-20 range to cover certificate parsing, chain validation, revocation checking, policy enforcement, trust management, and reporting functions.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Certificate Parser** - Consumes: raw certificate data → Produces: parsed certificate fields
+  2. **Certificate Chain Builder** - Consumes: target certificate, CA certificates → Produces: certificate chain
+  3. **Trust Anchor Validator** - Consumes: root certificate, trust store → Produces: trust validation result
+  4. **Certificate Path Validator** - Consumes: certificate chain, validation policies → Produces: path validation result
+  5. **CRL Fetcher** - Consumes: CRL distribution points → Produces: CRL data
+  6. **CRL Validator** - Consumes: certificate, CRL data → Produces: revocation status
+  7. **OCSP Client** - Consumes: certificate, OCSP responder URL → Produces: OCSP response
+  8. **OCSP Response Validator** - Consumes: OCSP response, issuer cert → Produces: revocation status
+  9. **Certificate Policy Checker** - Consumes: certificate, policy requirements → Produces: policy compliance
+  10. **Key Usage Validator** - Consumes: certificate, intended usage → Produces: usage validation
+  11. **Certificate Expiry Checker** - Consumes: certificate, validation time → Produces: validity status
+  12. **Signature Verifier** - Consumes: certificate, public key → Produces: signature validity
+  13. **Trust Store Manager** - Consumes: trust store operations → Produces: updated trust store
+  14. **Certificate Format Converter** - Consumes: certificate in format A → Produces: certificate in format B
+  15. **Validation Policy Engine** - Consumes: validation parameters → Produces: policy configuration
+  16. **Certificate Validator** - Consumes: multiple validation results → Produces: final validation decision
+  17. **Validation Report Generator** - Consumes: validation results → Produces: structured report
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  1. **Basic Certificate Validation**: Certificate Parser → Certificate Expiry Checker → Signature Verifier → Certificate Validator
+  2. **Trust Anchor Verification**: Certificate Parser → Trust Anchor Validator → Validation Report Generator
+
+  **Medium plans:**
+  1. **Standard Chain Validation**: Certificate Parser → Certificate Chain Builder → Certificate Path Validator → Trust Anchor Validator → Certificate Validator → Validation Report Generator
+  2. **Revocation Checking**: Certificate Parser → CRL Fetcher → CRL Validator → OCSP Client → OCSP Response Validator → Certificate Validator
+
+  **Complex plans:**
+  1. **Full PKI Validation**: Certificate Parser → Certificate Chain Builder → Certificate Path Validator → Trust Anchor Validator → CRL Fetcher → CRL Validator → OCSP Client → OCSP Response Validator → Certificate Policy Checker → Key Usage Validator → Certificate Expiry Checker → Signature Verifier → Certificate Validator → Validation Report Generator
+  2. **Multi-Format Enterprise Validation**: Certificate Format Converter → Certificate Parser → Certificate Chain Builder → Trust Store Manager → Validation Policy Engine → Certificate Path Validator → Certificate Policy Checker → Key Usage Validator → Certificate Validator → Validation Report Generator
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Certificate Parser",
+    "tool_description": "Parses X.509 certificates from various encodings and extracts key fields including subject, issuer, validity dates, extensions, and public key information.",
+    "parameters": {
+      "certificate_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded certificate data in PEM or DER format"
+      },
+      "encoding_format": {
+        "type": "string",
+        "required": false,
+        "default": "PEM",
+        "description": "Certificate encoding format: PEM or DER"
+      }
+    },
+    "error_messages": [
+      "Invalid certificate format: Ensure certificate data is valid Base64-encoded PEM or DER format.",
+      "Malformed certificate structure: Certificate does not conform to X.509 standard.",
+      "Unsupported encoding: Use PEM or DER encoding format only."
+    ],
+    "usage": "Provide certificate_data as Base64-encoded string and optionally specify encoding_format. Returns parsed certificate fields for further validation processing.",
+    "output_details": {
+      "subject_dn": {
+        "type": "string",
+        "description": "Distinguished name of the certificate subject"
+      },
+      "issuer_dn": {
+        "type": "string",
+        "description": "Distinguished name of the certificate issuer"
+      },
+      "serial_number": {
+        "type": "string",
+        "description": "Certificate serial number in hexadecimal format"
+      },
+      "not_before": {
+        "type": "string",
+        "description": "Certificate validity start date"
+      },
+      "not_after": {
+        "type": "string",
+        "description": "Certificate validity end date"
+      },
+      "public_key_algorithm": {
+        "type": "string",
+        "description": "Public key algorithm identifier"
+      },
+      "extensions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of certificate extension OIDs"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Certificate Chain Builder",
+    "tool_description": "Constructs certificate chains from a target certificate up to a trusted root by identifying and ordering intermediate certificates.",
+    "parameters": {
+      "target_certificate": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded target certificate to build chain for"
+      },
+      "intermediate_certificates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": "None",
+        "description": "Array of Base64-encoded intermediate certificates"
+      },
+      "trusted_roots": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of Base64-encoded trusted root certificates"
+      },
+      "max_chain_length": {
+        "type": "integer",
+        "required": false,
+        "default": 10,
+        "description": "Maximum allowed certificate chain length"
+      },
+      "allow_self_signed": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to allow self-signed certificates in chain"
+      }
+    },
+    "error_messages": [
+      "Chain building failed: Unable to construct valid chain to trusted root.",
+      "Max chain length exceeded: Chain length exceeds specified maximum.",
+      "Invalid certificate in chain: One or more certificates in potential chain are malformed.",
+      "No trusted root found: Unable to find path to any provided trusted root certificate.",
+      "Circular chain detected: Certificate chain contains circular references."
+    ],
+    "usage": "Provide target_certificate and trusted_roots, optionally include intermediate_certificates. Set max_chain_length and allow_self_signed as needed. Returns ordered certificate chain.",
+    "output_details": {
+      "chain_certificates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Ordered array of certificates from target to root"
+      },
+      "chain_length": {
+        "type": "integer",
+        "description": "Number of certificates in the chain"
+      },
+      "root_certificate": {
+        "type": "string",
+        "description": "Root certificate that terminates the chain"
+      },
+      "is_complete": {
+        "type": "boolean",
+        "description": "Whether chain is complete to trusted root"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Trust Anchor Validator",
+    "tool_description": "Validates whether a root certificate is trusted by checking against configured trust stores and trust anchor constraints.",
+    "parameters": {
+      "root_certificate": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded root certificate to validate"
+      },
+      "trust_store_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to trust store containing trusted root certificates"
+      }
+    },
+    "error_messages": [
+      "Trust store not accessible: Cannot read from specified trust store path.",
+      "Root certificate not trusted: Certificate is not found in trust store.",
+      "Trust anchor constraints violated: Certificate violates trust anchor constraints.",
+      "Invalid root certificate: Root certificate is malformed or invalid."
+    ],
+    "usage": "Provide root_certificate and trust_store_path to verify if the root certificate is trusted. Returns trust validation status and details.",
+    "output_details": {
+      "is_trusted": {
+        "type": "boolean",
+        "description": "Whether the root certificate is trusted"
+      },
+      "trust_anchor_name": {
+        "type": "string",
+        "description": "Name of matching trust anchor if found"
+      },
+      "constraints_satisfied": {
+        "type": "boolean",
+        "description": "Whether trust anchor constraints are satisfied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Certificate Path Validator",
+    "tool_description": "Performs RFC 5280 certificate path validation including basic constraints, name constraints, policy processing, and critical extension checking.",
+    "parameters": {
+      "certificate_chain": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of Base64-encoded certificates from target to root"
+      },
+      "validation_time": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Validation time in ISO 8601 format, defaults to current time"
+      },
+      "initial_policy_set": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": "None",
+        "description": "Initial policy identifiers for policy processing"
+      },
+      "explicit_policy": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether explicit policy indication is required"
+      },
+      "inhibit_policy_mapping": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether policy mapping is inhibited"
+      },
+      "inhibit_any_policy": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether anyPolicy OID is inhibited"
+      },
+      "permitted_name_subtrees": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": "None",
+        "description": "Permitted name subtrees for name constraint checking"
+      },
+      "excluded_name_subtrees": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": "None",
+        "description": "Excluded name subtrees for name constraint checking"
+      },
+      "require_explicit_policy": {
+        "type": "integer",
+        "required": false,
+        "default": -1,
+        "description": "Explicit policy indicator depth, -1 for no requirement"
+      },
+      "inhibit_policy_mapping_depth": {
+        "type": "integer",
+        "required": false,
+        "default": -1,
+        "description": "Policy mapping inhibition depth, -1 for no inhibition"
+      },
+      "inhibit_any_policy_depth": {
+        "type": "integer",
+        "required": false,
+        "default": -1,
+        "description": "anyPolicy inhibition depth, -1 for no inhibition"
+      }
+    },
+    "error_messages": [
+      "Path validation failed: Certificate path does not satisfy RFC 5280 requirements.",
+      "Basic constraints violation: Certificate basic constraints are violated.",
+      "Name constraints violation: Certificate violates name constraints.",
+      "Policy processing failed: Certificate policy processing requirements not met.",
+      "Critical extension not supported: Unknown critical extension present.",
+      "Invalid validation time: Validation time must be in ISO 8601 format.",
+      "Certificate expired during validation: One or more certificates were not valid at validation time."
+    ],
+    "usage": "Provide certificate_chain and optionally set validation parameters for policy processing and name constraints. Returns comprehensive path validation results.",
+    "output_details": {
+      "validation_successful": {
+        "type": "boolean",
+        "description": "Whether path validation succeeded"
+      },
+      "policy_tree": {
+        "type": "string",
+        "description": "Resulting policy tree from policy processing"
+      },
+      "working_public_key": {
+        "type": "string",
+        "description": "Final working public key algorithm identifier"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation errors encountered"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "CRL Fetcher",
+    "tool_description": "Retrieves Certificate Revocation Lists from distribution points specified in certificates or provided URLs with caching support.",
+    "parameters": {
+      "distribution_points": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of CRL distribution point URLs"
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "HTTP timeout in seconds for CRL retrieval"
+      },
+      "use_cache": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to use cached CRL if available"
+      },
+      "max_crl_size": {
+        "type": "integer",
+        "required": false,
+        "default": 10485760,
+        "description": "Maximum CRL size in bytes (default 10MB)"
+      }
+    },
+    "error_messages": [
+      "CRL fetch failed: Unable to retrieve CRL from any distribution point.",
+      "CRL too large: CRL size exceeds maximum allowed size.",
+      "Network timeout: CRL retrieval timed out.",
+      "Invalid CRL format: Retrieved data is not a valid CRL.",
+      "No distribution points: No CRL distribution points provided."
+    ],
+    "usage": "Provide distribution_points array with CRL URLs. Optionally configure timeout, caching, and size limits. Returns retrieved CRL data.",
+    "output_details": {
+      "crl_data": {
+        "type": "string",
+        "description": "Base64-encoded CRL data"
+      },
+      "issuer_dn": {
+        "type": "string",
+        "description": "Distinguished name of CRL issuer"
+      },
+      "this_update": {
+        "type": "string",
+        "description": "CRL thisUpdate time"
+      },
+      "next_update": {
+        "type": "string",
+        "description": "CRL nextUpdate time"
+      },
+      "from_cache": {
+        "type": "boolean",
+        "description": "Whether CRL was retrieved from cache"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "CRL Validator",
+    "tool_description": "Validates certificate revocation status against Certificate Revocation Lists including signature verification and freshness checking.",
+    "parameters": {
+      "certificate_serial": {
+        "type": "string",
+        "required": true,
+        "description": "Serial number of certificate to check in hexadecimal format"
+      },
+      "crl_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded CRL data"
+      },
+      "issuer_certificate": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded issuer certificate for CRL signature verification"
+      },
+      "validation_time": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Validation time in ISO 8601 format"
+      }
+    },
+    "error_messages": [
+      "Invalid CRL signature: CRL signature verification failed.",
+      "CRL expired: CRL is past its nextUpdate time.",
+      "CRL not yet valid: CRL thisUpdate time is in the future.",
+      "Certificate serial not found: Certificate serial number not found in CRL.",
+      "CRL issuer mismatch: CRL issuer does not match certificate issuer."
+    ],
+    "usage": "Provide certificate_serial, crl_data, and issuer_certificate. Optionally specify validation_time. Returns revocation status based on CRL check.",
+    "output_details": {
+      "is_revoked": {
+        "type": "boolean",
+        "description": "Whether certificate is revoked according to CRL"
+      },
+      "revocation_date": {
+        "type": "string",
+        "description": "Date certificate was revoked if applicable"
+      },
+      "revocation_reason": {
+        "type": "string",
+        "description": "Reason for revocation if specified"
+      },
+      "crl_valid": {
+        "type": "boolean",
+        "description": "Whether CRL itself is valid and current"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "OCSP Client",
+    "tool_description": "Sends OCSP requests to responder services and retrieves real-time certificate revocation status responses.",
+    "parameters": {
+      "certificate": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded certificate to check"
+      },
+      "issuer_certificate": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded issuer certificate"
+      },
+      "ocsp_url": {
+        "type": "string",
+        "required": true,
+        "description": "OCSP responder URL"
+      },
+      "nonce": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Optional nonce for OCSP request replay protection"
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "default": 15,
+        "description": "HTTP timeout for OCSP request"
+      }
+    },
+    "error_messages": [
+      "OCSP request failed: Unable to send OCSP request to responder.",
+      "OCSP responder error: Responder returned error status.",
+      "Network timeout: OCSP request timed out.",
+      "Invalid OCSP response: Response format is invalid.",
+      "Certificate hash mismatch: Certificate does not match OCSP request."
+    ],
+    "usage": "Provide certificate, issuer_certificate, and ocsp_url. Optionally include nonce and set timeout. Returns OCSP response for validation.",
+    "output_details": {
+      "ocsp_response": {
+        "type": "string",
+        "description": "Base64-encoded OCSP response"
+      },
+      "response_status": {
+        "type": "string",
+        "description": "OCSP response status (successful, malformedRequest, etc.)"
+      },
+      "produced_at": {
+        "type": "string",
+        "description": "Time when OCSP response was produced"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "OCSP Response Validator",
+    "tool_description": "Validates OCSP responses including signature verification, nonce checking, and response freshness validation.",
+    "parameters": {
+      "ocsp_response": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded OCSP response to validate"
+      },
+      "issuer_certificate": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded issuer certificate"
+      },
+      "expected_nonce": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Expected nonce value for replay protection"
+      },
+      "max_age_seconds": {
+        "type": "integer",
+        "required": false,
+        "default": 86400,
+        "description": "Maximum age of OCSP response in seconds"
+      }
+    },
+    "error_messages": [
+      "Invalid OCSP signature: OCSP response signature verification failed.",
+      "OCSP response expired: Response is older than maximum allowed age.",
+      "Nonce mismatch: OCSP response nonce does not match expected value.",
+      "Unknown certificate status: OCSP response indicates unknown status.",
+      "OCSP response malformed: Response structure is invalid."
+    ],
+    "usage": "Provide ocsp_response and issuer_certificate. Optionally specify expected_nonce and max_age_seconds. Returns validated revocation status.",
+    "output_details": {
+      "certificate_status": {
+        "type": "string",
+        "description": "Certificate status: good, revoked, or unknown"
+      },
+      "revocation_time": {
+        "type": "string",
+        "description": "Time of revocation if status is revoked"
+      },
+      "revocation_reason": {
+        "type": "string",
+        "description": "Reason for revocation if applicable"
+      },
+      "this_update": {
+        "type": "string",
+        "description": "thisUpdate time from OCSP response"
+      },
+      "next_update": {
+        "type": "string",
+        "description": "nextUpdate time from OCSP response"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Certificate Policy Checker",
+    "tool_description": "Validates certificate policies against organizational requirements and industry standards including policy OID verification and policy constraints.",
+    "parameters": {
+      "certificate": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded certificate to check policies"
+      },
+      "required_policies": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": "None",
+        "description": "Array of required policy OIDs"
+      },
+      "prohibited_policies": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": "None",
+        "description": "Array of prohibited policy OIDs"
+      },
+      "policy_mapping_allowed": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether policy mapping is allowed"
+      },
+      "any_policy_inhibit": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether anyPolicy OID should be inhibited"
+      }
+    },
+    "error_messages": [
+      "Required policy missing: Certificate does not contain required policy OID.",
+      "Prohibited policy present: Certificate contains prohibited policy OID.",
+      "Policy mapping violation: Certificate violates policy mapping constraints.",
+      "Policy qualifier violation: Certificate policy qualifiers violate requirements.",
+      "Certificate policy extension missing: Certificate lacks required policy extension."
+    ],
+    "usage": "Provide certificate and specify required_policies, prohibited_policies, and policy constraints. Returns policy compliance assessment.",
+    "output_details": {
+      "policy_compliant": {
+        "type": "boolean",
+        "description": "Whether certificate policies comply with requirements"
+      },
+      "present_policies": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Policy OIDs present in certificate"
+      },
+      "policy_violations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of policy violations found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Key Usage Validator",
+    "tool_description": "Validates certificate key usage and extended key usage extensions against intended certificate usage scenarios.",
+    "parameters": {
+      "certificate": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded certificate to validate"
+      },
+      "intended_usage": {
+        "type": "string",
+        "required": true,
+        "description": "Intended usage: digital_signature, key_encipherment, server_auth, client_auth, code_signing, email_protection, time_stamping"
+      }
+    },
+    "error_messages": [
+      "Key usage violation: Certificate key usage does not permit intended usage.",
+      "Extended key usage violation: Certificate extended key usage prohibits intended usage.",
+      "Key usage extension missing: Required key usage extension is not present.",
+      "Unsupported usage type: Specified intended usage is not supported.",
+      "Key usage critical mismatch: Key usage criticality does not meet requirements."
+    ],
+    "usage": "Provide certificate and intended_usage to verify if certificate key usage permits the intended operation. Returns usage validation result.",
+    "output_details": {
+      "usage_valid": {
+        "type": "boolean",
+        "description": "Whether certificate supports intended usage"
+      },
+      "key_usage_bits": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key usage bits set in certificate"
+      },
+      "extended_key_usage": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Extended key usage OIDs in certificate"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Certificate Expiry Checker",
+    "tool_description": "Checks certificate validity periods against current time or specified validation time with configurable warning thresholds.",
+    "parameters": {
+      "certificate": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded certificate to check"
+      },
+      "validation_time": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Validation time in ISO 8601 format, defaults to current time"
+      },
+      "warning_days": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Days before expiry to trigger warning"
+      }
+    },
+    "error_messages": [
+      "Certificate expired: Certificate is past its notAfter date.",
+      "Certificate not yet valid: Certificate notBefore date is in the future.",
+      "Invalid validation time: Validation time must be in ISO 8601 format.",
+      "Certificate validity period invalid: notBefore is after notAfter."
+    ],
+    "usage": "Provide certificate and optionally specify validation_time and warning_days. Returns validity status and timing information.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether certificate is valid at validation time"
+      },
+      "not_before": {
+        "type": "string",
+        "description": "Certificate validity start date"
+      },
+      "not_after": {
+        "type": "string",
+        "description": "Certificate validity end date"
+      },
+      "days_until_expiry": {
+        "type": "integer",
+        "description": "Number of days until certificate expires"
+      },
+      "expiry_warning": {
+        "type": "boolean",
+        "description": "Whether certificate is within warning threshold"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Signature Verifier",
+    "tool_description": "Verifies digital signatures on certificates using issuer public keys and validates signature algorithms against security policies.",
+    "parameters": {
+      "certificate": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded certificate to verify"
+      },
+      "issuer_public_key": {
+        "type": "string",
+        "required": true,
+        "description": "Base64-encoded issuer public key or certificate"
+      },
+      "allowed_algorithms": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": "None",
+        "description": "Array of allowed signature algorithms"
+      }
+    },
+    "error_messages": [
+      "Signature verification failed: Certificate signature is invalid.",
+      "Unsupported signature algorithm: Signature algorithm is not supported or allowed.",
+      "Invalid public key: Issuer public key is malformed or incompatible.",
+      "Algorithm mismatch: Signature algorithm does not match public key type."
+    ],
+    "usage": "Provide certificate and issuer_public_key for signature verification. Optionally specify allowed_algorithms to restrict acceptable signature algorithms.",
+    "output_details": {
+      "signature_valid": {
+        "type": "boolean",
+        "description": "Whether certificate signature is valid"
+      },
+      "signature_algorithm": {
+        "type": "string",
+        "description": "Signature algorithm used in certificate"
+      },
+      "hash_algorithm": {
+        "type": "string",
+        "description": "Hash algorithm used in signature"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Trust Store Manager",
+    "tool_description": "Manages trust store operations including adding, removing, and updating trusted root certificates with backup and rollback capabilities.",
+    "parameters": {
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Operation type: add, remove, update, list, backup, restore"
+      },
+      "trust_store_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to trust store file"
+      },
+      "certificate": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Base64-encoded certificate for add/remove/update operations"
+      },
+      "certificate_alias": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Alias name for certificate in trust store"
+      },
+      "backup_path": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Path for backup file during backup/restore operations"
+      },
+      "force_update": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to force update existing certificates"
+      }
+    },
+    "error_messages": [
+      "Trust store access denied: Cannot read or write to trust store file.",
+      "Certificate already exists: Certificate with same alias already exists in trust store.",
+      "Certificate not found: Specified certificate or alias not found in trust store.",
+      "Invalid trust store format: Trust store file is corrupted or invalid format.",
+      "Backup operation failed: Cannot create backup of trust store.",
+      "Unsupported operation: Specified operation is not supported."
+    ],
+    "usage": "Specify operation type and trust_store_path. Provide certificate and certificate_alias for add/remove/update operations. Use backup_path for backup/restore operations.",
+    "output_details": {
+      "operation_successful": {
+        "type": "boolean",
+        "description": "Whether trust store operation completed successfully"
+      },
+      "certificates_count": {
+        "type": "

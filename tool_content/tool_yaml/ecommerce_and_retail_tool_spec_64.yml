@@ -1,0 +1,827 @@
+field_name: ecommerce_and_retail
+subfield: Customer Account Management
+task: Account suspension and reactivation workflow management
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task involves moderate complexity with multiple interconnected workflows, regulatory compliance requirements, and significant risk from incorrect actions. The scope includes violation detection, evidence management, communication workflows, and financial reconciliation. Medium difficulty due to coordination dependencies and impact of errors on customer relationships.
+
+  **STEP 2 — Set a tool budget**
+  Target: 12 tools (medium complexity, 10-15 range)
+
+  **STEP 3 — Tool names and dependencies**
+  1. Account Status Checker - consumes: account_id → produces: current status, suspension history
+  2. Violation Detector - consumes: account_id, violation types → produces: violation evidence, severity scores
+  3. Evidence Collector - consumes: account_id, time ranges → produces: structured evidence records
+  4. Suspension Rule Evaluator - consumes: violations, account history → produces: suspension recommendations
+  5. Account Suspender - consumes: account_id, suspension details → produces: suspension confirmation
+  6. Communication Template Generator - consumes: suspension reasons, account details → produces: notification content
+  7. Customer Notifier - consumes: account_id, message content → produces: delivery confirmation
+  8. Appeal Processor - consumes: appeal_id, evidence → produces: appeal decision, recommendation
+  9. Account Reactivator - consumes: account_id, reactivation conditions → produces: reactivation status
+  10. Financial Balance Reconciler - consumes: account_id, suspension period → produces: balance adjustments
+  11. Compliance Logger - consumes: action details, account_id → produces: audit trail entries
+  12. Workflow Status Tracker - consumes: workflow_id → produces: current stage, next actions
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  - Check account status + Log compliance action (basic status inquiry)
+  - Detect violations + Generate communication template (initial violation handling)
+
+  Medium plans:
+  - Account Status Checker → Violation Detector → Evidence Collector → Suspension Rule Evaluator → Customer Notifier (complete violation assessment)
+  - Appeal Processor → Account Reactivator → Financial Balance Reconciler → Compliance Logger (appeal resolution workflow)
+
+  Complex plans:
+  - Account Status Checker → Violation Detector → Evidence Collector → Suspension Rule Evaluator → Account Suspender → Communication Template Generator → Customer Notifier → Compliance Logger (full suspension workflow)
+  - Appeal Processor → Evidence Collector → Suspension Rule Evaluator → Account Reactivator → Financial Balance Reconciler → Customer Notifier → Compliance Logger → Workflow Status Tracker (comprehensive reactivation process)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Account Status Checker",
+    "tool_description": "Retrieves current account status, suspension history, and basic account metadata for workflow decision-making.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer account"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include historical suspension records"
+      }
+    },
+    "error_messages": [
+      "Account not found: The provided account_id does not exist in the system. Verify the account identifier.",
+      "Access denied: Insufficient permissions to view this account. Check user authorization levels.",
+      "System unavailable: Account database is temporarily inaccessible. Retry after a few minutes."
+    ],
+    "usage": "Provide account_id to get current status; set include_history to false if only current status is needed.",
+    "output_details": {
+      "account_id": {
+        "type": "string",
+        "description": "The account identifier that was queried"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "Current account status: active, suspended, closed, or pending"
+      },
+      "suspension_count": {
+        "type": "integer",
+        "description": "Total number of previous suspensions"
+      },
+      "last_suspension_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Date of most recent suspension, if any"
+      },
+      "account_creation_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Date when the account was created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Violation Detector",
+    "tool_description": "Scans account activity for policy violations using configurable detection rules and severity thresholds.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier to scan for violations"
+      },
+      "violation_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["fraud", "abuse", "payment", "content", "security"],
+        "description": "Types of violations to detect"
+      },
+      "lookback_days": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Number of days to look back for violations (1-365)"
+      },
+      "severity_threshold": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Minimum severity to report: low, medium, high, critical"
+      }
+    },
+    "error_messages": [
+      "Invalid lookback period: lookback_days must be between 1 and 365.",
+      "Unknown violation type: Use only supported violation types [fraud, abuse, payment, content, security, terms].",
+      "Invalid severity threshold: Use one of [low, medium, high, critical].",
+      "Scan timeout: Violation detection took too long. Try reducing lookback_days or limiting violation_types."
+    ],
+    "usage": "Specify account_id and optionally filter by violation_types, lookback_days, and severity_threshold to focus the scan.",
+    "output_details": {
+      "violations_found": {
+        "type": "integer",
+        "description": "Total number of violations detected"
+      },
+      "violation_types_detected": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of violation categories found"
+      },
+      "highest_severity": {
+        "type": "string",
+        "description": "Most severe violation level found"
+      },
+      "requires_immediate_action": {
+        "type": "boolean",
+        "description": "Whether violations require immediate suspension"
+      },
+      "violation_summary": {
+        "type": "string",
+        "description": "Brief description of key violations found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Evidence Collector",
+    "tool_description": "Gathers and structures evidence records from account activity, transactions, and communications for violation cases.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier to collect evidence for"
+      },
+      "evidence_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Types of evidence to collect: transactions, messages, login_logs, purchases, reviews"
+      },
+      "start_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Start date for evidence collection period"
+      },
+      "end_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "End date for evidence collection period"
+      },
+      "max_records": {
+        "type": "integer",
+        "required": false,
+        "default": 1000,
+        "description": "Maximum number of evidence records to collect"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date and both must be valid ISO 8601 dates.",
+      "Unsupported evidence type: Use supported types [transactions, messages, login_logs, purchases, reviews, reports].",
+      "Date range too broad: Limit evidence collection to maximum 2 years to avoid timeouts.",
+      "Insufficient permissions: Cannot access requested evidence types for this account."
+    ],
+    "usage": "Specify account_id, evidence_types array, and date range; optionally limit results with max_records to manage output size.",
+    "output_details": {
+      "evidence_count": {
+        "type": "integer",
+        "description": "Total number of evidence items collected"
+      },
+      "collection_period": {
+        "type": "string",
+        "description": "Date range of collected evidence"
+      },
+      "evidence_types_found": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Types of evidence successfully collected"
+      },
+      "key_findings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Summary of most significant evidence items"
+      },
+      "evidence_quality_score": {
+        "type": "number",
+        "description": "Quality score of collected evidence (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Suspension Rule Evaluator",
+    "tool_description": "Evaluates violations against suspension policies to determine appropriate actions and suspension parameters.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier for suspension evaluation"
+      },
+      "violation_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing violation details and evidence"
+      },
+      "account_history": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string with account history and previous violations"
+      },
+      "policy_version": {
+        "type": "string",
+        "required": false,
+        "default": "current",
+        "description": "Version of suspension policy to apply"
+      },
+      "override_escalation": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to override automatic escalation rules"
+      }
+    },
+    "error_messages": [
+      "Invalid violation data: violation_data must be valid JSON containing violation details.",
+      "Invalid account history: account_history must be valid JSON with historical violation data.",
+      "Policy version not found: Specified policy_version does not exist. Use 'current' or valid version identifier.",
+      "Evaluation error: Unable to process violation data. Check data format and completeness."
+    ],
+    "usage": "Pass account_id with violation_data and account_history as JSON strings; optionally specify policy_version or override_escalation for special cases.",
+    "output_details": {
+      "suspension_recommended": {
+        "type": "boolean",
+        "description": "Whether suspension is recommended based on policy"
+      },
+      "suspension_type": {
+        "type": "string",
+        "description": "Type of suspension: temporary, permanent, or conditional"
+      },
+      "suspension_duration_days": {
+        "type": "integer",
+        "description": "Recommended suspension duration in days (0 for permanent)"
+      },
+      "violation_score": {
+        "type": "number",
+        "description": "Calculated violation severity score"
+      },
+      "reasoning": {
+        "type": "string",
+        "description": "Explanation for suspension recommendation"
+      },
+      "appeal_eligible": {
+        "type": "boolean",
+        "description": "Whether the account is eligible for appeal process"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Account Suspender",
+    "tool_description": "Executes account suspension with specified parameters, restrictions, and effective dates.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier to suspend"
+      },
+      "suspension_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of suspension: temporary, permanent, conditional"
+      },
+      "duration_days": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": "Suspension duration in days (0 for permanent or conditional)"
+      },
+      "reason_code": {
+        "type": "string",
+        "required": true,
+        "description": "Internal reason code for suspension"
+      },
+      "effective_immediately": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether suspension takes effect immediately"
+      }
+    },
+    "error_messages": [
+      "Account already suspended: Cannot suspend an account that is already in suspended status.",
+      "Invalid suspension type: Use one of [temporary, permanent, conditional].",
+      "Invalid duration: For temporary suspensions, duration_days must be greater than 0.",
+      "Insufficient authorization: User lacks permission to suspend accounts.",
+      "System lock failure: Unable to execute suspension due to system constraints."
+    ],
+    "usage": "Provide account_id, suspension_type, and reason_code; for temporary suspensions, specify duration_days; set effective_immediately to false for delayed activation.",
+    "output_details": {
+      "suspension_id": {
+        "type": "string",
+        "description": "Unique identifier for this suspension action"
+      },
+      "status": {
+        "type": "string",
+        "description": "Execution status: completed, failed, or pending"
+      },
+      "effective_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Date and time when suspension became effective"
+      },
+      "expiration_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Date when suspension expires (null for permanent)"
+      },
+      "restrictions_applied": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of restrictions now active on the account"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Communication Template Generator",
+    "tool_description": "Generates personalized notification templates for account suspension and reactivation communications.",
+    "parameters": {
+      "template_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of communication: suspension_notice, appeal_instructions, reactivation_notice, warning"
+      },
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier for personalization"
+      },
+      "violation_summary": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Brief description of violations for inclusion in notice"
+      },
+      "suspension_duration": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": "Suspension duration in days for temporary suspensions"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "default": "en",
+        "description": "Language code for template generation"
+      },
+      "include_appeal_info": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include appeal process information"
+      }
+    },
+    "error_messages": [
+      "Invalid template type: Use one of [suspension_notice, appeal_instructions, reactivation_notice, warning].",
+      "Account data unavailable: Cannot personalize template due to missing account information.",
+      "Unsupported language: Language code not supported. Use standard ISO language codes.",
+      "Template generation failed: Unable to generate template with provided parameters."
+    ],
+    "usage": "Specify template_type and account_id; provide violation_summary and suspension_duration for suspension notices; set language and include_appeal_info as needed.",
+    "output_details": {
+      "template_id": {
+        "type": "string",
+        "description": "Unique identifier for generated template"
+      },
+      "subject_line": {
+        "type": "string",
+        "description": "Generated email subject line"
+      },
+      "message_body": {
+        "type": "string",
+        "description": "Complete message body text"
+      },
+      "delivery_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended delivery channels for this communication"
+      },
+      "urgency_level": {
+        "type": "string",
+        "description": "Message urgency: low, medium, high, critical"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Notifier",
+    "tool_description": "Delivers notifications to customers through multiple channels with delivery tracking and confirmation.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target account identifier for notification"
+      },
+      "message_subject": {
+        "type": "string",
+        "required": true,
+        "description": "Subject line for the notification"
+      },
+      "message_body": {
+        "type": "string",
+        "required": true,
+        "description": "Complete message content to deliver"
+      },
+      "delivery_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["email"],
+        "description": "Channels to use: email, sms, push, in_app"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "default": "normal",
+        "description": "Delivery priority: low, normal, high, urgent"
+      },
+      "require_confirmation": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to require delivery confirmation"
+      },
+      "schedule_delay_minutes": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": "Minutes to delay delivery (0 for immediate)"
+      }
+    },
+    "error_messages": [
+      "Invalid delivery channel: Use supported channels [email, sms, push, in_app].",
+      "Message content empty: Both message_subject and message_body are required.",
+      "Customer contact unavailable: No valid contact information found for specified delivery channels.",
+      "Delivery service unavailable: Notification system is temporarily unavailable.",
+      "Invalid schedule delay: schedule_delay_minutes must be between 0 and 1440 (24 hours)."
+    ],
+    "usage": "Provide account_id, message_subject, and message_body; optionally specify delivery_channels, priority, require_confirmation, and schedule_delay_minutes for advanced delivery options.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for this notification"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Overall delivery status: sent, pending, failed, scheduled"
+      },
+      "channels_attempted": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of delivery channels that were attempted"
+      },
+      "successful_deliveries": {
+        "type": "integer",
+        "description": "Number of successful deliveries across channels"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When notification was delivered or scheduled"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Appeal Processor",
+    "tool_description": "Processes customer appeals for account suspensions with automated review and decision recommendations.",
+    "parameters": {
+      "appeal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the appeal case"
+      },
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier for the suspended account"
+      },
+      "appeal_text": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's appeal statement or explanation"
+      },
+      "supporting_evidence": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "List of evidence identifiers or descriptions submitted by customer"
+      },
+      "original_violation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of violation that led to suspension"
+      },
+      "review_priority": {
+        "type": "string",
+        "required": false,
+        "default": "normal",
+        "description": "Appeal review priority: low, normal, high, expedited"
+      },
+      "auto_decision_enabled": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to enable automated decision making for clear cases"
+      },
+      "reviewer_notes": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Additional notes from manual reviewer if applicable"
+      }
+    },
+    "error_messages": [
+      "Appeal not found: The specified appeal_id does not exist in the system.",
+      "Invalid appeal status: Appeal has already been processed or is not in reviewable state.",
+      "Missing appeal content: appeal_text cannot be empty for processing.",
+      "Unknown violation type: original_violation_type must match a valid violation category.",
+      "Processing timeout: Appeal processing took too long due to complexity. Manual review may be required."
+    ],
+    "usage": "Provide appeal_id, account_id, appeal_text, and original_violation_type; optionally include supporting_evidence array and set review_priority for urgent cases.",
+    "output_details": {
+      "processing_status": {
+        "type": "string",
+        "description": "Processing result: approved, denied, requires_manual_review, incomplete"
+      },
+      "decision_confidence": {
+        "type": "number",
+        "description": "Confidence score for automated decision (0-1)"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Recommended action: reactivate, maintain_suspension, reduce_suspension, conditional_reactivation"
+      },
+      "reasoning": {
+        "type": "string",
+        "description": "Explanation for the appeal decision"
+      },
+      "next_steps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Required follow-up actions based on decision"
+      },
+      "estimated_resolution_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Expected date for final resolution"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Account Reactivator",
+    "tool_description": "Reactivates suspended accounts with conditional requirements and access restoration procedures.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier to reactivate"
+      },
+      "reactivation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of reactivation: full, conditional, probationary"
+      },
+      "authorization_code": {
+        "type": "string",
+        "required": true,
+        "description": "Authorization code from appeal decision or manual review"
+      },
+      "conditions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "List of conditions that must be met for reactivation"
+      },
+      "probation_days": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": "Duration of probationary period in days (for probationary reactivation)"
+      },
+      "restore_privileges": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["basic_access"],
+        "description": "List of privileges to restore: basic_access, purchasing, messaging, reviews, api_access"
+      }
+    },
+    "error_messages": [
+      "Account not suspended: Cannot reactivate an account that is not currently suspended.",
+      "Invalid authorization: authorization_code is not valid or has expired.",
+      "Invalid reactivation type: Use one of [full, conditional, probationary].",
+      "Unmet conditions: One or more required conditions for reactivation have not been satisfied.",
+      "System restriction: Account cannot be reactivated due to system-level restrictions.",
+      "Invalid privilege type: restore_privileges contains unsupported privilege types."
+    ],
+    "usage": "Provide account_id, reactivation_type, and valid authorization_code; specify conditions array and probation_days for conditional/probationary reactivations; list restore_privileges to control access levels.",
+    "output_details": {
+      "reactivation_id": {
+        "type": "string",
+        "description": "Unique identifier for this reactivation action"
+      },
+      "status": {
+        "type": "string",
+        "description": "Reactivation status: completed, failed, partial, pending_conditions"
+      },
+      "effective_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Date and time when reactivation became effective"
+      },
+      "active_restrictions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of any remaining restrictions on the account"
+      },
+      "probation_end_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "End date of probationary period if applicable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Financial Balance Reconciler",
+    "tool_description": "Reconciles financial balances, refunds, and credits for accounts during suspension and reactivation periods.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier for balance reconciliation"
+      },
+      "suspension_start_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Start date of the suspension period"
+      },
+      "suspension_end_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": false,
+        "default": "None",
+        "description": "End date of suspension period (current date if not specified)"
+      },
+      "reconciliation_type": {
+        "type": "string",
+        "required": false,
+        "default": "full",
+        "description": "Type of reconciliation: full, partial, service_credits_only"
+      },
+      "refund_policy": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Refund policy to apply: standard, prorated, no_refund, goodwill"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: suspension_start_date must be before suspension_end_date.",
+      "Account not found: The specified account_id does not exist or is not accessible.",
+      "No suspension record: Cannot reconcile account with no suspension history in specified period.",
+      "Invalid reconciliation type: Use one of [full, partial, service_credits_only].",
+      "Invalid refund policy: Use one of [standard, prorated, no_refund, goodwill].",
+      "Financial system unavailable: Cannot process reconciliation due to payment system maintenance."
+    ],
+    "usage": "Provide account_id and suspension_start_date; optionally specify suspension_end_date, reconciliation_type, and refund_policy to control the reconciliation scope and approach.",
+    "output_details": {
+      "reconciliation_id": {
+        "type": "string",
+        "description": "Unique identifier for this reconciliation transaction"
+      },
+      "total_refund_amount": {
+        "type": "number",
+        "description": "Total refund amount calculated"
+      },
+      "service_credits_issued": {
+        "type": "number",
+        "description": "Amount of service credits issued to account"
+      },
+      "processing_status": {
+        "type": "string",
+        "description": "Status of reconciliation: completed, pending, failed, requires_manual_review"
+      },
+      "transaction_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of individual reconciliation items processed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Logger",
+    "tool_description": "Creates comprehensive audit trail entries for all account suspension and reactivation actions with regulatory compliance.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier for the logged action"
+      },
+      "action_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of action being logged: suspension, reactivation, appeal, communication, reconciliation"
+      },
+      "action_details": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the action taken"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of user or system that performed the action"
+      },
+      "reference_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Related transaction, case, or workflow identifiers"
+      },
+      "compliance_tags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Compliance framework tags: gdpr, ccpa, pci, sox, internal"
+      },
+      "data_classification": {
+        "type": "string",
+        "required": false,
+        "default": "internal",
+        "description": "Data sensitivity level: public, internal, confidential, restricted"
+      },
+      "retention_years": {
+        "type": "integer",
+        "required": false,
+        "default": 7,
+        "description": "Number of years to retain this audit record"
+      }
+    },
+    "error_messages": [
+      "Invalid action type: Use one of [suspension, reactivation, appeal, communication, reconciliation, investigation].",
+      "Missing required details: action_details cannot be empty for audit purposes.",
+      "Invalid user identifier: user_id must be a valid system or user identifier.",
+      "Unknown compliance tag: compliance_tags contains unrecognized compliance framework identifiers.",
+      "Invalid data classification: Use one of [public, internal, confidential, restricted].",
+      "Retention period error: retention_years must be between 1 and 50 years."
+    ],
+    "usage": "Provide account_id, action_type, action_details, and user_id; optionally add reference_ids array, compliance_tags, data_classification, and retention_years for comprehensive audit tracking.",
+    "output_details": {
+      "log_entry_id": {
+        "type": "string",
+        "description": "Unique identifier for this audit log entry"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Exact timestamp when action was logged"
+      },
+      "status": {
+        "type": "string",
+        "description": "Logging status: recorded, failed, pending_verification"

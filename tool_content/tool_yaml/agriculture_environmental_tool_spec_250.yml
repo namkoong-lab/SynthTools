@@ -1,0 +1,831 @@
+field_name: agriculture_environmental
+subfield: Livestock Health and Management
+task: Monitor and track individual animal health status and medical history
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves coordinating multiple data sources (vital signs, medical records, behavioral patterns), requires real-time monitoring capabilities, and has significant impact since animal health directly affects productivity and welfare. However, the core concepts are well-defined with established veterinary protocols.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover the various aspects of animal health monitoring, tracking, and medical record management.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Animal Registration Tool** - Consumes: basic animal info → Produces: unique animal ID and profile
+  2. **Vital Signs Monitor** - Consumes: animal ID, sensor data → Produces: health metrics
+  3. **Medical Record Creator** - Consumes: animal ID, treatment details → Produces: medical entry
+  4. **Health Alert Generator** - Consumes: vital signs, thresholds → Produces: health alerts
+  5. **Vaccination Tracker** - Consumes: animal ID, vaccine info → Produces: immunization records
+  6. **Disease Symptom Logger** - Consumes: animal ID, symptoms → Produces: symptom records
+  7. **Treatment Plan Builder** - Consumes: animal ID, diagnosis → Produces: treatment protocols
+  8. **Health History Retriever** - Consumes: animal ID, date range → Produces: historical health data
+  9. **Medication Scheduler** - Consumes: animal ID, medication details → Produces: dosing schedule
+  10. **Health Status Reporter** - Consumes: animal ID → Produces: current health summary
+  11. **Breeding Health Assessor** - Consumes: animal ID, reproductive data → Produces: breeding status
+  12. **Group Health Analyzer** - Consumes: animal group IDs → Produces: herd health insights
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic health check: Animal Registration Tool → Vital Signs Monitor → Health Status Reporter
+  - Vaccination management: Animal Registration Tool → Vaccination Tracker → Health History Retriever
+
+  **Medium Plans:**
+  - Disease outbreak response: Vital Signs Monitor → Health Alert Generator → Disease Symptom Logger → Treatment Plan Builder → Medical Record Creator
+  - Preventive care cycle: Health History Retriever → Vaccination Tracker → Medication Scheduler → Health Status Reporter
+
+  **Complex Plans:**
+  - Comprehensive health monitoring: Animal Registration Tool → Vital Signs Monitor → Health Alert Generator → Disease Symptom Logger → Treatment Plan Builder → Medical Record Creator → Medication Scheduler → Health Status Reporter
+  - Herd health management: Group Health Analyzer → Health Alert Generator → Disease Symptom Logger → Treatment Plan Builder → Medical Record Creator → Vaccination Tracker → Health History Retriever
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Animal Registration Tool",
+    "tool_description": "Registers new animals in the monitoring system with basic identifying information and creates unique tracking profiles.",
+    "parameters": {
+      "animal_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of animal (cattle, sheep, goat, pig, chicken, horse)"
+      },
+      "breed": {
+        "type": "string",
+        "required": true,
+        "description": "Breed of the animal"
+      },
+      "birth_date": {
+        "type": "string",
+        "required": true,
+        "description": "Animal's birth date",
+        "format": "date-time"
+      },
+      "gender": {
+        "type": "string",
+        "required": true,
+        "description": "Animal's gender (male, female, castrated)"
+      },
+      "farm_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the farm where animal is located"
+      }
+    },
+    "error_messages": [
+      "Invalid animal type: Use one of [cattle, sheep, goat, pig, chicken, horse].",
+      "Invalid gender: Use one of [male, female, castrated].",
+      "Invalid birth date: Provide a valid ISO 8601 date that is not in the future.",
+      "Missing required fields: All parameters must be provided.",
+      "Farm ID not found: The specified farm_id does not exist in the system."
+    ],
+    "usage": "Provide animal_type, breed, birth_date, gender, and farm_id to register a new animal. The tool creates a unique animal ID and initializes the health monitoring profile.",
+    "output_details": {
+      "animal_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to the animal"
+      },
+      "registration_date": {
+        "type": "string",
+        "description": "Date and time when the animal was registered",
+        "format": "date-time"
+      },
+      "status": {
+        "type": "string",
+        "description": "Registration status confirmation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Vital Signs Monitor",
+    "tool_description": "Records and analyzes vital signs data for individual animals including temperature, heart rate, respiratory rate, and activity levels.",
+    "parameters": {
+      "animal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the animal"
+      },
+      "temperature": {
+        "type": "number",
+        "required": true,
+        "description": "Body temperature in Celsius (35.0-45.0)"
+      },
+      "heart_rate": {
+        "type": "integer",
+        "required": true,
+        "description": "Heart rate in beats per minute (20-200)"
+      },
+      "respiratory_rate": {
+        "type": "integer",
+        "required": true,
+        "description": "Respiratory rate in breaths per minute (5-80)"
+      },
+      "activity_level": {
+        "type": "string",
+        "required": true,
+        "description": "Activity level (low, normal, high, hyperactive)"
+      },
+      "measurement_time": {
+        "type": "string",
+        "required": true,
+        "description": "Time when measurements were taken",
+        "format": "date-time"
+      },
+      "notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional observations or notes",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Animal ID not found: The specified animal_id does not exist in the system.",
+      "Invalid vital signs range: Temperature must be 35.0-45.0°C, heart rate 20-200 bpm, respiratory rate 5-80 bpm.",
+      "Invalid activity level: Use one of [low, normal, high, hyperactive].",
+      "Invalid measurement time: Provide a valid ISO 8601 datetime that is not in the future.",
+      "Data consistency error: Vital signs combination appears medically inconsistent."
+    ],
+    "usage": "Provide animal_id and all vital signs measurements with measurement_time. Optionally add notes for additional context. The tool stores the data and provides health status assessment.",
+    "output_details": {
+      "record_id": {
+        "type": "string",
+        "description": "Unique identifier for this vital signs record"
+      },
+      "health_score": {
+        "type": "number",
+        "description": "Calculated health score from 0-100"
+      },
+      "anomaly_flags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of detected anomalies in vital signs"
+      },
+      "status": {
+        "type": "string",
+        "description": "Overall health status assessment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Medical Record Creator",
+    "tool_description": "Creates comprehensive medical records for treatments, procedures, and veterinary interventions performed on animals.",
+    "parameters": {
+      "animal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the animal"
+      },
+      "treatment_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when treatment was performed",
+        "format": "date-time"
+      },
+      "treatment_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of treatment (medication, surgery, vaccination, examination, emergency)"
+      },
+      "veterinarian_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the veterinarian who performed the treatment"
+      },
+      "diagnosis": {
+        "type": "string",
+        "required": true,
+        "description": "Medical diagnosis or reason for treatment"
+      },
+      "treatment_details": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the treatment performed"
+      },
+      "medications_used": {
+        "type": "array",
+        "required": false,
+        "description": "List of medications administered",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "dosage_instructions": {
+        "type": "string",
+        "required": false,
+        "description": "Medication dosage and administration instructions",
+        "default": ""
+      },
+      "follow_up_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether follow-up treatment is needed",
+        "default": false
+      },
+      "follow_up_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date for follow-up treatment if required",
+        "format": "date-time",
+        "default": null
+      },
+      "treatment_cost": {
+        "type": "number",
+        "required": false,
+        "description": "Cost of the treatment in local currency",
+        "default": 0
+      },
+      "recovery_notes": {
+        "type": "string",
+        "required": false,
+        "description": "Expected recovery timeline and care instructions",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Animal ID not found: The specified animal_id does not exist in the system.",
+      "Veterinarian ID not found: The specified veterinarian_id is not registered in the system.",
+      "Invalid treatment type: Use one of [medication, surgery, vaccination, examination, emergency].",
+      "Invalid treatment date: Provide a valid ISO 8601 date that is not in the future.",
+      "Follow-up date inconsistency: If follow_up_required is true, follow_up_date must be provided and be in the future.",
+      "Invalid cost value: Treatment cost must be a non-negative number.",
+      "Missing required information: diagnosis and treatment_details cannot be empty."
+    ],
+    "usage": "Provide animal_id, treatment_date, treatment_type, veterinarian_id, diagnosis, and treatment_details. Optionally include medications, dosage instructions, follow-up requirements, and cost information.",
+    "output_details": {
+      "medical_record_id": {
+        "type": "string",
+        "description": "Unique identifier for this medical record"
+      },
+      "created_date": {
+        "type": "string",
+        "description": "Date when the record was created",
+        "format": "date-time"
+      },
+      "status": {
+        "type": "string",
+        "description": "Record creation status confirmation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Health Alert Generator",
+    "tool_description": "Generates health alerts based on vital signs thresholds and health monitoring rules for early detection of health issues.",
+    "parameters": {
+      "animal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the animal"
+      },
+      "temperature_threshold_high": {
+        "type": "number",
+        "required": false,
+        "description": "Upper temperature threshold for alerts in Celsius",
+        "default": 39.5
+      },
+      "temperature_threshold_low": {
+        "type": "number",
+        "required": false,
+        "description": "Lower temperature threshold for alerts in Celsius",
+        "default": 37.5
+      },
+      "heart_rate_threshold_high": {
+        "type": "integer",
+        "required": false,
+        "description": "Upper heart rate threshold for alerts in bpm",
+        "default": 120
+      },
+      "heart_rate_threshold_low": {
+        "type": "integer",
+        "required": false,
+        "description": "Lower heart rate threshold for alerts in bpm",
+        "default": 40
+      },
+      "check_recent_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of recent hours to check for threshold violations (1-72)",
+        "default": 24
+      }
+    },
+    "error_messages": [
+      "Animal ID not found: The specified animal_id does not exist in the system.",
+      "Invalid threshold values: High thresholds must be greater than low thresholds.",
+      "Invalid time range: check_recent_hours must be between 1 and 72.",
+      "Insufficient data: Not enough recent vital signs data to generate meaningful alerts.",
+      "Threshold range error: Temperature thresholds must be between 35-45°C, heart rate between 20-200 bpm."
+    ],
+    "usage": "Provide animal_id and optionally customize threshold values and time range for monitoring. The tool analyzes recent vital signs and generates alerts for any threshold violations.",
+    "output_details": {
+      "alert_status": {
+        "type": "string",
+        "description": "Overall alert status (normal, warning, critical)"
+      },
+      "active_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of active health alerts"
+      },
+      "alert_count": {
+        "type": "integer",
+        "description": "Number of active alerts"
+      },
+      "last_check_time": {
+        "type": "string",
+        "description": "Timestamp of the last health check",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Vaccination Tracker",
+    "tool_description": "Tracks vaccination schedules, records administered vaccines, and manages immunization history for individual animals.",
+    "parameters": {
+      "animal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the animal"
+      },
+      "vaccine_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the vaccine administered"
+      },
+      "vaccination_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when vaccination was administered",
+        "format": "date-time"
+      },
+      "vaccine_batch_number": {
+        "type": "string",
+        "required": true,
+        "description": "Batch number of the vaccine"
+      },
+      "veterinarian_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the veterinarian who administered the vaccine"
+      },
+      "next_due_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date when next vaccination is due",
+        "format": "date-time",
+        "default": null
+      },
+      "adverse_reactions": {
+        "type": "string",
+        "required": false,
+        "description": "Any adverse reactions observed",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Animal ID not found: The specified animal_id does not exist in the system.",
+      "Veterinarian ID not found: The specified veterinarian_id is not registered in the system.",
+      "Invalid vaccination date: Provide a valid ISO 8601 date that is not in the future.",
+      "Invalid next due date: Next due date must be in the future if provided.",
+      "Missing vaccine information: vaccine_name and vaccine_batch_number cannot be empty.",
+      "Duplicate vaccination record: This vaccine appears to have been already recorded for this date."
+    ],
+    "usage": "Provide animal_id, vaccine_name, vaccination_date, vaccine_batch_number, and veterinarian_id. Optionally include next_due_date and any adverse_reactions observed.",
+    "output_details": {
+      "vaccination_record_id": {
+        "type": "string",
+        "description": "Unique identifier for this vaccination record"
+      },
+      "immunization_status": {
+        "type": "string",
+        "description": "Current immunization status of the animal"
+      },
+      "next_vaccination_reminder": {
+        "type": "string",
+        "description": "Information about upcoming vaccination requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Disease Symptom Logger",
+    "tool_description": "Logs and tracks disease symptoms, behavioral changes, and clinical observations for diagnostic and monitoring purposes.",
+    "parameters": {
+      "animal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the animal"
+      },
+      "observation_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when symptoms were observed",
+        "format": "date-time"
+      },
+      "symptoms": {
+        "type": "array",
+        "required": true,
+        "description": "List of observed symptoms",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "severity": {
+        "type": "string",
+        "required": true,
+        "description": "Severity level of symptoms (mild, moderate, severe, critical)"
+      },
+      "observer_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the person who observed the symptoms"
+      },
+      "duration": {
+        "type": "string",
+        "required": false,
+        "description": "Duration of symptoms (e.g., '2 days', '1 week')",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Animal ID not found: The specified animal_id does not exist in the system.",
+      "Observer ID not found: The specified observer_id is not registered in the system.",
+      "Invalid severity level: Use one of [mild, moderate, severe, critical].",
+      "Invalid observation date: Provide a valid ISO 8601 date that is not in the future.",
+      "Empty symptoms list: At least one symptom must be provided.",
+      "Too many symptoms: Maximum of 20 symptoms can be logged in a single entry."
+    ],
+    "usage": "Provide animal_id, observation_date, symptoms array, severity level, and observer_id. Optionally include duration information for symptom timeline tracking.",
+    "output_details": {
+      "symptom_log_id": {
+        "type": "string",
+        "description": "Unique identifier for this symptom log entry"
+      },
+      "risk_assessment": {
+        "type": "string",
+        "description": "Automated risk assessment based on symptoms"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Suggested next steps based on symptom analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Treatment Plan Builder",
+    "tool_description": "Creates structured treatment plans based on diagnosis, animal condition, and veterinary protocols.",
+    "parameters": {
+      "animal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the animal"
+      },
+      "diagnosis": {
+        "type": "string",
+        "required": true,
+        "description": "Primary diagnosis or condition"
+      },
+      "treatment_goals": {
+        "type": "array",
+        "required": true,
+        "description": "Primary treatment objectives",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "treatment_duration_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Expected treatment duration in days (1-365)"
+      },
+      "medications": {
+        "type": "array",
+        "required": false,
+        "description": "List of medications to include in the plan",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "special_care_instructions": {
+        "type": "array",
+        "required": false,
+        "description": "Special care or handling instructions",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "monitoring_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "How often to monitor the animal (daily, twice_daily, weekly)",
+        "default": "daily"
+      },
+      "isolation_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether animal needs to be isolated",
+        "default": false
+      },
+      "diet_modifications": {
+        "type": "string",
+        "required": false,
+        "description": "Any required dietary changes",
+        "default": ""
+      },
+      "veterinarian_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the veterinarian creating the plan"
+      }
+    },
+    "error_messages": [
+      "Animal ID not found: The specified animal_id does not exist in the system.",
+      "Veterinarian ID not found: The specified veterinarian_id is not registered in the system.",
+      "Invalid treatment duration: Duration must be between 1 and 365 days.",
+      "Invalid monitoring frequency: Use one of [daily, twice_daily, weekly].",
+      "Empty treatment goals: At least one treatment goal must be specified.",
+      "Too many treatment goals: Maximum of 10 treatment goals allowed.",
+      "Missing diagnosis: Diagnosis field cannot be empty."
+    ],
+    "usage": "Provide animal_id, diagnosis, treatment_goals, treatment_duration_days, and veterinarian_id. Optionally specify medications, care instructions, monitoring frequency, isolation needs, and diet modifications.",
+    "output_details": {
+      "treatment_plan_id": {
+        "type": "string",
+        "description": "Unique identifier for this treatment plan"
+      },
+      "plan_status": {
+        "type": "string",
+        "description": "Status of the treatment plan (active, pending, completed)"
+      },
+      "estimated_cost": {
+        "type": "number",
+        "description": "Estimated total cost of the treatment plan"
+      },
+      "critical_milestones": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key milestones and checkpoints in the treatment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Health History Retriever",
+    "tool_description": "Retrieves comprehensive health history and medical records for an animal within a specified time period.",
+    "parameters": {
+      "animal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the animal"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for history retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for history retrieval",
+        "format": "date-time"
+      },
+      "include_vital_signs": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include vital signs data in the history",
+        "default": true
+      },
+      "include_treatments": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include treatment records in the history",
+        "default": true
+      },
+      "include_vaccinations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include vaccination records in the history",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Animal ID not found: The specified animal_id does not exist in the system.",
+      "Invalid date range: start_date must be earlier than end_date.",
+      "Invalid date format: Provide valid ISO 8601 datetime strings.",
+      "Date range too large: Maximum history retrieval period is 5 years.",
+      "Future dates not allowed: Both dates must be in the past or present."
+    ],
+    "usage": "Provide animal_id, start_date, and end_date to retrieve health history. Optionally control which types of records to include using the boolean flags.",
+    "output_details": {
+      "total_records": {
+        "type": "integer",
+        "description": "Total number of health records found"
+      },
+      "vital_signs_count": {
+        "type": "integer",
+        "description": "Number of vital signs records in the period"
+      },
+      "treatments_count": {
+        "type": "integer",
+        "description": "Number of treatment records in the period"
+      },
+      "vaccinations_count": {
+        "type": "integer",
+        "description": "Number of vaccination records in the period"
+      },
+      "health_timeline": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Chronological summary of major health events"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Medication Scheduler",
+    "tool_description": "Creates and manages medication schedules with dosing instructions, timing, and administration tracking.",
+    "parameters": {
+      "animal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the animal"
+      },
+      "medication_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the medication"
+      },
+      "dosage_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Amount of medication per dose (positive number)"
+      },
+      "dosage_unit": {
+        "type": "string",
+        "required": true,
+        "description": "Unit of dosage (mg, ml, tablets, cc, units)"
+      },
+      "frequency_per_day": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of doses per day (1-6)"
+      },
+      "duration_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Treatment duration in days (1-90)"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date to start medication",
+        "format": "date-time"
+      },
+      "administration_route": {
+        "type": "string",
+        "required": true,
+        "description": "Route of administration (oral, injection, topical, intravenous)"
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "description": "Special administration instructions",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Animal ID not found: The specified animal_id does not exist in the system.",
+      "Invalid dosage amount: Dosage amount must be a positive number.",
+      "Invalid dosage unit: Use one of [mg, ml, tablets, cc, units].",
+      "Invalid frequency: Frequency per day must be between 1 and 6.",
+      "Invalid duration: Duration must be between 1 and 90 days.",
+      "Invalid start date: Provide a valid ISO 8601 date that is not in the past.",
+      "Invalid administration route: Use one of [oral, injection, topical, intravenous]."
+    ],
+    "usage": "Provide animal_id, medication details (name, dosage_amount, dosage_unit), frequency_per_day, duration_days, start_date, and administration_route. Optionally add special_instructions for administration guidance.",
+    "output_details": {
+      "schedule_id": {
+        "type": "string",
+        "description": "Unique identifier for this medication schedule"
+      },
+      "total_doses": {
+        "type": "integer",
+        "description": "Total number of doses in the complete schedule"
+      },
+      "end_date": {
+        "type": "string",
+        "description": "Calculated end date of the medication schedule",
+        "format": "date-time"
+      },
+      "daily_schedule": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Daily administration times for the medication"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Health Status Reporter",
+    "tool_description": "Generates comprehensive current health status reports combining recent vital signs, treatments, and overall health assessment.",
+    "parameters": {
+      "animal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the animal"
+      },
+      "include_recent_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of recent days to include in the report (1-30)",
+        "default": 7
+      }
+    },
+    "error_messages": [
+      "Animal ID not found: The specified animal_id does not exist in the system.",
+      "Invalid time range: include_recent_days must be between 1 and 30.",
+      "Insufficient data: Not enough recent health data to generate a comprehensive report."
+    ],
+    "usage": "Provide animal_id and optionally specify include_recent_days to control the timeframe for the health status report. The tool compiles recent health data into a comprehensive status summary.",
+    "output_details": {
+      "overall_health_status": {
+        "type": "string",
+        "description": "Overall health assessment (excellent, good, fair, poor, critical)"
+      },
+      "current_health_score": {
+        "type": "number",
+        "description": "Numerical health score from 0-100"
+      },
+      "active_treatments": {
+        "type": "integer",
+        "description": "Number of currently active treatments"
+      },
+      "recent_alerts": {
+        "type": "integer",
+        "description": "Number of health alerts in the recent period"
+      },
+      "vaccination_status": {
+        "type": "string",
+        "description": "Current vaccination compliance status"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Health management recommendations based on current status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Breeding Health Assessor",
+    "tool_description": "Assesses reproductive health status and breeding readiness based on health history, vital signs, and breeding-specific criteria.",
+    "parameters": {
+      "animal_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the animal"
+      },
+      "assessment_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of breeding assessment (pre_breeding, pregnancy_check, post_breeding, fertility_evaluation)"
+      },
+      "last_breeding_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date of last breeding attempt",
+        "format": "date-time",
+        "default": null
+      },
+      "breeding_season_target": {
+        "type": "string",
+        "required": false,
+        "description": "Target breeding season or month",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Animal ID not found: The specified animal_id does not exist in

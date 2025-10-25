@@ -1,0 +1,844 @@
+field_name: facilities_management
+subfield: HVAC Systems Management
+task: Monitor and analyze HVAC system performance metrics and energy consumption
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task is of **medium** difficulty. While HVAC monitoring involves well-defined metrics and established protocols, it requires coordinating multiple data sources (temperature sensors, energy meters, equipment status), analyzing complex relationships between environmental conditions and system performance, and managing dependencies between different system components. The scope includes real-time monitoring, historical analysis, predictive maintenance, and energy optimization across multiple zones and equipment types.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'm targeting **12 tools** to cover the breadth of HVAC monitoring workflows while maintaining focused, composable functionality.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **HVAC Data Collector** - Consumes: sensor IDs, time ranges → Produces: raw sensor readings
+  2. **Energy Consumption Analyzer** - Consumes: meter data, time periods → Produces: consumption metrics
+  3. **Temperature Zone Validator** - Consumes: zone configs, sensor data → Produces: compliance status
+  4. **Equipment Status Monitor** - Consumes: equipment IDs → Produces: operational status
+  5. **Performance Baseline Calculator** - Consumes: historical data → Produces: baseline metrics
+  6. **Anomaly Pattern Detector** - Consumes: current readings, baselines → Produces: anomaly alerts
+  7. **Energy Efficiency Scorer** - Consumes: consumption data, performance metrics → Produces: efficiency ratings
+  8. **Maintenance Schedule Optimizer** - Consumes: equipment data, performance history → Produces: maintenance recommendations
+  9. **Load Demand Forecaster** - Consumes: historical patterns, weather data → Produces: demand predictions
+  10. **System Configuration Analyzer** - Consumes: system settings, performance data → Produces: optimization suggestions
+  11. **Alert Priority Ranker** - Consumes: multiple alerts, severity rules → Produces: prioritized action list
+  12. **Performance Report Generator** - Consumes: all metrics and analyses → Produces: comprehensive reports
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Monitoring**: HVAC Data Collector → Equipment Status Monitor → Alert Priority Ranker (monitor current system status)
+  2. **Energy Tracking**: Energy Consumption Analyzer → Energy Efficiency Scorer (assess current energy performance)
+
+  **Medium Plans:**
+  1. **Zone Compliance Check**: HVAC Data Collector → Temperature Zone Validator → Anomaly Pattern Detector → Alert Priority Ranker (ensure zones meet requirements)
+  2. **Efficiency Analysis**: Energy Consumption Analyzer → Performance Baseline Calculator → Energy Efficiency Scorer → Performance Report Generator (comprehensive efficiency assessment)
+
+  **Complex Plans:**
+  1. **Predictive Maintenance**: HVAC Data Collector → Equipment Status Monitor → Performance Baseline Calculator → Anomaly Pattern Detector → Maintenance Schedule Optimizer → Alert Priority Ranker (full predictive maintenance workflow)
+  2. **Complete Performance Analysis**: All tools in sequence for comprehensive HVAC system optimization and reporting
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "HVAC Data Collector",
+    "tool_description": "Collects real-time and historical data from HVAC sensors including temperature, humidity, pressure, and airflow measurements across specified time ranges and sensor locations.",
+    "parameters": {
+      "sensor_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of sensor identifiers to collect data from",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Start time for data collection in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "End time for data collection in ISO 8601 format",
+        "format": "date-time"
+      },
+      "data_interval": {
+        "type": "string",
+        "required": false,
+        "description": "Sampling interval: 1min, 5min, 15min, 1hour",
+        "default": "15min"
+      }
+    },
+    "error_messages": [
+      "Invalid time range: start_time must be before end_time and both must be valid ISO 8601 timestamps.",
+      "Sensor not found: One or more sensor_ids are not recognized in the system.",
+      "Data interval invalid: Use one of [1min, 5min, 15min, 1hour].",
+      "Time range too large: Maximum allowed range is 1 year for intervals less than 1 hour."
+    ],
+    "usage": "Provide sensor_ids array, start_time, end_time, and optionally data_interval. The tool returns timestamped sensor readings for analysis.",
+    "output_details": {
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of ISO 8601 timestamps for each data point"
+      },
+      "sensor_data": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of sensor readings corresponding to timestamps"
+      },
+      "sensor_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array indicating sensor type for each reading (temperature, humidity, pressure, airflow)"
+      },
+      "data_quality": {
+        "type": "number",
+        "description": "Data completeness percentage (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Energy Consumption Analyzer",
+    "tool_description": "Analyzes energy consumption patterns for HVAC systems, calculating usage metrics, cost estimates, and identifying peak consumption periods across different time scales.",
+    "parameters": {
+      "meter_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of energy meter identifiers",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Analysis start time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "Analysis end time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "energy_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Energy cost per kWh for cost calculations",
+        "default": 0.12
+      },
+      "baseline_period": {
+        "type": "string",
+        "required": false,
+        "description": "Comparison baseline: same_period_last_year, last_month, none",
+        "default": "none"
+      }
+    },
+    "error_messages": [
+      "Invalid time range: start_time must be before end_time with maximum 2 year range.",
+      "Meter not accessible: One or more meter_ids are not found or offline.",
+      "Invalid energy rate: energy_rate must be a positive number between 0.01 and 1.00.",
+      "Invalid baseline period: Use one of [same_period_last_year, last_month, none]."
+    ],
+    "usage": "Specify meter_ids, time range, and optionally energy_rate and baseline_period. Returns detailed consumption analysis with cost calculations and comparisons.",
+    "output_details": {
+      "total_consumption": {
+        "type": "number",
+        "description": "Total energy consumption in kWh for the period"
+      },
+      "average_hourly": {
+        "type": "number",
+        "description": "Average hourly consumption in kWh"
+      },
+      "peak_consumption": {
+        "type": "number",
+        "description": "Peak hourly consumption in kWh"
+      },
+      "total_cost": {
+        "type": "number",
+        "description": "Estimated total cost based on energy_rate"
+      },
+      "baseline_comparison": {
+        "type": "number",
+        "description": "Percentage change from baseline period (positive = increase)"
+      },
+      "consumption_pattern": {
+        "type": "string",
+        "description": "Identified consumption pattern: steady, variable, peak_heavy"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Temperature Zone Validator",
+    "tool_description": "Validates temperature and humidity compliance across HVAC zones against configured setpoints and acceptable ranges, identifying zones that are out of specification.",
+    "parameters": {
+      "zone_configs": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of zone configuration identifiers",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "sensor_data": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Current sensor readings for temperature and humidity",
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "tolerance_temp": {
+        "type": "number",
+        "required": false,
+        "description": "Temperature tolerance in degrees Fahrenheit",
+        "default": 2.0
+      },
+      "tolerance_humidity": {
+        "type": "number",
+        "required": false,
+        "description": "Humidity tolerance as percentage",
+        "default": 5.0
+      }
+    },
+    "error_messages": [
+      "Zone configuration mismatch: Number of zone_configs must match sensor_data array length or be half for temp-only validation.",
+      "Invalid tolerance values: tolerance_temp must be 0.5-10.0, tolerance_humidity must be 1.0-20.0.",
+      "Zone config not found: One or more zone configuration identifiers are invalid.",
+      "Sensor data out of range: Sensor readings contain invalid values (temp: -50 to 150°F, humidity: 0-100%)."
+    ],
+    "usage": "Provide zone_configs array, corresponding sensor_data array, and optional tolerance values. Returns compliance status and violations for each zone.",
+    "output_details": {
+      "compliant_zones": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of zone IDs that are within specification"
+      },
+      "violation_zones": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of zone IDs that are out of specification"
+      },
+      "compliance_rate": {
+        "type": "number",
+        "description": "Percentage of zones in compliance (0-100)"
+      },
+      "worst_deviation": {
+        "type": "number",
+        "description": "Largest deviation from setpoint in any zone"
+      },
+      "violation_summary": {
+        "type": "string",
+        "description": "Summary of violation types: temperature_high, temperature_low, humidity_high, humidity_low"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Equipment Status Monitor",
+    "tool_description": "Monitors operational status of HVAC equipment including fans, pumps, chillers, and boilers, detecting failures and performance degradation.",
+    "parameters": {
+      "equipment_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of equipment identifiers to monitor",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "check_runtime": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include runtime hours analysis in status check",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Equipment not found: One or more equipment_ids are not recognized in the system.",
+      "Communication timeout: Unable to retrieve status from equipment within timeout period.",
+      "Equipment offline: Some equipment is not responding to status requests."
+    ],
+    "usage": "Provide equipment_ids array and optionally enable check_runtime. Returns current operational status and health indicators for each piece of equipment.",
+    "output_details": {
+      "online_count": {
+        "type": "integer",
+        "description": "Number of equipment units currently online"
+      },
+      "offline_count": {
+        "type": "integer",
+        "description": "Number of equipment units currently offline"
+      },
+      "fault_count": {
+        "type": "integer",
+        "description": "Number of equipment units reporting faults"
+      },
+      "equipment_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Status for each equipment: online, offline, fault, maintenance"
+      },
+      "runtime_hours": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Runtime hours for each equipment unit"
+      },
+      "overall_health": {
+        "type": "string",
+        "description": "Overall system health: excellent, good, fair, poor, critical"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Baseline Calculator",
+    "tool_description": "Calculates performance baselines for HVAC systems using historical data to establish normal operating parameters for comparison and anomaly detection.",
+    "parameters": {
+      "historical_data": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Historical performance data points for baseline calculation",
+        "minItems": 100,
+        "maxItems": 10000
+      },
+      "data_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of data for baseline: energy_consumption, temperature, humidity, pressure, airflow"
+      },
+      "calculation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Baseline calculation method: average, median, percentile",
+        "default": "average"
+      },
+      "seasonal_adjustment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply seasonal adjustment to baseline calculation",
+        "default": false
+      },
+      "outlier_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Standard deviations for outlier removal (1.5-3.0)",
+        "default": 2.0
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Minimum 100 data points required for reliable baseline calculation.",
+      "Invalid data type: Use one of [energy_consumption, temperature, humidity, pressure, airflow].",
+      "Invalid calculation method: Use one of [average, median, percentile].",
+      "Outlier threshold out of range: Value must be between 1.5 and 3.0 standard deviations."
+    ],
+    "usage": "Provide historical_data array, specify data_type, and optionally set calculation_method, seasonal_adjustment, and outlier_threshold. Returns baseline metrics for performance comparison.",
+    "output_details": {
+      "baseline_value": {
+        "type": "number",
+        "description": "Calculated baseline value for the specified metric"
+      },
+      "standard_deviation": {
+        "type": "number",
+        "description": "Standard deviation of the historical data"
+      },
+      "upper_threshold": {
+        "type": "number",
+        "description": "Upper threshold for normal operation"
+      },
+      "lower_threshold": {
+        "type": "number",
+        "description": "Lower threshold for normal operation"
+      },
+      "data_quality_score": {
+        "type": "number",
+        "description": "Quality score of baseline data (0-100)"
+      },
+      "confidence_level": {
+        "type": "number",
+        "description": "Confidence level of baseline calculation (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Anomaly Pattern Detector",
+    "tool_description": "Detects anomalous patterns in HVAC system performance by comparing current readings against established baselines and identifying deviations that indicate potential issues.",
+    "parameters": {
+      "current_readings": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Current system readings to analyze for anomalies",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "baseline_upper": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Upper threshold values for normal operation",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "baseline_lower": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Lower threshold values for normal operation",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Anomaly detection sensitivity: low, medium, high",
+        "default": "medium"
+      },
+      "pattern_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of consecutive readings to consider for pattern detection (3-50)",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: current_readings, baseline_upper, and baseline_lower must have the same length.",
+      "Invalid sensitivity level: Use one of [low, medium, high].",
+      "Pattern window out of range: Value must be between 3 and 50.",
+      "Invalid threshold values: baseline_upper values must be greater than corresponding baseline_lower values."
+    ],
+    "usage": "Provide current_readings with corresponding baseline_upper and baseline_lower arrays. Optionally set sensitivity and pattern_window. Returns detected anomalies and their severity.",
+    "output_details": {
+      "anomaly_count": {
+        "type": "integer",
+        "description": "Total number of anomalies detected"
+      },
+      "anomaly_indices": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Indices of readings that are anomalous"
+      },
+      "severity_levels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Severity level for each anomaly: minor, moderate, severe, critical"
+      },
+      "pattern_type": {
+        "type": "string",
+        "description": "Detected pattern type: spike, drift, oscillation, step_change, none"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence in anomaly detection (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Energy Efficiency Scorer",
+    "tool_description": "Calculates energy efficiency scores for HVAC systems by analyzing the relationship between energy consumption and environmental conditioning performance across multiple metrics.",
+    "parameters": {
+      "energy_consumption": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Energy consumption readings in kWh",
+        "minItems": 24,
+        "maxItems": 8760
+      },
+      "cooling_output": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Cooling output measurements in BTU",
+        "minItems": 24,
+        "maxItems": 8760
+      },
+      "heating_output": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Heating output measurements in BTU",
+        "default": null
+      },
+      "outdoor_temperature": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Outdoor temperature readings in Fahrenheit",
+        "minItems": 24,
+        "maxItems": 8760
+      },
+      "building_occupancy": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Building occupancy levels (0-100%)",
+        "default": null
+      },
+      "benchmark_eer": {
+        "type": "number",
+        "required": false,
+        "description": "Benchmark Energy Efficiency Ratio for comparison",
+        "default": 10.0
+      },
+      "scoring_method": {
+        "type": "string",
+        "required": false,
+        "description": "Scoring methodology: eer, cop, kw_per_ton, custom",
+        "default": "eer"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: energy_consumption, cooling_output, and outdoor_temperature must have the same length.",
+      "Insufficient data points: Minimum 24 data points required for meaningful efficiency analysis.",
+      "Invalid temperature range: Outdoor temperature values must be between -50 and 130 Fahrenheit.",
+      "Invalid scoring method: Use one of [eer, cop, kw_per_ton, custom].",
+      "Invalid benchmark EER: Value must be between 5.0 and 25.0.",
+      "Negative energy values: Energy consumption and output values must be non-negative."
+    ],
+    "usage": "Provide energy_consumption, cooling_output, and outdoor_temperature arrays. Optionally include heating_output, building_occupancy, benchmark_eer, and scoring_method. Returns comprehensive efficiency metrics and scores.",
+    "output_details": {
+      "efficiency_score": {
+        "type": "number",
+        "description": "Overall efficiency score (0-100)"
+      },
+      "average_eer": {
+        "type": "number",
+        "description": "Average Energy Efficiency Ratio"
+      },
+      "peak_efficiency": {
+        "type": "number",
+        "description": "Peak efficiency achieved during the period"
+      },
+      "efficiency_trend": {
+        "type": "string",
+        "description": "Efficiency trend: improving, stable, declining"
+      },
+      "benchmark_comparison": {
+        "type": "number",
+        "description": "Percentage comparison to benchmark (positive = better than benchmark)"
+      },
+      "rating": {
+        "type": "string",
+        "description": "Efficiency rating: excellent, good, average, poor, very_poor"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Maintenance Schedule Optimizer",
+    "tool_description": "Optimizes HVAC maintenance schedules based on equipment performance data, runtime hours, failure patterns, and manufacturer recommendations to minimize downtime and costs.",
+    "parameters": {
+      "equipment_data": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Equipment identifiers and types for maintenance scheduling",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "runtime_hours": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Current runtime hours for each equipment unit",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "last_maintenance": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Last maintenance dates in ISO 8601 format",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "failure_history": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": false,
+        "description": "Number of failures in past 12 months for each equipment",
+        "default": null
+      },
+      "maintenance_budget": {
+        "type": "number",
+        "required": false,
+        "description": "Available maintenance budget for optimization",
+        "default": null
+      },
+      "priority_equipment": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Equipment IDs that require priority scheduling",
+        "default": null
+      },
+      "schedule_horizon": {
+        "type": "integer",
+        "required": false,
+        "description": "Scheduling horizon in months (1-24)",
+        "default": 12
+      },
+      "maintenance_window": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred maintenance timing: business_hours, after_hours, weekends",
+        "default": "after_hours"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: equipment_data, runtime_hours, and last_maintenance must have the same length.",
+      "Invalid maintenance dates: All last_maintenance dates must be valid ISO 8601 format and not in the future.",
+      "Schedule horizon out of range: Value must be between 1 and 24 months.",
+      "Invalid maintenance window: Use one of [business_hours, after_hours, weekends].",
+      "Negative runtime hours: All runtime_hours values must be non-negative.",
+      "Equipment not recognized: One or more equipment identifiers are not found in the system."
+    ],
+    "usage": "Provide equipment_data, runtime_hours, and last_maintenance arrays. Optionally include failure_history, maintenance_budget, priority_equipment, schedule_horizon, and maintenance_window. Returns optimized maintenance schedule and recommendations.",
+    "output_details": {
+      "recommended_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended maintenance dates for each equipment in ISO 8601 format"
+      },
+      "priority_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Equipment requiring immediate attention"
+      },
+      "estimated_costs": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Estimated maintenance costs for each equipment"
+      },
+      "risk_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Risk scores for equipment failure (0-100)"
+      },
+      "total_estimated_cost": {
+        "type": "number",
+        "description": "Total estimated maintenance cost for the schedule period"
+      },
+      "schedule_efficiency": {
+        "type": "number",
+        "description": "Schedule efficiency score considering costs and risk mitigation (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Load Demand Forecaster",
+    "tool_description": "Forecasts HVAC load demand based on historical patterns, weather predictions, occupancy schedules, and seasonal trends to optimize system operation and energy planning.",
+    "parameters": {
+      "historical_loads": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Historical load data in kW for pattern analysis",
+        "minItems": 168,
+        "maxItems": 8760
+      },
+      "weather_forecast": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Temperature forecast data in Fahrenheit",
+        "minItems": 24,
+        "maxItems": 168
+      },
+      "occupancy_schedule": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Expected occupancy levels (0-100%) for forecast period",
+        "default": null
+      },
+      "forecast_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of hours to forecast (1-168)",
+        "default": 24
+      },
+      "seasonal_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Seasonal adjustment factor (0.5-2.0)",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Insufficient historical data: Minimum 168 hours (1 week) of historical load data required.",
+      "Weather forecast mismatch: weather_forecast length must be at least equal to forecast_hours.",
+      "Forecast hours out of range: Value must be between 1 and 168 hours.",
+      "Invalid seasonal factor: Value must be between 0.5 and 2.0.",
+      "Invalid temperature data: Weather forecast temperatures must be between -50 and 130 Fahrenheit."
+    ],
+    "usage": "Provide historical_loads and weather_forecast arrays. Optionally include occupancy_schedule, forecast_hours, and seasonal_factor. Returns load demand predictions with confidence intervals.",
+    "output_details": {
+      "forecasted_loads": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Predicted load values in kW for each forecast hour"
+      },
+      "confidence_intervals": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence interval range for each prediction"
+      },
+      "peak_demand": {
+        "type": "number",
+        "description": "Predicted peak demand in kW during forecast period"
+      },
+      "peak_time": {
+        "type": "string",
+        "description": "Predicted time of peak demand in ISO 8601 format"
+      },
+      "forecast_accuracy": {
+        "type": "number",
+        "description": "Expected forecast accuracy based on historical performance (0-100)"
+      },
+      "demand_pattern": {
+        "type": "string",
+        "description": "Identified demand pattern: steady, variable, peak_morning, peak_afternoon"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "System Configuration Analyzer",
+    "tool_description": "Analyzes HVAC system configuration settings against performance data to identify optimization opportunities and recommend parameter adjustments for improved efficiency.",
+    "parameters": {
+      "system_settings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Current system configuration parameters and values",
+        "minItems": 5,
+        "maxItems": 50
+      },
+      "performance_metrics": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Current performance metrics for analysis",
+        "minItems": 5,
+        "maxItems": 50
+      },
+      "optimization_target": {
+        "type": "string",
+        "required": true,
+        "description": "Primary optimization objective: energy_efficiency, comfort, cost, reliability"
+      },
+      "constraints": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "System constraints that must be maintained",
+        "default": null

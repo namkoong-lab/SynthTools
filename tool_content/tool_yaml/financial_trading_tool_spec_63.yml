@@ -1,0 +1,816 @@
+field_name: financial_trading
+subfield: market_data_analysis
+task: Market volatility assessment and risk metrics calculation across different asset classes
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard**. It involves complex statistical calculations across multiple asset classes, requires sophisticated risk modeling techniques, demands deep understanding of various volatility measures and their interdependencies, and has high impact since incorrect risk assessments can lead to significant financial losses.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** within the 15-20 range to comprehensively cover data retrieval, volatility calculations, risk metrics, cross-asset analysis, and reporting functionality.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Market Data Retriever** - Consumes: ticker symbols, time ranges → Produces: raw price data
+  2. **Data Quality Validator** - Consumes: raw price data → Produces: validated/cleaned data
+  3. **Returns Calculator** - Consumes: price data → Produces: return series
+  4. **Historical Volatility Estimator** - Consumes: return series → Produces: volatility estimates
+  5. **GARCH Model Fitter** - Consumes: return series → Produces: conditional volatility forecasts
+  6. **Implied Volatility Extractor** - Consumes: options data → Produces: implied volatility surfaces
+  7. **VaR Calculator** - Consumes: return series, confidence levels → Produces: Value-at-Risk metrics
+  8. **Expected Shortfall Calculator** - Consumes: return series, VaR → Produces: tail risk measures
+  9. **Correlation Matrix Builder** - Consumes: multiple return series → Produces: correlation matrices
+  10. **Beta Calculator** - Consumes: asset returns, benchmark returns → Produces: systematic risk measures
+  11. **Drawdown Analyzer** - Consumes: price series → Produces: drawdown statistics
+  12. **Volatility Regime Detector** - Consumes: volatility series → Produces: regime classifications
+  13. **Risk-Adjusted Returns Calculator** - Consumes: returns, volatility → Produces: Sharpe, Sortino ratios
+  14. **Portfolio Risk Aggregator** - Consumes: individual risks, correlations → Produces: portfolio-level risk
+  15. **Stress Test Simulator** - Consumes: portfolio data, scenarios → Produces: stress test results
+  16. **Risk Report Generator** - Consumes: all risk metrics → Produces: formatted reports
+  17. **Alert System** - Consumes: current metrics, thresholds → Produces: risk alerts
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic volatility assessment: Market Data Retriever → Returns Calculator → Historical Volatility Estimator
+  2. Data quality check: Market Data Retriever → Data Quality Validator → Returns Calculator
+
+  **Medium Plans:**
+  1. Comprehensive single-asset risk: Market Data Retriever → Returns Calculator → Historical Volatility Estimator → VaR Calculator → Risk Report Generator
+  2. Multi-asset correlation analysis: Market Data Retriever → Returns Calculator → Correlation Matrix Builder → Portfolio Risk Aggregator
+
+  **Complex Plans:**
+  1. Full portfolio risk assessment: Market Data Retriever → Data Quality Validator → Returns Calculator → Historical Volatility Estimator → GARCH Model Fitter → Correlation Matrix Builder → Portfolio Risk Aggregator → Stress Test Simulator → Risk Report Generator
+  2. Advanced volatility analysis: Market Data Retriever → Returns Calculator → Historical Volatility Estimator → Implied Volatility Extractor → Volatility Regime Detector → GARCH Model Fitter → Alert System
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Market Data Retriever",
+    "tool_description": "Retrieves historical price data for multiple asset classes including stocks, bonds, commodities, currencies, and derivatives from various data sources.",
+    "parameters": {
+      "ticker_symbols": {
+        "type": "array",
+        "required": true,
+        "description": "List of ticker symbols to retrieve data for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for data retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for data retrieval",
+        "format": "date-time"
+      },
+      "data_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Data frequency: daily, hourly, or minute",
+        "default": "daily"
+      },
+      "asset_class": {
+        "type": "string",
+        "required": false,
+        "description": "Asset class filter: equity, fixed_income, commodity, currency, derivative",
+        "default": "equity"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be earlier than end_date and both must be valid ISO 8601 dates.",
+      "Unsupported ticker symbol: One or more ticker symbols are not recognized or not available for the specified asset class.",
+      "Invalid data frequency: Must be one of daily, hourly, or minute.",
+      "Data unavailable: No data available for the specified time range and symbols.",
+      "Asset class mismatch: Ticker symbols do not match the specified asset class."
+    ],
+    "usage": "Specify ticker symbols array, start and end dates, and optionally set data frequency and asset class filter. Returns time series data for all requested symbols.",
+    "output_details": {
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of timestamp strings in ISO 8601 format"
+      },
+      "prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of price values corresponding to timestamps"
+      },
+      "volumes": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of volume values corresponding to timestamps"
+      },
+      "symbol_count": {
+        "type": "integer",
+        "description": "Number of symbols successfully retrieved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Quality Validator",
+    "tool_description": "Validates and cleans market data by identifying missing values, outliers, and data inconsistencies, then applies appropriate cleaning procedures.",
+    "parameters": {
+      "raw_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of raw price data points",
+        "items": {"type": "number"},
+        "minItems": 10
+      },
+      "outlier_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Z-score threshold for outlier detection",
+        "default": 3.0
+      },
+      "fill_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for handling missing values: forward_fill, backward_fill, interpolate, or remove",
+        "default": "forward_fill"
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Raw data must contain at least 10 data points for meaningful validation.",
+      "Invalid outlier threshold: Threshold must be a positive number between 1.0 and 5.0.",
+      "Invalid fill method: Must be one of forward_fill, backward_fill, interpolate, or remove.",
+      "All data points invalid: Unable to clean data as all points are missing or outliers."
+    ],
+    "usage": "Provide raw price data array and optionally specify outlier detection threshold and missing value handling method. Returns cleaned data with quality metrics.",
+    "output_details": {
+      "cleaned_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of cleaned price data"
+      },
+      "outliers_detected": {
+        "type": "integer",
+        "description": "Number of outliers identified and handled"
+      },
+      "missing_values_filled": {
+        "type": "integer",
+        "description": "Number of missing values that were filled"
+      },
+      "quality_score": {
+        "type": "number",
+        "description": "Data quality score from 0 to 1"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Returns Calculator",
+    "tool_description": "Calculates various types of returns (simple, log, excess) from price data and provides return statistics for volatility analysis.",
+    "parameters": {
+      "prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of price data",
+        "items": {"type": "number"},
+        "minItems": 2
+      },
+      "return_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of returns to calculate: simple, log, or excess",
+        "default": "log"
+      },
+      "risk_free_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Risk-free rate for excess return calculation",
+        "default": 0.02
+      }
+    },
+    "error_messages": [
+      "Insufficient price data: Need at least 2 price points to calculate returns.",
+      "Invalid return type: Must be one of simple, log, or excess.",
+      "Invalid risk-free rate: Must be a number between -0.1 and 0.2.",
+      "Invalid price data: Prices must be positive numbers."
+    ],
+    "usage": "Input price array and specify return calculation method. For excess returns, also provide risk-free rate. Returns calculated return series with basic statistics.",
+    "output_details": {
+      "returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of calculated returns"
+      },
+      "mean_return": {
+        "type": "number",
+        "description": "Mean of the return series"
+      },
+      "return_std": {
+        "type": "number",
+        "description": "Standard deviation of returns"
+      },
+      "skewness": {
+        "type": "number",
+        "description": "Skewness of return distribution"
+      },
+      "kurtosis": {
+        "type": "number",
+        "description": "Kurtosis of return distribution"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Historical Volatility Estimator",
+    "tool_description": "Estimates historical volatility using multiple methods including simple standard deviation, exponentially weighted moving average, and realized volatility measures.",
+    "parameters": {
+      "returns": {
+        "type": "array",
+        "required": true,
+        "description": "Array of return data",
+        "items": {"type": "number"},
+        "minItems": 20
+      },
+      "window_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Rolling window length for volatility calculation",
+        "default": 30
+      },
+      "estimation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Volatility estimation method: standard, ewma, garch, realized",
+        "default": "standard"
+      },
+      "decay_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Decay factor for EWMA method",
+        "default": 0.94
+      },
+      "annualization_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Factor to annualize volatility",
+        "default": 252.0
+      }
+    },
+    "error_messages": [
+      "Insufficient return data: Need at least 20 return observations for reliable volatility estimation.",
+      "Invalid window length: Window must be between 5 and length of return series.",
+      "Invalid estimation method: Must be one of standard, ewma, garch, realized.",
+      "Invalid decay factor: Must be between 0.8 and 0.99 for EWMA method.",
+      "Invalid annualization factor: Must be positive number, typically 252 for daily data."
+    ],
+    "usage": "Provide return series and select estimation method. Configure window length, decay factor for EWMA, and annualization factor as needed. Returns volatility estimates and confidence intervals.",
+    "output_details": {
+      "volatility_estimate": {
+        "type": "number",
+        "description": "Primary volatility estimate"
+      },
+      "volatility_series": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Time series of volatility estimates"
+      },
+      "confidence_interval_lower": {
+        "type": "number",
+        "description": "Lower bound of 95% confidence interval"
+      },
+      "confidence_interval_upper": {
+        "type": "number",
+        "description": "Upper bound of 95% confidence interval"
+      },
+      "volatility_regime": {
+        "type": "string",
+        "description": "Current volatility regime: low, medium, high"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "GARCH Model Fitter",
+    "tool_description": "Fits GARCH family models to return data for conditional volatility modeling and forecasting, supporting various GARCH specifications and distributions.",
+    "parameters": {
+      "returns": {
+        "type": "array",
+        "required": true,
+        "description": "Array of return data for GARCH modeling",
+        "items": {"type": "number"},
+        "minItems": 100
+      },
+      "garch_order_p": {
+        "type": "integer",
+        "required": false,
+        "description": "GARCH lag order p",
+        "default": 1
+      },
+      "garch_order_q": {
+        "type": "integer",
+        "required": false,
+        "description": "ARCH lag order q",
+        "default": 1
+      },
+      "distribution": {
+        "type": "string",
+        "required": false,
+        "description": "Error distribution: normal, t, skewed_t",
+        "default": "normal"
+      },
+      "forecast_horizon": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of periods to forecast volatility",
+        "default": 10
+      },
+      "convergence_tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Optimization convergence tolerance",
+        "default": 1e-6
+      },
+      "max_iterations": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum optimization iterations",
+        "default": 1000
+      }
+    },
+    "error_messages": [
+      "Insufficient data: GARCH modeling requires at least 100 return observations.",
+      "Invalid GARCH orders: p and q must be positive integers, typically between 1 and 5.",
+      "Invalid distribution: Must be one of normal, t, skewed_t.",
+      "Convergence failed: Model failed to converge; try different initial values or relaxed tolerance.",
+      "Invalid forecast horizon: Must be positive integer between 1 and 252.",
+      "Model estimation error: Unable to estimate GARCH parameters, possibly due to data issues."
+    ],
+    "usage": "Provide return series and specify GARCH model parameters including lag orders and error distribution. Set forecast horizon and optimization parameters as needed. Returns fitted model parameters and volatility forecasts.",
+    "output_details": {
+      "model_parameters": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Estimated GARCH model parameters"
+      },
+      "conditional_volatility": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Fitted conditional volatility series"
+      },
+      "volatility_forecast": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Forecasted volatility values"
+      },
+      "aic": {
+        "type": "number",
+        "description": "Akaike Information Criterion"
+      },
+      "bic": {
+        "type": "number",
+        "description": "Bayesian Information Criterion"
+      },
+      "log_likelihood": {
+        "type": "number",
+        "description": "Model log-likelihood"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Implied Volatility Extractor",
+    "tool_description": "Extracts implied volatility from options prices using Black-Scholes and other pricing models, constructing volatility surfaces and term structures.",
+    "parameters": {
+      "option_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of option market prices",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "strikes": {
+        "type": "array",
+        "required": true,
+        "description": "Array of option strike prices",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "expiries": {
+        "type": "array",
+        "required": true,
+        "description": "Array of time to expiry in years",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "underlying_price": {
+        "type": "number",
+        "required": true,
+        "description": "Current underlying asset price"
+      },
+      "risk_free_rate": {
+        "type": "number",
+        "required": true,
+        "description": "Risk-free interest rate"
+      },
+      "option_type": {
+        "type": "string",
+        "required": false,
+        "description": "Option type: call or put",
+        "default": "call"
+      },
+      "pricing_model": {
+        "type": "string",
+        "required": false,
+        "description": "Pricing model: black_scholes, binomial, monte_carlo",
+        "default": "black_scholes"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: option_prices, strikes, and expiries arrays must have the same length.",
+      "Invalid option type: Must be either call or put.",
+      "Invalid pricing model: Must be one of black_scholes, binomial, monte_carlo.",
+      "Invalid underlying price: Must be positive number.",
+      "Invalid risk-free rate: Must be between -0.05 and 0.2.",
+      "Negative option prices: All option prices must be non-negative.",
+      "Invalid expiry times: All expiry times must be positive."
+    ],
+    "usage": "Provide option market prices, strikes, expiries, underlying price, and risk-free rate. Specify option type and pricing model. Returns implied volatilities and surface statistics.",
+    "output_details": {
+      "implied_volatilities": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of implied volatilities corresponding to input options"
+      },
+      "volatility_surface": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Interpolated volatility surface values"
+      },
+      "atm_volatility": {
+        "type": "number",
+        "description": "At-the-money implied volatility"
+      },
+      "volatility_skew": {
+        "type": "number",
+        "description": "Measure of volatility skew"
+      },
+      "term_structure_slope": {
+        "type": "number",
+        "description": "Term structure slope coefficient"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VaR Calculator",
+    "tool_description": "Calculates Value-at-Risk using multiple methods including parametric, historical simulation, and Monte Carlo approaches for different confidence levels.",
+    "parameters": {
+      "returns": {
+        "type": "array",
+        "required": true,
+        "description": "Array of return data for VaR calculation",
+        "items": {"type": "number"},
+        "minItems": 100
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "VaR confidence level between 0.9 and 0.99",
+        "default": 0.95
+      },
+      "method": {
+        "type": "string",
+        "required": false,
+        "description": "VaR calculation method: parametric, historical, monte_carlo",
+        "default": "historical"
+      },
+      "portfolio_value": {
+        "type": "number",
+        "required": false,
+        "description": "Current portfolio value for VaR scaling",
+        "default": 1000000.0
+      },
+      "holding_period": {
+        "type": "integer",
+        "required": false,
+        "description": "VaR holding period in days",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Insufficient return data: Need at least 100 return observations for reliable VaR calculation.",
+      "Invalid confidence level: Must be between 0.90 and 0.99.",
+      "Invalid VaR method: Must be one of parametric, historical, monte_carlo.",
+      "Invalid portfolio value: Must be positive number.",
+      "Invalid holding period: Must be positive integer between 1 and 252."
+    ],
+    "usage": "Provide return data and specify confidence level and calculation method. Set portfolio value and holding period for scaling. Returns VaR estimates and additional risk metrics.",
+    "output_details": {
+      "var_estimate": {
+        "type": "number",
+        "description": "Value-at-Risk estimate in currency units"
+      },
+      "var_percentage": {
+        "type": "number",
+        "description": "VaR as percentage of portfolio value"
+      },
+      "worst_case_scenario": {
+        "type": "number",
+        "description": "Worst historical loss in the sample"
+      },
+      "exceedances": {
+        "type": "integer",
+        "description": "Number of times VaR was exceeded historically"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expected Shortfall Calculator",
+    "tool_description": "Calculates Expected Shortfall (Conditional VaR) which measures the expected loss given that VaR threshold has been exceeded, providing tail risk assessment.",
+    "parameters": {
+      "returns": {
+        "type": "array",
+        "required": true,
+        "description": "Array of return data",
+        "items": {"type": "number"},
+        "minItems": 100
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": true,
+        "description": "Confidence level for Expected Shortfall calculation"
+      },
+      "var_estimate": {
+        "type": "number",
+        "required": true,
+        "description": "Previously calculated VaR estimate"
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 100 return observations for Expected Shortfall calculation.",
+      "Invalid confidence level: Must be between 0.90 and 0.99.",
+      "Missing VaR estimate: Valid VaR estimate must be provided for ES calculation."
+    ],
+    "usage": "Provide return series, confidence level, and corresponding VaR estimate. Returns Expected Shortfall and tail risk statistics.",
+    "output_details": {
+      "expected_shortfall": {
+        "type": "number",
+        "description": "Expected Shortfall estimate"
+      },
+      "tail_expectation": {
+        "type": "number",
+        "description": "Average of losses exceeding VaR threshold"
+      },
+      "coherent_risk_measure": {
+        "type": "boolean",
+        "description": "Whether the measure satisfies coherence properties"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Correlation Matrix Builder",
+    "tool_description": "Builds correlation and covariance matrices from multiple asset return series, supporting different correlation estimators and temporal analysis.",
+    "parameters": {
+      "return_series_1": {
+        "type": "array",
+        "required": true,
+        "description": "First asset return series",
+        "items": {"type": "number"},
+        "minItems": 30
+      },
+      "return_series_2": {
+        "type": "array",
+        "required": true,
+        "description": "Second asset return series",
+        "items": {"type": "number"},
+        "minItems": 30
+      },
+      "return_series_3": {
+        "type": "array",
+        "required": false,
+        "description": "Third asset return series",
+        "items": {"type": "number"},
+        "default": null
+      },
+      "return_series_4": {
+        "type": "array",
+        "required": false,
+        "description": "Fourth asset return series",
+        "items": {"type": "number"},
+        "default": null
+      },
+      "return_series_5": {
+        "type": "array",
+        "required": false,
+        "description": "Fifth asset return series",
+        "items": {"type": "number"},
+        "default": null
+      },
+      "correlation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Correlation estimation method: pearson, spearman, kendall",
+        "default": "pearson"
+      },
+      "rolling_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Rolling window for dynamic correlation",
+        "default": 60
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Each return series must have at least 30 observations.",
+      "Mismatched series lengths: All provided return series must have the same length.",
+      "Invalid correlation method: Must be one of pearson, spearman, kendall.",
+      "Invalid rolling window: Must be positive integer less than series length."
+    ],
+    "usage": "Provide at least two return series of equal length. Optionally add up to three more series. Select correlation method and rolling window size for dynamic analysis. Returns correlation matrix and related statistics.",
+    "output_details": {
+      "correlation_matrix": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Flattened correlation matrix"
+      },
+      "eigenvalues": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Eigenvalues of correlation matrix"
+      },
+      "matrix_rank": {
+        "type": "integer",
+        "description": "Rank of correlation matrix"
+      },
+      "condition_number": {
+        "type": "number",
+        "description": "Matrix condition number for stability assessment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Beta Calculator",
+    "tool_description": "Calculates systematic risk measures including beta coefficients, alpha, and tracking error relative to benchmark indices or factors.",
+    "parameters": {
+      "asset_returns": {
+        "type": "array",
+        "required": true,
+        "description": "Return series of the asset",
+        "items": {"type": "number"},
+        "minItems": 30
+      },
+      "benchmark_returns": {
+        "type": "array",
+        "required": true,
+        "description": "Return series of the benchmark",
+        "items": {"type": "number"},
+        "minItems": 30
+      },
+      "risk_free_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Risk-free rate for excess return calculation",
+        "default": 0.02
+      },
+      "estimation_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Rolling window length for beta estimation",
+        "default": 252
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 30 observations for both asset and benchmark returns.",
+      "Mismatched series lengths: Asset and benchmark return series must have same length.",
+      "Invalid risk-free rate: Must be between -0.1 and 0.2.",
+      "Invalid estimation window: Must be positive integer not exceeding series length."
+    ],
+    "usage": "Provide asset and benchmark return series of equal length. Set risk-free rate and estimation window as needed. Returns beta coefficient and related systematic risk measures.",
+    "output_details": {
+      "beta": {
+        "type": "number",
+        "description": "Beta coefficient measuring systematic risk"
+      },
+      "alpha": {
+        "type": "number",
+        "description": "Jensen's alpha measuring excess return"
+      },
+      "r_squared": {
+        "type": "number",
+        "description": "R-squared of the regression"
+      },
+      "tracking_error": {
+        "type": "number",
+        "description": "Standard deviation of excess returns"
+      },
+      "information_ratio": {
+        "type": "number",
+        "description": "Alpha divided by tracking error"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Drawdown Analyzer",
+    "tool_description": "Analyzes portfolio drawdowns by calculating maximum drawdown, drawdown duration, recovery time, and underwater periods for risk assessment.",
+    "parameters": {
+      "price_series": {
+        "type": "array",
+        "required": true,
+        "description": "Time series of portfolio or asset prices",
+        "items": {"type": "number"},
+        "minItems": 50
+      },
+      "drawdown_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum drawdown percentage to report",
+        "default": 0.05
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 50 price observations for meaningful drawdown analysis.",
+      "Invalid price series: All prices must be positive numbers.",
+      "Invalid drawdown threshold: Must be between 0.01 and 0.5."
+    ],
+    "usage": "Provide price series and optionally set minimum drawdown threshold for reporting. Returns comprehensive drawdown statistics and underwater periods.",
+    "output_details": {
+      "max_drawdown": {
+        "type": "number",
+        "description": "Maximum drawdown percentage"
+      },
+      "max_drawdown_duration": {
+        "type": "integer",
+        "description": "Duration of maximum drawdown period"
+      },
+      "recovery_time": {
+        "type": "integer",
+        "description": "Time to recover from maximum drawdown"
+      },
+      "drawdown_count": {
+        "type": "integer",
+        "description": "Number of significant drawdown periods"
+      },
+      "average_drawdown": {
+        "type": "number",
+        "description": "Average of all drawdown periods"
+      },
+      "underwater_periods": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Lengths of underwater periods"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Volatility Regime Detector",
+    "tool_description": "Detects volatility regime changes using statistical models like Hidden Markov Models and change point detection algorithms to identify low, medium, and high volatility periods.",
+    "parameters": {
+      "volatility_series": {
+        "type": "array",
+        "required": true,
+        "description": "Time series of volatility estimates",
+        "items": {"type": "number"},
+        "minItems": 100
+      },
+      "num_regimes": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of volatility regimes to detect",
+        "default": 3
+      },
+      "detection_method": {
+        "type": "string",
+        "required": false,
+        "description": "Regime detection method: hmm, changepoint, threshold",
+        "default": "hmm"
+      },
+      "smoothing_window

@@ -1,0 +1,843 @@
+field_name: financial_trading
+subfield: market_data_analysis
+task: Real-time price monitoring and alert generation for specific securities or market indices
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium complexity. While the core concepts of price monitoring and alerting are straightforward, the task involves coordinating multiple real-time data streams, managing various alert conditions and notification channels, handling market hours and volatility calculations, and ensuring reliable delivery of time-sensitive information with minimal latency.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools to cover the comprehensive workflow of real-time monitoring, alert generation, and notification management.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tool Dependencies Flow:**
+  1. **Market Data Fetcher** → produces real-time price data → consumed by Price Monitor and Technical Indicator Calculator
+  2. **Price Monitor** → consumes price data → produces alert triggers → consumed by Alert Generator
+  3. **Technical Indicator Calculator** → consumes price data → produces indicator values → consumed by Alert Generator
+  4. **Alert Rule Manager** → produces alert configurations → consumed by Alert Generator
+  5. **Alert Generator** → consumes price data, indicators, rules → produces alerts → consumed by Notification Dispatcher
+  6. **Market Hours Checker** → produces trading status → consumed by Price Monitor and Alert Generator
+  7. **Volatility Calculator** → consumes price data → produces volatility metrics → consumed by Alert Generator
+  8. **Price History Manager** → stores/retrieves historical data → consumed by Technical Indicator Calculator and Volatility Calculator
+  9. **Notification Dispatcher** → consumes alerts → produces notifications → consumed by delivery channels
+  10. **Alert Log Manager** → consumes alerts → produces audit trail
+  11. **Watchlist Manager** → produces security lists → consumed by Market Data Fetcher
+  12. **Performance Monitor** → tracks system metrics → produces performance data
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - **Basic Price Alert**: Watchlist Manager → Market Data Fetcher → Price Monitor → Alert Generator → Notification Dispatcher
+  - **Market Hours Check**: Market Hours Checker → Price Monitor (validates trading status before alerts)
+
+  **Medium Plans:**
+  - **Technical Analysis Alert**: Watchlist Manager → Market Data Fetcher → Price History Manager → Technical Indicator Calculator → Alert Generator → Notification Dispatcher → Alert Log Manager
+  - **Volatility-Based Monitoring**: Market Data Fetcher → Volatility Calculator → Alert Generator → Notification Dispatcher (triggers alerts based on unusual volatility)
+
+  **Complex Plans:**
+  - **Comprehensive Real-time Monitoring**: Watchlist Manager → Market Data Fetcher → Price History Manager → (Technical Indicator Calculator + Volatility Calculator + Price Monitor) → Market Hours Checker → Alert Rule Manager → Alert Generator → Notification Dispatcher → Alert Log Manager → Performance Monitor
+  - **Multi-condition Alert System**: Market Data Fetcher → (Price Monitor + Technical Indicator Calculator + Volatility Calculator) → Alert Rule Manager → Alert Generator → Notification Dispatcher + Alert Log Manager (simultaneous logging and notification)
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Market Data Fetcher",
+    "tool_description": "Retrieves real-time price data for specified securities from market data providers, with configurable refresh intervals and data fields.",
+    "parameters": {
+      "symbols": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of security symbols to fetch (e.g., ['AAPL', 'GOOGL'])",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "data_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Fields to retrieve: price, volume, bid, ask, high, low, open",
+        "default": ["price", "volume"]
+      },
+      "refresh_interval": {
+        "type": "integer",
+        "required": false,
+        "description": "Data refresh interval in seconds (1-3600)",
+        "default": 5
+      },
+      "provider": {
+        "type": "string",
+        "required": false,
+        "description": "Data provider: yahoo, alpha_vantage, iex, polygon",
+        "default": "yahoo"
+      }
+    },
+    "error_messages": [
+      "Invalid symbols: One or more symbols are not recognized or formatted incorrectly. Use standard ticker symbols.",
+      "Provider unavailable: Selected data provider is currently unavailable. Try a different provider.",
+      "Rate limit exceeded: Too many requests to data provider. Increase refresh_interval or reduce number of symbols.",
+      "Invalid data fields: Unsupported field requested. Use: price, volume, bid, ask, high, low, open.",
+      "Invalid refresh interval: Must be between 1 and 3600 seconds."
+    ],
+    "usage": "Provide array of symbols and optionally specify data_fields, refresh_interval, and provider. Returns real-time market data for monitoring and analysis.",
+    "output_details": {
+      "timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of data retrieval"
+      },
+      "data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of formatted price data strings for each symbol"
+      },
+      "status": {
+        "type": "string",
+        "description": "Data fetch status: success, partial, failed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price Monitor",
+    "tool_description": "Monitors real-time price movements against configured thresholds and generates alerts when conditions are met.",
+    "parameters": {
+      "symbol": {
+        "type": "string",
+        "required": true,
+        "description": "Security symbol to monitor"
+      },
+      "current_price": {
+        "type": "number",
+        "required": true,
+        "description": "Current market price"
+      },
+      "price_threshold_upper": {
+        "type": "number",
+        "required": false,
+        "description": "Upper price threshold for alerts",
+        "default": null
+      },
+      "price_threshold_lower": {
+        "type": "number",
+        "required": false,
+        "description": "Lower price threshold for alerts",
+        "default": null
+      },
+      "percent_change_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage change threshold (0.1-50)",
+        "default": 5.0
+      }
+    },
+    "error_messages": [
+      "Invalid price data: Current price must be a positive number.",
+      "Invalid thresholds: Price thresholds must be positive numbers, and upper threshold must be greater than lower threshold.",
+      "Invalid percentage threshold: Must be between 0.1 and 50 percent.",
+      "Missing symbol: Symbol parameter is required and cannot be empty."
+    ],
+    "usage": "Provide symbol and current_price, optionally set price thresholds and percentage change threshold. Returns alert status and trigger information.",
+    "output_details": {
+      "alert_triggered": {
+        "type": "boolean",
+        "description": "Whether an alert condition was met"
+      },
+      "trigger_type": {
+        "type": "string",
+        "description": "Type of trigger: upper_threshold, lower_threshold, percent_change, none"
+      },
+      "trigger_value": {
+        "type": "number",
+        "description": "Value that triggered the alert"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of monitoring check"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Technical Indicator Calculator",
+    "tool_description": "Calculates technical indicators from price history including moving averages, RSI, MACD, and Bollinger Bands for alert generation.",
+    "parameters": {
+      "symbol": {
+        "type": "string",
+        "required": true,
+        "description": "Security symbol for calculation"
+      },
+      "price_history": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of historical prices (most recent last)",
+        "minItems": 5,
+        "maxItems": 1000
+      },
+      "indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Indicators to calculate: sma, ema, rsi, macd, bollinger_bands",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "sma_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Simple moving average period (5-200)",
+        "default": 20
+      },
+      "ema_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Exponential moving average period (5-200)",
+        "default": 12
+      },
+      "rsi_period": {
+        "type": "integer",
+        "required": false,
+        "description": "RSI calculation period (5-50)",
+        "default": 14
+      },
+      "macd_fast": {
+        "type": "integer",
+        "required": false,
+        "description": "MACD fast period (5-30)",
+        "default": 12
+      },
+      "macd_slow": {
+        "type": "integer",
+        "required": false,
+        "description": "MACD slow period (15-50)",
+        "default": 26
+      },
+      "macd_signal": {
+        "type": "integer",
+        "required": false,
+        "description": "MACD signal period (5-20)",
+        "default": 9
+      },
+      "bb_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Bollinger Bands period (10-50)",
+        "default": 20
+      },
+      "bb_std_dev": {
+        "type": "number",
+        "required": false,
+        "description": "Bollinger Bands standard deviation (1-3)",
+        "default": 2.0
+      }
+    },
+    "error_messages": [
+      "Insufficient price history: Need minimum data points for selected indicators (RSI needs 14+, MACD needs 26+).",
+      "Invalid indicator name: Use one of: sma, ema, rsi, macd, bollinger_bands.",
+      "Invalid period parameters: All periods must be positive integers within specified ranges.",
+      "Invalid price data: Price history must contain only positive numbers.",
+      "Parameter mismatch: MACD slow period must be greater than fast period."
+    ],
+    "usage": "Provide symbol, price_history array, and indicators array. Optionally configure period parameters for each indicator. Returns calculated indicator values.",
+    "output_details": {
+      "symbol": {
+        "type": "string",
+        "description": "Security symbol processed"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of calculation"
+      },
+      "indicator_values": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of formatted indicator results"
+      },
+      "calculation_status": {
+        "type": "string",
+        "description": "Calculation status: success, partial, insufficient_data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Rule Manager",
+    "tool_description": "Manages complex alert rules combining multiple conditions, time windows, and logical operators for sophisticated monitoring strategies.",
+    "parameters": {
+      "rule_name": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the alert rule"
+      },
+      "rule_type": {
+        "type": "string",
+        "required": true,
+        "description": "Rule type: price_based, indicator_based, volume_based, combined"
+      },
+      "conditions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of condition strings (e.g., 'price > 100', 'rsi < 30')",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "logical_operator": {
+        "type": "string",
+        "required": false,
+        "description": "Operator combining conditions: AND, OR",
+        "default": "AND"
+      },
+      "time_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Time window in minutes for condition evaluation (1-1440)",
+        "default": 5
+      },
+      "cooldown_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Cooldown between alerts in minutes (1-1440)",
+        "default": 15
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Alert priority: low, medium, high, critical",
+        "default": "medium"
+      },
+      "active": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether rule is active",
+        "default": true
+      },
+      "symbols": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Symbols this rule applies to",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "market_hours_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Only trigger during market hours",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid rule name: Rule name must be unique and non-empty.",
+      "Invalid rule type: Use one of: price_based, indicator_based, volume_based, combined.",
+      "Invalid conditions: Condition strings must follow format 'metric operator value' (e.g., 'price > 100').",
+      "Invalid logical operator: Use AND or OR.",
+      "Invalid time parameters: time_window and cooldown_period must be between 1 and 1440 minutes.",
+      "Invalid priority: Use one of: low, medium, high, critical.",
+      "Invalid symbols: At least one valid symbol must be specified."
+    ],
+    "usage": "Create or update alert rules by specifying rule_name, rule_type, conditions, and symbols. Configure logical operators, time windows, and priorities as needed.",
+    "output_details": {
+      "rule_id": {
+        "type": "string",
+        "description": "Generated unique rule identifier"
+      },
+      "status": {
+        "type": "string",
+        "description": "Rule creation status: created, updated, validation_failed"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of validation error messages if any"
+      },
+      "next_evaluation": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of next rule evaluation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Generator",
+    "tool_description": "Generates alerts by evaluating current market conditions against configured rules and formatting alert messages for dispatch.",
+    "parameters": {
+      "symbol": {
+        "type": "string",
+        "required": true,
+        "description": "Security symbol being evaluated"
+      },
+      "rule_id": {
+        "type": "string",
+        "required": true,
+        "description": "Alert rule identifier to evaluate"
+      },
+      "market_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Current market data values for evaluation",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "indicator_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Technical indicator values if applicable",
+        "default": []
+      },
+      "force_generate": {
+        "type": "boolean",
+        "required": false,
+        "description": "Override cooldown period",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Rule not found: Specified rule_id does not exist or is inactive.",
+      "Insufficient data: Market data insufficient to evaluate rule conditions.",
+      "Evaluation error: Error in condition evaluation logic or data format.",
+      "Cooldown active: Alert is in cooldown period. Use force_generate=true to override."
+    ],
+    "usage": "Provide symbol, rule_id, and current market_data. Optionally include indicator_data and set force_generate. Returns alert details if conditions are met.",
+    "output_details": {
+      "alert_generated": {
+        "type": "boolean",
+        "description": "Whether alert was generated"
+      },
+      "alert_id": {
+        "type": "string",
+        "description": "Unique alert identifier if generated"
+      },
+      "alert_message": {
+        "type": "string",
+        "description": "Formatted alert message"
+      },
+      "priority": {
+        "type": "string",
+        "description": "Alert priority level"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of alert generation"
+      },
+      "conditions_met": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of conditions that triggered the alert"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Market Hours Checker",
+    "tool_description": "Determines current market trading status and validates whether alerts should be active based on market schedules and holidays.",
+    "parameters": {
+      "market": {
+        "type": "string",
+        "required": true,
+        "description": "Market identifier: NYSE, NASDAQ, LSE, TSX, ASX"
+      },
+      "timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Timezone for market hours check",
+        "default": "UTC"
+      },
+      "include_premarket": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include pre-market hours in trading status",
+        "default": false
+      },
+      "include_afterhours": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include after-hours trading in status",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid market: Unsupported market identifier. Use: NYSE, NASDAQ, LSE, TSX, ASX.",
+      "Invalid timezone: Timezone format not recognized. Use standard timezone identifiers.",
+      "Market data unavailable: Cannot determine market hours for specified market."
+    ],
+    "usage": "Specify market identifier and optionally configure timezone and extended hours inclusion. Returns current market status and next state change.",
+    "output_details": {
+      "is_market_open": {
+        "type": "boolean",
+        "description": "Whether market is currently open"
+      },
+      "market_status": {
+        "type": "string",
+        "description": "Detailed status: closed, pre_market, open, after_hours, holiday"
+      },
+      "next_open": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of next market open"
+      },
+      "next_close": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of next market close"
+      },
+      "is_holiday": {
+        "type": "boolean",
+        "description": "Whether current date is a market holiday"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Volatility Calculator",
+    "tool_description": "Calculates volatility metrics from price history to detect unusual market conditions and generate volatility-based alerts.",
+    "parameters": {
+      "symbol": {
+        "type": "string",
+        "required": true,
+        "description": "Security symbol for volatility calculation"
+      },
+      "price_history": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of historical prices for volatility calculation",
+        "minItems": 10,
+        "maxItems": 500
+      },
+      "volatility_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Rolling window for volatility calculation (5-100)",
+        "default": 20
+      },
+      "volatility_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Volatility threshold for alerts (percentage)",
+        "default": 25.0
+      }
+    },
+    "error_messages": [
+      "Insufficient price data: Need minimum 10 data points for volatility calculation.",
+      "Invalid volatility window: Window size must be between 5 and 100 periods.",
+      "Invalid price data: Price history must contain only positive numbers.",
+      "Invalid threshold: Volatility threshold must be a positive percentage value."
+    ],
+    "usage": "Provide symbol and price_history array, optionally configure volatility_window and threshold. Returns volatility metrics and alert status.",
+    "output_details": {
+      "current_volatility": {
+        "type": "number",
+        "description": "Current volatility percentage"
+      },
+      "average_volatility": {
+        "type": "number",
+        "description": "Average volatility over calculation window"
+      },
+      "volatility_percentile": {
+        "type": "number",
+        "description": "Current volatility percentile (0-100)"
+      },
+      "high_volatility_alert": {
+        "type": "boolean",
+        "description": "Whether volatility exceeds threshold"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of calculation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price History Manager",
+    "tool_description": "Stores, retrieves, and manages historical price data with configurable retention periods and data compression for indicator calculations.",
+    "parameters": {
+      "symbol": {
+        "type": "string",
+        "required": true,
+        "description": "Security symbol for data management"
+      },
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Operation type: store, retrieve, update, delete"
+      },
+      "price_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Price data to store (required for store/update operations)",
+        "default": []
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Corresponding timestamps for price data",
+        "default": []
+      },
+      "lookback_periods": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of periods to retrieve (1-1000)",
+        "default": 100
+      },
+      "data_interval": {
+        "type": "string",
+        "required": false,
+        "description": "Data interval: 1m, 5m, 15m, 1h, 1d",
+        "default": "1m"
+      }
+    },
+    "error_messages": [
+      "Invalid operation: Use one of: store, retrieve, update, delete.",
+      "Data mismatch: Price data and timestamps arrays must have same length.",
+      "Invalid lookback periods: Must be between 1 and 1000.",
+      "Invalid data interval: Use: 1m, 5m, 15m, 1h, 1d.",
+      "Storage error: Unable to store data due to system constraints.",
+      "Data not found: No historical data available for specified symbol and parameters."
+    ],
+    "usage": "Specify symbol and operation type. For store/update, provide price_data and timestamps. For retrieve, set lookback_periods and data_interval.",
+    "output_details": {
+      "operation_status": {
+        "type": "string",
+        "description": "Operation result: success, failed, partial"
+      },
+      "retrieved_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Retrieved price data array"
+      },
+      "retrieved_timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Retrieved timestamp array"
+      },
+      "data_points_count": {
+        "type": "integer",
+        "description": "Number of data points processed"
+      },
+      "storage_used": {
+        "type": "number",
+        "description": "Storage space used in MB"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Dispatcher",
+    "tool_description": "Dispatches generated alerts through multiple channels including email, SMS, webhook, and push notifications with delivery confirmation.",
+    "parameters": {
+      "alert_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique alert identifier to dispatch"
+      },
+      "alert_message": {
+        "type": "string",
+        "required": true,
+        "description": "Alert message content to send"
+      },
+      "priority": {
+        "type": "string",
+        "required": true,
+        "description": "Alert priority: low, medium, high, critical"
+      },
+      "channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Delivery channels: email, sms, webhook, push, slack",
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "recipients": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Recipient addresses/identifiers for notifications",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "webhook_url": {
+        "type": "string",
+        "required": false,
+        "description": "Webhook URL if webhook channel is selected",
+        "default": null
+      },
+      "retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of retry attempts for failed deliveries (1-5)",
+        "default": 3
+      },
+      "delay_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Delay before sending notification (0-300)",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid channels: Use one of: email, sms, webhook, push, slack.",
+      "Invalid priority: Use one of: low, medium, high, critical.",
+      "Missing webhook URL: webhook_url required when webhook channel is selected.",
+      "Invalid recipients: Recipient format invalid for selected channels.",
+      "Delivery failed: Unable to deliver notification through specified channels.",
+      "Rate limit exceeded: Too many notifications sent, retry later.",
+      "Invalid retry attempts: Must be between 1 and 5.",
+      "Invalid delay: Delay must be between 0 and 300 seconds."
+    ],
+    "usage": "Provide alert_id, alert_message, priority, channels, and recipients. Optionally configure webhook_url, retry_attempts, and delay_seconds for delivery control.",
+    "output_details": {
+      "dispatch_id": {
+        "type": "string",
+        "description": "Unique dispatch identifier"
+      },
+      "delivery_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Delivery status for each channel"
+      },
+      "successful_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Channels that successfully delivered"
+      },
+      "failed_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Channels that failed to deliver"
+      },
+      "dispatch_timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of dispatch attempt"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Log Manager",
+    "tool_description": "Maintains comprehensive logs of all generated alerts with search, filtering, and analytics capabilities for audit and optimization purposes.",
+    "parameters": {
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Log operation: create, search, aggregate, delete"
+      },
+      "alert_id": {
+        "type": "string",
+        "required": false,
+        "description": "Alert ID for create/search operations",
+        "default": null
+      },
+      "search_filters": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Search filters: symbol, priority, date_range, rule_type",
+        "default": []
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for search/aggregation (ISO 8601)",
+        "default": null
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date for search/aggregation (ISO 8601)",
+        "default": null
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum results to return (1-1000)",
+        "default": 100
+      }
+    },
+    "error_messages": [
+      "Invalid operation: Use one of: create, search, aggregate, delete.",
+      "Missing alert ID: alert_id required for create operations.",
+      "Invalid date range: date_range_end must be after date_range_start.",
+      "Invalid max results: Must be between 1 and 1000.",
+      "Search failed: Unable to execute search with provided filters.",
+      "Log storage error: Unable to create or update log entry."
+    ],
+    "usage": "Specify operation type and relevant parameters. For create, provide alert_id. For search/aggregate, use search_filters and date ranges. Configure max_results as needed.",
+    "output_details": {
+      "operation_result": {
+        "type": "string",
+        "description": "Operation outcome: success, failed, partial"
+      },
+      "log_entries": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of formatted log entries"
+      },
+      "total_count": {
+        "type": "integer",
+        "description": "Total number of matching records"
+      },
+      "aggregation_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Aggregated statistics if requested"
+      },
+      "query_timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of query execution"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Watchlist Manager",
+    "tool_description": "Manages watchlists of securities for monitoring, with support for multiple lists, categorization, and bulk operations.",
+    "parameters": {
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Watchlist operation: create, add, remove, list, delete"
+      },
+      "watchlist_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the watchlist to operate on"
+      },
+      "symbols": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Array of symbols for add/remove operations",
+        "default": []
+      },
+      "category": {
+        "type": "string",
+        "required": false,
+        "description": "Watchlist category

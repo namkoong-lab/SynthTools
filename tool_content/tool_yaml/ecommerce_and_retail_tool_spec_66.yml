@@ -1,0 +1,785 @@
+field_name: ecommerce_and_retail
+subfield: Shopping Cart and Checkout Systems
+task: Add and remove items from shopping cart with quantity management
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves multiple interconnected operations (add, remove, quantity updates) with moderate complexity around inventory validation, pricing calculations, and state management. The coordination between cart operations and inventory systems creates dependencies, and errors in cart management can impact user experience and sales.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover cart operations, inventory management, pricing, validation, and state management comprehensively.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Cart_Item_Validator** - Consumes: item IDs, quantities → Produces: validation results
+  2. **Inventory_Checker** - Consumes: item IDs → Produces: stock levels, availability
+  3. **Price_Calculator** - Consumes: item IDs, quantities, discounts → Produces: pricing details
+  4. **Cart_Item_Adder** - Consumes: cart ID, item details → Produces: updated cart state
+  5. **Cart_Item_Remover** - Consumes: cart ID, item IDs → Produces: updated cart state
+  6. **Quantity_Updater** - Consumes: cart ID, item ID, new quantity → Produces: updated quantities
+  7. **Cart_State_Manager** - Consumes: cart ID → Produces: current cart contents
+  8. **Cart_Merger** - Consumes: multiple cart IDs → Produces: merged cart
+  9. **Cart_Cleaner** - Consumes: cart ID, cleanup criteria → Produces: cleaned cart
+  10. **Discount_Applier** - Consumes: cart contents, discount codes → Produces: discounted totals
+  11. **Cart_Validator** - Consumes: full cart state → Produces: validation results
+  12. **Save_For_Later_Manager** - Consumes: cart ID, item IDs → Produces: updated cart and saved items
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Add single item: Cart_Item_Validator → Inventory_Checker → Cart_Item_Adder
+  - Remove item: Cart_State_Manager → Cart_Item_Remover
+
+  **Medium Plans:**
+  - Add multiple items with pricing: Cart_Item_Validator → Inventory_Checker → Price_Calculator → Cart_Item_Adder
+  - Update quantities with validation: Cart_State_Manager → Cart_Item_Validator → Inventory_Checker → Quantity_Updater
+
+  **Complex Plans:**
+  - Complete cart management: Cart_State_Manager → Cart_Item_Validator → Inventory_Checker → Price_Calculator → Discount_Applier → Cart_Validator → Cart_Item_Adder
+  - Cart cleanup and optimization: Cart_State_Manager → Cart_Cleaner → Cart_Validator → Inventory_Checker → Price_Calculator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Cart_Item_Validator",
+    "tool_description": "Validates item details before cart operations, checking for valid item IDs, quantities, and basic business rules compliance.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the item to validate"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Requested quantity of the item (must be >= 1)"
+      },
+      "user_id": {
+        "type": "string",
+        "required": false,
+        "description": "User identifier for personalized validation rules",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid item ID: Provide a valid, non-empty item identifier that exists in the product catalog.",
+      "Invalid quantity: Quantity must be a positive integer between 1 and 999.",
+      "Item not available: The specified item is discontinued or not available for purchase.",
+      "User restrictions: User account has restrictions preventing purchase of this item type."
+    ],
+    "usage": "Provide item_id and quantity to validate before cart operations. Optionally include user_id for personalized validation. Use this before adding items to ensure data integrity.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the item and quantity combination is valid"
+      },
+      "validation_message": {
+        "type": "string",
+        "description": "Detailed message about validation result"
+      },
+      "item_name": {
+        "type": "string",
+        "description": "Display name of the validated item"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory_Checker",
+    "tool_description": "Checks real-time inventory levels and availability for specified items across different locations and channels.",
+    "parameters": {
+      "item_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of item IDs to check inventory for",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "location_code": {
+        "type": "string",
+        "required": false,
+        "description": "Warehouse or store location code for inventory check",
+        "default": "DEFAULT"
+      },
+      "channel": {
+        "type": "string",
+        "required": false,
+        "description": "Sales channel (online, store, mobile) for channel-specific inventory",
+        "default": "online"
+      },
+      "include_reserved": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include reserved inventory in availability calculation",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid item IDs: Ensure all item IDs in the array are valid and non-empty strings.",
+      "Location not found: The specified location_code does not exist in the system.",
+      "Invalid channel: Use one of the supported channels: online, store, mobile.",
+      "Too many items: Maximum 50 items can be checked in a single request.",
+      "Inventory service unavailable: Try again later or contact support if the issue persists."
+    ],
+    "usage": "Provide an array of item_ids to check inventory levels. Optionally specify location_code, channel, and include_reserved for more precise inventory information.",
+    "output_details": {
+      "inventory_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of inventory status strings for each requested item"
+      },
+      "available_quantities": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Array of available quantities corresponding to each item ID"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when inventory was last updated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price_Calculator",
+    "tool_description": "Calculates detailed pricing information including base prices, taxes, shipping costs, and applicable discounts for cart items.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Item identifier for price calculation"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Quantity of items for bulk pricing calculation"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Customer tier for tiered pricing (standard, premium, vip)",
+        "default": "standard"
+      },
+      "shipping_zip": {
+        "type": "string",
+        "required": false,
+        "description": "ZIP code for shipping and tax calculations",
+        "default": "None"
+      },
+      "promo_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Array of promotional codes to apply",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid item ID: Provide a valid item identifier that exists in the pricing catalog.",
+      "Invalid quantity: Quantity must be a positive integer.",
+      "Invalid customer tier: Use one of: standard, premium, vip.",
+      "Invalid ZIP code: Provide a valid ZIP code for accurate tax and shipping calculations.",
+      "Promo code error: One or more promotional codes are invalid or expired."
+    ],
+    "usage": "Provide item_id and quantity for basic pricing. Include customer_tier, shipping_zip, and promo_codes for comprehensive pricing with discounts and taxes.",
+    "output_details": {
+      "base_price": {
+        "type": "number",
+        "description": "Base unit price before any modifications"
+      },
+      "total_price": {
+        "type": "number",
+        "description": "Final total price after all calculations"
+      },
+      "tax_amount": {
+        "type": "number",
+        "description": "Total tax amount calculated"
+      },
+      "discount_amount": {
+        "type": "number",
+        "description": "Total discount amount applied"
+      },
+      "shipping_cost": {
+        "type": "number",
+        "description": "Calculated shipping cost"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cart_Item_Adder",
+    "tool_description": "Adds items to a shopping cart with automatic quantity merging and validation, maintaining cart state integrity.",
+    "parameters": {
+      "cart_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the shopping cart"
+      },
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Item identifier to add to cart"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Quantity of items to add"
+      },
+      "merge_existing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to merge with existing quantity or replace",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid cart ID: Provide a valid, existing cart identifier.",
+      "Invalid item ID: Item identifier must be valid and exist in the catalog.",
+      "Invalid quantity: Quantity must be a positive integer between 1 and 999.",
+      "Cart full: Maximum number of unique items (100) reached in cart.",
+      "Add operation failed: Unable to add item due to system error, please try again."
+    ],
+    "usage": "Provide cart_id, item_id, and quantity to add items. Set merge_existing to false to replace existing quantity instead of adding to it.",
+    "output_details": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the add operation was successful"
+      },
+      "new_quantity": {
+        "type": "integer",
+        "description": "Final quantity of the item in cart after addition"
+      },
+      "cart_item_count": {
+        "type": "integer",
+        "description": "Total number of unique items in cart"
+      },
+      "operation_message": {
+        "type": "string",
+        "description": "Descriptive message about the add operation result"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cart_Item_Remover",
+    "tool_description": "Removes specific items or all items from a shopping cart with options for partial quantity removal and batch operations.",
+    "parameters": {
+      "cart_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the shopping cart"
+      },
+      "item_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of item IDs to remove from cart",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "remove_all_quantity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to remove all quantity or just one unit per item",
+        "default": true
+      },
+      "confirm_removal": {
+        "type": "boolean",
+        "required": false,
+        "description": "Confirmation flag for removal operation",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid cart ID: Provide a valid, existing cart identifier.",
+      "Invalid item IDs: Ensure all item IDs in array are valid strings.",
+      "Items not in cart: One or more specified items are not present in the cart.",
+      "Removal not confirmed: Set confirm_removal to true to proceed with item removal.",
+      "Too many items: Maximum 20 items can be removed in a single operation."
+    ],
+    "usage": "Provide cart_id and array of item_ids to remove. Set remove_all_quantity to false for partial removal and confirm_removal to true to execute the operation.",
+    "output_details": {
+      "removed_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of item IDs that were successfully removed"
+      },
+      "remaining_items_count": {
+        "type": "integer",
+        "description": "Number of unique items remaining in cart"
+      },
+      "removal_summary": {
+        "type": "string",
+        "description": "Summary message of the removal operation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quantity_Updater",
+    "tool_description": "Updates the quantity of specific items in a shopping cart with validation and inventory checking.",
+    "parameters": {
+      "cart_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the shopping cart"
+      },
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Item identifier to update quantity for"
+      },
+      "new_quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "New quantity value (0 removes the item)"
+      },
+      "validate_inventory": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate against current inventory levels",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid cart ID: Provide a valid, existing cart identifier.",
+      "Invalid item ID: Item must exist in the cart to update quantity.",
+      "Invalid quantity: New quantity must be a non-negative integer (0-999).",
+      "Insufficient inventory: Requested quantity exceeds available inventory.",
+      "Update failed: Unable to update quantity due to system error."
+    ],
+    "usage": "Provide cart_id, item_id, and new_quantity to update item quantities. Set validate_inventory to false to skip inventory validation if needed.",
+    "output_details": {
+      "updated_quantity": {
+        "type": "integer",
+        "description": "Final quantity after update operation"
+      },
+      "previous_quantity": {
+        "type": "integer",
+        "description": "Quantity before the update"
+      },
+      "item_removed": {
+        "type": "boolean",
+        "description": "Whether item was removed due to zero quantity"
+      },
+      "update_message": {
+        "type": "string",
+        "description": "Descriptive message about the update operation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cart_State_Manager",
+    "tool_description": "Retrieves and manages the complete state of a shopping cart including all items, quantities, and metadata.",
+    "parameters": {
+      "cart_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the shopping cart"
+      },
+      "include_pricing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include pricing information in the state",
+        "default": false
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include cart metadata (creation date, last modified, etc.)",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid cart ID: Provide a valid cart identifier.",
+      "Cart not found: No cart exists with the specified ID.",
+      "Access denied: Unable to access cart state due to permission restrictions.",
+      "State retrieval failed: System error occurred while retrieving cart state."
+    ],
+    "usage": "Provide cart_id to retrieve current cart state. Optionally include pricing and metadata information by setting the respective boolean flags.",
+    "output_details": {
+      "cart_id": {
+        "type": "string",
+        "description": "The cart identifier"
+      },
+      "item_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of item IDs currently in the cart"
+      },
+      "quantities": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Array of quantities corresponding to each item"
+      },
+      "total_items": {
+        "type": "integer",
+        "description": "Total number of unique items in cart"
+      },
+      "last_modified": {
+        "type": "string",
+        "description": "Timestamp of last cart modification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cart_Merger",
+    "tool_description": "Merges multiple shopping carts into a single cart, handling quantity consolidation and item deduplication with conflict resolution.",
+    "parameters": {
+      "primary_cart_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the primary cart to merge into"
+      },
+      "secondary_cart_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of secondary cart IDs to merge from",
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "quantity_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "How to handle quantity conflicts (sum, max, primary_wins)",
+        "default": "sum"
+      },
+      "delete_secondary": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to delete secondary carts after successful merge",
+        "default": false
+      },
+      "max_quantity_per_item": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum allowed quantity per item after merge",
+        "default": 999
+      }
+    },
+    "error_messages": [
+      "Invalid cart IDs: Ensure primary_cart_id is valid and all secondary cart IDs exist.",
+      "Cart merge limit: Maximum 5 secondary carts can be merged at once.",
+      "Invalid quantity strategy: Use one of: sum, max, primary_wins.",
+      "Merge conflict: Unable to merge due to conflicting cart states or inventory limits.",
+      "Merge failed: System error occurred during cart merge operation."
+    ],
+    "usage": "Provide primary_cart_id and array of secondary_cart_ids to merge carts. Configure quantity_strategy for conflict resolution and set delete_secondary to clean up after merge.",
+    "output_details": {
+      "merge_successful": {
+        "type": "boolean",
+        "description": "Whether the merge operation completed successfully"
+      },
+      "merged_items_count": {
+        "type": "integer",
+        "description": "Total number of unique items in merged cart"
+      },
+      "conflicts_resolved": {
+        "type": "integer",
+        "description": "Number of quantity conflicts that were resolved"
+      },
+      "deleted_carts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of secondary cart IDs that were deleted"
+      },
+      "merge_summary": {
+        "type": "string",
+        "description": "Summary message of the merge operation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cart_Cleaner",
+    "tool_description": "Cleans and optimizes shopping carts by removing expired items, out-of-stock products, and applying business rules for cart maintenance.",
+    "parameters": {
+      "cart_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the shopping cart to clean"
+      },
+      "remove_out_of_stock": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to remove items that are out of stock",
+        "default": true
+      },
+      "remove_expired": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to remove items that have expired or been discontinued",
+        "default": true
+      },
+      "update_pricing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to refresh pricing information for all items",
+        "default": false
+      },
+      "max_age_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Remove items older than this many days (0 to disable)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid cart ID: Provide a valid, existing cart identifier.",
+      "Invalid age limit: max_age_days must be a non-negative integer.",
+      "Cleanup failed: Unable to complete cart cleaning due to system error.",
+      "Partial cleanup: Some items could not be processed during cleaning operation."
+    ],
+    "usage": "Provide cart_id and configure cleanup options with boolean flags. Set max_age_days to remove old items, or 0 to disable age-based cleaning.",
+    "output_details": {
+      "items_removed": {
+        "type": "integer",
+        "description": "Number of items removed during cleaning"
+      },
+      "items_remaining": {
+        "type": "integer",
+        "description": "Number of items remaining in cart after cleaning"
+      },
+      "cleanup_reasons": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of reasons why items were removed"
+      },
+      "pricing_updated": {
+        "type": "boolean",
+        "description": "Whether pricing information was refreshed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Discount_Applier",
+    "tool_description": "Applies discount codes, promotional offers, and automatic discounts to cart contents with validation and conflict resolution.",
+    "parameters": {
+      "cart_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the shopping cart"
+      },
+      "discount_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Array of discount codes to apply",
+        "default": "None"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": false,
+        "description": "Customer ID for personalized discount eligibility",
+        "default": "None"
+      },
+      "apply_automatic": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to automatically apply eligible discounts",
+        "default": true
+      },
+      "max_discounts": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of discounts to apply",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Invalid cart ID: Provide a valid, existing cart identifier.",
+      "Invalid discount codes: One or more discount codes are expired, invalid, or not applicable.",
+      "Discount limit exceeded: Cannot apply more than the maximum allowed discounts.",
+      "Customer not eligible: Customer does not meet requirements for specified discounts.",
+      "Application failed: System error occurred while applying discounts."
+    ],
+    "usage": "Provide cart_id and optionally discount_codes to apply. Include customer_id for personalized discounts and configure automatic discount application.",
+    "output_details": {
+      "applied_discounts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of discount codes that were successfully applied"
+      },
+      "total_discount_amount": {
+        "type": "number",
+        "description": "Total monetary value of all applied discounts"
+      },
+      "discount_percentage": {
+        "type": "number",
+        "description": "Overall discount percentage applied to cart"
+      },
+      "failed_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of discount codes that failed to apply"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cart_Validator",
+    "tool_description": "Performs comprehensive validation of cart contents including inventory availability, pricing accuracy, business rules compliance, and checkout readiness.",
+    "parameters": {
+      "cart_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the shopping cart to validate"
+      },
+      "check_inventory": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate current inventory levels",
+        "default": true
+      },
+      "check_pricing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate pricing accuracy",
+        "default": true
+      },
+      "check_discounts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate applied discounts",
+        "default": true
+      },
+      "check_shipping": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate shipping requirements",
+        "default": false
+      },
+      "customer_location": {
+        "type": "string",
+        "required": false,
+        "description": "Customer ZIP code for location-based validation",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid cart ID: Provide a valid, existing cart identifier.",
+      "Empty cart: Cannot validate an empty shopping cart.",
+      "Validation failed: One or more validation checks failed, see detailed results.",
+      "Invalid location: Customer location format is incorrect for shipping validation.",
+      "System error: Unable to complete validation due to system issues."
+    ],
+    "usage": "Provide cart_id and configure validation options with boolean flags. Include customer_location for shipping validation. Review validation results before checkout.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the cart passes all requested validations"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of validation error messages"
+      },
+      "validation_warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of validation warning messages"
+      },
+      "checkout_ready": {
+        "type": "boolean",
+        "description": "Whether the cart is ready for checkout process"
+      },
+      "total_value": {
+        "type": "number",
+        "description": "Total validated cart value including taxes and discounts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Save_For_Later_Manager",
+    "tool_description": "Manages save-for-later functionality by moving items between active cart and saved items list with quantity preservation and restoration capabilities.",
+    "parameters": {
+      "cart_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the shopping cart"
+      },
+      "item_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of item IDs to move to/from saved list",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Operation type: save_items, restore_items, or list_saved"
+      },
+      "preserve_quantity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve original quantities when moving items",
+        "default": true
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer ID for saved items association"
+      }
+    },
+    "error_messages": [
+      "Invalid cart ID: Provide a valid, existing cart identifier.",
+      "Invalid operation: Use one of: save_items, restore_items, list_saved.",
+      "Invalid item IDs: Ensure all item IDs exist and are valid.",
+      "Customer ID required: Valid customer ID is required for save-for-later operations.",
+      "Operation limit: Maximum 10 items can be processed per operation.",
+      "Save operation failed: Unable to complete save-for-later operation due to system error."
+    ],
+    "usage": "Provide cart_id, item_ids array, operation type, and customer_id. Use 'save_items' to move from cart to saved, 'restore_items' to move back to cart, or 'list_saved' to view saved items.",
+    "output_details": {
+      "operation_success": {
+        "type": "boolean",
+        "description": "Whether the save-for-later operation completed successfully"
+      },
+      "processed_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of item IDs that were successfully processed"
+      },
+      "saved_items_count": {
+        "type": "integer",
+        "description": "Total number of items currently in saved list"
+      },
+      "cart_items_count": {
+        "type": "integer",
+        "description": "Total number of items remaining in active cart"
+      }
+    }
+  }
+  ```

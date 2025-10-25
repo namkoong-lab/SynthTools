@@ -1,0 +1,805 @@
+field_name: ecommerce_and_retail
+subfield: Return and Refund Processing
+task: Initiate return request and validate return eligibility
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves moderate complexity due to multiple validation rules, policy compliance checks, and coordination between inventory, customer service, and financial systems. The scope includes eligibility verification, return authorization, and integration with multiple backend systems. I rate this as **medium difficulty** due to the need for rule-based validation, moderate data requirements, and interconnected workflows.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target **12 tools** within the 10-15 range. This allows for comprehensive coverage of return eligibility validation, request processing, policy checking, and system coordination workflows.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Order Lookup Tool** - Consumes: order_id → Produces: order details, item info
+  2. **Return Policy Checker** - Consumes: product details, purchase date → Produces: eligibility status
+  3. **Item Condition Validator** - Consumes: item condition, return reason → Produces: validation result
+  4. **Return Window Calculator** - Consumes: purchase date, product category → Produces: return deadline status
+  5. **Customer History Analyzer** - Consumes: customer_id → Produces: return history, risk score
+  6. **Return Request Creator** - Consumes: validated return data → Produces: return authorization number
+  7. **Refund Amount Calculator** - Consumes: item details, condition, policy → Produces: refund amount
+  8. **Return Label Generator** - Consumes: return request, shipping info → Produces: return label details
+  9. **Inventory Status Checker** - Consumes: product_id → Produces: inventory availability
+  10. **Return Reason Classifier** - Consumes: return reason text → Produces: classified reason category
+  11. **Exception Handler** - Consumes: validation failures → Produces: escalation recommendations
+  12. **Return Status Tracker** - Consumes: return_id → Produces: current status, timeline
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic eligibility check: Order Lookup Tool → Return Policy Checker → Return Window Calculator
+  2. Quick return creation: Item Condition Validator → Return Request Creator → Return Status Tracker
+
+  **Medium Plans:**
+  1. Standard return processing: Order Lookup Tool → Return Policy Checker → Return Window Calculator → Item Condition Validator → Customer History Analyzer → Return Request Creator
+  2. Complete refund workflow: Order Lookup Tool → Return Policy Checker → Refund Amount Calculator → Return Request Creator → Return Label Generator
+
+  **Complex Plans:**
+  1. Full return validation: Order Lookup Tool → Return Policy Checker → Return Window Calculator → Item Condition Validator → Customer History Analyzer → Return Reason Classifier → Exception Handler → Return Request Creator → Return Label Generator
+  2. Risk-assessed return: Customer History Analyzer → Order Lookup Tool → Return Policy Checker → Inventory Status Checker → Item Condition Validator → Refund Amount Calculator → Exception Handler → Return Request Creator → Return Status Tracker
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Order Lookup Tool",
+    "tool_description": "Retrieves comprehensive order information including item details, purchase date, customer information, and payment method for return processing validation.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the order to be looked up"
+      },
+      "customer_email": {
+        "type": "string",
+        "required": false,
+        "description": "Customer email address for additional verification",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Order not found: The provided order_id does not exist in the system. Verify the order number is correct.",
+      "Access denied: Customer email does not match the order. Provide the correct email associated with the order.",
+      "System unavailable: Order database is temporarily unavailable. Try again in a few minutes."
+    ],
+    "usage": "Provide the order_id to retrieve order details. Optionally include customer_email for additional verification. Use this as the first step in return processing workflows.",
+    "output_details": {
+      "order_id": {
+        "type": "string",
+        "description": "Confirmed order identifier"
+      },
+      "customer_id": {
+        "type": "string",
+        "description": "Customer identifier associated with the order"
+      },
+      "purchase_date": {
+        "type": "string",
+        "description": "Date when the order was placed",
+        "format": "date-time"
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of item identifiers in the order"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Total order amount including taxes and fees"
+      },
+      "order_status": {
+        "type": "string",
+        "description": "Current status of the order"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Policy Checker",
+    "tool_description": "Validates return eligibility against store policies including returnable item categories, excluded products, and special conditions for different product types.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier to check return policy"
+      },
+      "product_category": {
+        "type": "string",
+        "required": true,
+        "description": "Category of the product (electronics, clothing, books, etc.)"
+      },
+      "purchase_date": {
+        "type": "string",
+        "required": true,
+        "description": "Original purchase date",
+        "format": "date-time"
+      },
+      "is_personalized": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether the item was personalized or customized",
+        "default": false
+      },
+      "is_digital": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether the product is digital/downloadable",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid product: Product ID not found in catalog. Verify the product identifier.",
+      "Missing category: Product category is required for policy validation. Provide a valid category.",
+      "Invalid date format: Purchase date must be in ISO 8601 format. Use YYYY-MM-DDTHH:MM:SSZ format."
+    ],
+    "usage": "Input product details and purchase information to check return policy compliance. Use after retrieving order information to validate return eligibility.",
+    "output_details": {
+      "is_returnable": {
+        "type": "boolean",
+        "description": "Whether the item is eligible for return according to policy"
+      },
+      "return_window_days": {
+        "type": "integer",
+        "description": "Number of days allowed for returns from purchase date"
+      },
+      "policy_notes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Special conditions or restrictions for this product type"
+      },
+      "reason": {
+        "type": "string",
+        "description": "Explanation of policy decision"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Item Condition Validator",
+    "tool_description": "Evaluates the reported condition of items being returned and validates against acceptable return conditions based on product type and return reason.",
+    "parameters": {
+      "item_condition": {
+        "type": "string",
+        "required": true,
+        "description": "Current condition of the item (new, like_new, good, fair, poor, damaged)"
+      },
+      "return_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for return (defective, wrong_item, changed_mind, damaged_shipping, not_as_described)"
+      },
+      "product_category": {
+        "type": "string",
+        "required": true,
+        "description": "Product category for condition requirements"
+      },
+      "has_original_packaging": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether item includes original packaging",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid condition: Item condition must be one of [new, like_new, good, fair, poor, damaged]. Check spelling and format.",
+      "Invalid return reason: Return reason must be one of [defective, wrong_item, changed_mind, damaged_shipping, not_as_described].",
+      "Condition mismatch: The reported condition does not align with the return reason. Review both fields for consistency."
+    ],
+    "usage": "Provide item condition and return reason to validate acceptability. Use in conjunction with return policy checks to determine final eligibility.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the item condition is acceptable for return"
+      },
+      "refund_percentage": {
+        "type": "number",
+        "description": "Percentage of original price eligible for refund based on condition"
+      },
+      "requires_inspection": {
+        "type": "boolean",
+        "description": "Whether physical inspection is required before processing"
+      },
+      "validation_notes": {
+        "type": "string",
+        "description": "Additional notes about condition validation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Window Calculator",
+    "tool_description": "Calculates whether the return request falls within the allowed return window based on purchase date, product category, and applicable extensions or holidays.",
+    "parameters": {
+      "purchase_date": {
+        "type": "string",
+        "required": true,
+        "description": "Original purchase date",
+        "format": "date-time"
+      },
+      "product_category": {
+        "type": "string",
+        "required": true,
+        "description": "Category of product being returned"
+      },
+      "current_date": {
+        "type": "string",
+        "required": false,
+        "description": "Current date for calculation (defaults to system date)",
+        "format": "date-time",
+        "default": "None"
+      },
+      "is_holiday_purchase": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether purchase was made during holiday return period",
+        "default": false
+      },
+      "return_window_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Override standard return window (from policy checker)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Dates must be in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).",
+      "Future purchase date: Purchase date cannot be in the future. Verify the date is correct.",
+      "Invalid return window: Return window days must be a positive integer between 1 and 365."
+    ],
+    "usage": "Input purchase date and product details to calculate return window eligibility. Use holiday_purchase flag for extended return periods during holiday seasons.",
+    "output_details": {
+      "is_within_window": {
+        "type": "boolean",
+        "description": "Whether the return request is within the allowed time window"
+      },
+      "days_since_purchase": {
+        "type": "integer",
+        "description": "Number of days elapsed since purchase"
+      },
+      "days_remaining": {
+        "type": "integer",
+        "description": "Days remaining in return window (negative if expired)"
+      },
+      "expiry_date": {
+        "type": "string",
+        "description": "Date when return window expires",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer History Analyzer",
+    "tool_description": "Analyzes customer return history and behavior patterns to assess return risk and determine if additional verification or restrictions should be applied to the current return request.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "analysis_period_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days to look back for history analysis",
+        "default": 365
+      },
+      "include_refund_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include refund patterns in analysis",
+        "default": true
+      },
+      "return_value_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Dollar threshold for flagging high-value return patterns",
+        "default": 500
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist in the system.",
+      "Invalid analysis period: Analysis period must be between 1 and 1095 days.",
+      "Data unavailable: Customer history data is temporarily unavailable. Try again later."
+    ],
+    "usage": "Provide customer_id to analyze return patterns and risk factors. Adjust analysis_period_days and return_value_threshold based on business requirements for risk assessment.",
+    "output_details": {
+      "total_returns": {
+        "type": "integer",
+        "description": "Total number of returns in analysis period"
+      },
+      "return_rate": {
+        "type": "number",
+        "description": "Percentage of purchases that were returned"
+      },
+      "total_orders": {
+        "type": "integer",
+        "description": "Total orders placed in analysis period"
+      },
+      "risk_score": {
+        "type": "number",
+        "description": "Risk score from 0-100 (higher indicates more risk)"
+      },
+      "requires_review": {
+        "type": "boolean",
+        "description": "Whether this return should be flagged for manual review"
+      },
+      "flags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of risk factors identified in customer history"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Request Creator",
+    "tool_description": "Creates an official return request record in the system with return authorization number, tracking information, and initializes the return workflow process.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Original order identifier"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier"
+      },
+      "item_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of item identifiers being returned",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "return_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Primary reason for return"
+      },
+      "expected_refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Calculated refund amount"
+      },
+      "return_method": {
+        "type": "string",
+        "required": true,
+        "description": "How items will be returned (mail, store_dropoff, pickup)"
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "description": "Additional instructions or notes for the return",
+        "default": "None"
+      },
+      "requires_inspection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether items need inspection before refund",
+        "default": false
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Processing priority (normal, high, urgent)",
+        "default": "normal"
+      },
+      "customer_contact_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred contact method (email, phone, sms)",
+        "default": "email"
+      },
+      "estimated_processing_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Expected days to process return",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Invalid order reference: Order ID does not exist or is not accessible.",
+      "Invalid return method: Method must be one of [mail, store_dropoff, pickup].",
+      "Invalid priority level: Priority must be one of [normal, high, urgent].",
+      "Invalid contact preference: Preference must be one of [email, phone, sms].",
+      "Refund amount error: Expected refund amount must be greater than 0.",
+      "Item limit exceeded: Cannot process more than 50 items in a single return request."
+    ],
+    "usage": "Provide validated return information to create official return request. Use after completing all eligibility checks and validations. Adjust priority and processing time based on customer risk and item value.",
+    "output_details": {
+      "return_authorization_number": {
+        "type": "string",
+        "description": "Unique return authorization identifier"
+      },
+      "return_request_id": {
+        "type": "string",
+        "description": "System-generated return request identifier"
+      },
+      "status": {
+        "type": "string",
+        "description": "Initial status of the return request"
+      },
+      "created_date": {
+        "type": "string",
+        "description": "When the return request was created",
+        "format": "date-time"
+      },
+      "estimated_completion_date": {
+        "type": "string",
+        "description": "Expected completion date for return processing",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Refund Amount Calculator",
+    "tool_description": "Calculates the exact refund amount based on item condition, return policy, applied discounts, shipping costs, and any applicable restocking fees.",
+    "parameters": {
+      "original_item_price": {
+        "type": "number",
+        "required": true,
+        "description": "Original purchase price of the item"
+      },
+      "item_condition": {
+        "type": "string",
+        "required": true,
+        "description": "Current condition of the item being returned"
+      },
+      "return_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for the return"
+      },
+      "shipping_cost": {
+        "type": "number",
+        "required": false,
+        "description": "Original shipping cost for the item",
+        "default": 0
+      },
+      "discount_applied": {
+        "type": "number",
+        "required": false,
+        "description": "Original discount amount applied to purchase",
+        "default": 0
+      },
+      "restocking_fee_applicable": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether restocking fee applies to this return",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid price: Original item price must be greater than 0.",
+      "Invalid condition: Item condition must be one of [new, like_new, good, fair, poor, damaged].",
+      "Negative values: Shipping cost and discount amounts cannot be negative.",
+      "Price inconsistency: Discount amount cannot exceed original item price."
+    ],
+    "usage": "Provide item pricing and condition details to calculate accurate refund amount. Include shipping and discount information for complete refund calculation.",
+    "output_details": {
+      "base_refund_amount": {
+        "type": "number",
+        "description": "Refund amount before fees and adjustments"
+      },
+      "condition_adjustment": {
+        "type": "number",
+        "description": "Adjustment amount based on item condition"
+      },
+      "restocking_fee": {
+        "type": "number",
+        "description": "Restocking fee amount (if applicable)"
+      },
+      "shipping_refund": {
+        "type": "number",
+        "description": "Portion of shipping cost being refunded"
+      },
+      "final_refund_amount": {
+        "type": "number",
+        "description": "Final amount to be refunded to customer"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Label Generator",
+    "tool_description": "Generates return shipping labels with tracking information, carrier selection, and special handling instructions based on item type and return method.",
+    "parameters": {
+      "return_authorization_number": {
+        "type": "string",
+        "required": true,
+        "description": "Return authorization number from return request"
+      },
+      "customer_address": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's shipping address for pickup"
+      },
+      "return_warehouse_code": {
+        "type": "string",
+        "required": true,
+        "description": "Code for destination warehouse or store"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Estimated package weight in pounds",
+        "default": 1.0
+      },
+      "shipping_carrier": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred shipping carrier (ups, fedex, usps)",
+        "default": "usps"
+      }
+    },
+    "error_messages": [
+      "Invalid authorization: Return authorization number not found or expired.",
+      "Invalid address: Customer address format is invalid or incomplete.",
+      "Invalid warehouse: Warehouse code does not exist in the system.",
+      "Invalid carrier: Carrier must be one of [ups, fedex, usps].",
+      "Weight limit exceeded: Package weight cannot exceed 70 pounds for standard shipping."
+    ],
+    "usage": "Provide return authorization and shipping details to generate prepaid return label. Use appropriate warehouse code based on customer location and item type.",
+    "output_details": {
+      "tracking_number": {
+        "type": "string",
+        "description": "Unique tracking number for the return shipment"
+      },
+      "label_url": {
+        "type": "string",
+        "description": "URL to download the printable return label"
+      },
+      "carrier": {
+        "type": "string",
+        "description": "Selected shipping carrier"
+      },
+      "estimated_transit_days": {
+        "type": "integer",
+        "description": "Expected days for return shipment to reach warehouse"
+      },
+      "special_instructions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Special handling or packaging instructions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Status Checker",
+    "tool_description": "Checks current inventory status for returned items to determine restocking feasibility and inform refund versus store credit decisions.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier to check inventory status"
+      },
+      "warehouse_location": {
+        "type": "string",
+        "required": false,
+        "description": "Specific warehouse to check (defaults to nearest)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Product not found: Product ID does not exist in inventory system.",
+      "Warehouse invalid: Specified warehouse location is not recognized.",
+      "System unavailable: Inventory system is temporarily unavailable."
+    ],
+    "usage": "Provide product_id to check inventory availability. Optionally specify warehouse_location for location-specific checks.",
+    "output_details": {
+      "current_stock": {
+        "type": "integer",
+        "description": "Current inventory quantity available"
+      },
+      "can_restock": {
+        "type": "boolean",
+        "description": "Whether returned items can be added back to inventory"
+      },
+      "product_status": {
+        "type": "string",
+        "description": "Current product status (active, discontinued, seasonal)"
+      },
+      "restock_value": {
+        "type": "number",
+        "description": "Current value for restocking purposes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Reason Classifier",
+    "tool_description": "Analyzes and classifies return reasons from customer input text to standardize reason codes and identify potential issues requiring special handling.",
+    "parameters": {
+      "reason_text": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's description of why they are returning the item"
+      },
+      "product_category": {
+        "type": "string",
+        "required": false,
+        "description": "Product category for context-aware classification",
+        "default": "general"
+      }
+    },
+    "error_messages": [
+      "Empty reason: Return reason text cannot be empty or contain only whitespace.",
+      "Text too long: Return reason description must be under 1000 characters.",
+      "Invalid category: Product category is not recognized in the system."
+    ],
+    "usage": "Provide customer's return reason description to get standardized classification. Include product_category for more accurate categorization.",
+    "output_details": {
+      "primary_reason": {
+        "type": "string",
+        "description": "Primary standardized return reason code"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence level of the classification (0-1)"
+      },
+      "requires_escalation": {
+        "type": "boolean",
+        "description": "Whether this reason requires manager or specialist review"
+      },
+      "suggested_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended actions based on the classified reason"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Exception Handler",
+    "tool_description": "Processes return requests that fail standard validation checks and provides escalation paths, alternative solutions, and manager override recommendations.",
+    "parameters": {
+      "failed_validations": {
+        "type": "array",
+        "required": true,
+        "description": "List of validation checks that failed",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer loyalty tier (bronze, silver, gold, platinum)"
+      },
+      "order_value": {
+        "type": "number",
+        "required": true,
+        "description": "Total value of the original order"
+      },
+      "return_urgency": {
+        "type": "string",
+        "required": false,
+        "description": "Urgency level (low, medium, high)",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Invalid customer tier: Customer tier must be one of [bronze, silver, gold, platinum].",
+      "Invalid urgency: Return urgency must be one of [low, medium, high].",
+      "Invalid order value: Order value must be greater than 0.",
+      "No validations provided: At least one failed validation must be specified."
+    ],
+    "usage": "Use when standard return processing fails validation checks. Provide failed validation details and customer information to get escalation recommendations.",
+    "output_details": {
+      "can_override": {
+        "type": "boolean",
+        "description": "Whether the failed validations can be overridden"
+      },
+      "override_authority_level": {
+        "type": "string",
+        "description": "Required authority level for override approval"
+      },
+      "alternative_solutions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Alternative solutions to offer the customer"
+      },
+      "escalation_priority": {
+        "type": "string",
+        "description": "Priority level for manager review"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Primary recommended action for this exception case"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Status Tracker",
+    "tool_description": "Retrieves current status and timeline information for existing return requests, including processing stages and estimated completion dates.",
+    "parameters": {
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Return request ID or authorization number"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include full status change history",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Return not found: The provided return ID does not exist in the system.",
+      "Access denied: Return information is not accessible with current permissions.",
+      "System error: Return tracking system is temporarily unavailable."
+    ],
+    "usage": "Provide return_id to get current status and tracking information. Set include_history to false for quicker responses when full timeline is not needed.",
+    "output_details": {
+      "current_status": {
+        "type": "string",
+        "description": "Current processing status of the return"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Date and time of last status update",
+        "format": "date-time"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Expected completion date for return processing",
+        "format": "date-time"
+      },
+      "tracking_events": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Chronological list of status changes and events"
+      },
+      "next_action_required": {
+        "type": "string",
+        "description": "Next step required to progress the return"
+      }
+    }
+  }
+  ```

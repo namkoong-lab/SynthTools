@@ -1,0 +1,824 @@
+field_name: healthcare_medical
+subfield: Medical Imaging and Radiology
+task: Image acquisition and protocol management for different modalities (X-ray, CT, MRI, ultrasound)
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task is **hard** due to its broad scope covering multiple imaging modalities with complex technical parameters, strict safety protocols, quality assurance requirements, and high coordination needs between equipment, operators, and clinical workflows. Errors have significant impact on patient safety and diagnostic accuracy.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'm targeting **18 tools** within the 15-20 range to handle the complexity of multi-modal imaging protocols, quality control, safety management, and workflow coordination.
+
+  ## STEP 3 — Tool names with dependencies and affordances
+
+  1. **Patient_Registration_Tool** - Consumes: patient demographics → Produces: validated patient records
+  2. **Protocol_Selection_Tool** - Consumes: clinical indication, modality → Produces: imaging protocol specifications
+  3. **Equipment_Status_Monitor** - Consumes: device IDs → Produces: operational status reports
+  4. **Contrast_Safety_Checker** - Consumes: patient data, contrast type → Produces: safety clearance
+  5. **Image_Quality_Validator** - Consumes: acquired images → Produces: quality metrics
+  6. **Dose_Calculator** - Consumes: protocol parameters → Produces: radiation dose estimates
+  7. **Scheduling_Optimizer** - Consumes: exam requests, equipment availability → Produces: optimized schedules
+  8. **Pre_Scan_Checklist** - Consumes: patient info, protocol → Produces: safety verification
+  9. **Acquisition_Controller** - Consumes: protocol settings → Produces: acquisition commands
+  10. **Image_Archiver** - Consumes: images, metadata → Produces: DICOM storage confirmation
+  11. **Protocol_Customizer** - Consumes: standard protocols, patient factors → Produces: customized parameters
+  12. **Safety_Alert_System** - Consumes: scan parameters, patient data → Produces: safety warnings
+  13. **Equipment_Calibrator** - Consumes: calibration requirements → Produces: calibration results
+  14. **Workflow_Tracker** - Consumes: exam stages → Produces: progress updates
+  15. **Image_Reconstructor** - Consumes: raw data, reconstruction parameters → Produces: processed images
+  16. **Quality_Assurance_Monitor** - Consumes: performance metrics → Produces: QA reports
+  17. **Emergency_Protocol_Manager** - Consumes: emergency indicators → Produces: emergency procedures
+  18. **Report_Generator** - Consumes: exam data, findings → Produces: structured reports
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Routine X-ray workflow:** Patient_Registration_Tool → Protocol_Selection_Tool → Pre_Scan_Checklist → Acquisition_Controller → Image_Archiver
+  2. **Equipment check:** Equipment_Status_Monitor → Equipment_Calibrator → Quality_Assurance_Monitor
+
+  **Medium Plans:**
+  1. **CT scan with contrast:** Patient_Registration_Tool → Protocol_Selection_Tool → Contrast_Safety_Checker → Dose_Calculator → Pre_Scan_Checklist → Acquisition_Controller → Image_Quality_Validator → Image_Reconstructor → Image_Archiver
+  2. **Emergency imaging:** Patient_Registration_Tool → Emergency_Protocol_Manager → Equipment_Status_Monitor → Safety_Alert_System → Acquisition_Controller → Image_Quality_Validator → Report_Generator
+
+  **Complex Plans:**
+  1. **Multi-modal diagnostic workup:** Patient_Registration_Tool → Protocol_Selection_Tool → Scheduling_Optimizer → Protocol_Customizer → Contrast_Safety_Checker → Dose_Calculator → Pre_Scan_Checklist → Acquisition_Controller → Image_Quality_Validator → Image_Reconstructor → Quality_Assurance_Monitor → Image_Archiver → Workflow_Tracker → Report_Generator
+  2. **Research protocol with QA:** Patient_Registration_Tool → Protocol_Customizer → Equipment_Calibrator → Safety_Alert_System → Pre_Scan_Checklist → Acquisition_Controller → Image_Quality_Validator → Image_Reconstructor → Quality_Assurance_Monitor → Image_Archiver → Report_Generator
+
+  ## STEP 5 — Tool Specifications
+
+  ```json
+  {
+    "tool_name": "Patient_Registration_Tool",
+    "tool_description": "Registers and validates patient information for imaging procedures, ensuring data integrity and compliance with healthcare standards.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's last name"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's date of birth",
+        "format": "date-time"
+      },
+      "gender": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's gender (M/F/O)"
+      }
+    },
+    "error_messages": [
+      "Invalid patient ID format: Patient ID must be alphanumeric and 6-12 characters long.",
+      "Missing required field: All required fields (patient_id, first_name, last_name, date_of_birth, gender) must be provided.",
+      "Invalid date format: Date of birth must be in ISO 8601 format.",
+      "Invalid gender value: Gender must be M, F, or O.",
+      "Patient already exists: A patient with this ID is already registered."
+    ],
+    "usage": "Provide all required patient information to register a new patient or validate existing patient data before imaging procedures.",
+    "output_details": {
+      "registration_status": {
+        "type": "string",
+        "description": "Status of patient registration (success/failure)"
+      },
+      "patient_record_id": {
+        "type": "string",
+        "description": "Generated unique patient record identifier"
+      },
+      "validation_timestamp": {
+        "type": "string",
+        "description": "Timestamp when patient data was validated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Protocol_Selection_Tool",
+    "tool_description": "Selects appropriate imaging protocols based on clinical indication, patient factors, and modality requirements.",
+    "parameters": {
+      "modality": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging modality (X-ray, CT, MRI, ultrasound)"
+      },
+      "clinical_indication": {
+        "type": "string",
+        "required": true,
+        "description": "Clinical reason for imaging"
+      },
+      "body_part": {
+        "type": "string",
+        "required": true,
+        "description": "Anatomical region to be imaged"
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "patient_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Patient weight in kg",
+        "default": null
+      },
+      "contrast_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether contrast agent is needed",
+        "default": false
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Urgency level (routine, urgent, emergent)",
+        "default": "routine"
+      }
+    },
+    "error_messages": [
+      "Unsupported modality: Modality must be one of X-ray, CT, MRI, or ultrasound.",
+      "Invalid clinical indication: Clinical indication cannot be empty or contain only whitespace.",
+      "Unrecognized body part: Body part must be a valid anatomical region.",
+      "Invalid patient age: Patient age must be between 0 and 150 years.",
+      "Invalid weight value: Patient weight must be between 1 and 300 kg if provided.",
+      "Invalid urgency level: Urgency level must be routine, urgent, or emergent."
+    ],
+    "usage": "Specify modality, clinical indication, body part, and patient age. Optionally provide weight, contrast requirements, and urgency level to get the most appropriate imaging protocol.",
+    "output_details": {
+      "protocol_name": {
+        "type": "string",
+        "description": "Name of the selected imaging protocol"
+      },
+      "protocol_id": {
+        "type": "string",
+        "description": "Unique protocol identifier"
+      },
+      "estimated_duration": {
+        "type": "integer",
+        "description": "Expected scan duration in minutes"
+      },
+      "special_instructions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of special instructions for the protocol"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Equipment_Status_Monitor",
+    "tool_description": "Monitors and reports the operational status of imaging equipment across different modalities.",
+    "parameters": {
+      "device_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the imaging device"
+      },
+      "check_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of status check (basic, detailed, full_diagnostic)",
+        "default": "basic"
+      }
+    },
+    "error_messages": [
+      "Device not found: No device found with the specified device_id.",
+      "Invalid check type: Check type must be basic, detailed, or full_diagnostic.",
+      "Device communication error: Unable to communicate with the specified device.",
+      "Insufficient permissions: User does not have permission to access device status."
+    ],
+    "usage": "Provide device_id to check equipment status. Optionally specify check_type for different levels of diagnostic information.",
+    "output_details": {
+      "device_status": {
+        "type": "string",
+        "description": "Current operational status (online, offline, maintenance, error)"
+      },
+      "last_calibration": {
+        "type": "string",
+        "description": "Timestamp of last calibration"
+      },
+      "error_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of active error codes if any"
+      },
+      "availability": {
+        "type": "boolean",
+        "description": "Whether device is available for imaging"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contrast_Safety_Checker",
+    "tool_description": "Evaluates patient safety for contrast agent administration based on medical history, allergies, and contraindications.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier"
+      },
+      "contrast_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of contrast agent (iodinated, gadolinium, barium, microbubble)"
+      },
+      "allergies": {
+        "type": "array",
+        "required": true,
+        "description": "List of known patient allergies",
+        "items": {
+          "type": "string"
+        }
+      },
+      "creatinine_level": {
+        "type": "number",
+        "required": false,
+        "description": "Serum creatinine level in mg/dL",
+        "default": null
+      },
+      "egfr": {
+        "type": "number",
+        "required": false,
+        "description": "Estimated glomerular filtration rate in mL/min/1.73m²",
+        "default": null
+      },
+      "medications": {
+        "type": "array",
+        "required": false,
+        "description": "Current medications",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "previous_contrast_reaction": {
+        "type": "boolean",
+        "required": false,
+        "description": "History of previous contrast reactions",
+        "default": false
+      },
+      "diabetes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Patient has diabetes",
+        "default": false
+      },
+      "thyroid_disorder": {
+        "type": "boolean",
+        "required": false,
+        "description": "Patient has thyroid disorder",
+        "default": false
+      },
+      "pregnancy_status": {
+        "type": "string",
+        "required": false,
+        "description": "Pregnancy status (not_pregnant, pregnant, unknown)",
+        "default": "unknown"
+      }
+    },
+    "error_messages": [
+      "Invalid patient ID: Patient ID must be a valid identifier.",
+      "Unsupported contrast type: Contrast type must be iodinated, gadolinium, barium, or microbubble.",
+      "Invalid creatinine level: Creatinine level must be between 0.1 and 20.0 mg/dL.",
+      "Invalid eGFR value: eGFR must be between 5 and 200 mL/min/1.73m².",
+      "Invalid pregnancy status: Pregnancy status must be not_pregnant, pregnant, or unknown.",
+      "Missing critical data: Creatinine or eGFR required for nephrotoxic contrast agents."
+    ],
+    "usage": "Provide patient_id, contrast_type, and allergies list. Include kidney function tests (creatinine/eGFR) for iodinated or gadolinium contrast. Add relevant medical conditions and medications for comprehensive safety assessment.",
+    "output_details": {
+      "safety_clearance": {
+        "type": "string",
+        "description": "Safety assessment result (approved, conditional, contraindicated)"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Risk level for contrast administration (low, moderate, high)"
+      },
+      "precautions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required precautions"
+      },
+      "contraindications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of identified contraindications"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image_Quality_Validator",
+    "tool_description": "Analyzes acquired medical images to assess quality metrics and identify potential issues that may affect diagnostic value.",
+    "parameters": {
+      "image_series_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the image series"
+      },
+      "modality": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging modality (X-ray, CT, MRI, ultrasound)"
+      },
+      "quality_threshold": {
+        "type": "string",
+        "required": false,
+        "description": "Quality assessment threshold (basic, standard, strict)",
+        "default": "standard"
+      },
+      "auto_reject": {
+        "type": "boolean",
+        "required": false,
+        "description": "Automatically reject images below quality threshold",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Image series not found: No image series found with the specified ID.",
+      "Invalid modality: Modality must be X-ray, CT, MRI, or ultrasound.",
+      "Invalid quality threshold: Quality threshold must be basic, standard, or strict.",
+      "Image format error: Images are not in a supported DICOM format.",
+      "Insufficient image data: Image series contains too few images for quality assessment."
+    ],
+    "usage": "Provide image_series_id and modality to assess image quality. Optionally set quality_threshold and auto_reject parameters for automated quality control.",
+    "output_details": {
+      "overall_quality_score": {
+        "type": "number",
+        "description": "Overall quality score (0-100)"
+      },
+      "quality_rating": {
+        "type": "string",
+        "description": "Quality rating (excellent, good, acceptable, poor)"
+      },
+      "artifacts_detected": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of detected image artifacts"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Quality improvement recommendations"
+      },
+      "diagnostic_adequacy": {
+        "type": "boolean",
+        "description": "Whether images are adequate for diagnosis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dose_Calculator",
+    "tool_description": "Calculates radiation dose estimates for imaging procedures to ensure ALARA principles and dose optimization.",
+    "parameters": {
+      "modality": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging modality (X-ray, CT, fluoroscopy)"
+      },
+      "protocol_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the imaging protocol"
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "patient_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Patient weight in kg"
+      },
+      "body_part": {
+        "type": "string",
+        "required": true,
+        "description": "Anatomical region being imaged"
+      }
+    },
+    "error_messages": [
+      "Unsupported modality: Dose calculations only available for X-ray, CT, and fluoroscopy.",
+      "Invalid protocol name: Protocol name must be a recognized imaging protocol.",
+      "Invalid patient age: Patient age must be between 0 and 150 years.",
+      "Invalid patient weight: Patient weight must be between 1 and 300 kg.",
+      "Unrecognized body part: Body part must be a valid anatomical region.",
+      "Dose calculation failed: Unable to calculate dose with provided parameters."
+    ],
+    "usage": "Provide modality, protocol_name, patient demographics, and body_part to calculate estimated radiation dose for the procedure.",
+    "output_details": {
+      "estimated_dose_mgy": {
+        "type": "number",
+        "description": "Estimated dose in milliGray (mGy)"
+      },
+      "effective_dose_msv": {
+        "type": "number",
+        "description": "Effective dose in milliSievert (mSv)"
+      },
+      "dose_category": {
+        "type": "string",
+        "description": "Dose category (very low, low, moderate, high)"
+      },
+      "dose_reference_level": {
+        "type": "number",
+        "description": "Diagnostic reference level for comparison"
+      },
+      "optimization_suggestions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Dose optimization recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Scheduling_Optimizer",
+    "tool_description": "Optimizes imaging schedules by considering equipment availability, patient priorities, protocol requirements, and resource constraints.",
+    "parameters": {
+      "date_range_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for scheduling optimization",
+        "format": "date-time"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for scheduling optimization",
+        "format": "date-time"
+      },
+      "modalities": {
+        "type": "array",
+        "required": true,
+        "description": "List of modalities to include in optimization",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "exam_requests": {
+        "type": "array",
+        "required": true,
+        "description": "List of exam request IDs to schedule",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "optimization_criteria": {
+        "type": "string",
+        "required": false,
+        "description": "Primary optimization criteria (efficiency, patient_priority, resource_utilization)",
+        "default": "efficiency"
+      },
+      "include_emergency_slots": {
+        "type": "boolean",
+        "required": false,
+        "description": "Reserve slots for emergency cases",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid date range: End date must be after start date and within reasonable future timeframe.",
+      "Empty modalities list: At least one modality must be specified for optimization.",
+      "Invalid modality: All modalities must be supported (X-ray, CT, MRI, ultrasound).",
+      "No exam requests: At least one exam request ID must be provided.",
+      "Invalid optimization criteria: Criteria must be efficiency, patient_priority, or resource_utilization.",
+      "Scheduling conflict: Unable to resolve conflicts with existing schedules."
+    ],
+    "usage": "Provide date range, modalities list, and exam request IDs to optimize scheduling. Optionally specify optimization criteria and emergency slot preferences.",
+    "output_details": {
+      "optimized_schedule": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of scheduled appointment details"
+      },
+      "scheduling_efficiency": {
+        "type": "number",
+        "description": "Scheduling efficiency percentage (0-100)"
+      },
+      "unscheduled_requests": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of requests that could not be scheduled"
+      },
+      "resource_utilization": {
+        "type": "number",
+        "description": "Overall resource utilization percentage"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pre_Scan_Checklist",
+    "tool_description": "Executes comprehensive pre-scan safety and preparation checklist to ensure patient and equipment readiness for imaging procedures.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier"
+      },
+      "protocol_id": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging protocol identifier"
+      },
+      "modality": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging modality (X-ray, CT, MRI, ultrasound)"
+      },
+      "contrast_planned": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether contrast administration is planned",
+        "default": false
+      },
+      "metal_screening_completed": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether metal screening has been completed (required for MRI)",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid patient ID: Patient ID must be valid and registered in the system.",
+      "Invalid protocol ID: Protocol ID must correspond to an existing imaging protocol.",
+      "Unsupported modality: Modality must be X-ray, CT, MRI, or ultrasound.",
+      "MRI safety incomplete: Metal screening must be completed for MRI procedures.",
+      "Contrast safety not verified: Contrast safety clearance required when contrast is planned.",
+      "Patient preparation incomplete: Required patient preparation steps have not been completed."
+    ],
+    "usage": "Provide patient_id, protocol_id, and modality to execute pre-scan checklist. Set contrast_planned and metal_screening_completed as appropriate for the procedure type.",
+    "output_details": {
+      "checklist_status": {
+        "type": "string",
+        "description": "Overall checklist completion status (complete, incomplete, failed)"
+      },
+      "safety_clearance": {
+        "type": "boolean",
+        "description": "Whether patient has safety clearance to proceed"
+      },
+      "pending_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of checklist items that require completion"
+      },
+      "safety_alerts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of active safety alerts"
+      },
+      "procedure_ready": {
+        "type": "boolean",
+        "description": "Whether the procedure can safely proceed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Acquisition_Controller",
+    "tool_description": "Controls image acquisition by sending protocol parameters and acquisition commands to imaging equipment.",
+    "parameters": {
+      "device_id": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging device identifier"
+      },
+      "protocol_id": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging protocol identifier"
+      },
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier"
+      },
+      "acquisition_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Acquisition mode (standard, high_resolution, fast_scan)",
+        "default": "standard"
+      },
+      "operator_id": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging technologist identifier"
+      }
+    },
+    "error_messages": [
+      "Device not available: Imaging device is not online or available for acquisition.",
+      "Invalid protocol: Protocol ID does not exist or is incompatible with the device.",
+      "Patient not registered: Patient ID is not valid or patient not properly registered.",
+      "Invalid acquisition mode: Mode must be standard, high_resolution, or fast_scan.",
+      "Operator not authorized: Operator does not have authorization for this device or protocol.",
+      "Pre-scan checklist incomplete: Required safety checklist must be completed before acquisition."
+    ],
+    "usage": "Provide device_id, protocol_id, patient_id, and operator_id to initiate image acquisition. Optionally specify acquisition_mode for specialized scanning requirements.",
+    "output_details": {
+      "acquisition_id": {
+        "type": "string",
+        "description": "Unique identifier for the acquisition session"
+      },
+      "acquisition_status": {
+        "type": "string",
+        "description": "Current acquisition status (initiated, in_progress, completed, failed)"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated completion time"
+      },
+      "image_count": {
+        "type": "integer",
+        "description": "Number of images acquired"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image_Archiver",
+    "tool_description": "Archives medical images and associated metadata to PACS (Picture Archiving and Communication System) with proper DICOM formatting and storage management.",
+    "parameters": {
+      "acquisition_id": {
+        "type": "string",
+        "required": true,
+        "description": "Acquisition session identifier"
+      },
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier"
+      },
+      "study_description": {
+        "type": "string",
+        "required": true,
+        "description": "Description of the imaging study"
+      },
+      "modality": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging modality (X-ray, CT, MRI, ultrasound)"
+      },
+      "body_part": {
+        "type": "string",
+        "required": true,
+        "description": "Anatomical region imaged"
+      },
+      "referring_physician": {
+        "type": "string",
+        "required": false,
+        "description": "Referring physician identifier",
+        "default": null
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Archive priority (normal, high, urgent)",
+        "default": "normal"
+      },
+      "retention_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Data retention period in years",
+        "default": 7
+      }
+    },
+    "error_messages": [
+      "Acquisition not found: No acquisition found with the specified acquisition_id.",
+      "Invalid patient ID: Patient ID must be valid and registered in the system.",
+      "DICOM formatting error: Images cannot be properly formatted for DICOM storage.",
+      "PACS connection failed: Unable to connect to the PACS archive system.",
+      "Storage quota exceeded: Archive storage quota has been exceeded.",
+      "Invalid retention period: Retention period must be between 1 and 30 years.",
+      "Invalid priority level: Priority must be normal, high, or urgent."
+    ],
+    "usage": "Provide acquisition_id, patient_id, study_description, modality, and body_part to archive medical images. Optionally specify referring_physician, priority_level, and retention_period for archive management.",
+    "output_details": {
+      "archive_status": {
+        "type": "string",
+        "description": "Archive operation status (success, pending, failed)"
+      },
+      "study_instance_uid": {
+        "type": "string",
+        "description": "DICOM Study Instance UID"
+      },
+      "archive_location": {
+        "type": "string",
+        "description": "Archive storage location identifier"
+      },
+      "archived_image_count": {
+        "type": "integer",
+        "description": "Number of images successfully archived"
+      },
+      "archive_timestamp": {
+        "type": "string",
+        "description": "Timestamp when archiving was completed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Protocol_Customizer",
+    "tool_description": "Customizes standard imaging protocols based on specific patient factors, clinical requirements, and equipment capabilities.",
+    "parameters": {
+      "base_protocol_id": {
+        "type": "string",
+        "required": true,
+        "description": "Base protocol identifier to customize"
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "patient_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Patient weight in kg"
+      },
+      "clinical_indication": {
+        "type": "string",
+        "required": true,
+        "description": "Specific clinical indication"
+      },
+      "patient_mobility": {
+        "type": "string",
+        "required": false,
+        "description": "Patient mobility status (mobile, limited, immobile)",
+        "default": "mobile"
+      },
+      "contrast_allergy": {
+        "type": "boolean",
+        "required": false,
+        "description": "Patient has contrast allergy",
+        "default": false
+      },
+      "implants_present": {
+        "type": "boolean",
+        "required": false,
+        "description": "Patient has medical implants",
+        "default": false
+      },
+      "pregnancy_status": {
+        "type": "string",
+        "required": false,
+        "description": "Pregnancy status (not_pregnant, pregnant, unknown)",
+        "default": "unknown

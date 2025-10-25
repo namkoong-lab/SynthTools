@@ -1,0 +1,814 @@
+field_name: biotechnology_and_pharmaceuticals
+subfield: Drug Discovery and Development
+task: Molecular compound design and optimization
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task involves complex multi-disciplinary workflows including molecular modeling, chemical property prediction, synthetic pathway analysis, and optimization across multiple objectives. The high degree of scientific rigor required, coordination between computational chemistry and biological activity prediction, and the critical impact of errors on drug development outcomes make this a hard task.
+
+  STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'm targeting 17 tools within the 15-20 range to cover the comprehensive workflow from initial compound generation through optimization and validation.
+
+  STEP 3 — List all tool names and dependencies
+
+  Tools and their relationships:
+  - Molecular Structure Generator → produces SMILES strings
+  - SMILES Validator → consumes SMILES strings, produces validation status
+  - Molecular Property Calculator → consumes SMILES strings, produces physicochemical properties
+  - ADMET Predictor → consumes SMILES strings, produces pharmacokinetic predictions
+  - Bioactivity Predictor → consumes SMILES strings and target info, produces activity scores
+  - Toxicity Assessor → consumes SMILES strings, produces toxicity predictions
+  - Synthetic Route Planner → consumes SMILES strings, produces synthetic pathways
+  - Scaffold Analyzer → consumes SMILES strings, produces scaffold information
+  - Molecular Similarity Calculator → consumes multiple SMILES strings, produces similarity metrics
+  - Fragment Library Search → consumes molecular fragments, produces library matches
+  - Lead Optimization Engine → consumes compound data and constraints, produces optimized structures
+  - Drug Likeness Scorer → consumes SMILES strings, produces drug-likeness scores
+  - Molecular Docking Simulator → consumes SMILES and protein target, produces binding predictions
+  - Chemical Space Explorer → consumes reference compounds, produces diverse analogs
+  - Structure Activity Analyzer → consumes compound-activity pairs, produces SAR insights
+  - Compound Library Filter → consumes compound collections and filters, produces filtered sets
+  - Multi Parameter Optimizer → consumes compounds and objectives, produces optimized candidates
+
+  STEP 4 — Multi-tool plans
+
+  Simple plans:
+  1. Basic compound validation: SMILES Validator → Molecular Property Calculator → Drug Likeness Scorer
+  2. Toxicity screening: SMILES Validator → Toxicity Assessor → Compound Library Filter
+
+  Medium plans:
+  1. Lead compound profiling: SMILES Validator → Molecular Property Calculator → ADMET Predictor → Bioactivity Predictor → Drug Likeness Scorer
+  2. Scaffold exploration: Scaffold Analyzer → Chemical Space Explorer → Molecular Similarity Calculator → Compound Library Filter
+
+  Complex plans:
+  1. Full optimization workflow: Molecular Structure Generator → SMILES Validator → Molecular Property Calculator → ADMET Predictor → Bioactivity Predictor → Toxicity Assessor → Lead Optimization Engine → Multi Parameter Optimizer
+  2. Comprehensive drug discovery pipeline: Fragment Library Search → Molecular Structure Generator → SMILES Validator → Molecular Property Calculator → ADMET Predictor → Bioactivity Predictor → Molecular Docking Simulator → Synthetic Route Planner → Structure Activity Analyzer → Lead Optimization Engine
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Molecular Structure Generator",
+    "tool_description": "Generates novel molecular structures based on specified constraints, fragments, or scaffolds using computational chemistry methods.",
+    "parameters": {
+      "generation_method": {
+        "type": "string",
+        "required": true,
+        "description": "Method for structure generation: random, fragment_based, scaffold_based, or deep_learning"
+      },
+      "seed_structure": {
+        "type": "string",
+        "required": false,
+        "description": "Starting SMILES structure for modification",
+        "default": "None"
+      },
+      "molecular_weight_min": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum molecular weight in Daltons",
+        "default": 100
+      },
+      "molecular_weight_max": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum molecular weight in Daltons",
+        "default": 800
+      },
+      "num_structures": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of structures to generate (1-1000)",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Invalid generation method: Use one of [random, fragment_based, scaffold_based, deep_learning]",
+      "Invalid molecular weight range: Ensure min < max and both are positive numbers between 50-2000",
+      "Invalid seed structure: Provide a valid SMILES string or leave empty",
+      "Invalid structure count: Number must be between 1-1000",
+      "Generation failed: Unable to generate structures with given constraints"
+    ],
+    "usage": "Specify generation_method and optionally provide constraints like molecular weight range and seed structure. The tool generates diverse molecular structures meeting the criteria.",
+    "output_details": {
+      "generated_smiles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of generated SMILES strings"
+      },
+      "generation_summary": {
+        "type": "string",
+        "description": "Summary of generation parameters and success rate"
+      },
+      "molecular_weights": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Molecular weights of generated structures"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SMILES Validator",
+    "tool_description": "Validates SMILES chemical notation strings for correct syntax and chemical feasibility.",
+    "parameters": {
+      "smiles_string": {
+        "type": "string",
+        "required": true,
+        "description": "SMILES notation string to validate"
+      },
+      "check_stereochemistry": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate stereochemical notation",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Empty SMILES string: Provide a non-empty SMILES string",
+      "Invalid SMILES syntax: Check for proper atom symbols, bonds, and brackets",
+      "Stereochemistry error: Invalid @ or @@ notation found",
+      "Chemical infeasibility: Structure violates basic chemical rules"
+    ],
+    "usage": "Input a SMILES string to check its validity. Set check_stereochemistry to false if stereochemical validation is not needed.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the SMILES string is valid"
+      },
+      "canonical_smiles": {
+        "type": "string",
+        "description": "Canonical form of the SMILES string"
+      },
+      "validation_message": {
+        "type": "string",
+        "description": "Detailed validation result message"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Molecular Property Calculator",
+    "tool_description": "Calculates key physicochemical properties of molecules from SMILES strings including Lipinski parameters and other drug-relevant descriptors.",
+    "parameters": {
+      "smiles_string": {
+        "type": "string",
+        "required": true,
+        "description": "SMILES notation of the molecule"
+      },
+      "property_set": {
+        "type": "string",
+        "required": false,
+        "description": "Property set to calculate: basic, lipinski, extended, or all",
+        "default": "lipinski"
+      },
+      "include_3d_descriptors": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include 3D molecular descriptors",
+        "default": false
+      },
+      "ph_value": {
+        "type": "number",
+        "required": false,
+        "description": "pH value for ionization state calculations (0-14)",
+        "default": 7.4
+      }
+    },
+    "error_messages": [
+      "Invalid SMILES string: Provide a valid SMILES notation",
+      "Invalid property set: Use one of [basic, lipinski, extended, all]",
+      "Invalid pH value: pH must be between 0 and 14",
+      "3D conformation failed: Unable to generate 3D structure for descriptors",
+      "Property calculation error: Failed to compute one or more molecular properties"
+    ],
+    "usage": "Provide a valid SMILES string and specify which property set to calculate. For ionizable compounds, adjust pH value as needed.",
+    "output_details": {
+      "molecular_weight": {
+        "type": "number",
+        "description": "Molecular weight in Daltons"
+      },
+      "logp": {
+        "type": "number",
+        "description": "Calculated LogP (lipophilicity)"
+      },
+      "hbd_count": {
+        "type": "integer",
+        "description": "Number of hydrogen bond donors"
+      },
+      "hba_count": {
+        "type": "integer",
+        "description": "Number of hydrogen bond acceptors"
+      },
+      "tpsa": {
+        "type": "number",
+        "description": "Topological polar surface area"
+      },
+      "rotatable_bonds": {
+        "type": "integer",
+        "description": "Number of rotatable bonds"
+      },
+      "lipinski_violations": {
+        "type": "integer",
+        "description": "Number of Lipinski rule violations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "ADMET Predictor",
+    "tool_description": "Predicts Absorption, Distribution, Metabolism, Excretion, and Toxicity properties of compounds using machine learning models.",
+    "parameters": {
+      "smiles_string": {
+        "type": "string",
+        "required": true,
+        "description": "SMILES notation of the compound"
+      },
+      "prediction_models": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "ADMET models to use: absorption, distribution, metabolism, excretion, toxicity",
+        "default": ["absorption", "distribution", "metabolism", "excretion", "toxicity"]
+      },
+      "species": {
+        "type": "string",
+        "required": false,
+        "description": "Species for prediction: human, rat, mouse, dog",
+        "default": "human"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence score for predictions (0-1)",
+        "default": 0.7
+      },
+      "include_metabolites": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to predict major metabolites",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid SMILES string: Provide a valid molecular structure",
+      "Unsupported prediction model: Use models from [absorption, distribution, metabolism, excretion, toxicity]",
+      "Unsupported species: Use one of [human, rat, mouse, dog]",
+      "Invalid confidence threshold: Value must be between 0 and 1",
+      "Prediction model failed: One or more ADMET models failed to generate predictions",
+      "Compound out of domain: Structure is outside the applicability domain of the models"
+    ],
+    "usage": "Input a SMILES string and select which ADMET properties to predict. Specify species and confidence threshold as needed for your application.",
+    "output_details": {
+      "bioavailability_score": {
+        "type": "number",
+        "description": "Predicted oral bioavailability (0-1)"
+      },
+      "bbb_permeability": {
+        "type": "number",
+        "description": "Blood-brain barrier permeability prediction"
+      },
+      "cyp_inhibition": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Predicted CYP enzyme inhibition"
+      },
+      "clearance": {
+        "type": "number",
+        "description": "Predicted hepatic clearance (mL/min/kg)"
+      },
+      "half_life": {
+        "type": "number",
+        "description": "Predicted plasma half-life (hours)"
+      },
+      "ld50": {
+        "type": "number",
+        "description": "Predicted acute toxicity LD50 (mg/kg)"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each prediction"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bioactivity Predictor",
+    "tool_description": "Predicts biological activity of compounds against specified protein targets using machine learning models trained on bioassay data.",
+    "parameters": {
+      "smiles_string": {
+        "type": "string",
+        "required": true,
+        "description": "SMILES notation of the compound"
+      },
+      "target_protein": {
+        "type": "string",
+        "required": true,
+        "description": "Target protein name or UniProt ID"
+      },
+      "activity_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of activity to predict: ic50, ki, ec50, or binding_affinity",
+        "default": "ic50"
+      },
+      "assay_type": {
+        "type": "string",
+        "required": false,
+        "description": "Assay type: biochemical, cellular, or organism",
+        "default": "biochemical"
+      }
+    },
+    "error_messages": [
+      "Invalid SMILES string: Provide a valid molecular structure",
+      "Unknown target protein: Target not found in database",
+      "Invalid activity type: Use one of [ic50, ki, ec50, binding_affinity]",
+      "Invalid assay type: Use one of [biochemical, cellular, organism]",
+      "No model available: No trained model exists for this target-activity combination",
+      "Prediction failed: Unable to generate activity prediction for given compound"
+    ],
+    "usage": "Provide compound SMILES and target protein identifier. Specify the type of activity and assay format for prediction. The tool returns predicted activity values with confidence estimates.",
+    "output_details": {
+      "predicted_activity": {
+        "type": "number",
+        "description": "Predicted activity value (IC50, Ki, EC50 in nM or binding affinity)"
+      },
+      "activity_class": {
+        "type": "string",
+        "description": "Activity classification: active, moderately_active, or inactive"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Prediction confidence (0-1)"
+      },
+      "model_info": {
+        "type": "string",
+        "description": "Information about the prediction model used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Toxicity Assessor",
+    "tool_description": "Assesses potential toxicity risks of compounds using computational toxicology models for various endpoints.",
+    "parameters": {
+      "smiles_string": {
+        "type": "string",
+        "required": true,
+        "description": "SMILES notation of the compound"
+      },
+      "toxicity_endpoints": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Toxicity types to assess: mutagenicity, carcinogenicity, hepatotoxicity, cardiotoxicity, reproductive",
+        "default": ["mutagenicity", "carcinogenicity", "hepatotoxicity"]
+      },
+      "assessment_level": {
+        "type": "string",
+        "required": false,
+        "description": "Depth of assessment: screening, standard, or comprehensive",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid SMILES string: Provide a valid molecular structure",
+      "Unknown toxicity endpoint: Use endpoints from [mutagenicity, carcinogenicity, hepatotoxicity, cardiotoxicity, reproductive]",
+      "Invalid assessment level: Use one of [screening, standard, comprehensive]",
+      "Toxicity model failed: One or more toxicity prediction models failed",
+      "Structural alert error: Unable to analyze compound for toxicophores"
+    ],
+    "usage": "Input compound SMILES and select toxicity endpoints to evaluate. Choose assessment level based on required detail and computational time.",
+    "output_details": {
+      "toxicity_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Toxicity probability scores for each endpoint (0-1)"
+      },
+      "risk_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Risk categories: low, medium, high for each endpoint"
+      },
+      "structural_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Identified toxicophore patterns"
+      },
+      "overall_risk": {
+        "type": "string",
+        "description": "Overall toxicity risk assessment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Synthetic Route Planner",
+    "tool_description": "Plans synthetic routes for target molecules using retrosynthetic analysis and reaction database knowledge.",
+    "parameters": {
+      "target_smiles": {
+        "type": "string",
+        "required": true,
+        "description": "SMILES string of target molecule to synthesize"
+      },
+      "max_steps": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of synthetic steps (1-15)",
+        "default": 8
+      },
+      "starting_materials": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Available starting materials as SMILES strings",
+        "default": "None"
+      },
+      "reaction_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Allowed reaction types to consider",
+        "default": "None"
+      },
+      "cost_optimization": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to optimize for synthetic cost",
+        "default": true
+      },
+      "num_routes": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of alternative routes to generate (1-10)",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Invalid target SMILES: Provide a valid target molecule structure",
+      "Invalid step count: Maximum steps must be between 1-15",
+      "Invalid starting materials: One or more starting material SMILES are invalid",
+      "Route planning failed: Unable to find synthetic route with given constraints",
+      "Reaction type error: Unknown reaction type specified",
+      "Complex target: Target molecule too complex for current planning algorithms"
+    ],
+    "usage": "Provide target molecule SMILES and optionally specify constraints like maximum steps, available starting materials, and preferred reaction types.",
+    "output_details": {
+      "synthetic_routes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of synthetic route descriptions"
+      },
+      "route_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Synthetic feasibility scores for each route"
+      },
+      "estimated_steps": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Number of steps for each route"
+      },
+      "cost_estimates": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Relative cost estimates for each route"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Scaffold Analyzer",
+    "tool_description": "Analyzes molecular scaffolds and identifies core structural frameworks in compound collections.",
+    "parameters": {
+      "smiles_list": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of SMILES strings to analyze"
+      },
+      "scaffold_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of scaffold analysis: bemis_murcko, ring_systems, or custom",
+        "default": "bemis_murcko"
+      },
+      "min_frequency": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum occurrence frequency for scaffold identification",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Empty compound list: Provide at least one valid SMILES string",
+      "Invalid SMILES detected: One or more SMILES strings are malformed",
+      "Invalid scaffold type: Use one of [bemis_murcko, ring_systems, custom]",
+      "Invalid frequency threshold: Minimum frequency must be positive integer",
+      "Scaffold analysis failed: Unable to extract scaffolds from provided structures"
+    ],
+    "usage": "Input array of compound SMILES to identify common scaffolds. Specify scaffold type and minimum frequency threshold for analysis.",
+    "output_details": {
+      "scaffold_smiles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "SMILES strings of identified scaffolds"
+      },
+      "scaffold_counts": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Frequency count for each scaffold"
+      },
+      "compound_assignments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Scaffold assignment for each input compound"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Molecular Similarity Calculator",
+    "tool_description": "Calculates similarity between molecules using various molecular fingerprint methods and similarity metrics.",
+    "parameters": {
+      "reference_smiles": {
+        "type": "string",
+        "required": true,
+        "description": "Reference molecule SMILES string"
+      },
+      "comparison_smiles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of SMILES strings to compare against reference"
+      },
+      "fingerprint_type": {
+        "type": "string",
+        "required": false,
+        "description": "Fingerprint method: morgan, maccs, avalon, or topological",
+        "default": "morgan"
+      },
+      "similarity_metric": {
+        "type": "string",
+        "required": false,
+        "description": "Similarity metric: tanimoto, cosine, or jaccard",
+        "default": "tanimoto"
+      },
+      "fingerprint_radius": {
+        "type": "integer",
+        "required": false,
+        "description": "Radius for circular fingerprints (0-4)",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Invalid reference SMILES: Provide a valid reference molecule structure",
+      "Invalid comparison SMILES: One or more comparison molecules are invalid",
+      "Unknown fingerprint type: Use one of [morgan, maccs, avalon, topological]",
+      "Unknown similarity metric: Use one of [tanimoto, cosine, jaccard]",
+      "Invalid fingerprint radius: Radius must be between 0-4",
+      "Fingerprint calculation failed: Unable to generate fingerprints for comparison"
+    ],
+    "usage": "Provide reference molecule and array of comparison molecules. Select appropriate fingerprint method and similarity metric for your analysis needs.",
+    "output_details": {
+      "similarity_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Similarity scores between reference and each comparison molecule"
+      },
+      "most_similar_index": {
+        "type": "integer",
+        "description": "Index of most similar molecule in comparison array"
+      },
+      "similarity_summary": {
+        "type": "string",
+        "description": "Summary statistics of similarity distribution"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fragment Library Search",
+    "tool_description": "Searches chemical fragment libraries for substructures and building blocks matching specified criteria.",
+    "parameters": {
+      "query_structure": {
+        "type": "string",
+        "required": true,
+        "description": "Query structure as SMILES or SMARTS pattern"
+      },
+      "search_type": {
+        "type": "string",
+        "required": true,
+        "description": "Search type: exact, substructure, similarity, or pharmacophore"
+      },
+      "library_source": {
+        "type": "string",
+        "required": false,
+        "description": "Fragment library to search: commercial, natural_products, fda_approved, or all",
+        "default": "commercial"
+      },
+      "max_heavy_atoms": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of heavy atoms in fragments (5-50)",
+        "default": 25
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum similarity score for similarity searches (0-1)",
+        "default": 0.7
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of results to return (1-1000)",
+        "default": 100
+      },
+      "include_vendors": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include vendor information",
+        "default": true
+      },
+      "filter_reactive": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to filter out reactive functional groups",
+        "default": true
+      },
+      "drug_like_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to return only drug-like fragments",
+        "default": false
+      },
+      "price_limit": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum price per gram for commercial fragments",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid query structure: Provide a valid SMILES or SMARTS pattern",
+      "Invalid search type: Use one of [exact, substructure, similarity, pharmacophore]",
+      "Invalid library source: Use one of [commercial, natural_products, fda_approved, all]",
+      "Invalid heavy atom count: Must be between 5-50",
+      "Invalid similarity threshold: Must be between 0-1",
+      "Invalid result limit: Must be between 1-1000",
+      "Library search failed: Unable to complete search with given parameters",
+      "No results found: Query did not match any fragments in selected library"
+    ],
+    "usage": "Specify query structure and search type, then configure library source and filtering criteria. The tool returns matching fragments with relevant metadata.",
+    "output_details": {
+      "fragment_smiles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "SMILES strings of matching fragments"
+      },
+      "fragment_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Database identifiers for matched fragments"
+      },
+      "similarity_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Similarity scores for each match"
+      },
+      "vendor_info": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Vendor availability information"
+      },
+      "search_summary": {
+        "type": "string",
+        "description": "Summary of search parameters and results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Lead Optimization Engine",
+    "tool_description": "Optimizes lead compounds by suggesting structural modifications to improve desired properties while maintaining activity.",
+    "parameters": {
+      "lead_smiles": {
+        "type": "string",
+        "required": true,
+        "description": "SMILES string of lead compound to optimize"
+      },
+      "target_properties": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Properties to optimize: potency, selectivity, admet, toxicity, drug_likeness"
+      },
+      "optimization_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Optimization approach: conservative, moderate, or aggressive",
+        "default": "moderate"
+      },
+      "preserve_scaffolds": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve core scaffold during optimization",
+        "default": true
+      },
+      "num_suggestions": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of optimized structures to generate (1-50)",
+        "default": 10
+      },
+      "property_weights": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Relative importance weights for target properties",
+        "default": "None"
+      },
+      "synthetic_accessibility": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to consider synthetic accessibility in optimization",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid lead SMILES: Provide a valid starting compound structure",
+      "Invalid target properties: Use properties from [potency, selectivity, admet, toxicity, drug_likeness]",
+      "Invalid optimization strategy: Use one of [conservative, moderate, aggressive]",
+      "Invalid suggestion count: Must be between 1-50",
+      "Property weight mismatch: Number of weights must match number of target properties",
+      "Optimization failed: Unable to generate improved compounds with given constraints"
+    ],
+    "usage": "Input lead compound and specify which properties to optimize. Configure optimization strategy and constraints based on your project requirements.",
+    "output_details": {
+      "optimized_smiles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "SMILES strings of optimized compounds"
+      },
+      "improvement_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Overall improvement scores for each suggestion"
+      },
+      "property_predictions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Predicted property values for optimized compounds"
+      },
+      "modification_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Types of modifications made to the lead compound"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Drug Likeness Scorer",
+    "tool_description": "Evaluates compounds for drug-likeness using multiple rule-based and machine learning approaches.",
+    "parameters": {
+      "smiles_string": {
+        "type": "string",
+        "required": true,
+        "description": "SMILES notation of compound to evaluate"
+      },
+      "scoring_methods": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Scoring methods to use: lipinski, veber, ghose, egan, pfizer, qed",
+        "default": ["lipinski", "veber", "qed"]
+      }
+    },
+    "error_messages": [
+      "Invalid SMILES string: Provide a valid molecular structure",
+      "Unknown scoring method: Use

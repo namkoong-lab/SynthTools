@@ -1,0 +1,851 @@
+field_name: credit_and_lending_services
+subfield: loan_origination_and_underwriting
+task: Customer identity verification and KYC compliance
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task is **medium** difficulty. Customer identity verification and KYC compliance involves multiple interconnected verification processes (document validation, biometric checks, sanctions screening, address verification), regulatory compliance requirements that vary by jurisdiction, and coordination between various data sources and third-party services. While individual verification steps are well-defined, the overall process requires careful orchestration and has moderate risk impact given regulatory penalties for non-compliance.
+
+  STEP 2 — Set a tool budget
+
+  Given the medium difficulty rating, I'll target **12 tools** to cover the various aspects of identity verification and KYC compliance, including document processing, biometric verification, database checks, risk assessment, and compliance reporting.
+
+  STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Document Image Extractor** - Consumes: document images → Produces: extracted text and metadata
+  2. **ID Document Validator** - Consumes: document data → Produces: validation results
+  3. **Biometric Face Matcher** - Consumes: photos → Produces: facial match confidence
+  4. **Address Verification Service** - Consumes: address details → Produces: verification status
+  5. **Sanctions List Screener** - Consumes: personal details → Produces: screening results
+  6. **PEP Database Checker** - Consumes: customer info → Produces: PEP status
+  7. **Credit Bureau Lookup** - Consumes: customer details → Produces: credit information
+  8. **Phone Number Validator** - Consumes: phone number → Produces: validation results
+  9. **Email Address Validator** - Consumes: email → Produces: validation status
+  10. **Risk Score Calculator** - Consumes: verification results → Produces: risk assessment
+  11. **KYC Compliance Reporter** - Consumes: all verification data → Produces: compliance report
+  12. **Customer Profile Builder** - Consumes: verified data → Produces: customer profile
+
+  STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  - Basic ID check: Document Image Extractor → ID Document Validator → Customer Profile Builder
+  - Contact validation: Phone Number Validator + Email Address Validator → Customer Profile Builder
+
+  **Medium plans:**
+  - Standard KYC: Document Image Extractor → ID Document Validator → Address Verification Service → Sanctions List Screener → Risk Score Calculator → KYC Compliance Reporter
+  - Enhanced verification: Document Image Extractor → Biometric Face Matcher → Credit Bureau Lookup → PEP Database Checker → Risk Score Calculator
+
+  **Complex plans:**
+  - Full compliance workflow: All tools in sequence culminating in comprehensive KYC report
+  - Multi-jurisdiction verification: Document validation → Multiple screening tools → Risk assessment → Regulatory reporting with jurisdiction-specific parameters
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Document Image Extractor",
+    "tool_description": "Extracts text, metadata, and key fields from identity document images using OCR and document parsing capabilities.",
+    "parameters": {
+      "image_base64": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded image of the identity document"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document: passport, drivers_license, national_id, or utility_bill"
+      },
+      "country_code": {
+        "type": "string",
+        "required": false,
+        "description": "ISO 3166-1 alpha-2 country code for document origin",
+        "default": "US"
+      }
+    },
+    "error_messages": [
+      "Invalid image format: Ensure the image is properly base64 encoded and represents a valid image file.",
+      "Document type not supported: Use one of [passport, drivers_license, national_id, utility_bill].",
+      "Image quality too poor: Provide a clearer, higher resolution image with good lighting and minimal glare.",
+      "Invalid country code: Provide a valid ISO 3166-1 alpha-2 country code."
+    ],
+    "usage": "Provide a base64 encoded image of an identity document along with its type. Optionally specify the country code for better parsing accuracy.",
+    "output_details": {
+      "extracted_text": {
+        "type": "string",
+        "description": "Raw text extracted from the document"
+      },
+      "document_number": {
+        "type": "string",
+        "description": "Extracted document identification number"
+      },
+      "full_name": {
+        "type": "string",
+        "description": "Full name as appears on document"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "description": "Date of birth in YYYY-MM-DD format"
+      },
+      "expiry_date": {
+        "type": "string",
+        "description": "Document expiry date in YYYY-MM-DD format"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Extraction confidence score from 0 to 1"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "ID Document Validator",
+    "tool_description": "Validates the authenticity and integrity of identity documents by checking security features, formats, and issuing authority standards.",
+    "parameters": {
+      "document_number": {
+        "type": "string",
+        "required": true,
+        "description": "Document identification number"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document: passport, drivers_license, or national_id"
+      },
+      "issuing_country": {
+        "type": "string",
+        "required": true,
+        "description": "ISO 3166-1 alpha-2 country code of issuing authority"
+      },
+      "expiry_date": {
+        "type": "string",
+        "required": true,
+        "description": "Document expiry date in YYYY-MM-DD format"
+      },
+      "full_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name as appears on document"
+      }
+    },
+    "error_messages": [
+      "Document number format invalid: Ensure the document number matches the expected format for the specified document type and country.",
+      "Document expired: The provided expiry date indicates the document has expired.",
+      "Invalid issuing country: Provide a valid ISO 3166-1 alpha-2 country code.",
+      "Document type not supported: Use one of [passport, drivers_license, national_id]."
+    ],
+    "usage": "Provide extracted document details including number, type, issuing country, expiry date, and name for comprehensive validation.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Overall validation result"
+      },
+      "validation_score": {
+        "type": "number",
+        "description": "Validation confidence score from 0 to 1"
+      },
+      "checks_passed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation checks that passed"
+      },
+      "checks_failed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation checks that failed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Biometric Face Matcher",
+    "tool_description": "Compares facial biometrics between a selfie photo and an ID document photo to verify identity match.",
+    "parameters": {
+      "selfie_image_base64": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded selfie image for comparison"
+      },
+      "id_photo_base64": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded ID document photo for comparison"
+      },
+      "match_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum similarity score required for positive match (0.1 to 1.0)",
+        "default": 0.85
+      }
+    },
+    "error_messages": [
+      "Invalid image format: Ensure both images are properly base64 encoded and represent valid image files.",
+      "Face not detected: Unable to detect a face in one or both provided images.",
+      "Image quality insufficient: Provide clearer images with good lighting and visible facial features.",
+      "Invalid match threshold: Threshold must be between 0.1 and 1.0."
+    ],
+    "usage": "Provide base64 encoded selfie and ID document photos. Optionally adjust the match threshold for stricter or looser matching requirements.",
+    "output_details": {
+      "is_match": {
+        "type": "boolean",
+        "description": "Whether faces match above the threshold"
+      },
+      "similarity_score": {
+        "type": "number",
+        "description": "Facial similarity score from 0 to 1"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Match confidence level: high, medium, or low"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Address Verification Service",
+    "tool_description": "Verifies residential addresses against postal databases and validates address components for accuracy and deliverability.",
+    "parameters": {
+      "street_address": {
+        "type": "string",
+        "required": true,
+        "description": "Street number and name"
+      },
+      "city": {
+        "type": "string",
+        "required": true,
+        "description": "City name"
+      },
+      "state_province": {
+        "type": "string",
+        "required": true,
+        "description": "State or province"
+      },
+      "postal_code": {
+        "type": "string",
+        "required": true,
+        "description": "ZIP code or postal code"
+      },
+      "country": {
+        "type": "string",
+        "required": true,
+        "description": "ISO 3166-1 alpha-2 country code"
+      },
+      "verification_level": {
+        "type": "string",
+        "required": false,
+        "description": "Verification strictness: basic, standard, or enhanced",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Address not found: The provided address could not be located in postal databases.",
+      "Invalid postal code format: Ensure postal code matches the expected format for the specified country.",
+      "Invalid country code: Provide a valid ISO 3166-1 alpha-2 country code.",
+      "Incomplete address: All required address fields must be provided.",
+      "Invalid verification level: Use one of [basic, standard, enhanced]."
+    ],
+    "usage": "Provide complete address details including street, city, state/province, postal code, and country. Choose verification level based on compliance requirements.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether address is valid and deliverable"
+      },
+      "verification_status": {
+        "type": "string",
+        "description": "Detailed verification status"
+      },
+      "standardized_address": {
+        "type": "string",
+        "description": "Standardized format of the verified address"
+      },
+      "delivery_point": {
+        "type": "boolean",
+        "description": "Whether address is a valid delivery point"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sanctions List Screener",
+    "tool_description": "Screens customer information against global sanctions lists, watchlists, and politically exposed persons databases for compliance.",
+    "parameters": {
+      "full_name": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's full name for screening"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": false,
+        "description": "Date of birth in YYYY-MM-DD format for enhanced matching",
+        "default": null
+      },
+      "nationality": {
+        "type": "string",
+        "required": false,
+        "description": "ISO 3166-1 alpha-2 country code of nationality",
+        "default": null
+      },
+      "screening_lists": {
+        "type": "array",
+        "required": false,
+        "description": "Specific lists to screen against",
+        "items": {
+          "type": "string"
+        },
+        "default": ["OFAC", "EU", "UN", "HMT"]
+      },
+      "match_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Name matching sensitivity from 0.1 to 1.0",
+        "default": 0.8
+      },
+      "include_aliases": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include known aliases in screening",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid screening lists: Use valid list identifiers such as OFAC, EU, UN, HMT, or WorldCheck.",
+      "Invalid match threshold: Threshold must be between 0.1 and 1.0.",
+      "Invalid nationality code: Provide a valid ISO 3166-1 alpha-2 country code.",
+      "Name too short: Provide a full name with at least 3 characters for meaningful screening."
+    ],
+    "usage": "Provide customer's full name and optionally date of birth and nationality for enhanced screening accuracy. Configure screening lists and match sensitivity as needed.",
+    "output_details": {
+      "screening_result": {
+        "type": "string",
+        "description": "Overall screening result: clear, potential_match, or match"
+      },
+      "matches_found": {
+        "type": "integer",
+        "description": "Number of potential matches identified"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Risk assessment: low, medium, high, or critical"
+      },
+      "lists_screened": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Lists that were screened against"
+      },
+      "match_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Details of any matches found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "PEP Database Checker",
+    "tool_description": "Checks customer information against Politically Exposed Persons (PEP) databases to identify high-risk individuals requiring enhanced due diligence.",
+    "parameters": {
+      "full_name": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's full name"
+      },
+      "country_of_residence": {
+        "type": "string",
+        "required": false,
+        "description": "ISO 3166-1 alpha-2 country code of residence",
+        "default": null
+      },
+      "occupation": {
+        "type": "string",
+        "required": false,
+        "description": "Customer's occupation or job title",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid country code: Provide a valid ISO 3166-1 alpha-2 country code for residence.",
+      "Name too short: Provide a full name with at least 3 characters for meaningful PEP screening.",
+      "Database unavailable: PEP database is temporarily unavailable, retry later."
+    ],
+    "usage": "Provide customer's full name and optionally their country of residence and occupation for more accurate PEP identification.",
+    "output_details": {
+      "is_pep": {
+        "type": "boolean",
+        "description": "Whether customer is identified as a PEP"
+      },
+      "pep_category": {
+        "type": "string",
+        "description": "Category of PEP if identified: domestic, foreign, international, or associate"
+      },
+      "risk_rating": {
+        "type": "string",
+        "description": "Risk rating: low, medium, high, or critical"
+      },
+      "enhanced_dd_required": {
+        "type": "boolean",
+        "description": "Whether enhanced due diligence is required"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Credit Bureau Lookup",
+    "tool_description": "Retrieves credit information and financial history from credit bureaus to assess customer creditworthiness and verify identity through financial records.",
+    "parameters": {
+      "full_name": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's full legal name"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Date of birth in YYYY-MM-DD format"
+      },
+      "ssn_or_id": {
+        "type": "string",
+        "required": true,
+        "description": "Social Security Number or national ID number"
+      },
+      "current_address": {
+        "type": "string",
+        "required": true,
+        "description": "Current residential address"
+      },
+      "bureau_preference": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred credit bureaus to query",
+        "items": {
+          "type": "string"
+        },
+        "default": ["Experian", "Equifax", "TransUnion"]
+      },
+      "report_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of credit report: basic, standard, or comprehensive",
+        "default": "standard"
+      },
+      "include_score": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include credit score in response",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Identity verification failed: Provided information does not match credit bureau records.",
+      "Invalid SSN format: Ensure SSN or national ID follows proper format for the jurisdiction.",
+      "No credit file found: No credit history found for the provided information.",
+      "Invalid bureau preference: Use recognized bureau names like Experian, Equifax, or TransUnion.",
+      "Invalid report type: Use one of [basic, standard, comprehensive]."
+    ],
+    "usage": "Provide customer's identifying information including name, DOB, SSN/ID, and address. Configure bureau preferences and report type based on verification needs.",
+    "output_details": {
+      "credit_file_found": {
+        "type": "boolean",
+        "description": "Whether a credit file was located"
+      },
+      "credit_score": {
+        "type": "integer",
+        "description": "Credit score if available and requested"
+      },
+      "identity_verified": {
+        "type": "boolean",
+        "description": "Whether identity was verified through credit records"
+      },
+      "address_match": {
+        "type": "string",
+        "description": "Address verification result: exact, partial, or no_match"
+      },
+      "account_summary": {
+        "type": "string",
+        "description": "Summary of credit accounts and payment history"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Phone Number Validator",
+    "tool_description": "Validates phone numbers for format correctness, carrier information, and active status to ensure reliable customer contact information.",
+    "parameters": {
+      "phone_number": {
+        "type": "string",
+        "required": true,
+        "description": "Phone number to validate (with or without country code)"
+      },
+      "country_code": {
+        "type": "string",
+        "required": false,
+        "description": "ISO 3166-1 alpha-2 country code if not included in phone number",
+        "default": "US"
+      }
+    },
+    "error_messages": [
+      "Invalid phone number format: Ensure phone number follows proper format for the specified country.",
+      "Invalid country code: Provide a valid ISO 3166-1 alpha-2 country code.",
+      "Phone number too short: Provide a complete phone number with appropriate digits for validation."
+    ],
+    "usage": "Provide the phone number to validate, optionally with country code if not embedded in the number format.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether phone number format is valid"
+      },
+      "formatted_number": {
+        "type": "string",
+        "description": "Standardized format of the phone number"
+      },
+      "carrier_name": {
+        "type": "string",
+        "description": "Telecommunications carrier name"
+      },
+      "line_type": {
+        "type": "string",
+        "description": "Type of line: mobile, landline, or voip"
+      },
+      "is_active": {
+        "type": "boolean",
+        "description": "Whether the phone number appears to be active"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Email Address Validator",
+    "tool_description": "Validates email addresses for syntax correctness, domain validity, and deliverability to ensure reliable customer communication.",
+    "parameters": {
+      "email_address": {
+        "type": "string",
+        "required": true,
+        "description": "Email address to validate"
+      },
+      "check_mx_records": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to verify MX records for the domain",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid email format: Ensure email follows proper format with @ symbol and valid domain structure.",
+      "Domain does not exist: The domain portion of the email address does not exist or is unreachable.",
+      "No MX records found: Domain exists but has no mail exchange records configured."
+    ],
+    "usage": "Provide the email address to validate. Optionally disable MX record checking for faster validation.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether email address format and domain are valid"
+      },
+      "is_deliverable": {
+        "type": "boolean",
+        "description": "Whether email appears deliverable"
+      },
+      "domain_valid": {
+        "type": "boolean",
+        "description": "Whether the email domain is valid"
+      },
+      "mx_records_exist": {
+        "type": "boolean",
+        "description": "Whether MX records exist for the domain"
+      },
+      "email_type": {
+        "type": "string",
+        "description": "Type of email: personal, business, or disposable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Risk Score Calculator",
+    "tool_description": "Calculates comprehensive risk scores based on various verification results, compliance checks, and customer profile factors for informed decision making.",
+    "parameters": {
+      "identity_verified": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether customer identity was successfully verified"
+      },
+      "address_verified": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether customer address was verified"
+      },
+      "sanctions_clear": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether customer passed sanctions screening"
+      },
+      "pep_status": {
+        "type": "string",
+        "required": true,
+        "description": "PEP status: clear, domestic, foreign, international, or associate"
+      },
+      "credit_score": {
+        "type": "integer",
+        "required": false,
+        "description": "Credit score if available (300-850)",
+        "default": null
+      },
+      "document_validation_score": {
+        "type": "number",
+        "required": true,
+        "description": "Document validation confidence score (0-1)"
+      },
+      "biometric_match_score": {
+        "type": "number",
+        "required": false,
+        "description": "Facial biometric match score (0-1)",
+        "default": null
+      },
+      "contact_verified": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether phone and email were verified"
+      },
+      "country_risk_level": {
+        "type": "string",
+        "required": true,
+        "description": "Country risk assessment: low, medium, high, or critical"
+      },
+      "transaction_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Intended transaction amount for risk weighting",
+        "default": 0
+      },
+      "customer_age": {
+        "type": "integer",
+        "required": false,
+        "description": "Customer age in years",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid PEP status: Use one of [clear, domestic, foreign, international, associate].",
+      "Invalid country risk level: Use one of [low, medium, high, critical].",
+      "Invalid score range: Document validation and biometric scores must be between 0 and 1.",
+      "Invalid credit score: Credit score must be between 300 and 850 if provided.",
+      "Invalid customer age: Age must be between 18 and 120 if provided.",
+      "Negative transaction amount: Transaction amount cannot be negative."
+    ],
+    "usage": "Provide all required verification results and optionally include additional factors like credit score and transaction amount for comprehensive risk assessment.",
+    "output_details": {
+      "overall_risk_score": {
+        "type": "number",
+        "description": "Overall risk score from 0 to 100"
+      },
+      "risk_category": {
+        "type": "string",
+        "description": "Risk category: low, medium, high, or critical"
+      },
+      "risk_factors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of contributing risk factors"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Risk-based recommendation: approve, manual_review, or reject"
+      },
+      "confidence_level": {
+        "type": "number",
+        "description": "Confidence in risk assessment from 0 to 1"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "KYC Compliance Reporter",
+    "tool_description": "Generates comprehensive KYC compliance reports summarizing all verification activities, results, and regulatory requirements for audit and documentation purposes.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer"
+      },
+      "verification_results": {
+        "type": "array",
+        "required": true,
+        "description": "Array of verification step results",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "risk_assessment": {
+        "type": "string",
+        "required": true,
+        "description": "Final risk assessment outcome"
+      },
+      "compliance_officer": {
+        "type": "string",
+        "required": true,
+        "description": "Name or ID of reviewing compliance officer"
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Regulatory jurisdiction (country code or region)"
+      },
+      "product_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of financial product: loan, credit_card, investment, or banking"
+      },
+      "verification_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Timestamp when verification was completed",
+        "format": "date-time"
+      },
+      "include_documents": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include document references in report",
+        "default": true
+      },
+      "report_format": {
+        "type": "string",
+        "required": false,
+        "description": "Report format: standard, detailed, or regulatory",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid jurisdiction: Provide a valid country code or recognized regulatory region.",
+      "Invalid product type: Use one of [loan, credit_card, investment, banking].",
+      "Invalid timestamp format: Provide timestamp in ISO 8601 date-time format.",
+      "Empty verification results: At least one verification result must be provided.",
+      "Invalid report format: Use one of [standard, detailed, regulatory]."
+    ],
+    "usage": "Provide customer ID, all verification results, risk assessment, and regulatory details to generate a comprehensive compliance report.",
+    "output_details": {
+      "report_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated report"
+      },
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance status: compliant, non_compliant, or requires_review"
+      },
+      "verification_summary": {
+        "type": "string",
+        "description": "Summary of all verification activities performed"
+      },
+      "regulatory_requirements_met": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of regulatory requirements satisfied"
+      },
+      "outstanding_requirements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of any outstanding compliance requirements"
+      },
+      "report_generation_timestamp": {
+        "type": "string",
+        "description": "When the report was generated",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Profile Builder",
+    "tool_description": "Consolidates verified customer information from all KYC processes into a comprehensive customer profile for system integration and record keeping.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer"
+      },
+      "verified_identity": {
+        "type": "string",
+        "required": true,
+        "description": "Verified full name and identity details"
+      },
+      "verified_address": {
+        "type": "string",
+        "required": true,
+        "description": "Verified residential address"
+      },
+      "verified_contacts": {
+        "type": "array",
+        "required": true,
+        "description": "Array of verified contact methods",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "document_references": {
+        "type": "array",
+        "required": true,
+        "description": "References to verified identity documents",
+        "items": {
+          "type": "string"
+        }
+      },
+      "risk_profile": {
+        "type": "string",
+        "required": true,
+        "description": "Calculated risk assessment and category"
+      },
+      "compliance_status": {
+        "type": "string",
+        "required": true,
+        "description": "KYC compliance status"
+      },
+      "profile_creation_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "When profile is being created",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid customer ID format: Provide a valid unique identifier for the customer.",
+      "Missing required verification data: All core verification results must be provided.",
+      "Invalid timestamp format: Provide timestamp in ISO 8601 date-time format.",
+      "Empty contact array: At least one verified contact method must be provided."
+    ],
+    "usage": "Provide customer ID and all verified information components to build a comprehensive customer profile for system storage an

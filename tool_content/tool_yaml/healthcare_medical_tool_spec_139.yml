@@ -1,0 +1,836 @@
+field_name: healthcare_medical
+subfield: Patient Registration and Scheduling
+task: Insurance authorization and pre-certification processing
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task is **hard** due to its high coordination requirements across multiple insurance systems, complex regulatory compliance (HIPAA, state laws), significant risk of authorization denials affecting patient care, and intricate dependencies between patient data, provider networks, and insurance policies.
+
+  **STEP 2 — Set a tool budget**
+  For a hard task, targeting 17 tools within the 15-20 range to handle the comprehensive workflow from eligibility verification through final authorization tracking.
+
+  **STEP 3 — Tool dependencies and affordances**
+  - **Data Inputs**: Patient demographics, insurance details, procedure codes, provider information
+  - **Verification Tools**: Insurance eligibility checker, benefits analyzer, prior authorization checker
+  - **Processing Tools**: Authorization request builder, document collector, medical necessity validator
+  - **Communication Tools**: Insurance portal connector, status tracker, notification sender
+  - **Compliance Tools**: HIPAA validator, audit logger, regulatory checker
+  - **Decision Tools**: Appeal processor, approval analyzer, workflow coordinator
+  - **Output Tools**: Authorization formatter, report generator
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Eligibility Check**: Insurance_Eligibility_Verifier → Benefits_Coverage_Analyzer → Authorization_Status_Formatter (verify patient coverage for routine procedures)
+  2. **Document Collection**: Medical_Document_Collector → HIPAA_Compliance_Validator → Secure_Document_Transmitter (gather and securely transmit required medical records)
+
+  **Medium Plans:**
+  1. **Standard Pre-Auth**: Insurance_Eligibility_Verifier → Prior_Authorization_Checker → Authorization_Request_Builder → Insurance_Portal_Connector → Authorization_Status_Tracker (complete authorization for common procedures)
+  2. **Appeal Processing**: Appeal_Request_Processor → Medical_Necessity_Validator → Regulatory_Compliance_Checker → Insurance_Portal_Connector → Patient_Notification_Sender (handle authorization denials)
+
+  **Complex Plans:**
+  1. **Full Authorization Workflow**: Insurance_Eligibility_Verifier → Benefits_Coverage_Analyzer → Prior_Authorization_Checker → Authorization_Request_Builder → Medical_Document_Collector → Medical_Necessity_Validator → HIPAA_Compliance_Validator → Insurance_Portal_Connector → Authorization_Status_Tracker → Authorization_Approval_Analyzer → Authorization_Report_Generator (comprehensive pre-certification process)
+  2. **Multi-Insurance Coordination**: Insurance_Eligibility_Verifier → Provider_Network_Checker → Benefits_Coverage_Analyzer → Authorization_Workflow_Coordinator → Authorization_Request_Builder → Insurance_Portal_Connector → Authorization_Status_Tracker → Patient_Notification_Sender → Audit_Trail_Logger (handle complex cases with multiple insurers)
+
+  **STEP 5 — Tools**
+
+  ```json
+  {
+    "tool_name": "Insurance_Eligibility_Verifier",
+    "tool_description": "Verifies patient insurance eligibility and active coverage status by connecting to insurance databases and validating policy information.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "insurance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's insurance policy number"
+      },
+      "insurance_company": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the insurance company"
+      },
+      "service_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of planned service",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid insurance credentials: Verify patient insurance ID and company name are correct and active.",
+      "Patient not found: Ensure patient_id exists in the system and is properly formatted.",
+      "Insurance system unavailable: Retry the verification after insurance system maintenance window.",
+      "Expired coverage: Patient's insurance policy has expired or been terminated."
+    ],
+    "usage": "Provide patient_id, insurance_id, insurance_company, and service_date to verify active coverage. Use before any authorization requests.",
+    "output_details": {
+      "eligibility_status": {
+        "type": "string",
+        "description": "Active, Inactive, or Pending status of insurance coverage"
+      },
+      "coverage_start_date": {
+        "type": "string",
+        "description": "Start date of current coverage period"
+      },
+      "coverage_end_date": {
+        "type": "string",
+        "description": "End date of current coverage period"
+      },
+      "verification_timestamp": {
+        "type": "string",
+        "description": "When the verification was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Benefits_Coverage_Analyzer",
+    "tool_description": "Analyzes insurance benefits and coverage details for specific procedures, including copays, deductibles, and coverage percentages.",
+    "parameters": {
+      "insurance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's insurance policy number"
+      },
+      "procedure_codes": {
+        "type": "array",
+        "required": true,
+        "description": "List of CPT or ICD-10 procedure codes",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "provider_npi": {
+        "type": "string",
+        "required": true,
+        "description": "National Provider Identifier of the treating provider"
+      },
+      "facility_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of facility: inpatient, outpatient, office, emergency",
+        "default": "outpatient"
+      },
+      "service_date": {
+        "type": "string",
+        "required": true,
+        "description": "Planned date of service",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid procedure codes: Ensure all CPT/ICD-10 codes are properly formatted and current.",
+      "Provider not in network: The specified NPI is not in the patient's insurance network.",
+      "Benefit information unavailable: Insurance company cannot provide benefits data for the requested procedures.",
+      "Invalid facility type: Use one of [inpatient, outpatient, office, emergency]."
+    ],
+    "usage": "Provide insurance details, procedure codes, provider NPI, and service information to analyze coverage benefits and patient financial responsibility.",
+    "output_details": {
+      "covered_procedures": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of procedure codes covered by insurance"
+      },
+      "coverage_percentage": {
+        "type": "number",
+        "description": "Percentage of costs covered by insurance"
+      },
+      "patient_copay": {
+        "type": "number",
+        "description": "Fixed copay amount patient owes"
+      },
+      "deductible_remaining": {
+        "type": "number",
+        "description": "Remaining deductible amount for the year"
+      },
+      "prior_auth_required": {
+        "type": "boolean",
+        "description": "Whether prior authorization is needed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Prior_Authorization_Checker",
+    "tool_description": "Checks if prior authorization is required for specific procedures and identifies existing authorizations.",
+    "parameters": {
+      "procedure_codes": {
+        "type": "array",
+        "required": true,
+        "description": "List of CPT or ICD-10 procedure codes to check",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "insurance_company": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the insurance company"
+      },
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      }
+    },
+    "error_messages": [
+      "Invalid procedure codes: Ensure all procedure codes are valid CPT or ICD-10 codes.",
+      "Insurance company not recognized: Verify the insurance company name is correct.",
+      "Authorization database unavailable: Retry when the authorization system is online.",
+      "Patient authorization history not found: Patient may not have previous authorizations on record."
+    ],
+    "usage": "Provide procedure codes, insurance company, and patient ID to check authorization requirements and existing approvals.",
+    "output_details": {
+      "authorization_required": {
+        "type": "boolean",
+        "description": "Whether prior authorization is needed"
+      },
+      "existing_authorizations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of existing authorization numbers"
+      },
+      "required_procedures": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Procedures requiring new authorization"
+      },
+      "authorization_timeline": {
+        "type": "string",
+        "description": "Expected processing time for authorization"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Authorization_Request_Builder",
+    "tool_description": "Constructs comprehensive prior authorization requests with all required clinical and administrative information formatted for insurance submission.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "provider_npi": {
+        "type": "string",
+        "required": true,
+        "description": "National Provider Identifier of requesting provider"
+      },
+      "procedure_codes": {
+        "type": "array",
+        "required": true,
+        "description": "CPT/ICD-10 codes requiring authorization",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "diagnosis_codes": {
+        "type": "array",
+        "required": true,
+        "description": "ICD-10 diagnosis codes supporting medical necessity",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "clinical_notes": {
+        "type": "string",
+        "required": true,
+        "description": "Clinical justification for the requested procedures"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Priority level: routine, urgent, emergent",
+        "default": "routine"
+      },
+      "planned_service_date": {
+        "type": "string",
+        "required": true,
+        "description": "Planned date for the procedure",
+        "format": "date-time"
+      },
+      "facility_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of facility where service will be provided"
+      },
+      "insurance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's insurance policy number"
+      },
+      "supporting_documents": {
+        "type": "array",
+        "required": false,
+        "description": "List of supporting document identifiers",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Missing required clinical information: Ensure all procedure codes, diagnosis codes, and clinical notes are provided.",
+      "Invalid urgency level: Use one of [routine, urgent, emergent].",
+      "Insufficient clinical justification: Clinical notes must adequately support medical necessity.",
+      "Invalid date format: Planned service date must be in ISO 8601 format and in the future.",
+      "Provider credentials invalid: Verify the NPI is active and properly formatted."
+    ],
+    "usage": "Provide comprehensive patient, provider, clinical, and administrative information to build a complete authorization request ready for submission.",
+    "output_details": {
+      "authorization_request_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated authorization request"
+      },
+      "request_status": {
+        "type": "string",
+        "description": "Status of request creation: completed, pending_review, failed"
+      },
+      "submission_ready": {
+        "type": "boolean",
+        "description": "Whether the request is ready for submission to insurance"
+      },
+      "required_attachments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of additional documents needed before submission"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Medical_Document_Collector",
+    "tool_description": "Gathers and organizes required medical documentation from various sources including EMRs, imaging systems, and lab results for authorization requests.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "document_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of documents needed",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for document search",
+        "format": "date-time"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for document search",
+        "format": "date-time"
+      },
+      "provider_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Filter by specific provider NPIs",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "include_images": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include imaging studies",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Patient medical records not found: Verify patient_id exists and patient has medical history.",
+      "Invalid document types: Ensure requested document types are available in the system.",
+      "Date range error: Start date must be before end date and both must be valid dates.",
+      "Access denied: User does not have permission to access requested patient documents.",
+      "Document retrieval timeout: Large document sets may require multiple requests."
+    ],
+    "usage": "Specify patient ID, document types needed, date range, and optional filters to collect relevant medical documentation for authorization requests.",
+    "output_details": {
+      "collected_documents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of document IDs that were successfully collected"
+      },
+      "document_count": {
+        "type": "integer",
+        "description": "Total number of documents retrieved"
+      },
+      "missing_documents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of requested document types that were not found"
+      },
+      "collection_timestamp": {
+        "type": "string",
+        "description": "When the document collection was completed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Medical_Necessity_Validator",
+    "tool_description": "Validates medical necessity for requested procedures by analyzing clinical data against insurance criteria and medical guidelines.",
+    "parameters": {
+      "procedure_codes": {
+        "type": "array",
+        "required": true,
+        "description": "Procedures requiring medical necessity validation",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 8
+      },
+      "diagnosis_codes": {
+        "type": "array",
+        "required": true,
+        "description": "Supporting diagnosis codes",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "clinical_summary": {
+        "type": "string",
+        "required": true,
+        "description": "Summary of patient's clinical condition and treatment history"
+      },
+      "insurance_guidelines": {
+        "type": "string",
+        "required": true,
+        "description": "Insurance company's medical necessity guidelines"
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient's age in years"
+      },
+      "previous_treatments": {
+        "type": "array",
+        "required": false,
+        "description": "List of previously attempted treatments",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Insufficient clinical data: Clinical summary must provide adequate detail for medical necessity evaluation.",
+      "Invalid procedure-diagnosis combination: Diagnosis codes do not support the requested procedures.",
+      "Missing insurance guidelines: Current insurance guidelines must be provided for validation.",
+      "Age-related restrictions: Patient age does not meet insurance criteria for requested procedures.",
+      "Prior treatment requirements not met: Insurance requires documentation of failed conservative treatments."
+    ],
+    "usage": "Provide procedure codes, diagnoses, clinical summary, insurance guidelines, and patient information to validate medical necessity for authorization requests.",
+    "output_details": {
+      "necessity_score": {
+        "type": "number",
+        "description": "Medical necessity score from 0-100"
+      },
+      "validation_result": {
+        "type": "string",
+        "description": "Approved, denied, or requires_additional_info"
+      },
+      "supporting_criteria": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Insurance criteria that support the request"
+      },
+      "deficiency_notes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Areas where additional documentation is needed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "HIPAA_Compliance_Validator",
+    "tool_description": "Ensures all authorization documentation and processes comply with HIPAA privacy and security regulations before submission.",
+    "parameters": {
+      "document_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of document identifiers to validate",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "recipient_organization": {
+        "type": "string",
+        "required": true,
+        "description": "Name of organization receiving the protected health information"
+      },
+      "purpose_of_disclosure": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for sharing PHI: treatment, payment, healthcare_operations"
+      }
+    },
+    "error_messages": [
+      "HIPAA violation detected: Documents contain PHI that cannot be disclosed for the specified purpose.",
+      "Missing patient authorization: Some documents require explicit patient consent before disclosure.",
+      "Invalid recipient organization: Recipient is not authorized to receive patient health information.",
+      "Purpose not permitted: The specified purpose does not justify PHI disclosure under HIPAA.",
+      "Document encryption required: PHI documents must be encrypted before transmission."
+    ],
+    "usage": "Provide document IDs, recipient organization, and purpose of disclosure to validate HIPAA compliance before sharing protected health information.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Compliant, non_compliant, or conditional_approval"
+      },
+      "approved_documents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Document IDs approved for disclosure"
+      },
+      "restricted_documents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Document IDs requiring additional authorization"
+      },
+      "compliance_notes": {
+        "type": "string",
+        "description": "Additional compliance requirements or recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Insurance_Portal_Connector",
+    "tool_description": "Connects to insurance company portals to submit authorization requests and retrieve status updates through secure API interfaces.",
+    "parameters": {
+      "insurance_company": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the insurance company"
+      },
+      "portal_credentials": {
+        "type": "string",
+        "required": true,
+        "description": "Encoded credentials for portal access"
+      },
+      "action_type": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: submit, status_check, update, cancel"
+      },
+      "authorization_request_id": {
+        "type": "string",
+        "required": false,
+        "description": "ID of authorization request (required for status_check, update, cancel)",
+        "default": "None"
+      },
+      "request_payload": {
+        "type": "string",
+        "required": false,
+        "description": "JSON payload for submission (required for submit action)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Portal authentication failed: Verify portal credentials are current and properly formatted.",
+      "Insurance portal unavailable: Portal is down for maintenance or experiencing technical issues.",
+      "Invalid action type: Use one of [submit, status_check, update, cancel].",
+      "Authorization request not found: The specified authorization request ID does not exist.",
+      "Malformed request payload: The request data is not properly formatted for the insurance portal.",
+      "Rate limit exceeded: Too many requests to the portal; wait before retrying."
+    ],
+    "usage": "Provide insurance company, credentials, and action type to interact with insurance portals. Include authorization_request_id for status operations and request_payload for submissions.",
+    "output_details": {
+      "portal_response": {
+        "type": "string",
+        "description": "Response message from the insurance portal"
+      },
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique identifier for this portal transaction"
+      },
+      "status_code": {
+        "type": "string",
+        "description": "Response status: success, pending, failed, retry"
+      },
+      "response_timestamp": {
+        "type": "string",
+        "description": "When the portal response was received"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Authorization_Status_Tracker",
+    "tool_description": "Tracks the status of submitted authorization requests and monitors for updates, denials, or approval notifications from insurance companies.",
+    "parameters": {
+      "authorization_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of authorization request IDs to track",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "check_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "How often to check status: hourly, daily, weekly",
+        "default": "daily"
+      },
+      "notification_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to send notifications on status changes",
+        "default": true
+      },
+      "tracking_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days to continue tracking",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid authorization IDs: One or more authorization IDs are not found in the system.",
+      "Invalid check frequency: Use one of [hourly, daily, weekly].",
+      "Tracking duration out of range: Duration must be between 1 and 90 days.",
+      "Too many authorization requests: Reduce the number of IDs to 50 or fewer per request.",
+      "Status service unavailable: The authorization tracking service is temporarily unavailable."
+    ],
+    "usage": "Provide authorization IDs and optional tracking parameters to monitor the status of pending authorization requests and receive updates on approvals or denials.",
+    "output_details": {
+      "tracking_summary": {
+        "type": "string",
+        "description": "Summary of tracking status for all provided authorization IDs"
+      },
+      "pending_authorizations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Authorization IDs still pending insurance review"
+      },
+      "approved_authorizations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Authorization IDs that have been approved"
+      },
+      "denied_authorizations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Authorization IDs that have been denied"
+      },
+      "last_update_timestamp": {
+        "type": "string",
+        "description": "When the status check was last performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Provider_Network_Checker",
+    "tool_description": "Verifies provider network participation status and validates referral requirements for insurance coverage.",
+    "parameters": {
+      "provider_npi": {
+        "type": "string",
+        "required": true,
+        "description": "National Provider Identifier to check"
+      },
+      "insurance_company": {
+        "type": "string",
+        "required": true,
+        "description": "Insurance company name"
+      },
+      "insurance_plan": {
+        "type": "string",
+        "required": true,
+        "description": "Specific insurance plan name or code"
+      },
+      "service_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when services will be provided",
+        "format": "date-time"
+      },
+      "specialty_required": {
+        "type": "string",
+        "required": false,
+        "description": "Required provider specialty for the service",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Provider not found: The NPI number is not registered or is inactive.",
+      "Insurance plan not recognized: Verify the insurance company and plan information.",
+      "Network status unavailable: Cannot determine provider network participation at this time.",
+      "Specialty mismatch: Provider specialty does not match requirements for the requested service.",
+      "Contract expired: Provider's network contract expired before the service date."
+    ],
+    "usage": "Provide provider NPI, insurance details, and service date to verify network participation and any referral requirements before scheduling services.",
+    "output_details": {
+      "network_status": {
+        "type": "string",
+        "description": "In-network, out-of-network, or conditional participation status"
+      },
+      "referral_required": {
+        "type": "boolean",
+        "description": "Whether a referral is needed for coverage"
+      },
+      "authorization_required": {
+        "type": "boolean",
+        "description": "Whether prior authorization is required"
+      },
+      "contract_expiration": {
+        "type": "string",
+        "description": "Date when provider's network contract expires"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Authorization_Approval_Analyzer",
+    "tool_description": "Analyzes authorization decisions, extracts approval details, identifies conditions or limitations, and determines next steps for patient care coordination.",
+    "parameters": {
+      "authorization_response": {
+        "type": "string",
+        "required": true,
+        "description": "Full authorization response from insurance company"
+      },
+      "original_request_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the original authorization request"
+      },
+      "decision_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date the authorization decision was made",
+        "format": "date-time"
+      },
+      "analyze_conditions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to analyze approval conditions and limitations",
+        "default": true
+      },
+      "extract_timeframes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract validity periods and deadlines",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid authorization response: The response format is not recognized or is corrupted.",
+      "Original request not found: The specified authorization request ID does not exist in records.",
+      "Decision date invalid: Decision date must be a valid date in the past or present.",
+      "Response parsing failed: Unable to extract decision information from the authorization response.",
+      "Incomplete authorization data: The response is missing required decision elements."
+    ],
+    "usage": "Provide the authorization response, original request ID, and decision date to analyze approval decisions and extract actionable information for care coordination.",
+    "output_details": {
+      "decision_type": {
+        "type": "string",
+        "description": "Approved, denied, partial_approval, or pending_additional_info"
+      },
+      "authorization_number": {
+        "type": "string",
+        "description": "Official authorization number from insurance company"
+      },
+      "approved_services": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of services/procedures that were approved"
+      },
+      "approval_conditions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Any conditions or limitations on the approval"
+      },
+      "validity_period": {
+        "type": "string",
+        "description": "How long the authorization remains valid"
+      },
+      "next_steps": {
+        "type": "string",
+        "description": "Recommended actions based on the authorization decision"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Appeal_Request_Processor",
+    "tool_description": "Processes insurance authorization denials and creates formal appeal requests with additional supporting documentation and clinical justification.",
+    "parameters": {
+      "original_authorization_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the denied authorization request"
+      },
+      "denial_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason provided by insurance for denial"
+      },
+      "additional_clinical_info": {
+        "type": "string",
+        "required": true,
+        "description": "New clinical information supporting medical necessity"
+      },
+      "peer_review_requested": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to request physician-to-physician review",
+        "default": false
+      },
+      "expedited_review": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to request expedited appeal processing",
+        "default": false
+      },
+      "supporting_literature": {
+        "type": "array",
+        "required": false,
+        "description": "Citations for medical literature supporting the appeal",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Original authorization not found: The specified authorization ID does not exist or was not denied.",
+      "Appeal window expired: The time limit for filing an appeal has passed.",
+      "Insufficient new information: Appeal must include new clinical information not in the original request.",
+      "Appeal already filed: An appeal for this authorization has already been submitted.",
+      "Invalid denial reason: The provided denial reason does not match insurance records."
+    ],
+    "usage": "Provide the denied authorization ID, denial reason, and additional clinical information to create a comprehensive appeal request for insurance reconsideration.",
+    "output_details": {
+      "appeal_request_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated appeal request"
+      },
+      "appeal_submission_status": {
+        "type": "string",
+        "description": "Ready for submission, requires review, or failed creation"

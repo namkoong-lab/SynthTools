@@ -1,0 +1,846 @@
+field_name: accounting_and_taxation
+subfield: accounts_payable_management
+task: Invoice processing and validation
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  The invoice processing and validation task is **medium** difficulty. It involves moderate scope with multiple subprocesses (data extraction, validation rules, duplicate detection, approval workflows), some ambiguity in handling edge cases and varying invoice formats, coordination between validation steps and approval processes, moderate risk from payment errors or compliance issues, and requirements for structured data handling and business rule enforcement.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'm targeting **12 tools** within the 10-15 range to cover the comprehensive workflow of invoice processing and validation.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Invoice Data Extractor** - Consumes: raw invoice files → Produces: structured invoice data
+  2. **Vendor Information Validator** - Consumes: vendor details → Produces: vendor validation status
+  3. **Invoice Format Checker** - Consumes: invoice structure data → Produces: format compliance report
+  4. **Duplicate Invoice Detector** - Consumes: invoice identifiers, historical data → Produces: duplicate analysis
+  5. **Tax Calculation Validator** - Consumes: line items, tax rates → Produces: tax verification results
+  6. **Purchase Order Matcher** - Consumes: invoice data, PO data → Produces: matching analysis
+  7. **Amount Verification Tool** - Consumes: line items, totals → Produces: mathematical validation
+  8. **Approval Workflow Manager** - Consumes: invoice data, approval rules → Produces: approval routing
+  9. **Compliance Rule Checker** - Consumes: invoice data, regulatory rules → Produces: compliance status
+  10. **Invoice Status Tracker** - Consumes: processing events → Produces: status updates
+  11. **Exception Report Generator** - Consumes: validation failures → Produces: exception reports
+  12. **Payment Authorization Tool** - Consumes: validated invoices, authorization rules → Produces: payment approvals
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Invoice Validation**: Invoice Data Extractor → Invoice Format Checker → Amount Verification Tool (validates basic invoice structure and math)
+  2. **Vendor Verification**: Invoice Data Extractor → Vendor Information Validator → Invoice Status Tracker (confirms vendor legitimacy)
+
+  **Medium Plans:**
+  1. **Standard Processing**: Invoice Data Extractor → Duplicate Invoice Detector → Tax Calculation Validator → Purchase Order Matcher → Approval Workflow Manager (complete standard invoice processing)
+  2. **Compliance Review**: Invoice Format Checker → Compliance Rule Checker → Exception Report Generator → Invoice Status Tracker (ensures regulatory compliance)
+
+  **Complex Plans:**
+  1. **Full Invoice Processing**: Invoice Data Extractor → Invoice Format Checker → Vendor Information Validator → Duplicate Invoice Detector → Amount Verification Tool → Tax Calculation Validator → Purchase Order Matcher → Compliance Rule Checker → Approval Workflow Manager → Payment Authorization Tool (end-to-end processing)
+  2. **Exception Handling Workflow**: All validation tools → Exception Report Generator → Approval Workflow Manager → Invoice Status Tracker (handles complex exception cases)
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Invoice Data Extractor",
+    "tool_description": "Extracts structured data from invoice files including vendor details, line items, amounts, dates, and reference numbers for further processing.",
+    "parameters": {
+      "invoice_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "File path or identifier for the invoice document"
+      },
+      "file_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format of the invoice file (pdf, image, xml, json)"
+      },
+      "extraction_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for data extraction (ocr, template, manual)",
+        "default": "ocr"
+      }
+    },
+    "error_messages": [
+      "File not found: The specified invoice file path does not exist. Verify the file location and permissions.",
+      "Unsupported format: File format must be one of [pdf, image, xml, json]. Convert file to supported format.",
+      "Extraction failed: Unable to extract readable data from file. Check file quality and try manual extraction method.",
+      "Invalid extraction method: Method must be one of [ocr, template, manual]. Use ocr for most cases."
+    ],
+    "usage": "Provide the invoice file path and format. Optionally specify extraction method. The tool returns structured invoice data including all key fields for validation.",
+    "output_details": {
+      "invoice_number": {
+        "type": "string",
+        "description": "Unique invoice identifier"
+      },
+      "vendor_name": {
+        "type": "string",
+        "description": "Name of the vendor or supplier"
+      },
+      "invoice_date": {
+        "type": "string",
+        "description": "Date the invoice was issued"
+      },
+      "due_date": {
+        "type": "string",
+        "description": "Payment due date"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Total invoice amount including taxes"
+      },
+      "line_items_count": {
+        "type": "integer",
+        "description": "Number of line items extracted"
+      },
+      "extraction_confidence": {
+        "type": "number",
+        "description": "Confidence score of extraction accuracy (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Vendor Information Validator",
+    "tool_description": "Validates vendor information against master vendor database and checks for active status, tax compliance, and payment terms.",
+    "parameters": {
+      "vendor_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the vendor to validate"
+      },
+      "vendor_id": {
+        "type": "string",
+        "required": false,
+        "description": "Vendor identifier if available",
+        "default": "None"
+      },
+      "tax_id": {
+        "type": "string",
+        "required": false,
+        "description": "Vendor tax identification number",
+        "default": "None"
+      },
+      "address": {
+        "type": "string",
+        "required": false,
+        "description": "Vendor address for verification",
+        "default": "None"
+      },
+      "check_tax_compliance": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to verify tax compliance status",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Vendor not found: Vendor name does not exist in master database. Check spelling or create new vendor record.",
+      "Inactive vendor: Vendor status is inactive and cannot process payments. Contact vendor management.",
+      "Tax compliance failure: Vendor fails tax compliance checks. Obtain updated tax certificates.",
+      "Missing required information: Vendor record lacks essential information for processing. Update vendor master data."
+    ],
+    "usage": "Provide vendor name and optionally vendor ID, tax ID, and address. Enable tax compliance checking as needed. Returns validation status and any issues found.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result (valid, invalid, warning)"
+      },
+      "vendor_exists": {
+        "type": "boolean",
+        "description": "Whether vendor exists in master database"
+      },
+      "vendor_active": {
+        "type": "boolean",
+        "description": "Whether vendor status is active"
+      },
+      "tax_compliant": {
+        "type": "boolean",
+        "description": "Tax compliance status"
+      },
+      "validation_messages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed validation messages and warnings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Format Checker",
+    "tool_description": "Validates invoice format compliance against company standards and regulatory requirements for required fields and data structure.",
+    "parameters": {
+      "invoice_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing extracted invoice data"
+      },
+      "format_standard": {
+        "type": "string",
+        "required": true,
+        "description": "Format standard to validate against (company, tax_authority, international)"
+      }
+    },
+    "error_messages": [
+      "Invalid invoice data format: Invoice data must be valid JSON string. Check data extraction output.",
+      "Missing required fields: Invoice lacks mandatory fields for specified standard. Review field requirements.",
+      "Invalid format standard: Standard must be one of [company, tax_authority, international]. Check compliance requirements.",
+      "Data type mismatch: Field values do not match expected data types. Verify extraction accuracy."
+    ],
+    "usage": "Provide extracted invoice data as JSON string and specify the format standard for validation. Returns compliance status and list of any format violations.",
+    "output_details": {
+      "format_valid": {
+        "type": "boolean",
+        "description": "Whether invoice format meets standards"
+      },
+      "compliance_score": {
+        "type": "number",
+        "description": "Format compliance score (0-1)"
+      },
+      "missing_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required fields that are missing"
+      },
+      "format_violations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of format violations found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Duplicate Invoice Detector",
+    "tool_description": "Detects potential duplicate invoices by comparing invoice numbers, amounts, dates, and vendor information against historical invoice database.",
+    "parameters": {
+      "invoice_number": {
+        "type": "string",
+        "required": true,
+        "description": "Invoice number to check for duplicates"
+      },
+      "vendor_name": {
+        "type": "string",
+        "required": true,
+        "description": "Vendor name for duplicate matching"
+      },
+      "invoice_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Invoice total amount"
+      },
+      "invoice_date": {
+        "type": "string",
+        "required": true,
+        "description": "Invoice date in ISO format"
+      },
+      "search_period_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days back to search for duplicates (1-365)",
+        "default": 90
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Similarity threshold for fuzzy matching (0.5-1.0)",
+        "default": 0.8
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Invoice date must be in ISO 8601 format (YYYY-MM-DD). Correct date format required.",
+      "Invalid search period: Search period must be between 1-365 days. Adjust search range.",
+      "Invalid similarity threshold: Threshold must be between 0.5-1.0. Use 0.8 for standard matching.",
+      "Database connection error: Cannot access invoice history database. Retry or contact system administrator."
+    ],
+    "usage": "Provide invoice number, vendor name, amount, and date for duplicate checking. Optionally adjust search period and similarity threshold. Returns duplicate analysis results.",
+    "output_details": {
+      "duplicate_found": {
+        "type": "boolean",
+        "description": "Whether potential duplicates were found"
+      },
+      "duplicate_count": {
+        "type": "integer",
+        "description": "Number of potential duplicates found"
+      },
+      "exact_matches": {
+        "type": "integer",
+        "description": "Number of exact duplicate matches"
+      },
+      "similar_matches": {
+        "type": "integer",
+        "description": "Number of similar potential duplicates"
+      },
+      "match_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Details of each potential duplicate match found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tax Calculation Validator",
+    "tool_description": "Validates tax calculations on invoice line items against applicable tax rates and rules, ensuring accuracy of tax amounts and total calculations.",
+    "parameters": {
+      "line_items": {
+        "type": "array",
+        "required": true,
+        "description": "Array of line item amounts before tax",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "tax_rates": {
+        "type": "array",
+        "required": true,
+        "description": "Array of applicable tax rates (as decimals, e.g., 0.08 for 8%)",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "stated_tax_amounts": {
+        "type": "array",
+        "required": true,
+        "description": "Tax amounts as stated on the invoice",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "invoice_total": {
+        "type": "number",
+        "required": true,
+        "description": "Total invoice amount including all taxes"
+      },
+      "tax_jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Tax jurisdiction code for rate validation"
+      },
+      "exempt_items": {
+        "type": "array",
+        "required": false,
+        "description": "Array of line item indices that are tax exempt",
+        "items": {
+          "type": "integer"
+        },
+        "default": "None"
+      },
+      "tolerance_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Acceptable variance percentage for tax calculations (0-5)",
+        "default": 0.5
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: Line items, tax rates, and stated tax amounts arrays must have compatible lengths. Check data extraction.",
+      "Invalid tax rate: Tax rates must be between 0 and 1 (e.g., 0.08 for 8%). Convert percentage to decimal.",
+      "Invalid jurisdiction: Tax jurisdiction code not recognized in tax rate database. Verify jurisdiction code.",
+      "Invalid tolerance: Tolerance percentage must be between 0-5. Use 0.5% for standard validation.",
+      "Negative amounts: Tax amounts and line items cannot be negative. Check invoice data accuracy."
+    ],
+    "usage": "Provide arrays of line items, tax rates, and stated tax amounts along with total and jurisdiction. Optionally specify exempt items and tolerance. Returns tax validation results.",
+    "output_details": {
+      "tax_valid": {
+        "type": "boolean",
+        "description": "Whether tax calculations are accurate within tolerance"
+      },
+      "calculated_tax_total": {
+        "type": "number",
+        "description": "System-calculated total tax amount"
+      },
+      "stated_tax_total": {
+        "type": "number",
+        "description": "Tax total as stated on invoice"
+      },
+      "tax_variance": {
+        "type": "number",
+        "description": "Difference between calculated and stated tax"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of tax calculation errors found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Purchase Order Matcher",
+    "tool_description": "Matches invoice line items and amounts against corresponding purchase orders to verify authorization and detect discrepancies in quantities and pricing.",
+    "parameters": {
+      "invoice_number": {
+        "type": "string",
+        "required": true,
+        "description": "Invoice number for PO matching"
+      },
+      "po_number": {
+        "type": "string",
+        "required": false,
+        "description": "Purchase order number if referenced on invoice",
+        "default": "None"
+      },
+      "vendor_name": {
+        "type": "string",
+        "required": true,
+        "description": "Vendor name for PO lookup"
+      },
+      "invoice_total": {
+        "type": "number",
+        "required": true,
+        "description": "Total invoice amount to match against PO"
+      },
+      "invoice_date": {
+        "type": "string",
+        "required": true,
+        "description": "Invoice date for PO validity checking"
+      }
+    },
+    "error_messages": [
+      "Purchase order not found: No matching PO found for provided criteria. Verify PO number or create non-PO invoice workflow.",
+      "PO expired: Purchase order has expired or is outside valid date range. Check PO validity period.",
+      "Amount exceeds PO: Invoice amount exceeds remaining PO balance. Verify quantities and pricing or request PO amendment.",
+      "Vendor mismatch: Invoice vendor does not match PO vendor. Verify vendor information accuracy.",
+      "Invalid date format: Invoice date must be in ISO 8601 format. Provide date as YYYY-MM-DD."
+    ],
+    "usage": "Provide invoice number, vendor name, total amount, and date. Include PO number if available. Returns matching analysis and any discrepancies found.",
+    "output_details": {
+      "po_match_found": {
+        "type": "boolean",
+        "description": "Whether matching purchase order was found"
+      },
+      "matched_po_number": {
+        "type": "string",
+        "description": "Purchase order number that was matched"
+      },
+      "amount_variance": {
+        "type": "number",
+        "description": "Difference between invoice and PO amounts"
+      },
+      "po_remaining_balance": {
+        "type": "number",
+        "description": "Remaining balance on purchase order"
+      },
+      "match_status": {
+        "type": "string",
+        "description": "Overall matching status (exact_match, within_tolerance, discrepancy, no_match)"
+      },
+      "discrepancy_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of discrepancies found during matching"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Amount Verification Tool",
+    "tool_description": "Performs mathematical verification of invoice calculations including line item extensions, subtotals, tax calculations, and final totals to ensure arithmetic accuracy.",
+    "parameters": {
+      "line_item_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities for each line item",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "line_item_unit_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Unit prices for each line item",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "line_item_totals": {
+        "type": "array",
+        "required": true,
+        "description": "Extended totals as stated for each line item",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "subtotal": {
+        "type": "number",
+        "required": true,
+        "description": "Subtotal amount before taxes and discounts"
+      },
+      "tax_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total tax amount"
+      },
+      "total_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Final total amount on invoice"
+      },
+      "discount_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Total discount amount if applicable",
+        "default": 0
+      },
+      "precision_decimals": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of decimal places for rounding (0-4)",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: Quantities, unit prices, and line totals arrays must have same length. Check data extraction consistency.",
+      "Invalid precision: Decimal precision must be between 0-4 places. Use 2 for currency calculations.",
+      "Negative values detected: Quantities and prices should be positive unless specifically for returns. Verify sign conventions.",
+      "Zero division error: Unit prices cannot be zero for extension calculations. Check pricing data.",
+      "Calculation overflow: Numbers too large for calculation. Check for data extraction errors."
+    ],
+    "usage": "Provide arrays of quantities, unit prices, and line totals, plus subtotal, tax, and total amounts. Optionally specify discount and precision. Returns verification of all calculations.",
+    "output_details": {
+      "calculations_valid": {
+        "type": "boolean",
+        "description": "Whether all calculations are mathematically correct"
+      },
+      "line_item_errors": {
+        "type": "integer",
+        "description": "Number of line items with calculation errors"
+      },
+      "subtotal_variance": {
+        "type": "number",
+        "description": "Difference between calculated and stated subtotal"
+      },
+      "total_variance": {
+        "type": "number",
+        "description": "Difference between calculated and stated total"
+      },
+      "error_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed list of calculation errors found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Approval Workflow Manager",
+    "tool_description": "Routes invoices through appropriate approval workflows based on amount thresholds, vendor types, and departmental rules, tracking approval status and routing decisions.",
+    "parameters": {
+      "invoice_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total invoice amount for approval routing"
+      },
+      "vendor_name": {
+        "type": "string",
+        "required": true,
+        "description": "Vendor name for routing rules"
+      },
+      "department_code": {
+        "type": "string",
+        "required": true,
+        "description": "Department code responsible for payment"
+      },
+      "invoice_category": {
+        "type": "string",
+        "required": true,
+        "description": "Invoice category (utilities, supplies, services, capital, maintenance)"
+      },
+      "requestor_id": {
+        "type": "string",
+        "required": false,
+        "description": "Employee ID of person requesting payment",
+        "default": "None"
+      },
+      "urgent_priority": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether invoice requires expedited approval",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid department code: Department code not found in organizational structure. Use valid department identifier.",
+      "Invalid category: Invoice category must be one of [utilities, supplies, services, capital, maintenance]. Select appropriate category.",
+      "Amount threshold exceeded: Invoice amount exceeds maximum approval limit. Route to executive approval.",
+      "Approval rules not found: No approval workflow defined for specified criteria. Contact system administrator.",
+      "Invalid requestor: Requestor ID not found in employee database. Verify employee identification."
+    ],
+    "usage": "Provide invoice amount, vendor, department, and category for workflow routing. Optionally specify requestor and priority. Returns approval routing and required approvers.",
+    "output_details": {
+      "approval_required": {
+        "type": "boolean",
+        "description": "Whether approval is required for this invoice"
+      },
+      "approval_level": {
+        "type": "string",
+        "description": "Required approval level (supervisor, manager, director, executive)"
+      },
+      "approver_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of employee IDs who must approve"
+      },
+      "workflow_id": {
+        "type": "string",
+        "description": "Unique identifier for approval workflow instance"
+      },
+      "estimated_approval_days": {
+        "type": "integer",
+        "description": "Expected number of days for approval completion"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Rule Checker",
+    "tool_description": "Validates invoice compliance against regulatory requirements, company policies, and audit controls including SOX compliance, tax regulations, and internal controls.",
+    "parameters": {
+      "invoice_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total invoice amount for compliance thresholds"
+      },
+      "vendor_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of vendor (domestic, international, related_party, government)"
+      },
+      "expense_category": {
+        "type": "string",
+        "required": true,
+        "description": "Expense category for compliance rules"
+      },
+      "payment_terms": {
+        "type": "string",
+        "required": true,
+        "description": "Payment terms from invoice"
+      },
+      "tax_jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Tax jurisdiction for regulatory compliance"
+      },
+      "require_supporting_docs": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether supporting documentation is attached",
+        "default": false
+      },
+      "related_party_transaction": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this is a related party transaction",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid vendor type: Vendor type must be one of [domestic, international, related_party, government]. Classify vendor appropriately.",
+      "SOX compliance violation: Invoice exceeds materiality threshold without proper documentation. Attach required supporting documents.",
+      "Tax regulation violation: Invoice violates tax withholding or reporting requirements. Review tax compliance procedures.",
+      "Missing documentation: Required supporting documentation not provided for invoice amount/type. Attach necessary documents.",
+      "Related party disclosure required: Related party transactions require special approval and disclosure. Follow related party procedures."
+    ],
+    "usage": "Provide invoice details including amount, vendor type, category, terms, and jurisdiction. Specify documentation and related party status. Returns comprehensive compliance analysis.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance status (compliant, violation, warning, review_required)"
+      },
+      "sox_compliant": {
+        "type": "boolean",
+        "description": "Whether invoice meets SOX requirements"
+      },
+      "tax_compliant": {
+        "type": "boolean",
+        "description": "Whether invoice meets tax regulations"
+      },
+      "policy_compliant": {
+        "type": "boolean",
+        "description": "Whether invoice meets company policies"
+      },
+      "compliance_violations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of compliance violations found"
+      },
+      "required_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Actions required to achieve compliance"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Status Tracker",
+    "tool_description": "Updates and tracks invoice processing status through all workflow stages, maintaining audit trail and providing status visibility for stakeholders.",
+    "parameters": {
+      "invoice_number": {
+        "type": "string",
+        "required": true,
+        "description": "Unique invoice identifier for status tracking"
+      },
+      "current_status": {
+        "type": "string",
+        "required": true,
+        "description": "Current processing status to set"
+      },
+      "processing_stage": {
+        "type": "string",
+        "required": true,
+        "description": "Current processing stage (received, validated, approved, paid, rejected)"
+      },
+      "status_notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional notes about status change",
+        "default": "None"
+      },
+      "updated_by": {
+        "type": "string",
+        "required": false,
+        "description": "User ID making the status update",
+        "default": "system"
+      }
+    },
+    "error_messages": [
+      "Invoice not found: Invoice number does not exist in tracking system. Verify invoice number accuracy.",
+      "Invalid status: Status must be valid workflow status. Use predefined status values.",
+      "Invalid stage: Processing stage must be one of [received, validated, approved, paid, rejected]. Select appropriate stage.",
+      "Status regression: Cannot move to earlier stage without proper authorization. Follow proper workflow sequence.",
+      "Update authorization failed: User lacks permission to update invoice status. Check user permissions."
+    ],
+    "usage": "Provide invoice number, new status, and processing stage for tracking update. Optionally include notes and user ID. Returns updated tracking information.",
+    "output_details": {
+      "status_updated": {
+        "type": "boolean",
+        "description": "Whether status update was successful"
+      },
+      "previous_status": {
+        "type": "string",
+        "description": "Previous status before update"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp of status update"
+      },
+      "workflow_progress": {
+        "type": "number",
+        "description": "Percentage of workflow completion (0-1)"
+      },
+      "next_required_action": {
+        "type": "string",
+        "description": "Next action required in workflow"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Exception Report Generator",
+    "tool_description": "Generates comprehensive reports of invoice processing exceptions, validation failures, and items requiring manual intervention for management review and resolution.",
+    "parameters": {
+      "report_period_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for exception report period",
+        "format": "date-time"
+      },
+      "report_period_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for exception report period",
+        "format": "date-time"
+      },
+      "exception_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of exceptions to include in report",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "severity_levels": {
+        "type": "array",
+        "required": true,
+        "description": "Severity levels to include (low, medium, high, critical)",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 4
+      },
+      "department_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Department codes to filter exceptions",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "include_resolved": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include resolved exceptions",
+        "default": false
+      },
+      "report_format": {
+        "type": "string

@@ -1,0 +1,728 @@
+field_name: content_moderation_and_safety
+subfield: User-Generated Content Screening
+task: Image and video content scanning for inappropriate visual material
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to its broad scope covering multiple content types (images/videos), high ambiguity in defining "inappropriate" across cultural contexts, complex dependencies between detection tools and classification systems, critical impact where errors can lead to harmful content exposure or over-censorship, and substantial infrastructure requirements for processing multimedia content at scale.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** within the 15-20 range to handle the complexity of multimedia content analysis, multiple detection modalities, and comprehensive workflow management.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  1. **Media File Validator** → validates input files → feeds **Video Frame Extractor**, **Image Preprocessor**
+  2. **Video Frame Extractor** → extracts frames → feeds **Image Preprocessor**, **Scene Change Detector**
+  3. **Image Preprocessor** → normalizes images → feeds all detection tools
+  4. **Explicit Content Detector** → detects nudity/sexual content → feeds **Content Risk Scorer**
+  5. **Violence Detector** → detects violent imagery → feeds **Content Risk Scorer**
+  6. **Text Content Extractor** → extracts embedded text → feeds **Harmful Text Classifier**
+  7. **Harmful Text Classifier** → classifies text content → feeds **Content Risk Scorer**
+  8. **Face Detection Scanner** → detects faces → feeds **Age Estimation Tool**, **Facial Expression Analyzer**
+  9. **Age Estimation Tool** → estimates ages → feeds **Content Risk Scorer**
+  10. **Facial Expression Analyzer** → analyzes expressions → feeds **Content Risk Scorer**
+  11. **Scene Change Detector** → identifies scene transitions → feeds **Content Risk Scorer**
+  12. **Object Classification Engine** → identifies objects → feeds **Weapon Detector**, **Content Risk Scorer**
+  13. **Weapon Detector** → detects weapons → feeds **Content Risk Scorer**
+  14. **Content Risk Scorer** → aggregates risk scores → feeds **Moderation Decision Engine**
+  15. **Moderation Decision Engine** → makes final decisions → feeds **Report Generator**
+  16. **Report Generator** → creates detailed reports → final output
+  17. **Batch Processing Manager** → orchestrates bulk processing → coordinates all tools
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Single image screening: **Media File Validator** → **Image Preprocessor** → **Explicit Content Detector** → **Content Risk Scorer** → **Moderation Decision Engine**
+  - Basic text extraction: **Text Content Extractor** → **Harmful Text Classifier** → **Content Risk Scorer** → **Report Generator**
+
+  **Medium Plans:**
+  - Video content analysis: **Media File Validator** → **Video Frame Extractor** → **Image Preprocessor** → **Violence Detector** + **Face Detection Scanner** → **Age Estimation Tool** → **Content Risk Scorer** → **Moderation Decision Engine** → **Report Generator**
+  - Comprehensive image scan: **Media File Validator** → **Image Preprocessor** → **Explicit Content Detector** + **Object Classification Engine** + **Text Content Extractor** → **Weapon Detector** + **Harmful Text Classifier** → **Content Risk Scorer** → **Moderation Decision Engine**
+
+  **Complex Plans:**
+  - Full multimedia pipeline: **Batch Processing Manager** orchestrating **Media File Validator** → **Video Frame Extractor** → **Scene Change Detector** + **Image Preprocessor** → all detection tools → **Content Risk Scorer** → **Moderation Decision Engine** → **Report Generator**
+  - Multi-modal threat detection: **Media File Validator** → **Video Frame Extractor** → **Image Preprocessor** → **Face Detection Scanner** + **Object Classification Engine** + **Text Content Extractor** → **Age Estimation Tool** + **Facial Expression Analyzer** + **Weapon Detector** + **Harmful Text Classifier** → **Content Risk Scorer** → **Moderation Decision Engine** → **Report Generator**
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Media File Validator",
+    "tool_description": "Validates multimedia files for format, size, corruption, and basic metadata to ensure they can be processed safely by downstream analysis tools.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the media file to validate"
+      },
+      "max_file_size_mb": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum allowed file size in megabytes (1-1000)",
+        "default": 100
+      },
+      "allowed_formats": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "List of allowed file formats (jpg, png, gif, mp4, avi, mov)",
+        "default": ["jpg", "png", "gif", "mp4", "avi", "mov"]
+      }
+    },
+    "error_messages": [
+      "File not found: The specified file path does not exist. Check the file path and ensure the file is accessible.",
+      "Unsupported format: File format not in allowed list. Convert file to supported format or update allowed_formats parameter.",
+      "File too large: File exceeds maximum size limit. Reduce file size or increase max_file_size_mb parameter.",
+      "Corrupted file: File appears to be corrupted or incomplete. Re-upload or obtain a clean copy of the file.",
+      "Invalid parameter: max_file_size_mb must be between 1-1000, allowed_formats must contain valid format strings."
+    ],
+    "usage": "Provide file_path to validate media files. Optionally set size limits and format restrictions. Use this tool first before any content analysis.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the file passed all validation checks"
+      },
+      "file_format": {
+        "type": "string",
+        "description": "Detected file format/extension"
+      },
+      "file_size_mb": {
+        "type": "number",
+        "description": "File size in megabytes"
+      },
+      "duration_seconds": {
+        "type": "number",
+        "description": "Media duration in seconds (0 for images)"
+      },
+      "resolution": {
+        "type": "string",
+        "description": "Media resolution as 'width x height'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Video Frame Extractor",
+    "tool_description": "Extracts individual frames from video files at specified intervals or timestamps for analysis by image-based content detection tools.",
+    "parameters": {
+      "video_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the video file"
+      },
+      "extraction_method": {
+        "type": "string",
+        "required": true,
+        "description": "Method for frame extraction: 'interval', 'timestamp', or 'uniform'"
+      },
+      "interval_seconds": {
+        "type": "number",
+        "required": false,
+        "description": "Seconds between extracted frames (0.1-60) when using interval method",
+        "default": 1.0
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Specific timestamps in seconds for frame extraction",
+        "default": "None"
+      },
+      "frame_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of uniformly distributed frames to extract (1-1000)",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Invalid video file: Video file cannot be opened or read. Ensure file exists and is a valid video format.",
+      "Invalid extraction method: Use 'interval', 'timestamp', or 'uniform' for extraction_method parameter.",
+      "Invalid interval: interval_seconds must be between 0.1 and 60 seconds.",
+      "Invalid timestamps: Timestamp values must be within video duration and in ascending order.",
+      "Invalid frame count: frame_count must be between 1 and 1000.",
+      "Extraction failed: Frame extraction process failed. Check video integrity and try with different parameters."
+    ],
+    "usage": "Provide video_path and extraction_method. For 'interval' method, set interval_seconds. For 'timestamp' method, provide timestamps array. For 'uniform' method, set frame_count.",
+    "output_details": {
+      "extracted_frames": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Paths to extracted frame image files"
+      },
+      "frame_timestamps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Timestamp in seconds for each extracted frame"
+      },
+      "total_frames_extracted": {
+        "type": "integer",
+        "description": "Number of frames successfully extracted"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Preprocessor",
+    "tool_description": "Standardizes and preprocesses images for consistent analysis by normalizing resolution, format, and applying enhancement filters to improve detection accuracy.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the input image file"
+      },
+      "target_resolution": {
+        "type": "string",
+        "required": false,
+        "description": "Target resolution as 'width x height' (e.g., '512x512')",
+        "default": "512x512"
+      },
+      "enhancement_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply contrast and brightness enhancement",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Image file not found: The specified image path does not exist or is not accessible.",
+      "Invalid image format: Image file is corrupted or in an unsupported format.",
+      "Invalid resolution format: target_resolution must be in format 'widthxheight' with valid integers.",
+      "Processing failed: Image preprocessing encountered an error. Check image integrity and parameters."
+    ],
+    "usage": "Provide image_path to normalize images for analysis. Optionally specify target_resolution and toggle enhancement_enabled. Use before running any detection tools.",
+    "output_details": {
+      "processed_image_path": {
+        "type": "string",
+        "description": "Path to the processed/normalized image file"
+      },
+      "original_resolution": {
+        "type": "string",
+        "description": "Original image resolution as 'width x height'"
+      },
+      "final_resolution": {
+        "type": "string",
+        "description": "Final processed resolution as 'width x height'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Explicit Content Detector",
+    "tool_description": "Analyzes images for explicit sexual content, nudity, and adult material using deep learning models trained on inappropriate visual content datasets.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the preprocessed image file"
+      },
+      "sensitivity_level": {
+        "type": "string",
+        "required": false,
+        "description": "Detection sensitivity: 'low', 'medium', or 'high'",
+        "default": "medium"
+      },
+      "detection_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Categories to detect: 'nudity', 'sexual_activity', 'suggestive_content'",
+        "default": ["nudity", "sexual_activity", "suggestive_content"]
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence score for positive detection (0.1-0.9)",
+        "default": 0.7
+      }
+    },
+    "error_messages": [
+      "Image not found: Specified image path does not exist or is not readable.",
+      "Invalid sensitivity level: Use 'low', 'medium', or 'high' for sensitivity_level.",
+      "Invalid detection categories: Use valid categories from ['nudity', 'sexual_activity', 'suggestive_content'].",
+      "Invalid confidence threshold: confidence_threshold must be between 0.1 and 0.9.",
+      "Detection failed: Analysis engine encountered an error. Ensure image is properly preprocessed."
+    ],
+    "usage": "Provide preprocessed image_path for explicit content detection. Adjust sensitivity_level and confidence_threshold based on your moderation policy. Select specific detection_categories as needed.",
+    "output_details": {
+      "is_explicit": {
+        "type": "boolean",
+        "description": "Whether explicit content was detected above threshold"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each detection category"
+      },
+      "detected_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Categories where content was detected above threshold"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Overall risk assessment: 'low', 'medium', 'high', or 'critical'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Violence Detector",
+    "tool_description": "Identifies violent imagery including weapons, blood, fighting, and aggressive behavior using computer vision models specialized in violence detection.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the preprocessed image file"
+      },
+      "violence_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Types of violence to detect: 'blood', 'fighting', 'weapons', 'injury'",
+        "default": ["blood", "fighting", "weapons", "injury"]
+      },
+      "sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Detection sensitivity: 'conservative', 'balanced', or 'aggressive'",
+        "default": "balanced"
+      }
+    },
+    "error_messages": [
+      "Image file error: Cannot access or read the specified image file.",
+      "Invalid violence types: Use valid types from ['blood', 'fighting', 'weapons', 'injury'].",
+      "Invalid sensitivity setting: Use 'conservative', 'balanced', or 'aggressive' for sensitivity parameter.",
+      "Analysis failure: Violence detection algorithm failed to process image."
+    ],
+    "usage": "Provide image_path to detect violent content. Specify violence_types array to focus on particular violence categories. Adjust sensitivity based on platform policy requirements.",
+    "output_details": {
+      "violence_detected": {
+        "type": "boolean",
+        "description": "Whether any violence indicators were found"
+      },
+      "violence_score": {
+        "type": "number",
+        "description": "Overall violence likelihood score (0.0-1.0)"
+      },
+      "detected_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Specific types of violence detected"
+      },
+      "severity_level": {
+        "type": "string",
+        "description": "Violence severity: 'mild', 'moderate', 'severe', or 'extreme'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Text Content Extractor",
+    "tool_description": "Extracts readable text from images and video frames using OCR technology to identify embedded textual content that may require moderation.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image file for text extraction"
+      },
+      "language_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "ISO language codes for OCR (e.g., 'en', 'es', 'fr')",
+        "default": ["en"]
+      },
+      "min_confidence": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum OCR confidence score (0.1-1.0)",
+        "default": 0.6
+      }
+    },
+    "error_messages": [
+      "Image access error: Cannot open or read the specified image file.",
+      "Invalid language codes: Provide valid ISO 639-1 language codes in the language_codes array.",
+      "Invalid confidence threshold: min_confidence must be between 0.1 and 1.0.",
+      "OCR processing failed: Text extraction engine encountered an error during processing."
+    ],
+    "usage": "Provide image_path to extract text content. Specify language_codes for multi-language support. Set min_confidence to filter low-quality OCR results.",
+    "output_details": {
+      "extracted_text": {
+        "type": "string",
+        "description": "All extracted text content concatenated"
+      },
+      "text_blocks": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Individual text blocks found in the image"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "OCR confidence score for each text block"
+      },
+      "detected_language": {
+        "type": "string",
+        "description": "Primary language detected in the text"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Harmful Text Classifier",
+    "tool_description": "Analyzes extracted text content for hate speech, harassment, threats, and other harmful language using natural language processing models.",
+    "parameters": {
+      "text_content": {
+        "type": "string",
+        "required": true,
+        "description": "Text content to analyze for harmful language"
+      },
+      "classification_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Types to classify: 'hate_speech', 'harassment', 'threats', 'profanity', 'spam'",
+        "default": ["hate_speech", "harassment", "threats", "profanity"]
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Text language for analysis (ISO 639-1 code)",
+        "default": "en"
+      },
+      "severity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum severity score for flagging (0.1-1.0)",
+        "default": 0.5
+      }
+    },
+    "error_messages": [
+      "Empty text input: Provide non-empty text_content for analysis.",
+      "Invalid classification types: Use valid types from ['hate_speech', 'harassment', 'threats', 'profanity', 'spam'].",
+      "Unsupported language: The specified language code is not supported by the classifier.",
+      "Invalid severity threshold: severity_threshold must be between 0.1 and 1.0.",
+      "Classification failed: Text analysis engine encountered an error during processing."
+    ],
+    "usage": "Provide text_content extracted from media. Select classification_types to focus on specific harmful content categories. Set severity_threshold based on platform tolerance levels.",
+    "output_details": {
+      "is_harmful": {
+        "type": "boolean",
+        "description": "Whether harmful content was detected above threshold"
+      },
+      "classification_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Severity scores for each classification type"
+      },
+      "flagged_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Categories where harmful content was detected"
+      },
+      "overall_toxicity": {
+        "type": "number",
+        "description": "Overall toxicity score (0.0-1.0)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Face Detection Scanner",
+    "tool_description": "Detects and locates human faces in images to enable further analysis like age estimation and expression analysis for content moderation decisions.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image file for face detection"
+      },
+      "min_face_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum face size in pixels (10-200)",
+        "default": 30
+      },
+      "detection_confidence": {
+        "type": "number",
+        "required": false,
+        "description": "Face detection confidence threshold (0.1-0.9)",
+        "default": 0.7
+      }
+    },
+    "error_messages": [
+      "Image file not accessible: Cannot open or read the specified image file.",
+      "Invalid face size: min_face_size must be between 10 and 200 pixels.",
+      "Invalid confidence level: detection_confidence must be between 0.1 and 0.9.",
+      "Face detection failed: Face detection algorithm failed to process the image."
+    ],
+    "usage": "Provide image_path to detect faces. Adjust min_face_size to filter small faces and set detection_confidence based on accuracy requirements. Use output for downstream face analysis tools.",
+    "output_details": {
+      "faces_detected": {
+        "type": "integer",
+        "description": "Number of faces detected in the image"
+      },
+      "face_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Bounding box coordinates for each face as 'x1,y1,x2,y2'"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Detection confidence for each identified face"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Age Estimation Tool",
+    "tool_description": "Estimates the age of detected faces to identify potential minors in content, crucial for child safety and age-inappropriate material detection.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image containing faces"
+      },
+      "face_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Bounding box coordinates for faces as 'x1,y1,x2,y2' strings"
+      },
+      "age_groups": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Age groups to classify: 'child', 'teen', 'adult', 'elderly'",
+        "default": ["child", "teen", "adult", "elderly"]
+      },
+      "estimation_model": {
+        "type": "string",
+        "required": false,
+        "description": "Model type: 'accurate' or 'fast'",
+        "default": "accurate"
+      }
+    },
+    "error_messages": [
+      "Image not found: The specified image path is not accessible.",
+      "Invalid face locations: face_locations must contain valid coordinate strings in format 'x1,y1,x2,y2'.",
+      "Invalid age groups: Use valid groups from ['child', 'teen', 'adult', 'elderly'].",
+      "Invalid model type: estimation_model must be either 'accurate' or 'fast'.",
+      "Age estimation failed: Age estimation algorithm failed to process the faces."
+    ],
+    "usage": "Provide image_path and face_locations from Face Detection Scanner. Specify age_groups for classification and choose estimation_model based on speed vs accuracy needs.",
+    "output_details": {
+      "estimated_ages": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Estimated age in years for each face"
+      },
+      "age_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Age group classification for each face"
+      },
+      "confidence_levels": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence score for each age estimation"
+      },
+      "minor_detected": {
+        "type": "boolean",
+        "description": "Whether any faces were classified as minors (under 18)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Facial Expression Analyzer",
+    "tool_description": "Analyzes facial expressions to detect emotions and distress indicators that may suggest non-consensual or harmful content creation scenarios.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image containing faces"
+      },
+      "face_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Bounding box coordinates for faces as 'x1,y1,x2,y2' strings"
+      },
+      "emotions_to_detect": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Emotions to analyze: 'fear', 'sadness', 'anger', 'disgust', 'surprise', 'happiness'",
+        "default": ["fear", "sadness", "anger", "disgust", "surprise", "happiness"]
+      },
+      "distress_detection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to enable specific distress indicator detection",
+        "default": true
+      },
+      "analysis_sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Analysis sensitivity: 'low', 'medium', or 'high'",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Image access error: Cannot open or read the specified image file.",
+      "Invalid face coordinates: face_locations must contain valid bounding box coordinates.",
+      "Invalid emotion types: Use valid emotions from ['fear', 'sadness', 'anger', 'disgust', 'surprise', 'happiness'].",
+      "Invalid sensitivity level: analysis_sensitivity must be 'low', 'medium', or 'high'.",
+      "Expression analysis failed: Facial expression analysis encountered processing errors."
+    ],
+    "usage": "Provide image_path and face_locations from face detection. Select emotions_to_detect based on moderation needs. Enable distress_detection for safety-critical applications.",
+    "output_details": {
+      "expression_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Dominant emotion detected for each face"
+      },
+      "emotion_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for detected emotions"
+      },
+      "distress_indicators": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Whether distress indicators were found for each face"
+      },
+      "overall_sentiment": {
+        "type": "string",
+        "description": "Overall emotional sentiment: 'positive', 'neutral', 'negative', or 'distressed'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Scene Change Detector",
+    "tool_description": "Identifies scene transitions and rapid content changes in video sequences to detect editing patterns that may indicate manipulated or spliced content.",
+    "parameters": {
+      "frame_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Ordered list of frame image paths from video extraction"
+      },
+      "frame_timestamps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Timestamp for each frame in seconds"
+      },
+      "sensitivity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Scene change detection threshold (0.1-0.9)",
+        "default": 0.3
+      },
+      "minimum_scene_duration": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum scene duration in seconds (0.1-10.0)",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Frame data mismatch: frame_paths and frame_timestamps arrays must have the same length.",
+      "Missing frame files: One or more frame image files cannot be accessed.",
+      "Invalid threshold: sensitivity_threshold must be between 0.1 and 0.9.",
+      "Invalid duration: minimum_scene_duration must be between 0.1 and 10.0 seconds.",
+      "Analysis failed: Scene change detection algorithm failed to process frame sequence."
+    ],
+    "usage": "Provide ordered frame_paths and corresponding frame_timestamps from video extraction. Adjust sensitivity_threshold for scene change detection and set minimum_scene_duration to filter brief transitions.",
+    "output_details": {
+      "scene_changes": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Timestamps where scene changes were detected"
+      },
+      "scene_count": {
+        "type": "integer",
+        "description": "Total number of distinct scenes identified"
+      },
+      "rapid_changes": {
+        "type": "integer",
+        "description": "Number of rapid scene changes detected"
+      },
+      "editing_pattern": {
+        "type": "string",
+        "description": "Detected editing pattern: 'natural', 'fast_cut', 'splice', or 'manipulated'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Object Classification Engine",
+    "tool_description": "Identifies and classifies objects in images to detect prohibited items, inappropriate props, and contextual elements relevant to content moderation decisions.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image file for object detection"
+      },
+      "object_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Object categories to detect: 'weapons', 'drugs', 'alcohol', 'vehicles', 'electronics', 'clothing', 'furniture'",
+        "default": ["weapons", "drugs", "alcohol", "vehicles", "electronics", "clothing", "furniture"]
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum detection confidence (0.1-0.9)",
+        "default": 0.5
+      },
+      "max_detections": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of objects to detect (1-100)",
+        "default": 20
+      },
+      "include_locations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include bounding box coordinates",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Image file error: Cannot access or process the specified image file.",
+      "Invalid object categories: Use valid categories from supported object types list.",
+      "Invalid confidence threshold: confidence_threshold must be between 0.1 and 0.9.",
+      "Invalid detection limit: max_detections must be between 1 and 100.",
+      "Object detection failed: Classification engine encountered processing errors."
+    ],
+    "usage

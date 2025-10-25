@@ -1,0 +1,850 @@
+field_name: databases
+subfield: Backup and Disaster Recovery
+task: Schedule and configure automated database backups across multiple database systems
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to its broad scope across multiple heterogeneous database systems (MySQL, PostgreSQL, MongoDB, etc.), complex coordination of scheduling dependencies, high-impact risk of data loss if backups fail, and significant infrastructure requirements for storage, monitoring, and recovery testing.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'll target **17 tools** within the 15-20 range to handle the complexity of multi-system backup orchestration, scheduling, monitoring, and disaster recovery coordination.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Database Connection Validator** - Consumes: connection params → Produces: connection status
+  2. **Backup Schedule Creator** - Consumes: timing requirements → Produces: schedule configuration
+  3. **Database Schema Analyzer** - Consumes: connection details → Produces: schema metadata
+  4. **Backup Storage Configurator** - Consumes: storage requirements → Produces: storage endpoints
+  5. **Backup Job Generator** - Consumes: database configs, schedules → Produces: executable backup jobs
+  6. **Backup Execution Engine** - Consumes: backup jobs → Produces: backup artifacts
+  7. **Backup Integrity Validator** - Consumes: backup files → Produces: validation results
+  8. **Storage Space Monitor** - Consumes: storage locations → Produces: space utilization metrics
+  9. **Backup Retention Manager** - Consumes: retention policies → Produces: cleanup actions
+  10. **Recovery Point Calculator** - Consumes: backup history → Produces: recovery metrics
+  11. **Backup Status Monitor** - Consumes: job execution data → Produces: status reports
+  12. **Alert Configuration Manager** - Consumes: notification rules → Produces: alert configurations
+  13. **Disaster Recovery Planner** - Consumes: backup inventory → Produces: recovery procedures
+  14. **Multi-Database Coordinator** - Consumes: multiple db configs → Produces: orchestration plan
+  15. **Backup Performance Analyzer** - Consumes: execution logs → Produces: performance metrics
+  16. **Recovery Testing Scheduler** - Consumes: test requirements → Produces: test schedules
+  17. **Backup Compliance Auditor** - Consumes: policies, logs → Produces: compliance reports
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Single Database Backup**: Database Connection Validator → Backup Job Generator → Backup Execution Engine (validates connection, creates job, executes backup)
+  2. **Storage Management**: Storage Space Monitor → Backup Retention Manager (monitors space, cleans old backups)
+
+  **Medium Plans:**
+  1. **Scheduled Multi-DB Backup**: Multi-Database Coordinator → Backup Schedule Creator → Backup Job Generator → Backup Execution Engine → Backup Integrity Validator (coordinates multiple databases, schedules backups, executes and validates)
+  2. **Backup Monitoring Setup**: Backup Status Monitor → Alert Configuration Manager → Backup Performance Analyzer (monitors jobs, configures alerts, analyzes performance)
+
+  **Complex Plans:**
+  1. **Full Backup Infrastructure Setup**: Database Connection Validator → Database Schema Analyzer → Backup Storage Configurator → Multi-Database Coordinator → Backup Schedule Creator → Backup Job Generator → Alert Configuration Manager (complete infrastructure setup)
+  2. **Disaster Recovery Implementation**: Backup Execution Engine → Backup Integrity Validator → Recovery Point Calculator → Disaster Recovery Planner → Recovery Testing Scheduler → Backup Compliance Auditor (full DR implementation and testing)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Database Connection Validator",
+    "tool_description": "Validates connectivity and authentication to various database systems before configuring backup operations.",
+    "parameters": {
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of database system (mysql, postgresql, mongodb, oracle, sqlserver)"
+      },
+      "host": {
+        "type": "string",
+        "required": true,
+        "description": "Database server hostname or IP address"
+      },
+      "port": {
+        "type": "integer",
+        "required": true,
+        "description": "Database server port number"
+      },
+      "username": {
+        "type": "string",
+        "required": true,
+        "description": "Database username with backup privileges"
+      },
+      "password": {
+        "type": "string",
+        "required": true,
+        "description": "Database password for authentication"
+      },
+      "database_name": {
+        "type": "string",
+        "required": false,
+        "description": "Specific database name to connect to",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Connection timeout: Database server is unreachable. Check host, port, and network connectivity.",
+      "Authentication failed: Invalid username or password. Verify credentials and user privileges.",
+      "Unsupported database type: Use one of [mysql, postgresql, mongodb, oracle, sqlserver].",
+      "Invalid port number: Port must be between 1 and 65535.",
+      "Database not found: The specified database_name does not exist on the server."
+    ],
+    "usage": "Provide database connection details including type, host, port, and credentials. Optionally specify a specific database name. Returns connection status and basic server information.",
+    "output_details": {
+      "connection_status": {
+        "type": "string",
+        "description": "Connection result (success, failed, timeout)"
+      },
+      "server_version": {
+        "type": "string",
+        "description": "Database server version information"
+      },
+      "available_databases": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of accessible database names"
+      },
+      "privileges": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of user privileges relevant to backup operations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Schedule Creator",
+    "tool_description": "Creates and validates backup schedules using cron expressions with support for different backup types and frequencies.",
+    "parameters": {
+      "schedule_name": {
+        "type": "string",
+        "required": true,
+        "description": "Unique name for the backup schedule"
+      },
+      "cron_expression": {
+        "type": "string",
+        "required": true,
+        "description": "Cron expression defining when backups should run"
+      },
+      "backup_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of backup (full, incremental, differential)"
+      },
+      "timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Timezone for schedule execution",
+        "default": "UTC"
+      },
+      "enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether the schedule is active",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid cron expression: Provide valid cron syntax (minute hour day month weekday).",
+      "Schedule name conflict: A schedule with this name already exists. Choose a unique name.",
+      "Invalid backup type: Use one of [full, incremental, differential].",
+      "Invalid timezone: Provide a valid timezone identifier (e.g., UTC, America/New_York)."
+    ],
+    "usage": "Provide a unique schedule name, valid cron expression, and backup type. Optionally specify timezone and enabled status. Returns the created schedule configuration.",
+    "output_details": {
+      "schedule_id": {
+        "type": "string",
+        "description": "Generated unique identifier for the schedule"
+      },
+      "next_execution": {
+        "type": "string",
+        "description": "Next scheduled execution time in ISO 8601 format"
+      },
+      "schedule_summary": {
+        "type": "string",
+        "description": "Human-readable description of the schedule frequency"
+      },
+      "validation_status": {
+        "type": "string",
+        "description": "Schedule validation result (valid, invalid, warning)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Database Schema Analyzer",
+    "tool_description": "Analyzes database schemas to determine optimal backup strategies and identify dependencies between database objects.",
+    "parameters": {
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of database system (mysql, postgresql, mongodb, oracle, sqlserver)"
+      },
+      "host": {
+        "type": "string",
+        "required": true,
+        "description": "Database server hostname or IP address"
+      },
+      "port": {
+        "type": "integer",
+        "required": true,
+        "description": "Database server port number"
+      },
+      "username": {
+        "type": "string",
+        "required": true,
+        "description": "Database username with schema read privileges"
+      },
+      "password": {
+        "type": "string",
+        "required": true,
+        "description": "Database password for authentication"
+      },
+      "database_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the database to analyze"
+      },
+      "include_data_size": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to calculate table data sizes",
+        "default": true
+      },
+      "analyze_relationships": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to analyze foreign key relationships",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Schema analysis failed: Unable to access database schema. Check connection parameters and user privileges.",
+      "Insufficient privileges: User lacks necessary permissions to read schema information.",
+      "Database not found: The specified database does not exist.",
+      "Analysis timeout: Schema analysis took too long. Try analyzing smaller databases or disable data size calculation."
+    ],
+    "usage": "Provide database connection details and specify which database to analyze. Optionally enable data size calculation and relationship analysis. Returns comprehensive schema information for backup planning.",
+    "output_details": {
+      "total_tables": {
+        "type": "integer",
+        "description": "Total number of tables in the database"
+      },
+      "total_size_mb": {
+        "type": "number",
+        "description": "Total database size in megabytes"
+      },
+      "table_info": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of table names with their sizes and row counts"
+      },
+      "critical_objects": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of critical database objects requiring special backup handling"
+      },
+      "backup_complexity": {
+        "type": "string",
+        "description": "Estimated backup complexity level (low, medium, high)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Storage Configurator",
+    "tool_description": "Configures and validates backup storage locations including local directories, network shares, and cloud storage endpoints.",
+    "parameters": {
+      "storage_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of storage (local, nfs, smb, s3, azure, gcs)"
+      },
+      "storage_path": {
+        "type": "string",
+        "required": true,
+        "description": "Storage location path or URL"
+      },
+      "access_key": {
+        "type": "string",
+        "required": false,
+        "description": "Access key for cloud storage authentication",
+        "default": null
+      },
+      "secret_key": {
+        "type": "string",
+        "required": false,
+        "description": "Secret key for cloud storage authentication",
+        "default": null
+      },
+      "region": {
+        "type": "string",
+        "required": false,
+        "description": "Cloud storage region",
+        "default": null
+      },
+      "encryption_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to enable storage encryption",
+        "default": true
+      },
+      "compression_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to enable backup compression",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Storage location unreachable: Cannot access the specified storage path. Check connectivity and permissions.",
+      "Invalid storage type: Use one of [local, nfs, smb, s3, azure, gcs].",
+      "Authentication failed: Invalid access credentials for cloud storage.",
+      "Insufficient permissions: Cannot write to the specified storage location.",
+      "Invalid region: The specified region is not valid for the storage provider."
+    ],
+    "usage": "Specify storage type and path. For cloud storage, provide access credentials and region. Optionally configure encryption and compression settings. Returns validated storage configuration.",
+    "output_details": {
+      "storage_id": {
+        "type": "string",
+        "description": "Generated unique identifier for the storage configuration"
+      },
+      "available_space_gb": {
+        "type": "number",
+        "description": "Available storage space in gigabytes"
+      },
+      "write_speed_mbps": {
+        "type": "number",
+        "description": "Estimated write speed in megabytes per second"
+      },
+      "configuration_valid": {
+        "type": "boolean",
+        "description": "Whether the storage configuration is valid and accessible"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Job Generator",
+    "tool_description": "Generates executable backup job configurations by combining database connections, schedules, and storage settings with specific backup parameters.",
+    "parameters": {
+      "job_name": {
+        "type": "string",
+        "required": true,
+        "description": "Unique name for the backup job"
+      },
+      "database_config_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to validated database connection configuration"
+      },
+      "schedule_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to backup schedule configuration"
+      },
+      "storage_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to storage configuration"
+      },
+      "backup_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of backup (full, incremental, differential)"
+      },
+      "parallel_threads": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of parallel backup threads (1-16)",
+        "default": 4
+      },
+      "timeout_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Backup timeout in minutes (5-1440)",
+        "default": 60
+      },
+      "include_schemas": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of specific schemas to backup",
+        "default": null
+      },
+      "exclude_tables": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of tables to exclude from backup",
+        "default": null
+      },
+      "verify_backup": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to verify backup integrity after creation",
+        "default": true
+      },
+      "notification_emails": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Email addresses for backup status notifications",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid configuration reference: One or more referenced configurations (database, schedule, storage) do not exist.",
+      "Job name conflict: A backup job with this name already exists.",
+      "Invalid backup type: Use one of [full, incremental, differential].",
+      "Invalid parameter range: parallel_threads must be 1-16, timeout_minutes must be 5-1440.",
+      "Schema/table specification error: Specified schemas or tables do not exist in the target database.",
+      "Invalid email format: One or more notification email addresses are invalid."
+    ],
+    "usage": "Provide a unique job name and reference IDs for database, schedule, and storage configurations. Specify backup type and optionally configure performance settings, schema filters, and notifications. Returns complete backup job configuration.",
+    "output_details": {
+      "job_id": {
+        "type": "string",
+        "description": "Generated unique identifier for the backup job"
+      },
+      "estimated_duration_minutes": {
+        "type": "integer",
+        "description": "Estimated backup duration based on database size and configuration"
+      },
+      "estimated_backup_size_gb": {
+        "type": "number",
+        "description": "Estimated backup file size in gigabytes"
+      },
+      "job_configuration_summary": {
+        "type": "string",
+        "description": "Human-readable summary of the backup job configuration"
+      },
+      "next_execution_time": {
+        "type": "string",
+        "description": "Next scheduled execution time in ISO 8601 format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Execution Engine",
+    "tool_description": "Executes backup jobs by coordinating database dumps, file transfers, and status tracking across multiple database systems.",
+    "parameters": {
+      "job_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the backup job to execute"
+      },
+      "execution_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Execution mode (immediate, scheduled)",
+        "default": "immediate"
+      },
+      "override_timeout": {
+        "type": "integer",
+        "required": false,
+        "description": "Override job timeout in minutes",
+        "default": null
+      },
+      "dry_run": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform a dry run without actual backup",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Job not found: The specified backup job ID does not exist or has been deleted.",
+      "Job already running: The backup job is currently executing. Wait for completion or cancel the running job.",
+      "Configuration error: The backup job configuration is invalid or references missing components.",
+      "Database connection failed: Cannot connect to the source database. Check database availability and credentials.",
+      "Storage access failed: Cannot access the target storage location. Check storage configuration and permissions.",
+      "Execution timeout: Backup operation exceeded the configured timeout limit.",
+      "Insufficient resources: Not enough system resources (CPU, memory, disk space) to execute the backup."
+    ],
+    "usage": "Provide the job ID of a configured backup job. Optionally specify execution mode, timeout override, or dry run mode. The tool executes the backup and returns detailed execution results.",
+    "output_details": {
+      "execution_id": {
+        "type": "string",
+        "description": "Unique identifier for this backup execution"
+      },
+      "execution_status": {
+        "type": "string",
+        "description": "Final execution status (success, failed, timeout, cancelled)"
+      },
+      "start_time": {
+        "type": "string",
+        "description": "Backup start time in ISO 8601 format"
+      },
+      "end_time": {
+        "type": "string",
+        "description": "Backup completion time in ISO 8601 format"
+      },
+      "backup_file_path": {
+        "type": "string",
+        "description": "Full path to the created backup file"
+      },
+      "backup_size_bytes": {
+        "type": "integer",
+        "description": "Size of the backup file in bytes"
+      },
+      "duration_seconds": {
+        "type": "integer",
+        "description": "Total backup duration in seconds"
+      },
+      "records_processed": {
+        "type": "integer",
+        "description": "Number of database records processed"
+      },
+      "error_details": {
+        "type": "string",
+        "description": "Detailed error message if backup failed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Integrity Validator",
+    "tool_description": "Validates backup file integrity through checksums, restoration tests, and content verification to ensure backup reliability.",
+    "parameters": {
+      "backup_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Full path to the backup file to validate"
+      },
+      "validation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Validation depth (checksum, header, full)",
+        "default": "checksum"
+      },
+      "test_restoration": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform test restoration to temporary database",
+        "default": false
+      },
+      "temp_database_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name for temporary test restoration database",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Backup file not found: The specified backup file does not exist or is not accessible.",
+      "Corrupted backup file: The backup file appears to be corrupted or incomplete.",
+      "Invalid validation level: Use one of [checksum, header, full].",
+      "Test restoration failed: Cannot restore backup to temporary database for validation.",
+      "Checksum mismatch: The backup file checksum does not match expected values."
+    ],
+    "usage": "Provide the path to a backup file and specify validation level. Optionally enable test restoration with a temporary database name. Returns comprehensive validation results.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result (valid, invalid, warning)"
+      },
+      "checksum_valid": {
+        "type": "boolean",
+        "description": "Whether backup file checksum is valid"
+      },
+      "file_size_bytes": {
+        "type": "integer",
+        "description": "Backup file size in bytes"
+      },
+      "compression_ratio": {
+        "type": "number",
+        "description": "Backup compression ratio if applicable"
+      },
+      "estimated_records": {
+        "type": "integer",
+        "description": "Estimated number of records in the backup"
+      },
+      "validation_details": {
+        "type": "string",
+        "description": "Detailed validation results and any issues found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Storage Space Monitor",
+    "tool_description": "Monitors storage space usage across configured backup storage locations and provides capacity planning insights.",
+    "parameters": {
+      "storage_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of storage configuration IDs to monitor"
+      },
+      "warning_threshold_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Storage usage percentage to trigger warnings (50-95)",
+        "default": 80
+      },
+      "critical_threshold_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Storage usage percentage to trigger critical alerts (60-98)",
+        "default": 90
+      }
+    },
+    "error_messages": [
+      "Storage not found: One or more specified storage IDs do not exist.",
+      "Storage access denied: Cannot access storage location to check space usage.",
+      "Invalid threshold values: Warning threshold must be less than critical threshold, both must be between 50-98.",
+      "Monitoring timeout: Storage space check took too long to complete."
+    ],
+    "usage": "Provide list of storage IDs to monitor and optionally set warning and critical thresholds. Returns current usage statistics and alerts for all monitored storage locations.",
+    "output_details": {
+      "total_monitored_locations": {
+        "type": "integer",
+        "description": "Number of storage locations monitored"
+      },
+      "overall_usage_percent": {
+        "type": "number",
+        "description": "Average usage percentage across all monitored locations"
+      },
+      "storage_usage": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Usage details for each monitored storage location"
+      },
+      "alerts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of storage space alerts and warnings"
+      },
+      "capacity_projection_days": {
+        "type": "integer",
+        "description": "Estimated days until storage capacity is reached based on current usage trends"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Retention Manager",
+    "tool_description": "Manages backup file retention by implementing cleanup policies and removing expired backups according to configured rules.",
+    "parameters": {
+      "storage_id": {
+        "type": "string",
+        "required": true,
+        "description": "Storage configuration ID where backups are located"
+      },
+      "retention_policy": {
+        "type": "string",
+        "required": true,
+        "description": "Retention policy type (daily, weekly, monthly, custom)"
+      },
+      "keep_daily_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of daily backups to retain (1-90)",
+        "default": 7
+      },
+      "keep_weekly_weeks": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of weekly backups to retain (1-52)",
+        "default": 4
+      },
+      "keep_monthly_months": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of monthly backups to retain (1-24)",
+        "default": 12
+      },
+      "keep_yearly_years": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of yearly backups to retain (1-10)",
+        "default": 2
+      },
+      "dry_run": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to simulate cleanup without actually deleting files",
+        "default": true
+      },
+      "backup_pattern": {
+        "type": "string",
+        "required": false,
+        "description": "File pattern to match backup files",
+        "default": "*.sql"
+      }
+    },
+    "error_messages": [
+      "Storage not found: The specified storage ID does not exist or is not accessible.",
+      "Invalid retention policy: Use one of [daily, weekly, monthly, custom].",
+      "Invalid retention values: All retention periods must be within specified ranges.",
+      "File access error: Cannot access backup files in the specified storage location.",
+      "Deletion failed: Some backup files could not be deleted due to permissions or locks."
+    ],
+    "usage": "Specify storage ID and retention policy type. Configure retention periods for different backup frequencies. Use dry_run to preview changes before actual deletion. Returns cleanup results and space freed.",
+    "output_details": {
+      "cleanup_summary": {
+        "type": "string",
+        "description": "Summary of cleanup operation results"
+      },
+      "files_processed": {
+        "type": "integer",
+        "description": "Total number of backup files examined"
+      },
+      "files_deleted": {
+        "type": "integer",
+        "description": "Number of backup files deleted"
+      },
+      "space_freed_gb": {
+        "type": "number",
+        "description": "Amount of storage space freed in gigabytes"
+      },
+      "retained_backups": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of backup files retained after cleanup"
+      },
+      "errors_encountered": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of errors encountered during cleanup"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Recovery Point Calculator",
+    "tool_description": "Calculates recovery point objectives (RPO) and recovery time objectives (RTO) based on backup frequency and historical data.",
+    "parameters": {
+      "job_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of backup job IDs to analyze for recovery metrics"
+      },
+      "analysis_period_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days of backup history to analyze (7-365)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid job IDs: One or more specified backup job IDs do not exist.",
+      "Insufficient data: Not enough backup history available for meaningful analysis.",
+      "Analysis period out of range: Period must be between 7 and 365 days."
+    ],
+    "usage": "Provide list of backup job IDs to analyze and optionally specify analysis period. Returns calculated RPO/RTO metrics and recommendations for improving recovery objectives.",
+    "output_details": {
+      "average_rpo_hours": {
+        "type": "number",
+        "description": "Average recovery point objective in hours"
+      },
+      "estimated_rto_hours": {
+        "type": "number",
+        "description": "Estimated recovery time objective in hours"
+      },
+      "backup_success_rate": {
+        "type": "number",
+        "description": "Percentage of successful backup executions"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommendations for improving recovery objectives"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Status Monitor",
+    "tool_description": "Monitors the status and health of all backup jobs, providing real-time status updates and historical performance metrics.",
+    "parameters": {
+      "monitor_scope": {
+        "type": "string",
+        "required": false,
+        "description": "Monitoring scope (all, active, failed)",
+        "default": "all"
+      },
+      "refresh_interval_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Status refresh interval in seconds (10-3600)",
+        "default": 60
+      }
+    },
+    "error_messages": [
+      "Invalid monitor scope: Use one of [all, active, failed].",
+      "Invalid refresh interval: Interval must be between 10 and 3600 seconds.",
+      "Monitoring system unavailable: Cannot access backup job status information."
+    ],
+    "usage": "Optionally specify monitoring scope and refresh interval. Returns current status of all backup jobs and recent execution history.",
+    "output_details": {
+      "total_jobs": {
+        "type": "integer",
+        "description": "Total number of configured backup jobs"
+      },
+      "active_jobs": {
+        "type": "integer",
+        "description": "Number of currently running backup jobs"
+      },
+      "failed_jobs": {
+        "type": "integer",
+        "description": "Number of jobs that failed in the last execution"
+      },
+      "last_update_time": {
+        "type": "string",
+        "description": "Last status update timestamp in ISO 8601 format"
+      },
+      "job_statuses": {
+        "type": "array",

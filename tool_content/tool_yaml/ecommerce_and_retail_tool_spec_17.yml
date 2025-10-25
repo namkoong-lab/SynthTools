@@ -1,0 +1,851 @@
+field_name: ecommerce_and_retail
+subfield: Product Catalog Management
+task: Inventory Level Monitoring and Synchronization
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves medium complexity due to the need for real-time data synchronization across multiple channels, handling various product attributes, managing stock thresholds, and coordinating between different systems (warehouses, sales channels, suppliers). The risk of stockouts or overselling makes accuracy critical.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover inventory tracking, synchronization, alerting, reporting, and integration workflows.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Inventory_Data_Fetcher** - Consumes: warehouse/system IDs → Produces: current stock levels
+  2. **Stock_Level_Validator** - Consumes: inventory data → Produces: validation status
+  3. **Threshold_Monitor** - Consumes: stock levels, thresholds → Produces: alerts
+  4. **Multi_Channel_Sync** - Consumes: inventory data, channel configs → Produces: sync status
+  5. **Reorder_Point_Calculator** - Consumes: sales velocity, lead times → Produces: reorder recommendations
+  6. **Stock_Movement_Tracker** - Consumes: transaction logs → Produces: movement analysis
+  7. **Inventory_Discrepancy_Detector** - Consumes: system data, physical counts → Produces: discrepancy reports
+  8. **Channel_Stock_Allocator** - Consumes: total inventory, channel priorities → Produces: allocation plan
+  9. **Low_Stock_Alert_Manager** - Consumes: thresholds, current levels → Produces: notifications
+  10. **Inventory_Forecaster** - Consumes: historical data, trends → Produces: demand predictions
+  11. **Sync_Conflict_Resolver** - Consumes: conflicting data sources → Produces: resolved inventory state
+  12. **Inventory_Report_Generator** - Consumes: all inventory data → Produces: comprehensive reports
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic Stock Check: Inventory_Data_Fetcher → Stock_Level_Validator → Low_Stock_Alert_Manager
+  2. Simple Sync: Inventory_Data_Fetcher → Multi_Channel_Sync
+
+  **Medium Plans:**
+  1. Reorder Management: Stock_Movement_Tracker → Reorder_Point_Calculator → Low_Stock_Alert_Manager → Inventory_Report_Generator
+  2. Discrepancy Resolution: Inventory_Data_Fetcher → Inventory_Discrepancy_Detector → Sync_Conflict_Resolver → Multi_Channel_Sync
+
+  **Complex Plans:**
+  1. Full Inventory Optimization: Inventory_Data_Fetcher → Stock_Movement_Tracker → Inventory_Forecaster → Reorder_Point_Calculator → Channel_Stock_Allocator → Multi_Channel_Sync → Inventory_Report_Generator
+  2. Complete Monitoring Pipeline: Inventory_Data_Fetcher → Stock_Level_Validator → Threshold_Monitor → Inventory_Discrepancy_Detector → Sync_Conflict_Resolver → Channel_Stock_Allocator → Multi_Channel_Sync → Low_Stock_Alert_Manager
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Inventory_Data_Fetcher",
+    "tool_description": "Retrieves current inventory levels from specified warehouse systems or data sources, supporting multiple product SKUs and locations.",
+    "parameters": {
+      "source_system": {
+        "type": "string",
+        "required": true,
+        "description": "The warehouse management system or data source identifier"
+      },
+      "sku_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of product SKUs to retrieve inventory for",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "location_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Specific warehouse or location identifiers to query",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid source system: The specified source_system is not recognized or accessible.",
+      "SKU not found: One or more SKUs in sku_list do not exist in the system.",
+      "Location access denied: One or more location_ids are not accessible with current permissions.",
+      "Connection timeout: Unable to connect to the source system within the timeout period.",
+      "Rate limit exceeded: Too many requests made to the source system, please retry after delay."
+    ],
+    "usage": "Provide source_system and sku_list to retrieve inventory data. Optionally specify location_ids to limit the query scope. The tool returns current stock levels for each SKU-location combination.",
+    "output_details": {
+      "total_records": {
+        "type": "integer",
+        "description": "Number of inventory records retrieved"
+      },
+      "skus": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of SKUs for which data was retrieved"
+      },
+      "stock_levels": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Current stock quantities corresponding to each SKU"
+      },
+      "locations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Location identifiers for each inventory record"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when inventory data was last updated",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock_Level_Validator",
+    "tool_description": "Validates inventory data for accuracy, completeness, and business rule compliance, flagging any anomalies or inconsistencies.",
+    "parameters": {
+      "stock_data": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Array of stock quantities to validate"
+      },
+      "sku_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Corresponding SKU identifiers for stock data"
+      },
+      "validation_rules": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Specific validation rules to apply: negative_check, range_validation, completeness_check",
+        "default": "None"
+      },
+      "max_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum reasonable stock level for flagging outliers",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Data length mismatch: stock_data and sku_list arrays must have the same length.",
+      "Invalid validation rule: Use only supported rules from [negative_check, range_validation, completeness_check].",
+      "Invalid threshold: max_threshold must be a positive integer.",
+      "Empty data arrays: Both stock_data and sku_list cannot be empty."
+    ],
+    "usage": "Provide stock_data and corresponding sku_list arrays. Optionally specify validation_rules and max_threshold for custom validation. The tool returns validation status and flags any issues found.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: PASSED, FAILED, or WARNING"
+      },
+      "total_validated": {
+        "type": "integer",
+        "description": "Number of stock records validated"
+      },
+      "issues_found": {
+        "type": "integer",
+        "description": "Total number of validation issues detected"
+      },
+      "flagged_skus": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "SKUs that failed validation checks"
+      },
+      "issue_descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed descriptions of validation issues found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Threshold_Monitor",
+    "tool_description": "Monitors inventory levels against predefined thresholds and generates alerts when stock levels breach minimum, maximum, or reorder point thresholds.",
+    "parameters": {
+      "current_stock": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Current stock levels for each SKU"
+      },
+      "sku_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "SKU identifiers corresponding to stock levels"
+      },
+      "min_thresholds": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Minimum stock thresholds for each SKU"
+      },
+      "max_thresholds": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": false,
+        "description": "Maximum stock thresholds for each SKU",
+        "default": "None"
+      },
+      "reorder_points": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": false,
+        "description": "Reorder point thresholds for each SKU",
+        "default": "None"
+      },
+      "alert_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Alert priority level: LOW, MEDIUM, HIGH, CRITICAL",
+        "default": "MEDIUM"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All provided arrays must have the same length as sku_list.",
+      "Invalid threshold values: Thresholds must be non-negative integers.",
+      "Invalid priority level: Use one of [LOW, MEDIUM, HIGH, CRITICAL].",
+      "Threshold logic error: max_thresholds must be greater than min_thresholds when both are provided.",
+      "Empty required arrays: current_stock, sku_list, and min_thresholds cannot be empty."
+    ],
+    "usage": "Provide current_stock, sku_list, and min_thresholds arrays. Optionally add max_thresholds, reorder_points, and set alert_priority. The tool compares stock levels against thresholds and returns alerts for any breaches.",
+    "output_details": {
+      "alerts_generated": {
+        "type": "integer",
+        "description": "Total number of threshold breach alerts generated"
+      },
+      "alert_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Types of alerts: LOW_STOCK, OVERSTOCK, REORDER_NEEDED"
+      },
+      "affected_skus": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "SKUs that breached thresholds"
+      },
+      "breach_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed descriptions of each threshold breach"
+      },
+      "priority_level": {
+        "type": "string",
+        "description": "Alert priority level assigned"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi_Channel_Sync",
+    "tool_description": "Synchronizes inventory levels across multiple sales channels (e.g., website, marketplaces, physical stores) to maintain consistency and prevent overselling.",
+    "parameters": {
+      "source_inventory": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Master inventory levels to sync from"
+      },
+      "sku_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "SKU identifiers for inventory items"
+      },
+      "target_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Sales channels to sync to: website, amazon, ebay, shopify, pos_system"
+      },
+      "sync_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Synchronization approach: full_sync, incremental, priority_based",
+        "default": "incremental"
+      },
+      "buffer_stock": {
+        "type": "integer",
+        "required": false,
+        "description": "Safety stock buffer to maintain in master inventory",
+        "default": 0
+      },
+      "channel_priorities": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": false,
+        "description": "Priority rankings for channels (1=highest priority)",
+        "default": "None"
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of SKUs to sync in each batch",
+        "default": 100
+      },
+      "retry_failed": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to retry failed sync operations",
+        "default": true
+      },
+      "sync_timeout": {
+        "type": "integer",
+        "required": false,
+        "description": "Timeout in seconds for each channel sync operation",
+        "default": 300
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: source_inventory and sku_list must have the same length.",
+      "Invalid channel: Use supported channels from [website, amazon, ebay, shopify, pos_system].",
+      "Invalid sync strategy: Use one of [full_sync, incremental, priority_based].",
+      "Channel connection failed: Unable to establish connection with one or more target channels.",
+      "Insufficient buffer stock: buffer_stock cannot be negative.",
+      "Priority mismatch: channel_priorities length must match target_channels length when provided.",
+      "Batch size error: batch_size must be between 1 and 1000.",
+      "Sync timeout: One or more channels exceeded the specified timeout period."
+    ],
+    "usage": "Provide source_inventory, sku_list, and target_channels to sync inventory. Configure sync_strategy, buffer_stock, channel_priorities, batch_size, retry_failed, and sync_timeout as needed. The tool synchronizes inventory across all specified channels.",
+    "output_details": {
+      "sync_status": {
+        "type": "string",
+        "description": "Overall synchronization status: SUCCESS, PARTIAL, FAILED"
+      },
+      "channels_synced": {
+        "type": "integer",
+        "description": "Number of channels successfully synchronized"
+      },
+      "skus_synced": {
+        "type": "integer",
+        "description": "Number of SKUs successfully synchronized"
+      },
+      "failed_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Channels that failed to sync"
+      },
+      "sync_duration": {
+        "type": "number",
+        "description": "Total synchronization time in seconds"
+      },
+      "error_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed error messages for failed operations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reorder_Point_Calculator",
+    "tool_description": "Calculates optimal reorder points and quantities based on sales velocity, lead times, seasonality, and safety stock requirements.",
+    "parameters": {
+      "sku_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "SKU identifiers to calculate reorder points for"
+      },
+      "daily_sales_velocity": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Average daily sales for each SKU"
+      },
+      "supplier_lead_times": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Lead time in days for each SKU from supplier"
+      },
+      "safety_stock_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days of safety stock to maintain",
+        "default": 7
+      },
+      "seasonal_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Seasonal adjustment multiplier (0.5-3.0)",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: sku_list, daily_sales_velocity, and supplier_lead_times must have the same length.",
+      "Invalid sales velocity: daily_sales_velocity values must be non-negative numbers.",
+      "Invalid lead time: supplier_lead_times must be positive integers.",
+      "Invalid safety stock: safety_stock_days must be a non-negative integer.",
+      "Invalid seasonal factor: seasonal_factor must be between 0.5 and 3.0."
+    ],
+    "usage": "Provide sku_list, daily_sales_velocity, and supplier_lead_times arrays. Optionally set safety_stock_days and seasonal_factor for customized calculations. The tool calculates reorder points and suggested order quantities.",
+    "output_details": {
+      "skus": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "SKU identifiers processed"
+      },
+      "reorder_points": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Calculated reorder point quantities for each SKU"
+      },
+      "suggested_order_qty": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Recommended order quantities for each SKU"
+      },
+      "safety_stock_levels": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Safety stock quantities included in calculations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock_Movement_Tracker",
+    "tool_description": "Tracks and analyzes inventory movements including sales, receipts, adjustments, and transfers to provide movement insights and trends.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for movement tracking",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for movement tracking",
+        "format": "date-time"
+      },
+      "sku_filter": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Filter tracking to specific SKUs",
+        "default": "None"
+      },
+      "movement_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Types of movements to track: sale, receipt, adjustment, transfer, return",
+        "default": "None"
+      },
+      "location_filter": {
+        "type": "string",
+        "required": false,
+        "description": "Filter by specific warehouse or location ID",
+        "default": "None"
+      },
+      "include_trends": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include trend analysis in results",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be earlier than end_date.",
+      "Date format error: Dates must be in valid ISO 8601 format.",
+      "Invalid movement type: Use supported types from [sale, receipt, adjustment, transfer, return].",
+      "Location not found: The specified location_filter does not exist.",
+      "Date range too large: Maximum tracking period is 365 days.",
+      "No data found: No inventory movements found for the specified criteria."
+    ],
+    "usage": "Provide start_date and end_date for the tracking period. Optionally filter by sku_filter, movement_types, and location_filter. Set include_trends to get trend analysis. The tool returns detailed movement data and analytics.",
+    "output_details": {
+      "total_movements": {
+        "type": "integer",
+        "description": "Total number of inventory movements tracked"
+      },
+      "movement_summary": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Summary of movements by type and quantity"
+      },
+      "trend_direction": {
+        "type": "string",
+        "description": "Overall inventory trend: INCREASING, DECREASING, STABLE"
+      },
+      "velocity_metrics": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Average daily movement rates for tracked SKUs"
+      },
+      "peak_movement_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Dates with highest movement activity",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory_Discrepancy_Detector",
+    "tool_description": "Detects and reports discrepancies between system inventory records and physical counts or between different system sources.",
+    "parameters": {
+      "system_stock": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "System-recorded stock levels"
+      },
+      "physical_count": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Physical count or alternate system stock levels"
+      },
+      "sku_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "SKU identifiers for comparison"
+      },
+      "tolerance_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Acceptable variance percentage before flagging discrepancy",
+        "default": 5.0
+      },
+      "minimum_variance": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum absolute variance to flag as discrepancy",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: system_stock, physical_count, and sku_list must have the same length.",
+      "Invalid stock values: Stock levels must be non-negative integers.",
+      "Invalid tolerance: tolerance_percentage must be between 0 and 100.",
+      "Invalid minimum variance: minimum_variance must be a non-negative integer.",
+      "Empty comparison data: All input arrays cannot be empty."
+    ],
+    "usage": "Provide system_stock, physical_count, and sku_list arrays for comparison. Set tolerance_percentage and minimum_variance to define discrepancy thresholds. The tool identifies and reports significant variances.",
+    "output_details": {
+      "total_compared": {
+        "type": "integer",
+        "description": "Number of SKUs compared"
+      },
+      "discrepancies_found": {
+        "type": "integer",
+        "description": "Number of discrepancies detected"
+      },
+      "discrepant_skus": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "SKUs with significant discrepancies"
+      },
+      "variance_amounts": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Variance quantities for discrepant SKUs"
+      },
+      "accuracy_percentage": {
+        "type": "number",
+        "description": "Overall inventory accuracy percentage"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Channel_Stock_Allocator",
+    "tool_description": "Allocates available inventory across multiple sales channels based on priorities, performance metrics, and business rules.",
+    "parameters": {
+      "total_stock": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Total available stock for each SKU"
+      },
+      "sku_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "SKU identifiers for allocation"
+      },
+      "channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Sales channels to allocate to"
+      },
+      "channel_priorities": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Priority scores for each channel (higher = more priority)"
+      },
+      "channel_minimums": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": false,
+        "description": "Minimum stock to allocate to each channel",
+        "default": "None"
+      },
+      "channel_maximums": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": false,
+        "description": "Maximum stock to allocate to each channel",
+        "default": "None"
+      },
+      "allocation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Allocation strategy: proportional, priority_based, performance_based",
+        "default": "priority_based"
+      },
+      "reserve_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage of stock to keep as reserve (0-50)",
+        "default": 10.0
+      },
+      "performance_weights": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Performance multipliers for each channel",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: total_stock and sku_list must have the same length; channels, channel_priorities, and optional arrays must match channels length.",
+      "Invalid stock values: total_stock must contain non-negative integers.",
+      "Invalid priorities: channel_priorities must contain positive integers.",
+      "Invalid allocation method: Use one of [proportional, priority_based, performance_based].",
+      "Invalid reserve percentage: reserve_percentage must be between 0 and 50.",
+      "Constraint conflict: channel_minimums cannot exceed channel_maximums when both are provided.",
+      "Insufficient stock: Cannot satisfy minimum allocation requirements with available stock."
+    ],
+    "usage": "Provide total_stock, sku_list, channels, and channel_priorities. Optionally set channel_minimums, channel_maximums, allocation_method, reserve_percentage, and performance_weights for advanced allocation. The tool distributes inventory optimally across channels.",
+    "output_details": {
+      "allocation_status": {
+        "type": "string",
+        "description": "Allocation result status: SUCCESS, PARTIAL, FAILED"
+      },
+      "channel_allocations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed allocation breakdown by channel and SKU"
+      },
+      "reserved_stock": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Stock quantities reserved for each SKU"
+      },
+      "utilization_rate": {
+        "type": "number",
+        "description": "Percentage of total stock allocated"
+      },
+      "unallocated_skus": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "SKUs that could not be fully allocated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Low_Stock_Alert_Manager",
+    "tool_description": "Manages and sends low stock alerts through various notification channels with customizable rules and escalation policies.",
+    "parameters": {
+      "alert_recipients": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Email addresses or user IDs to receive alerts"
+      },
+      "notification_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Alert delivery methods: email, sms, slack, webhook",
+        "default": "email"
+      },
+      "alert_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "How often to send alerts: immediate, hourly, daily, weekly",
+        "default": "immediate"
+      },
+      "escalation_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable escalation to management for critical alerts",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid recipients: alert_recipients cannot be empty and must contain valid email addresses or user IDs.",
+      "Invalid notification channel: Use supported channels from [email, sms, slack, webhook].",
+      "Invalid alert frequency: Use one of [immediate, hourly, daily, weekly].",
+      "Delivery failure: One or more notification channels failed to deliver alerts.",
+      "Configuration error: Escalation settings are invalid or incomplete."
+    ],
+    "usage": "Provide alert_recipients for notifications. Configure notification_channels, alert_frequency, and escalation_enabled as needed. The tool manages alert delivery and tracks notification status.",
+    "output_details": {
+      "alerts_sent": {
+        "type": "integer",
+        "description": "Number of alerts successfully sent"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Overall delivery status: SUCCESS, PARTIAL, FAILED"
+      },
+      "failed_deliveries": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recipients or channels that failed to receive alerts"
+      },
+      "next_scheduled_alert": {
+        "type": "string",
+        "description": "Timestamp for next scheduled alert batch",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory_Forecaster",
+    "tool_description": "Predicts future inventory demand using historical sales data, trends, seasonality, and external factors to

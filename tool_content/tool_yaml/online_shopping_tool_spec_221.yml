@@ -1,0 +1,832 @@
+field_name: online_shopping
+subfield: Product Catalog Management
+task: Inventory Level Monitoring and Stock Management
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium complexity due to multiple interdependent processes (tracking stock levels, predicting demand, managing suppliers, handling alerts), moderate coordination requirements between different inventory systems, and the need for real-time data processing with moderate risk of stockouts or overstock situations.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools to cover the various aspects of inventory monitoring, stock level management, supplier coordination, demand forecasting, and alert systems.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their dependencies:**
+  - Stock Level Checker: consumes product IDs → produces current inventory counts
+  - Demand Forecaster: consumes historical sales data → produces demand predictions
+  - Reorder Point Calculator: consumes current stock + demand forecasts → produces reorder thresholds
+  - Supplier Info Manager: consumes supplier queries → produces supplier details and lead times
+  - Purchase Order Generator: consumes stock needs + supplier info → produces purchase orders
+  - Stock Alert System: consumes stock levels + thresholds → produces alert notifications
+  - Inventory Movement Tracker: consumes transaction data → produces stock change records
+  - ABC Analysis Tool: consumes product data → produces product categorization
+  - Safety Stock Calculator: consumes demand variability → produces minimum stock requirements
+  - Stock Valuation Tool: consumes inventory + costs → produces valuation reports
+  - Low Stock Identifier: consumes current stock + thresholds → produces low stock lists
+  - Stock Transfer Manager: consumes transfer requests → produces transfer records
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Stock Check**: Stock Level Checker → Low Stock Identifier → Stock Alert System (identifies products needing immediate attention)
+  2. **Quick Reorder**: Reorder Point Calculator → Supplier Info Manager → Purchase Order Generator (generates purchase orders for specific products)
+
+  **Medium Plans:**
+  1. **Weekly Inventory Review**: Stock Level Checker → ABC Analysis Tool → Demand Forecaster → Safety Stock Calculator → Reorder Point Calculator (comprehensive weekly stock analysis)
+  2. **Stock Replenishment Cycle**: Low Stock Identifier → Supplier Info Manager → Purchase Order Generator → Inventory Movement Tracker (complete replenishment workflow)
+
+  **Complex Plans:**
+  1. **Full Inventory Optimization**: Stock Level Checker → ABC Analysis Tool → Demand Forecaster → Safety Stock Calculator → Reorder Point Calculator → Purchase Order Generator → Stock Valuation Tool (end-to-end inventory optimization)
+  2. **Crisis Stock Management**: Stock Level Checker → Low Stock Identifier → Stock Alert System → Demand Forecaster → Stock Transfer Manager → Purchase Order Generator (emergency stock management with transfers and urgent orders)
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Stock Level Checker",
+    "tool_description": "Retrieves current inventory levels for specified products across multiple warehouses or locations.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of product SKUs or IDs to check inventory levels for",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "location_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Filter by specific warehouse or store locations",
+        "default": null
+      },
+      "include_reserved": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include reserved/allocated stock in totals",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Product ID not found: One or more product IDs do not exist in the catalog. Verify product SKUs are correct.",
+      "Location not found: Specified location does not exist. Check location codes are valid.",
+      "Database connection error: Unable to retrieve stock data. Check system connectivity and try again."
+    ],
+    "usage": "Provide product_ids array to get current stock levels. Optionally filter by location_filter and set include_reserved to include allocated inventory.",
+    "output_details": {
+      "total_products_checked": {
+        "type": "integer",
+        "description": "Number of products successfully checked"
+      },
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of product IDs that were checked"
+      },
+      "current_stock_levels": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Current inventory quantities corresponding to each product ID"
+      },
+      "locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Locations where stock was checked"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when stock levels were last updated",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Demand Forecaster",
+    "tool_description": "Predicts future demand for products using historical sales data and seasonal patterns.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product SKU or ID to forecast demand for"
+      },
+      "historical_start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for historical data analysis",
+        "format": "date-time"
+      },
+      "historical_end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for historical data analysis",
+        "format": "date-time"
+      },
+      "forecast_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days ahead to forecast (1-365)"
+      },
+      "seasonality": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to account for seasonal patterns",
+        "default": true
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "Confidence level for predictions (0.8-0.99)",
+        "default": 0.95
+      }
+    },
+    "error_messages": [
+      "Insufficient historical data: Need at least 30 days of sales history. Extend historical date range.",
+      "Invalid forecast period: forecast_days must be between 1 and 365 days.",
+      "Invalid confidence level: confidence_level must be between 0.8 and 0.99.",
+      "Product not found: The specified product_id does not exist in sales records."
+    ],
+    "usage": "Specify product_id, historical date range, and forecast_days. Optionally enable seasonality analysis and set confidence_level for prediction intervals.",
+    "output_details": {
+      "product_id": {
+        "type": "string",
+        "description": "Product ID that was forecasted"
+      },
+      "forecast_period_days": {
+        "type": "integer",
+        "description": "Number of days forecasted"
+      },
+      "predicted_daily_demand": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Predicted demand for each day in the forecast period"
+      },
+      "total_predicted_demand": {
+        "type": "number",
+        "description": "Sum of predicted demand over the entire forecast period"
+      },
+      "confidence_interval_lower": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Lower bound of confidence interval for each day"
+      },
+      "confidence_interval_upper": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Upper bound of confidence interval for each day"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reorder Point Calculator",
+    "tool_description": "Calculates optimal reorder points and quantities for products based on demand patterns and lead times.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product SKU or ID to calculate reorder point for"
+      },
+      "average_daily_demand": {
+        "type": "number",
+        "required": true,
+        "description": "Average daily demand for the product"
+      },
+      "demand_variability": {
+        "type": "number",
+        "required": true,
+        "description": "Standard deviation of daily demand"
+      },
+      "lead_time_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Supplier lead time in days"
+      },
+      "service_level": {
+        "type": "number",
+        "required": false,
+        "description": "Desired service level (0.8-0.99)",
+        "default": 0.95
+      }
+    },
+    "error_messages": [
+      "Invalid demand values: average_daily_demand and demand_variability must be positive numbers.",
+      "Invalid lead time: lead_time_days must be a positive integer.",
+      "Invalid service level: service_level must be between 0.8 and 0.99.",
+      "Calculation error: Unable to compute reorder point with provided parameters. Check input values."
+    ],
+    "usage": "Provide product_id, demand statistics, and lead_time_days. Optionally set service_level to adjust safety stock requirements.",
+    "output_details": {
+      "product_id": {
+        "type": "string",
+        "description": "Product ID for the calculation"
+      },
+      "reorder_point": {
+        "type": "integer",
+        "description": "Recommended reorder point quantity"
+      },
+      "safety_stock": {
+        "type": "integer",
+        "description": "Calculated safety stock level"
+      },
+      "economic_order_quantity": {
+        "type": "integer",
+        "description": "Suggested order quantity when reordering"
+      },
+      "service_level_achieved": {
+        "type": "number",
+        "description": "Expected service level with calculated parameters"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Purchase Order Generator",
+    "tool_description": "Creates purchase orders for suppliers based on stock requirements and supplier information.",
+    "parameters": {
+      "supplier_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the supplier"
+      },
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of product SKUs to order",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "quantities": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Quantities to order for each product (must match product_ids length)",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Order priority: standard, urgent, or emergency",
+        "default": "standard"
+      },
+      "delivery_location": {
+        "type": "string",
+        "required": false,
+        "description": "Warehouse or location code for delivery",
+        "default": "main_warehouse"
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "description": "Additional instructions for the supplier",
+        "default": null
+      },
+      "budget_limit": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum budget for this purchase order",
+        "default": null
+      },
+      "requested_delivery_date": {
+        "type": "string",
+        "required": false,
+        "description": "Requested delivery date",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Supplier not found: The specified supplier_id does not exist in the system.",
+      "Mismatched arrays: product_ids and quantities arrays must have the same length.",
+      "Invalid quantity: All quantities must be positive integers.",
+      "Invalid urgency level: Use standard, urgent, or emergency.",
+      "Budget exceeded: Total order value exceeds specified budget_limit.",
+      "Product not available from supplier: One or more products are not supplied by this supplier."
+    ],
+    "usage": "Provide supplier_id, matching arrays of product_ids and quantities. Optionally set urgency_level, delivery_location, and other order specifications.",
+    "output_details": {
+      "purchase_order_id": {
+        "type": "string",
+        "description": "Generated unique purchase order identifier"
+      },
+      "supplier_id": {
+        "type": "string",
+        "description": "Supplier ID for the order"
+      },
+      "total_items": {
+        "type": "integer",
+        "description": "Total number of different products in the order"
+      },
+      "estimated_total_cost": {
+        "type": "number",
+        "description": "Estimated total cost of the purchase order"
+      },
+      "expected_delivery_date": {
+        "type": "string",
+        "description": "Expected delivery date based on supplier lead time",
+        "format": "date-time"
+      },
+      "order_status": {
+        "type": "string",
+        "description": "Current status of the purchase order"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Alert System",
+    "tool_description": "Monitors inventory levels and generates alerts for low stock, overstock, or other inventory anomalies.",
+    "parameters": {
+      "monitoring_scope": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Product IDs or categories to monitor",
+        "minItems": 1,
+        "maxItems": 10000
+      },
+      "alert_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Types of alerts to check: low_stock, out_of_stock, overstock, slow_moving",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "low_stock_threshold_pct": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage of reorder point to trigger low stock alert (10-50)",
+        "default": 25
+      },
+      "overstock_threshold_pct": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage above normal stock level to trigger overstock alert (150-500)",
+        "default": 200
+      },
+      "slow_moving_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Days without sales to consider item slow moving (30-365)",
+        "default": 90
+      },
+      "priority_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "High-priority product IDs that require immediate attention",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid alert type: Use low_stock, out_of_stock, overstock, or slow_moving.",
+      "Invalid threshold: low_stock_threshold_pct must be 10-50, overstock_threshold_pct must be 150-500.",
+      "Invalid timeframe: slow_moving_days must be between 30-365.",
+      "Monitoring scope too large: Reduce the number of products/categories to monitor.",
+      "No products found: None of the specified products exist in the system."
+    ],
+    "usage": "Specify monitoring_scope and alert_types. Configure thresholds and timeframes as needed. Set priority_products for critical items requiring immediate alerts.",
+    "output_details": {
+      "total_alerts_generated": {
+        "type": "integer",
+        "description": "Total number of alerts generated"
+      },
+      "alert_types_found": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Types of alerts that were triggered"
+      },
+      "priority_alerts": {
+        "type": "integer",
+        "description": "Number of alerts for priority products"
+      },
+      "affected_product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that triggered alerts"
+      },
+      "alert_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed alert descriptions for each triggered alert"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the alert check was performed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Movement Tracker",
+    "tool_description": "Tracks and records all inventory movements including receipts, sales, transfers, and adjustments.",
+    "parameters": {
+      "transaction_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of movement: receipt, sale, transfer, adjustment, return"
+      },
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product SKU or ID for the transaction"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Quantity moved (positive for inbound, negative for outbound)"
+      },
+      "location_from": {
+        "type": "string",
+        "required": false,
+        "description": "Source location for the movement",
+        "default": null
+      },
+      "location_to": {
+        "type": "string",
+        "required": false,
+        "description": "Destination location for the movement",
+        "default": null
+      },
+      "reference_document": {
+        "type": "string",
+        "required": false,
+        "description": "Reference number (PO, SO, transfer order, etc.)",
+        "default": null
+      },
+      "unit_cost": {
+        "type": "number",
+        "required": false,
+        "description": "Cost per unit for valuation purposes",
+        "default": null
+      },
+      "reason_code": {
+        "type": "string",
+        "required": false,
+        "description": "Reason for adjustment or movement",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid transaction type: Use receipt, sale, transfer, adjustment, or return.",
+      "Product not found: The specified product_id does not exist in the catalog.",
+      "Invalid quantity: Quantity must be a non-zero integer.",
+      "Location not found: Specified location does not exist in the system.",
+      "Insufficient stock: Cannot process outbound movement due to insufficient inventory.",
+      "Missing required location: Transfers require both location_from and location_to."
+    ],
+    "usage": "Specify transaction_type, product_id, and quantity. For transfers, include both location_from and location_to. Add reference_document and other details as needed.",
+    "output_details": {
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique identifier for this inventory transaction"
+      },
+      "new_stock_level": {
+        "type": "integer",
+        "description": "Updated stock level after the movement"
+      },
+      "transaction_timestamp": {
+        "type": "string",
+        "description": "When the transaction was recorded",
+        "format": "date-time"
+      },
+      "value_change": {
+        "type": "number",
+        "description": "Change in inventory value due to this transaction"
+      },
+      "status": {
+        "type": "string",
+        "description": "Transaction processing status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "ABC Analysis Tool",
+    "tool_description": "Categorizes products using ABC analysis based on sales value, volume, or other criteria to prioritize inventory management efforts.",
+    "parameters": {
+      "analysis_period_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period",
+        "format": "date-time"
+      },
+      "analysis_period_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period",
+        "format": "date-time"
+      },
+      "product_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Specific product IDs to analyze (if empty, analyzes all products)",
+        "default": null
+      },
+      "analysis_criteria": {
+        "type": "string",
+        "required": false,
+        "description": "Basis for categorization: sales_value, sales_volume, profit_margin, or turnover_rate",
+        "default": "sales_value"
+      },
+      "category_a_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Cumulative percentage for Category A (typically 70-80)",
+        "default": 80
+      },
+      "category_b_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Cumulative percentage for Category B (typically 90-95)",
+        "default": 95
+      },
+      "minimum_transaction_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of transactions required for analysis",
+        "default": 5
+      },
+      "include_inactive": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include products with no sales in the period",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid date range: End date must be after start date and both must be valid dates.",
+      "Invalid analysis criteria: Use sales_value, sales_volume, profit_margin, or turnover_rate.",
+      "Invalid threshold values: Category A threshold must be less than Category B threshold, both between 50-99.",
+      "Insufficient data: Not enough transaction data in the specified period for meaningful analysis.",
+      "Product filter too restrictive: No products found matching the specified filter criteria."
+    ],
+    "usage": "Specify analysis period with start and end dates. Optionally filter products, choose analysis criteria, and adjust category thresholds. Results categorize products into A, B, and C groups.",
+    "output_details": {
+      "total_products_analyzed": {
+        "type": "integer",
+        "description": "Number of products included in the analysis"
+      },
+      "category_a_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs classified as Category A (high value)"
+      },
+      "category_b_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs classified as Category B (medium value)"
+      },
+      "category_c_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs classified as Category C (low value)"
+      },
+      "category_percentages": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Percentage of total value represented by each category [A%, B%, C%]"
+      },
+      "analysis_criteria_used": {
+        "type": "string",
+        "description": "The criteria used for categorization"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Safety Stock Calculator",
+    "tool_description": "Calculates optimal safety stock levels based on demand variability, lead time uncertainty, and desired service levels.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product SKU or ID to calculate safety stock for"
+      },
+      "average_demand": {
+        "type": "number",
+        "required": true,
+        "description": "Average demand during lead time period"
+      },
+      "demand_std_dev": {
+        "type": "number",
+        "required": true,
+        "description": "Standard deviation of demand during lead time"
+      },
+      "average_lead_time": {
+        "type": "number",
+        "required": true,
+        "description": "Average lead time in days"
+      },
+      "lead_time_std_dev": {
+        "type": "number",
+        "required": false,
+        "description": "Standard deviation of lead time in days",
+        "default": 0
+      },
+      "service_level_target": {
+        "type": "number",
+        "required": false,
+        "description": "Target service level (0.9-0.999)",
+        "default": 0.95
+      },
+      "review_period_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Inventory review period in days",
+        "default": 7
+      }
+    },
+    "error_messages": [
+      "Invalid demand parameters: average_demand and demand_std_dev must be positive numbers.",
+      "Invalid lead time parameters: average_lead_time must be positive, lead_time_std_dev must be non-negative.",
+      "Invalid service level: service_level_target must be between 0.9 and 0.999.",
+      "Invalid review period: review_period_days must be a positive integer.",
+      "Calculation error: Unable to compute safety stock with provided statistical parameters."
+    ],
+    "usage": "Provide product_id, demand statistics, and lead time information. Optionally set service_level_target and review_period_days. The tool calculates safety stock using statistical methods.",
+    "output_details": {
+      "product_id": {
+        "type": "string",
+        "description": "Product ID for the calculation"
+      },
+      "recommended_safety_stock": {
+        "type": "integer",
+        "description": "Calculated safety stock quantity"
+      },
+      "service_level_achieved": {
+        "type": "number",
+        "description": "Expected service level with recommended safety stock"
+      },
+      "stockout_probability": {
+        "type": "number",
+        "description": "Probability of stockout with current safety stock level"
+      },
+      "total_buffer_days": {
+        "type": "number",
+        "description": "Days of demand covered by safety stock"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Supplier Info Manager",
+    "tool_description": "Manages and retrieves supplier information including lead times, pricing, minimum order quantities, and contact details.",
+    "parameters": {
+      "supplier_id": {
+        "type": "string",
+        "required": false,
+        "description": "Specific supplier ID to retrieve information for",
+        "default": null
+      },
+      "product_id": {
+        "type": "string",
+        "required": false,
+        "description": "Product ID to find suppliers for",
+        "default": null
+      },
+      "location_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred supplier location or region",
+        "default": null
+      },
+      "max_lead_time": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum acceptable lead time in days",
+        "default": null
+      },
+      "min_quality_rating": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum quality rating (1.0-5.0)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Supplier not found: The specified supplier_id does not exist in the system.",
+      "Product not found: The specified product_id is not in the catalog.",
+      "No suppliers match criteria: No suppliers found meeting the specified requirements.",
+      "Invalid quality rating: min_quality_rating must be between 1.0 and 5.0.",
+      "Invalid lead time: max_lead_time must be a positive integer."
+    ],
+    "usage": "Query by supplier_id for specific supplier details, or by product_id to find all suppliers. Use filters like location_preference, max_lead_time, and min_quality_rating to narrow results.",
+    "output_details": {
+      "supplier_count": {
+        "type": "integer",
+        "description": "Number of suppliers found"
+      },
+      "supplier_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of supplier IDs matching criteria"
+      },
+      "supplier_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Names of matching suppliers"
+      },
+      "lead_times": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Lead times in days for each supplier"
+      },
+      "quality_ratings": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Quality ratings for each supplier"
+      },
+      "minimum_order_quantities": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Minimum order quantities for each supplier"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Valuation Tool",
+    "tool_description": "Calculates inventory valuation using different costing methods and provides financial summaries of stock holdings.",
+    "parameters": {
+      "valuation_method": {
+        "type": "string",
+        "required": true,
+        "description": "Costing method: FIFO, LIFO, weighted_average, or standard_cost"
+      },
+      "product_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Specific product IDs to value (if empty, values all inventory)",
+        "default": null
+      },
+      "location_filter": {
+        "type": "string",
+        "required": false,
+        "description": "Specific location to value inventory for",
+        "default": null
+      },
+      "valuation_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date for valuation snapshot",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid valuation method: Use FIFO, LIFO, weighted_average, or standard_cost.",
+      "Products not found: One or more specified product IDs do not exist.",
+      "Location not found: The specified location does not exist in the system.",
+      "Invalid valuation date: Date must be valid and not in the future.",
+      "Insufficient cost data: Missing cost information required for valuation calculation."
+    ],
+    "usage": "Specify valuation_method and optionally filter by products, location, or date. The tool calculates total inventory value and provides detailed breakdowns.",
+    "output_details": {
+      "total_inventory_value": {
+        "type": "number",
+        "description": "Total value of inventory based on selected method"
+      },
+      "total_units_valued": {
+        "type": "integer",
+        "description": "Total number of units included in valuation"
+      },
+      "average_unit_cost": {
+        "type": "number",
+        "description": "Average cost per unit across all valued inventory"
+      },
+      "valuation_method_used": {
+        "type": "string",
+        "description": "Costing method applied for the valuation"
+      },
+      "valuation_timestamp": {
+        "type": "string",
+        "description": "When the valuation was calculated",
+        "format": "date-time"
+      },

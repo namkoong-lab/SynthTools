@@ -1,0 +1,34 @@
+{
+  "Tool Call": {
+    "ddl_statements": [
+      "CREATE TABLE users (id SERIAL PRIMARY KEY, username VARCHAR(50) UNIQUE NOT NULL, email VARCHAR(100) NOT NULL);",
+      "CREATE TABLE orders (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), total_amount DECIMAL(10,2), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);",
+      "CREATE INDEX idx_orders_user_id ON orders(user_id);",
+      "CREATE INDEX idx_users_username ON users(username);"
+    ],
+    "creation_order": [
+      "users",
+      "orders",
+      "idx_users_username",
+      "idx_orders_user_id"
+    ],
+    "database_type": "postgresql",
+    "use_transactions": true,
+    "include_error_handling": true
+  },
+  "Return Data": {
+    "migration_script": "BEGIN;\n\n-- Error handling setup\nDO $$\nDECLARE\n  error_msg TEXT;\nBEGIN\n  -- Create users table\n  CREATE TABLE users (id SERIAL PRIMARY KEY, username VARCHAR(50) UNIQUE NOT NULL, email VARCHAR(100) NOT NULL);\n  \n  -- Create orders table\n  CREATE TABLE orders (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), total_amount DECIMAL(10,2), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);\n  \n  -- Create indexes\n  CREATE INDEX idx_users_username ON users(username);\n  CREATE INDEX idx_orders_user_id ON orders(user_id);\n  \n  RAISE NOTICE 'Migration completed successfully';\nEXCEPTION\n  WHEN OTHERS THEN\n    error_msg := SQLERRM;\n    RAISE EXCEPTION 'Migration failed: %', error_msg;\n    ROLLBACK;\nEND$$;\n\nCOMMIT;",
+    "script_steps": [
+      "Begin transaction",
+      "Set up error handling block",
+      "Create users table with primary key and constraints",
+      "Create orders table with foreign key reference to users",
+      "Create index on users.username for query optimization",
+      "Create index on orders.user_id for join optimization",
+      "Log success message",
+      "Handle exceptions with rollback on failure",
+      "Commit transaction"
+    ],
+    "estimated_duration": "2-5 seconds"
+  }
+}

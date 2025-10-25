@@ -1,0 +1,853 @@
+field_name: ecommerce_and_retail
+subfield: Return and Refund Processing
+task: Track return shipment status and delivery confirmation
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. It involves coordinating multiple systems (carrier APIs, warehouse management, customer notifications), handling various shipment statuses and edge cases, and requires real-time tracking with potential data inconsistencies across different carriers and timeframes.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target **12 tools** to cover shipment tracking, status updates, delivery confirmation, exception handling, and customer communication workflows.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Return Shipment Tracker** - Consumes: tracking numbers, carrier info | Produces: current status, location
+  2. **Carrier API Client** - Consumes: carrier name, tracking number | Produces: raw tracking data
+  3. **Delivery Confirmation Validator** - Consumes: tracking events | Produces: confirmed delivery status
+  4. **Return Status Updater** - Consumes: return ID, new status | Produces: updated return record
+  5. **Exception Handler** - Consumes: tracking anomalies | Produces: exception classifications
+  6. **Customer Notification Sender** - Consumes: customer info, status updates | Produces: notification confirmations
+  7. **Shipment Event Parser** - Consumes: raw tracking events | Produces: standardized events
+  8. **Delivery Timeline Calculator** - Consumes: shipment data | Produces: estimated/actual delivery times
+  9. **Return Inventory Updater** - Consumes: delivery confirmations | Produces: inventory adjustments
+  10. **Tracking History Logger** - Consumes: all tracking events | Produces: audit trail
+  11. **Multi-Carrier Status Aggregator** - Consumes: multiple tracking results | Produces: unified status
+  12. **Return Processing Trigger** - Consumes: delivery confirmations | Produces: processing workflow initiation
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  - Basic tracking: Carrier API Client → Return Shipment Tracker → Customer Notification Sender
+  - Delivery confirmation: Return Shipment Tracker → Delivery Confirmation Validator → Return Status Updater
+
+  **Medium plans:**
+  - Status monitoring: Multi-Carrier Status Aggregator → Shipment Event Parser → Exception Handler → Customer Notification Sender
+  - Timeline tracking: Return Shipment Tracker → Delivery Timeline Calculator → Tracking History Logger → Return Status Updater
+
+  **Complex plans:**
+  - Full return processing: Carrier API Client → Shipment Event Parser → Multi-Carrier Status Aggregator → Exception Handler → Delivery Confirmation Validator → Return Inventory Updater → Return Processing Trigger → Customer Notification Sender
+  - Comprehensive monitoring: Return Shipment Tracker → Delivery Timeline Calculator → Exception Handler → Return Status Updater → Tracking History Logger → Customer Notification Sender
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Return Shipment Tracker",
+    "tool_description": "Tracks the real-time status and location of return shipments using tracking numbers and carrier information.",
+    "parameters": {
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "The tracking number provided by the shipping carrier"
+      },
+      "carrier_code": {
+        "type": "string",
+        "required": true,
+        "description": "Carrier code (UPS, FEDEX, USPS, DHL, etc.)"
+      },
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Internal return request identifier"
+      }
+    },
+    "error_messages": [
+      "Invalid tracking number: Ensure the tracking number format matches the carrier's requirements and exists in their system.",
+      "Unsupported carrier: Use a supported carrier code such as UPS, FEDEX, USPS, DHL, or contact support for additional carriers.",
+      "Return ID not found: Verify the return_id exists in the system and is associated with an active return request."
+    ],
+    "usage": "Provide tracking_number, carrier_code, and return_id to get current shipment status and location information.",
+    "output_details": {
+      "current_status": {
+        "type": "string",
+        "description": "Current shipment status (in_transit, out_for_delivery, delivered, exception, etc.)"
+      },
+      "current_location": {
+        "type": "string",
+        "description": "Current location or last known location of the package"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of the last status update",
+        "format": "date-time"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery date and time",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Carrier API Client",
+    "tool_description": "Interfaces with various shipping carrier APIs to retrieve raw tracking data and shipment information.",
+    "parameters": {
+      "carrier_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the shipping carrier (UPS, FedEx, USPS, DHL)"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Tracking number to query"
+      },
+      "api_key": {
+        "type": "string",
+        "required": false,
+        "description": "API key for carrier service (if required)",
+        "default": null
+      },
+      "include_events": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include detailed tracking events",
+        "default": true
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Request timeout in seconds (5-60)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "API authentication failed: Verify the api_key is valid and has proper permissions for the specified carrier.",
+      "Carrier service unavailable: The carrier's API is currently unavailable, try again later or contact the carrier.",
+      "Tracking number not found: The tracking number does not exist in the carrier's system or may be entered incorrectly.",
+      "Request timeout: The carrier API did not respond within the specified timeout period, try increasing timeout_seconds.",
+      "Rate limit exceeded: Too many requests to the carrier API, wait before making additional requests."
+    ],
+    "usage": "Specify carrier_name and tracking_number, optionally provide api_key, include_events flag, and timeout_seconds to retrieve tracking data.",
+    "output_details": {
+      "raw_data": {
+        "type": "string",
+        "description": "Raw JSON response from carrier API"
+      },
+      "status_code": {
+        "type": "integer",
+        "description": "HTTP status code from the API response"
+      },
+      "response_time_ms": {
+        "type": "integer",
+        "description": "API response time in milliseconds"
+      },
+      "events_count": {
+        "type": "integer",
+        "description": "Number of tracking events returned"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Confirmation Validator",
+    "tool_description": "Validates and confirms successful delivery of return shipments based on tracking events and delivery criteria.",
+    "parameters": {
+      "tracking_events": {
+        "type": "array",
+        "required": true,
+        "description": "Array of tracking event descriptions",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "expected_delivery_address": {
+        "type": "string",
+        "required": true,
+        "description": "Expected delivery address or facility"
+      },
+      "delivery_confirmation_codes": {
+        "type": "array",
+        "required": false,
+        "description": "Array of carrier-specific delivery confirmation codes",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "require_signature": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether signature confirmation is required",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "No delivery events found: The tracking events do not contain any delivery-related status updates.",
+      "Address mismatch: The delivery address in tracking events does not match the expected_delivery_address.",
+      "Missing signature: A signature was required but not found in the delivery confirmation.",
+      "Invalid delivery confirmation: The delivery status does not meet the required confirmation criteria."
+    ],
+    "usage": "Provide tracking_events and expected_delivery_address, optionally specify delivery_confirmation_codes and require_signature flag.",
+    "output_details": {
+      "is_delivered": {
+        "type": "boolean",
+        "description": "Whether delivery has been confirmed"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "Confirmed delivery date and time",
+        "format": "date-time"
+      },
+      "delivery_location": {
+        "type": "string",
+        "description": "Actual delivery location"
+      },
+      "signature_obtained": {
+        "type": "boolean",
+        "description": "Whether a delivery signature was obtained"
+      },
+      "confirmation_code": {
+        "type": "string",
+        "description": "Carrier's delivery confirmation code"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Status Updater",
+    "tool_description": "Updates the status of return requests in the system based on shipment tracking information.",
+    "parameters": {
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the return request"
+      },
+      "new_status": {
+        "type": "string",
+        "required": true,
+        "description": "New status to set (shipped, in_transit, delivered, exception, processing)"
+      },
+      "status_reason": {
+        "type": "string",
+        "required": false,
+        "description": "Reason or details for the status change",
+        "default": null
+      },
+      "update_timestamp": {
+        "type": "string",
+        "required": false,
+        "description": "Timestamp for the status update",
+        "format": "date-time",
+        "default": null
+      },
+      "notify_customer": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to send customer notification",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Return ID not found: The specified return_id does not exist in the system.",
+      "Invalid status transition: The new_status is not a valid transition from the current return status.",
+      "Status update failed: Unable to update the return status due to system constraints or locks.",
+      "Invalid timestamp format: The update_timestamp must be in ISO 8601 date-time format."
+    ],
+    "usage": "Specify return_id and new_status, optionally provide status_reason, update_timestamp, and notify_customer flag.",
+    "output_details": {
+      "update_successful": {
+        "type": "boolean",
+        "description": "Whether the status update was successful"
+      },
+      "previous_status": {
+        "type": "string",
+        "description": "Previous status before the update"
+      },
+      "updated_timestamp": {
+        "type": "string",
+        "description": "Timestamp when the update was applied",
+        "format": "date-time"
+      },
+      "notification_sent": {
+        "type": "boolean",
+        "description": "Whether customer notification was sent"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Exception Handler",
+    "tool_description": "Identifies, classifies, and handles shipping exceptions and anomalies in return tracking.",
+    "parameters": {
+      "tracking_events": {
+        "type": "array",
+        "required": true,
+        "description": "Array of tracking events to analyze for exceptions",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Return request identifier"
+      },
+      "expected_delivery_date": {
+        "type": "string",
+        "required": false,
+        "description": "Expected delivery date for delay detection",
+        "format": "date-time",
+        "default": null
+      },
+      "escalation_threshold_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Hours after which to escalate unresolved exceptions (1-720)",
+        "default": 48
+      }
+    },
+    "error_messages": [
+      "Invalid tracking events: Tracking events array cannot be empty and must contain valid event descriptions.",
+      "Return ID not found: The specified return_id does not exist in the system.",
+      "Invalid escalation threshold: escalation_threshold_hours must be between 1 and 720 hours.",
+      "Exception processing failed: Unable to process exceptions due to system error."
+    ],
+    "usage": "Provide tracking_events and return_id, optionally specify expected_delivery_date and escalation_threshold_hours.",
+    "output_details": {
+      "exceptions_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of identified exceptions or anomalies"
+      },
+      "exception_severity": {
+        "type": "string",
+        "description": "Severity level (low, medium, high, critical)"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Recommended action to resolve the exceptions"
+      },
+      "requires_escalation": {
+        "type": "boolean",
+        "description": "Whether the exception requires escalation"
+      },
+      "estimated_resolution_hours": {
+        "type": "integer",
+        "description": "Estimated hours to resolve the exception"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Notification Sender",
+    "tool_description": "Sends notifications to customers about return shipment status updates via email, SMS, or push notifications.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Return request identifier"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification (status_update, delivery_confirmation, exception_alert, delay_notice)"
+      },
+      "message_content": {
+        "type": "string",
+        "required": true,
+        "description": "Main notification message content"
+      },
+      "delivery_channels": {
+        "type": "array",
+        "required": false,
+        "description": "Channels to send notification (email, sms, push)",
+        "items": {
+          "type": "string"
+        },
+        "default": ["email"]
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Notification priority (low, normal, high)",
+        "default": "normal"
+      },
+      "include_tracking_link": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include tracking link in notification",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Customer not found: The specified customer_id does not exist in the system.",
+      "Invalid notification type: Use one of [status_update, delivery_confirmation, exception_alert, delay_notice].",
+      "Invalid delivery channel: Supported channels are email, sms, and push.",
+      "Message content too long: Notification message exceeds maximum character limit.",
+      "Notification delivery failed: Unable to deliver notification through specified channels."
+    ],
+    "usage": "Provide customer_id, return_id, notification_type, and message_content, optionally specify delivery_channels, priority, and include_tracking_link.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent notification"
+      },
+      "delivery_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Status of delivery for each channel (sent, delivered, failed)"
+      },
+      "sent_timestamp": {
+        "type": "string",
+        "description": "Timestamp when notification was sent",
+        "format": "date-time"
+      },
+      "channels_used": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Channels through which notification was sent"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipment Event Parser",
+    "tool_description": "Parses and standardizes raw tracking events from different carriers into a unified format.",
+    "parameters": {
+      "raw_events": {
+        "type": "string",
+        "required": true,
+        "description": "Raw tracking events data from carrier API"
+      },
+      "carrier_format": {
+        "type": "string",
+        "required": true,
+        "description": "Source carrier format (ups_json, fedex_xml, usps_json, dhl_json)"
+      },
+      "timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Timezone for event timestamps (e.g., UTC, America/New_York)",
+        "default": "UTC"
+      },
+      "include_location_details": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include detailed location information",
+        "default": true
+      },
+      "filter_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to remove duplicate events",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid raw events format: The raw_events data is not in a valid format or is corrupted.",
+      "Unsupported carrier format: Use one of [ups_json, fedex_xml, usps_json, dhl_json].",
+      "Invalid timezone: Provide a valid timezone identifier (e.g., UTC, America/New_York).",
+      "Parsing failed: Unable to parse the raw events data due to format inconsistencies."
+    ],
+    "usage": "Provide raw_events and carrier_format, optionally specify timezone, include_location_details, and filter_duplicates flags.",
+    "output_details": {
+      "parsed_events": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Standardized tracking events in chronological order"
+      },
+      "event_count": {
+        "type": "integer",
+        "description": "Total number of parsed events"
+      },
+      "latest_status": {
+        "type": "string",
+        "description": "Most recent shipment status"
+      },
+      "parsing_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any errors encountered during parsing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Timeline Calculator",
+    "tool_description": "Calculates delivery timelines, estimates, and compares actual vs expected delivery times for return shipments.",
+    "parameters": {
+      "shipment_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when the return shipment was initiated",
+        "format": "date-time"
+      },
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping service type (ground, express, overnight, standard)"
+      },
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin ZIP code"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination ZIP code"
+      },
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping carrier (UPS, FedEx, USPS, DHL)"
+      },
+      "actual_delivery_date": {
+        "type": "string",
+        "required": false,
+        "description": "Actual delivery date if known",
+        "format": "date-time",
+        "default": null
+      },
+      "exclude_weekends": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to exclude weekends from business day calculations",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid date format: shipment_date and actual_delivery_date must be in ISO 8601 date-time format.",
+      "Invalid service type: Use one of [ground, express, overnight, standard].",
+      "Invalid ZIP codes: origin_zip and destination_zip must be valid postal codes.",
+      "Unsupported carrier: Use one of [UPS, FedEx, USPS, DHL].",
+      "Timeline calculation failed: Unable to calculate delivery timeline due to invalid input parameters."
+    ],
+    "usage": "Provide shipment_date, service_type, origin_zip, destination_zip, and carrier, optionally specify actual_delivery_date and exclude_weekends.",
+    "output_details": {
+      "estimated_delivery_date": {
+        "type": "string",
+        "description": "Calculated estimated delivery date",
+        "format": "date-time"
+      },
+      "business_days_estimate": {
+        "type": "integer",
+        "description": "Estimated delivery time in business days"
+      },
+      "actual_delivery_date": {
+        "type": "string",
+        "description": "Actual delivery date if provided",
+        "format": "date-time"
+      },
+      "delivery_variance_days": {
+        "type": "integer",
+        "description": "Difference between estimated and actual delivery (negative = early, positive = late)"
+      },
+      "on_time_status": {
+        "type": "string",
+        "description": "Delivery performance status (early, on_time, late, pending)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Inventory Updater",
+    "tool_description": "Updates inventory levels and item status when return shipments are confirmed as delivered to processing facilities.",
+    "parameters": {
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Return request identifier"
+      },
+      "items": {
+        "type": "array",
+        "required": true,
+        "description": "Array of item SKUs being returned",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities for each returned item",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "warehouse_location": {
+        "type": "string",
+        "required": true,
+        "description": "Warehouse or facility code where items were delivered"
+      },
+      "condition_status": {
+        "type": "array",
+        "required": false,
+        "description": "Condition of returned items (new, used, damaged, defective)",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "update_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of inventory update (received, quarantine, restockable)",
+        "default": "received"
+      },
+      "inspection_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether items require inspection before restocking",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Return ID not found: The specified return_id does not exist in the system.",
+      "Items and quantities mismatch: The items and quantities arrays must have the same length.",
+      "Invalid warehouse location: The warehouse_location code is not recognized in the system.",
+      "Invalid condition status: Use one of [new, used, damaged, defective] for condition_status values.",
+      "Invalid update type: Use one of [received, quarantine, restockable] for update_type.",
+      "Inventory update failed: Unable to update inventory due to system constraints or item locks."
+    ],
+    "usage": "Provide return_id, items, quantities, and warehouse_location, optionally specify condition_status, update_type, and inspection_required.",
+    "output_details": {
+      "update_successful": {
+        "type": "boolean",
+        "description": "Whether the inventory update was successful"
+      },
+      "updated_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of successfully updated item SKUs"
+      },
+      "failed_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of items that failed to update"
+      },
+      "new_inventory_levels": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Updated inventory quantities for each item"
+      },
+      "update_timestamp": {
+        "type": "string",
+        "description": "Timestamp when inventory was updated",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tracking History Logger",
+    "tool_description": "Logs and maintains a complete audit trail of all tracking events and status changes for return shipments.",
+    "parameters": {
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Return request identifier"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Shipment tracking number"
+      },
+      "event_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of event (status_change, location_update, exception, delivery)"
+      },
+      "event_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the tracking event"
+      },
+      "event_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Timestamp when the event occurred",
+        "format": "date-time"
+      },
+      "location": {
+        "type": "string",
+        "required": false,
+        "description": "Geographic location associated with the event",
+        "default": null
+      },
+      "carrier": {
+        "type": "string",
+        "required": false,
+        "description": "Shipping carrier that reported the event",
+        "default": null
+      },
+      "additional_data": {
+        "type": "string",
+        "required": false,
+        "description": "Additional event data in JSON format",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Return ID not found: The specified return_id does not exist in the system.",
+      "Invalid event type: Use one of [status_change, location_update, exception, delivery].",
+      "Invalid timestamp format: event_timestamp must be in ISO 8601 date-time format.",
+      "Logging failed: Unable to log the tracking event due to database or system error.",
+      "Duplicate event: This exact event has already been logged for this return."
+    ],
+    "usage": "Provide return_id, tracking_number, event_type, event_description, and event_timestamp, optionally include location, carrier, and additional_data.",
+    "output_details": {
+      "log_id": {
+        "type": "string",
+        "description": "Unique identifier for the logged event"
+      },
+      "logged_successfully": {
+        "type": "boolean",
+        "description": "Whether the event was successfully logged"
+      },
+      "log_timestamp": {
+        "type": "string",
+        "description": "Timestamp when the event was logged in the system",
+        "format": "date-time"
+      },
+      "total_events": {
+        "type": "integer",
+        "description": "Total number of events logged for this return"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi Carrier Status Aggregator",
+    "tool_description": "Aggregates and consolidates tracking information from multiple carriers and provides unified status reporting for return shipments.",
+    "parameters": {
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Return request identifier"
+      },
+      "tracking_sources": {
+        "type": "array",
+        "required": true,
+        "description": "Array of tracking data sources in JSON format",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "carriers": {
+        "type": "array",
+        "required": true,
+        "description": "Array of carrier names corresponding to tracking sources",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "tracking_numbers": {
+        "type": "array",
+        "required": true,
+        "description": "Array of tracking numbers from different carriers",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "priority_carrier": {
+        "type": "string",
+        "required": false,
+        "description": "Primary carrier to use for status resolution conflicts",
+        "default": null
+      },
+      "consolidation_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Strategy for handling multiple statuses (latest, priority_carrier, most_advanced)",
+        "default": "most_advanced"
+      },
+      "include_all_events": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include events from all carriers in the output",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: tracking_sources, carriers, and tracking_numbers arrays must have the same length.",
+      "Invalid consolidation strategy: Use one of [latest, priority_carrier, most_advanced].",
+      "Priority carrier not found: The specified priority_carrier is not in the carriers array.",
+      "Aggregation failed: Unable to aggregate tracking data due to format inconsistencies.",
+      "No valid tracking data: None of the provided tracking sources contain valid data."
+    ],
+    "usage": "Provide return_id, tracking_sources, carriers, and tracking_numbers arrays, optionally specify priority_carrier, consolidation_strategy, and include_all_events.",
+    "output_details": {
+      "unified_status": {
+        "type": "string",
+        "description": "Consolidated shipment status across all carriers"
+      },
+      "primary_location": {
+        "type": "string",
+        "description": "Current location based on the most recent reliable data"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Best estimated delivery date from all sources",
+        "format": "date-time"
+      },
+      "status_confidence": {
+        "type": "string",

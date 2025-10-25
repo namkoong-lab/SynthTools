@@ -1,0 +1,866 @@
+field_name: healthcare_medical
+subfield: Electronic Health Records Management
+task: Medical history documentation and clinical note recording
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves complex medical documentation requiring accuracy, compliance with standards, integration across systems, and handling sensitive data. The scope includes patient history capture, clinical note structuring, terminology standardization, and workflow coordination among healthcare providers. **Difficulty: Hard** due to high error impact, regulatory requirements, data sensitivity, and need for precise medical coding.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'm targeting 17 tools within the 15-20 range to cover the comprehensive workflows needed for medical documentation, from patient intake through clinical coding and record management.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and Dependencies:**
+  1. Patient Demographics Validator → Medical Record Creator
+  2. Medical History Collector → Clinical Note Generator, Symptom Assessor
+  3. Vital Signs Recorder → Clinical Note Generator, Assessment Documenter
+  4. Medication List Manager → Drug Interaction Checker, Clinical Note Generator
+  5. Allergy Information Recorder → Clinical Note Generator, Safety Alert Generator
+  6. Symptom Assessor → Diagnosis Suggester, Clinical Note Generator
+  7. Physical Exam Documenter → Assessment Documenter, Clinical Note Generator
+  8. Diagnosis Suggester → Medical Code Mapper, Treatment Planner
+  9. Treatment Planner → Clinical Note Generator, Care Plan Generator
+  10. Medical Code Mapper → Billing Code Validator, Record Archiver
+  11. Clinical Note Generator → Note Template Formatter, Record Validator
+  12. Note Template Formatter → Record Archiver, Audit Trail Creator
+  13. Drug Interaction Checker → Safety Alert Generator, Clinical Note Generator
+  14. Laboratory Results Parser → Clinical Note Generator, Trend Analyzer
+  15. Care Plan Generator → Patient Communication Generator, Follow-up Scheduler
+  16. Record Validator → Record Archiver, Compliance Checker
+  17. Audit Trail Creator → Compliance Checker, Record Archiver
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. Basic patient registration: Patient Demographics Validator → Medical Record Creator → Record Validator
+  2. Vital signs documentation: Vital Signs Recorder → Clinical Note Generator → Record Archiver
+
+  **Medium Plans:**
+  1. Initial patient assessment: Medical History Collector → Symptom Assessor → Physical Exam Documenter → Clinical Note Generator → Record Validator
+  2. Medication review: Medication List Manager → Drug Interaction Checker → Safety Alert Generator → Clinical Note Generator → Record Archiver
+
+  **Complex Plans:**
+  1. Complete clinical encounter: Patient Demographics Validator → Medical History Collector → Vital Signs Recorder → Symptom Assessor → Physical Exam Documenter → Diagnosis Suggester → Medical Code Mapper → Treatment Planner → Clinical Note Generator → Record Validator → Audit Trail Creator
+  2. Comprehensive care planning: Laboratory Results Parser → Symptom Assessor → Diagnosis Suggester → Treatment Planner → Care Plan Generator → Patient Communication Generator → Follow-up Scheduler → Record Archiver
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Patient Demographics Validator",
+    "tool_description": "Validates and standardizes patient demographic information including identity verification, insurance details, and contact information for medical record creation.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": false,
+        "description": "Existing patient identifier if updating records",
+        "default": null
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's legal first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's legal last name"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's date of birth in ISO format",
+        "format": "date-time"
+      },
+      "gender": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's gender (Male, Female, Other, Unknown)"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": true,
+        "description": "Primary contact phone number"
+      },
+      "email": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's email address",
+        "default": null
+      },
+      "insurance_id": {
+        "type": "string",
+        "required": false,
+        "description": "Insurance policy number",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid name format: Names must contain only letters, spaces, hyphens, and apostrophes.",
+      "Invalid date of birth: Must be a valid date in ISO format and not in the future.",
+      "Invalid gender value: Must be one of [Male, Female, Other, Unknown].",
+      "Invalid phone number: Must be a valid 10-digit US phone number format.",
+      "Invalid email format: Must be a properly formatted email address if provided.",
+      "Patient ID not found: The provided patient_id does not exist in the system."
+    ],
+    "usage": "Provide required demographic fields (first_name, last_name, date_of_birth, gender, phone_number) and optional fields (patient_id, email, insurance_id). The tool validates all information and returns standardized demographic data ready for record creation.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result (Valid, Invalid, Warning)"
+      },
+      "validated_patient_id": {
+        "type": "string",
+        "description": "Confirmed or newly generated patient identifier"
+      },
+      "standardized_demographics": {
+        "type": "string",
+        "description": "Formatted demographic information string"
+      },
+      "validation_warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of non-critical validation warnings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Medical History Collector",
+    "tool_description": "Systematically collects and structures comprehensive patient medical history including past illnesses, surgeries, family history, and social history for clinical documentation.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier for medical history collection"
+      },
+      "chief_complaint": {
+        "type": "string",
+        "required": true,
+        "description": "Primary reason for the current visit"
+      },
+      "past_medical_history": {
+        "type": "array",
+        "required": false,
+        "description": "List of previous medical conditions",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "past_surgical_history": {
+        "type": "array",
+        "required": false,
+        "description": "List of previous surgical procedures",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "family_history": {
+        "type": "array",
+        "required": false,
+        "description": "Relevant family medical history items",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "social_history": {
+        "type": "string",
+        "required": false,
+        "description": "Social history including smoking, alcohol, drug use",
+        "default": null
+      },
+      "review_of_systems": {
+        "type": "array",
+        "required": false,
+        "description": "Systematic review of body systems symptoms",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "immunization_status": {
+        "type": "string",
+        "required": false,
+        "description": "Current immunization status summary",
+        "default": "Unknown"
+      },
+      "occupation": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's current occupation",
+        "default": null
+      },
+      "travel_history": {
+        "type": "string",
+        "required": false,
+        "description": "Recent travel history if medically relevant",
+        "default": null
+      },
+      "pregnancy_status": {
+        "type": "string",
+        "required": false,
+        "description": "Pregnancy status for female patients (Pregnant, Not Pregnant, Unknown, N/A)",
+        "default": "N/A"
+      },
+      "emergency_contact": {
+        "type": "string",
+        "required": false,
+        "description": "Emergency contact information",
+        "default": null
+      },
+      "preferred_language": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's preferred language for communication",
+        "default": "English"
+      }
+    },
+    "error_messages": [
+      "Patient ID not found: The provided patient_id does not exist in the system.",
+      "Missing chief complaint: Chief complaint is required and cannot be empty.",
+      "Invalid pregnancy status: Must be one of [Pregnant, Not Pregnant, Unknown, N/A].",
+      "History format error: Medical history items must be non-empty strings.",
+      "Invalid language code: Preferred language must be a recognized language name."
+    ],
+    "usage": "Provide patient_id and chief_complaint as minimum requirements. Add detailed medical history through the various array and string parameters. The tool structures all information into a comprehensive medical history record.",
+    "output_details": {
+      "collection_status": {
+        "type": "string",
+        "description": "Status of history collection (Complete, Incomplete, Pending)"
+      },
+      "structured_history": {
+        "type": "string",
+        "description": "Formatted medical history summary"
+      },
+      "risk_factors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Identified medical risk factors from history"
+      },
+      "completeness_score": {
+        "type": "integer",
+        "description": "Percentage score of history completeness (0-100)"
+      },
+      "missing_elements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of missing or incomplete history elements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Vital Signs Recorder",
+    "tool_description": "Records and validates patient vital signs measurements with automatic flagging of abnormal values and trend analysis capabilities.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier for vital signs recording"
+      },
+      "measurement_time": {
+        "type": "string",
+        "required": true,
+        "description": "Timestamp when vitals were measured",
+        "format": "date-time"
+      },
+      "blood_pressure_systolic": {
+        "type": "integer",
+        "required": false,
+        "description": "Systolic blood pressure in mmHg (60-250)",
+        "default": null
+      },
+      "blood_pressure_diastolic": {
+        "type": "integer",
+        "required": false,
+        "description": "Diastolic blood pressure in mmHg (30-150)",
+        "default": null
+      },
+      "heart_rate": {
+        "type": "integer",
+        "required": false,
+        "description": "Heart rate in beats per minute (20-200)",
+        "default": null
+      },
+      "respiratory_rate": {
+        "type": "integer",
+        "required": false,
+        "description": "Respiratory rate in breaths per minute (5-60)",
+        "default": null
+      },
+      "temperature": {
+        "type": "number",
+        "required": false,
+        "description": "Body temperature in Fahrenheit (85-110)",
+        "default": null
+      },
+      "oxygen_saturation": {
+        "type": "integer",
+        "required": false,
+        "description": "Oxygen saturation percentage (70-100)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Patient ID not found: The provided patient_id does not exist in the system.",
+      "Invalid measurement time: Timestamp must be valid and not in the future.",
+      "Blood pressure out of range: Systolic must be 60-250 mmHg, diastolic must be 30-150 mmHg.",
+      "Heart rate out of range: Must be between 20-200 beats per minute.",
+      "Temperature out of range: Must be between 85-110 degrees Fahrenheit.",
+      "Oxygen saturation invalid: Must be between 70-100 percent.",
+      "Respiratory rate invalid: Must be between 5-60 breaths per minute.",
+      "No vital signs provided: At least one vital sign measurement must be provided."
+    ],
+    "usage": "Provide patient_id and measurement_time, then include any combination of vital sign measurements. The tool validates ranges, flags abnormal values, and stores the measurements with appropriate alerts.",
+    "output_details": {
+      "recording_status": {
+        "type": "string",
+        "description": "Status of vital signs recording (Recorded, Warning, Critical)"
+      },
+      "abnormal_flags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of abnormal vital signs with severity indicators"
+      },
+      "vital_signs_summary": {
+        "type": "string",
+        "description": "Formatted summary of all recorded vital signs"
+      },
+      "critical_alerts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Critical vital sign alerts requiring immediate attention"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Clinical Note Generator",
+    "tool_description": "Generates structured clinical notes by combining patient data, assessment findings, and provider observations into standardized medical documentation formats.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier for clinical note creation"
+      },
+      "provider_id": {
+        "type": "string",
+        "required": true,
+        "description": "Healthcare provider identifier creating the note"
+      },
+      "note_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of clinical note (Progress, Admission, Discharge, Consultation)"
+      },
+      "encounter_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date and time of the clinical encounter",
+        "format": "date-time"
+      },
+      "subjective_findings": {
+        "type": "string",
+        "required": false,
+        "description": "Patient-reported symptoms and concerns",
+        "default": null
+      },
+      "objective_findings": {
+        "type": "string",
+        "required": false,
+        "description": "Provider observations and examination findings",
+        "default": null
+      },
+      "assessment": {
+        "type": "string",
+        "required": false,
+        "description": "Clinical assessment and diagnosis",
+        "default": null
+      },
+      "plan": {
+        "type": "string",
+        "required": false,
+        "description": "Treatment plan and follow-up instructions",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Patient ID not found: The provided patient_id does not exist in the system.",
+      "Provider ID invalid: The provided provider_id is not authorized for documentation.",
+      "Invalid note type: Must be one of [Progress, Admission, Discharge, Consultation].",
+      "Invalid encounter date: Must be a valid timestamp and not in the future.",
+      "Missing required content: At least one SOAP component (Subjective, Objective, Assessment, Plan) must be provided.",
+      "Note content too long: Each section must be under 2000 characters."
+    ],
+    "usage": "Provide patient_id, provider_id, note_type, and encounter_date as required fields. Include clinical content in subjective_findings, objective_findings, assessment, and plan fields. The tool generates a properly formatted clinical note following SOAP documentation standards.",
+    "output_details": {
+      "note_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated clinical note"
+      },
+      "formatted_note": {
+        "type": "string",
+        "description": "Complete formatted clinical note in SOAP format"
+      },
+      "note_status": {
+        "type": "string",
+        "description": "Status of note generation (Draft, Complete, Signed)"
+      },
+      "word_count": {
+        "type": "integer",
+        "description": "Total word count of the clinical note"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "Timestamp when the note was created",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Medical Code Mapper",
+    "tool_description": "Maps clinical diagnoses, procedures, and treatments to standardized medical coding systems including ICD-10, CPT, and HCPCS codes for billing and documentation purposes.",
+    "parameters": {
+      "diagnosis_description": {
+        "type": "string",
+        "required": false,
+        "description": "Clinical diagnosis description to map to ICD-10 code",
+        "default": null
+      },
+      "procedure_description": {
+        "type": "string",
+        "required": false,
+        "description": "Medical procedure description to map to CPT code",
+        "default": null
+      },
+      "coding_system": {
+        "type": "string",
+        "required": true,
+        "description": "Target coding system (ICD-10, CPT, HCPCS)"
+      },
+      "search_terms": {
+        "type": "array",
+        "required": false,
+        "description": "Additional search terms for code mapping",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "include_modifiers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include relevant coding modifiers in results",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid coding system: Must be one of [ICD-10, CPT, HCPCS].",
+      "Insufficient search criteria: Provide either diagnosis_description, procedure_description, or search_terms.",
+      "Description too vague: Provide more specific clinical terms for accurate code mapping.",
+      "No matching codes found: No codes found matching the provided description or search terms.",
+      "Multiple ambiguous matches: Description matches multiple codes, please provide more specific terms."
+    ],
+    "usage": "Specify the coding_system and provide either diagnosis_description, procedure_description, or search_terms. Set include_modifiers to true if coding modifiers are needed. The tool returns matched codes with descriptions and confidence scores.",
+    "output_details": {
+      "mapping_status": {
+        "type": "string",
+        "description": "Status of code mapping (Success, Partial, Failed)"
+      },
+      "matched_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of matched medical codes with descriptions"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each matched code (0.0-1.0)"
+      },
+      "suggested_modifiers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended coding modifiers if applicable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Drug Interaction Checker",
+    "tool_description": "Analyzes medication lists for potential drug-drug interactions, contraindications, and dosing conflicts with severity assessment and clinical recommendations.",
+    "parameters": {
+      "patient_medications": {
+        "type": "array",
+        "required": true,
+        "description": "List of current patient medications with names and dosages",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "new_medication": {
+        "type": "string",
+        "required": false,
+        "description": "New medication being considered for addition",
+        "default": null
+      },
+      "patient_allergies": {
+        "type": "array",
+        "required": false,
+        "description": "Known patient drug allergies",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "include_severity_minor": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include minor severity interactions in results",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid medication list: At least one current medication must be provided.",
+      "Medication not recognized: One or more medications are not found in the drug database.",
+      "Medication list too long: Maximum of 50 medications can be analyzed at once.",
+      "Invalid medication format: Medications should include drug name and strength/dosage.",
+      "Allergy information incomplete: Allergy entries should specify the allergen and reaction type."
+    ],
+    "usage": "Provide the patient_medications array with current medications. Optionally add a new_medication to check for interactions and patient_allergies for allergy screening. Set include_severity_minor to control the detail level of interaction reporting.",
+    "output_details": {
+      "interaction_count": {
+        "type": "integer",
+        "description": "Total number of drug interactions found"
+      },
+      "critical_interactions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "High-severity drug interactions requiring immediate attention"
+      },
+      "moderate_interactions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Moderate-severity interactions requiring monitoring"
+      },
+      "allergy_alerts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Allergy conflicts with current or new medications"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Clinical recommendations for managing identified interactions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Record Validator",
+    "tool_description": "Validates medical records for completeness, accuracy, and compliance with healthcare documentation standards and regulatory requirements.",
+    "parameters": {
+      "record_id": {
+        "type": "string",
+        "required": true,
+        "description": "Medical record identifier to validate"
+      },
+      "validation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of validation (Complete, HIPAA, Billing, Clinical)"
+      },
+      "check_signatures": {
+        "type": "boolean",
+        "required": false,
+        "description": "Verify provider signatures and authentication",
+        "default": true
+      },
+      "check_dates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Validate date consistency and chronology",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Record not found: The provided record_id does not exist in the system.",
+      "Invalid validation type: Must be one of [Complete, HIPAA, Billing, Clinical].",
+      "Validation access denied: Insufficient permissions to validate this record type.",
+      "Record locked: Cannot validate a record that is currently being edited.",
+      "System validation error: Unable to complete validation due to system constraints."
+    ],
+    "usage": "Provide record_id and validation_type to specify which record to validate and the validation criteria to apply. Use check_signatures and check_dates flags to control specific validation components. The tool returns validation results with any identified issues.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result (Valid, Invalid, Warning, Incomplete)"
+      },
+      "compliance_score": {
+        "type": "integer",
+        "description": "Compliance percentage score (0-100)"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation errors that must be corrected"
+      },
+      "validation_warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation warnings for review"
+      },
+      "missing_elements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Required elements missing from the record"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Symptom Assessor",
+    "tool_description": "Systematically evaluates patient symptoms using standardized assessment scales and clinical decision support to aid in diagnosis and treatment planning.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier for symptom assessment"
+      },
+      "primary_symptoms": {
+        "type": "array",
+        "required": true,
+        "description": "List of primary symptoms reported by patient",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "symptom_duration": {
+        "type": "string",
+        "required": true,
+        "description": "Duration of symptoms (e.g., '3 days', '2 weeks', '6 months')"
+      },
+      "symptom_severity": {
+        "type": "integer",
+        "required": true,
+        "description": "Pain/symptom severity scale 1-10"
+      },
+      "associated_symptoms": {
+        "type": "array",
+        "required": false,
+        "description": "Additional associated symptoms",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "aggravating_factors": {
+        "type": "array",
+        "required": false,
+        "description": "Factors that worsen symptoms",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "relieving_factors": {
+        "type": "array",
+        "required": false,
+        "description": "Factors that improve symptoms",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Patient ID not found: The provided patient_id does not exist in the system.",
+      "Invalid symptom severity: Must be an integer between 1-10.",
+      "Insufficient symptom data: At least one primary symptom must be provided.",
+      "Invalid duration format: Duration should be in format like '3 days', '2 weeks', '6 months'.",
+      "Too many symptoms: Maximum of 20 primary symptoms can be assessed at once.",
+      "Symptom description too vague: Provide more specific symptom descriptions for accurate assessment."
+    ],
+    "usage": "Provide patient_id, primary_symptoms array, symptom_duration, and symptom_severity as required fields. Add associated_symptoms, aggravating_factors, and relieving_factors for comprehensive assessment. The tool analyzes symptom patterns and provides clinical insights.",
+    "output_details": {
+      "assessment_summary": {
+        "type": "string",
+        "description": "Comprehensive symptom assessment summary"
+      },
+      "severity_classification": {
+        "type": "string",
+        "description": "Overall severity classification (Mild, Moderate, Severe)"
+      },
+      "differential_diagnoses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Potential diagnoses based on symptom pattern"
+      },
+      "recommended_assessments": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggested additional assessments or tests"
+      },
+      "red_flags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning signs requiring immediate attention"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Laboratory Results Parser",
+    "tool_description": "Parses and interprets laboratory test results, flags abnormal values, and integrates findings with patient clinical context for documentation.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier for lab results"
+      },
+      "lab_report": {
+        "type": "string",
+        "required": true,
+        "description": "Raw laboratory report data or structured lab values"
+      },
+      "test_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when laboratory tests were performed",
+        "format": "date-time"
+      },
+      "test_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of laboratory tests performed",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 30
+      },
+      "reference_ranges": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include reference ranges in interpretation",
+        "default": true
+      },
+      "critical_values_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Focus only on critical/abnormal values",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Patient ID not found: The provided patient_id does not exist in the system.",
+      "Invalid lab report format: Lab report must be properly formatted or structured data.",
+      "Test date invalid: Test date must be valid and not in the future.",
+      "Unrecognized test types: One or more test types are not recognized in the system.",
+      "Lab report parsing failed: Unable to extract valid test results from the provided report.",
+      "Too many test types: Maximum of 30 test types can be processed at once."
+    ],
+    "usage": "Provide patient_id, lab_report data, test_date, and test_types array. Use reference_ranges and critical_values_only flags to control the level of detail in result interpretation. The tool parses results and provides clinical interpretation.",
+    "output_details": {
+      "parsing_status": {
+        "type": "string",
+        "description": "Status of lab report parsing (Success, Partial, Failed)"
+      },
+      "abnormal_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of abnormal lab values with interpretations"
+      },
+      "critical_values": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Critical lab values requiring immediate attention"
+      },
+      "normal_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Normal lab values within reference ranges"
+      },
+      "clinical_significance": {
+        "type": "string",
+        "description": "Clinical interpretation and significance of results"
+      },
+      "follow_up_recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended follow-up actions based on results"
+      }
+    }
+  }
+  ```
+
+  ```

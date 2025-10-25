@@ -1,0 +1,780 @@
+field_name: ecommerce_and_retail
+subfield: Shopping Cart and Checkout Systems
+task: Handle inventory validation and stock availability checks
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium difficulty. It involves coordinating across multiple data sources (inventory databases, real-time stock levels, product catalogs), handling time-sensitive data that changes rapidly, and requires robust error handling for stock discrepancies. The impact of errors is significant as they can lead to overselling or poor customer experience, but the core workflows are well-established in e-commerce systems.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools within the 10-15 range. This allows for comprehensive coverage of inventory validation workflows including stock checking, reservation management, availability calculations, and validation processes.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Product Catalog Validator** - Consumes: product IDs → Produces: product existence/validity status
+  2. **Real Time Stock Checker** - Consumes: product IDs, warehouse locations → Produces: current stock levels
+  3. **Inventory Reservation Manager** - Consumes: product quantities, customer session → Produces: reservation confirmations
+  4. **Stock Availability Calculator** - Consumes: product requests, location data → Produces: availability analysis
+  5. **Batch Stock Validator** - Consumes: multiple product/quantity pairs → Produces: batch validation results
+  6. **Warehouse Stock Aggregator** - Consumes: product ID, multiple locations → Produces: consolidated stock data
+  7. **Stock Threshold Monitor** - Consumes: current stock, threshold rules → Produces: low stock alerts
+  8. **Pre Order Availability Checker** - Consumes: product IDs, future dates → Produces: pre-order availability
+  9. **Cart Inventory Synchronizer** - Consumes: cart contents, real-time stock → Produces: synchronized cart state
+  10. **Stock Reservation Validator** - Consumes: existing reservations, new requests → Produces: reservation feasibility
+  11. **Inventory Conflict Resolver** - Consumes: competing stock requests → Produces: conflict resolution decisions
+  12. **Stock Level Forecaster** - Consumes: historical data, current trends → Produces: predicted availability windows
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Stock Check** (2-3 tools): Product Catalog Validator → Real Time Stock Checker → Stock Availability Calculator. Accomplishes: Verify a single product's availability for immediate purchase.
+  2. **Quick Cart Validation** (2-3 tools): Batch Stock Validator → Cart Inventory Synchronizer. Accomplishes: Validate all items in a shopping cart against current inventory.
+
+  **Medium Plans:**
+  1. **Multi-Warehouse Fulfillment** (4-5 tools): Product Catalog Validator → Warehouse Stock Aggregator → Stock Availability Calculator → Inventory Reservation Manager → Stock Reservation Validator. Accomplishes: Find optimal fulfillment across multiple warehouses with reservation.
+  2. **Low Stock Management** (4-5 tools): Real Time Stock Checker → Stock Threshold Monitor → Pre Order Availability Checker → Stock Level Forecaster. Accomplishes: Handle products approaching out-of-stock with pre-order options.
+
+  **Complex Plans:**
+  1. **High-Traffic Checkout Flow** (7-8 tools): Product Catalog Validator → Real Time Stock Checker → Stock Reservation Validator → Inventory Conflict Resolver → Inventory Reservation Manager → Cart Inventory Synchronizer → Stock Threshold Monitor. Accomplishes: Complete checkout validation under high concurrency with conflict resolution.
+  2. **Advanced Inventory Analytics** (6-7 tools): Warehouse Stock Aggregator → Stock Level Forecaster → Pre Order Availability Checker → Stock Threshold Monitor → Inventory Conflict Resolver → Cart Inventory Synchronizer. Accomplishes: Comprehensive inventory management with predictive capabilities and conflict handling.
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Product Catalog Validator",
+    "tool_description": "Validates whether product IDs exist in the catalog and returns basic product information including active status and availability for purchase.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of product IDs to validate",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "include_variants": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Include product variants in validation"
+      }
+    },
+    "error_messages": [
+      "Invalid product_ids: Array must contain 1-100 valid product ID strings",
+      "Catalog connection failed: Unable to connect to product catalog service, retry in a few seconds",
+      "Malformed product ID: One or more product IDs contain invalid characters or format"
+    ],
+    "usage": "Pass an array of product IDs to check their existence and status in the product catalog. Set include_variants to false to exclude variant products from results.",
+    "output_details": {
+      "valid_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of product IDs that exist and are active"
+      },
+      "invalid_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of product IDs that don't exist or are inactive"
+      },
+      "validation_timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp when validation was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Real Time Stock Checker",
+    "tool_description": "Retrieves current stock levels for products from specified warehouses or all available locations with real-time accuracy.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product ID to check stock levels for"
+      },
+      "warehouse_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Specific warehouse IDs to check, or null for all warehouses",
+        "maxItems": 50
+      },
+      "include_reserved": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Include reserved stock in the count"
+      },
+      "include_damaged": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Include damaged/unsellable stock in the count"
+      }
+    },
+    "error_messages": [
+      "Product not found: The specified product_id does not exist in inventory system",
+      "Warehouse not found: One or more warehouse_ids are invalid or inaccessible",
+      "Real-time data unavailable: Stock data is temporarily unavailable, try again shortly",
+      "Excessive warehouse count: Maximum 50 warehouses can be queried simultaneously"
+    ],
+    "usage": "Provide a product_id and optionally specify warehouse_ids array. Use include_reserved and include_damaged flags to control what stock counts are included.",
+    "output_details": {
+      "product_id": {
+        "type": "string",
+        "description": "The product ID that was checked"
+      },
+      "total_available": {
+        "type": "integer",
+        "description": "Total available stock across all specified locations"
+      },
+      "warehouse_stock": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of warehouse_id:stock_count pairs"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of last stock update"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Reservation Manager",
+    "tool_description": "Creates, updates, or releases inventory reservations for specific products and quantities tied to customer sessions or orders.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: create, update, release, or extend"
+      },
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product ID for the reservation"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Quantity to reserve (must be positive)"
+      },
+      "customer_session_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer session or cart identifier"
+      },
+      "warehouse_id": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Preferred warehouse for reservation, null for automatic selection"
+      },
+      "reservation_duration_minutes": {
+        "type": "integer",
+        "required": false,
+        "default": 15,
+        "description": "How long to hold the reservation (5-120 minutes)"
+      },
+      "existing_reservation_id": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Required for update, release, or extend actions"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Must be one of create, update, release, or extend",
+      "Insufficient stock: Not enough available inventory to fulfill reservation",
+      "Invalid quantity: Quantity must be a positive integer",
+      "Reservation not found: existing_reservation_id does not exist or has expired",
+      "Session conflict: Another reservation exists for this session and product",
+      "Invalid duration: reservation_duration_minutes must be between 5 and 120",
+      "Warehouse unavailable: Specified warehouse_id cannot fulfill this reservation"
+    ],
+    "usage": "Specify action, product_id, quantity, and customer_session_id. For update/release/extend actions, also provide existing_reservation_id. Optionally set warehouse_id and reservation_duration_minutes.",
+    "output_details": {
+      "reservation_id": {
+        "type": "string",
+        "description": "Unique identifier for this reservation"
+      },
+      "status": {
+        "type": "string",
+        "description": "Status of the reservation: active, released, expired, or failed"
+      },
+      "expires_at": {
+        "type": "string",
+        "description": "ISO 8601 timestamp when reservation expires"
+      },
+      "warehouse_id": {
+        "type": "string",
+        "description": "Warehouse where inventory is reserved"
+      },
+      "reserved_quantity": {
+        "type": "integer",
+        "description": "Actual quantity reserved (may differ from requested)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Availability Calculator",
+    "tool_description": "Calculates product availability considering current stock, reservations, incoming shipments, and delivery constraints for specific locations and timeframes.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product ID to calculate availability for"
+      },
+      "requested_quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Desired quantity to check availability for"
+      },
+      "delivery_zip_code": {
+        "type": "string",
+        "required": true,
+        "description": "Delivery ZIP code for location-based calculations"
+      },
+      "delivery_date": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Desired delivery date in ISO 8601 format, null for ASAP"
+      },
+      "include_backorders": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Include backordered inventory in calculations"
+      },
+      "include_incoming": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Include expected incoming shipments"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Priority level: standard, expedited, or premium"
+      }
+    },
+    "error_messages": [
+      "Product not found: The specified product_id does not exist",
+      "Invalid quantity: requested_quantity must be a positive integer",
+      "Invalid ZIP code: delivery_zip_code format is incorrect or not serviceable",
+      "Invalid delivery date: delivery_date must be in ISO 8601 format and in the future",
+      "Invalid priority level: Must be one of standard, expedited, or premium",
+      "Location not serviceable: No warehouses can deliver to the specified ZIP code"
+    ],
+    "usage": "Provide product_id, requested_quantity, and delivery_zip_code. Optionally specify delivery_date, and set flags for include_backorders, include_incoming, and priority_level to refine calculations.",
+    "output_details": {
+      "is_available": {
+        "type": "boolean",
+        "description": "Whether the requested quantity is available"
+      },
+      "available_quantity": {
+        "type": "integer",
+        "description": "Maximum quantity available for the specified criteria"
+      },
+      "estimated_delivery_date": {
+        "type": "string",
+        "description": "ISO 8601 estimated delivery date"
+      },
+      "fulfillment_warehouse": {
+        "type": "string",
+        "description": "Warehouse ID that would fulfill the order"
+      },
+      "shipping_cost_estimate": {
+        "type": "number",
+        "description": "Estimated shipping cost in dollars"
+      },
+      "availability_reasons": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Factors affecting availability (in-stock, backorder, incoming, etc.)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Stock Validator",
+    "tool_description": "Validates stock availability for multiple product-quantity pairs simultaneously, providing comprehensive validation results for shopping carts or bulk orders.",
+    "parameters": {
+      "product_quantities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of product_id:quantity pairs (e.g., 'ABC123:5')",
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "validation_mode": {
+        "type": "string",
+        "required": false,
+        "default": "strict",
+        "description": "Validation mode: strict (all must be available) or flexible (partial fulfillment allowed)"
+      },
+      "customer_session_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer session ID for reservation context"
+      },
+      "warehouse_preference": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Ordered list of preferred warehouses",
+        "maxItems": 10
+      },
+      "ignore_existing_reservations": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Ignore existing reservations for this customer session"
+      },
+      "consolidate_shipments": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Attempt to fulfill from single warehouse when possible"
+      },
+      "max_backorder_days": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Maximum days to wait for backordered items"
+      },
+      "include_substitutions": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Include product substitutions in validation results"
+      },
+      "priority_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Product IDs to prioritize in allocation",
+        "maxItems": 50
+      }
+    },
+    "error_messages": [
+      "Invalid product_quantities format: Each item must be 'product_id:quantity' format",
+      "Batch size exceeded: Maximum 200 product-quantity pairs allowed per batch",
+      "Invalid validation_mode: Must be either 'strict' or 'flexible'",
+      "Session ID required: customer_session_id cannot be empty",
+      "Invalid warehouse preference: One or more warehouse IDs are invalid",
+      "Invalid backorder days: max_backorder_days must be between 0 and 365",
+      "Too many priority products: Maximum 50 products can be marked as priority"
+    ],
+    "usage": "Provide an array of product_id:quantity pairs and customer_session_id. Configure validation behavior with validation_mode, warehouse_preference, and other optional parameters to control fulfillment logic.",
+    "output_details": {
+      "overall_status": {
+        "type": "string",
+        "description": "Overall validation status: available, partial, or unavailable"
+      },
+      "validated_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of validation results for each product"
+      },
+      "total_available_value": {
+        "type": "number",
+        "description": "Total dollar value of available items"
+      },
+      "fulfillment_warehouses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of warehouses needed for complete fulfillment"
+      },
+      "estimated_ship_date": {
+        "type": "string",
+        "description": "ISO 8601 estimated ship date for the entire batch"
+      },
+      "substitution_suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Suggested product substitutions if requested"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Warehouse Stock Aggregator",
+    "tool_description": "Aggregates stock information across multiple warehouses for specific products, providing consolidated inventory views and optimal fulfillment recommendations.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product ID to aggregate stock information for"
+      },
+      "warehouse_regions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Filter by warehouse regions (e.g., 'northeast', 'west')",
+        "maxItems": 20
+      },
+      "exclude_warehouses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Warehouse IDs to exclude from aggregation",
+        "maxItems": 50
+      },
+      "stock_threshold": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": "Minimum stock level to include warehouse in results"
+      }
+    },
+    "error_messages": [
+      "Product not found: The specified product_id does not exist in any warehouse",
+      "Invalid warehouse region: One or more warehouse_regions are not recognized",
+      "Invalid warehouse exclusion: One or more warehouse IDs in exclude_warehouses are invalid",
+      "Invalid stock threshold: stock_threshold must be a non-negative integer",
+      "No warehouses available: All warehouses are excluded or below threshold"
+    ],
+    "usage": "Provide product_id and optionally filter results by warehouse_regions, exclude_warehouses, or stock_threshold to get consolidated inventory information across warehouses.",
+    "output_details": {
+      "total_stock": {
+        "type": "integer",
+        "description": "Total available stock across all included warehouses"
+      },
+      "warehouse_breakdown": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of warehouse_id:stock_count:region tuples"
+      },
+      "recommended_fulfillment": {
+        "type": "string",
+        "description": "Warehouse ID recommended for optimal fulfillment"
+      },
+      "stock_distribution": {
+        "type": "string",
+        "description": "Distribution pattern: concentrated, distributed, or sparse"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Threshold Monitor",
+    "tool_description": "Monitors stock levels against predefined thresholds and generates alerts for low stock, out of stock, or overstock conditions with recommended actions.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Product IDs to monitor for threshold violations",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "low_stock_threshold": {
+        "type": "integer",
+        "required": false,
+        "default": 10,
+        "description": "Threshold below which to trigger low stock alerts"
+      },
+      "critical_stock_threshold": {
+        "type": "integer",
+        "required": false,
+        "default": 2,
+        "description": "Critical stock level requiring immediate attention"
+      },
+      "overstock_threshold": {
+        "type": "integer",
+        "required": false,
+        "default": null,
+        "description": "Threshold above which to trigger overstock alerts"
+      }
+    },
+    "error_messages": [
+      "Invalid product list: product_ids must contain 1-1000 valid product IDs",
+      "Invalid threshold values: Thresholds must be non-negative integers with critical < low < overstock",
+      "Products not found: Some product IDs do not exist in the inventory system",
+      "Monitoring service unavailable: Unable to access current stock levels for monitoring"
+    ],
+    "usage": "Provide an array of product_ids to monitor and optionally set threshold values. The tool will check current stock levels against thresholds and return alerts and recommendations.",
+    "output_details": {
+      "alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of alert messages for threshold violations"
+      },
+      "low_stock_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs below low stock threshold"
+      },
+      "critical_stock_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs at critical stock levels"
+      },
+      "out_of_stock_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that are completely out of stock"
+      },
+      "overstock_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs above overstock threshold"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended actions for each threshold violation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pre Order Availability Checker",
+    "tool_description": "Checks availability for pre-order and backorder scenarios, considering expected restock dates, supplier lead times, and pre-order quotas.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product ID to check pre-order availability for"
+      },
+      "requested_quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Quantity requested for pre-order"
+      },
+      "desired_delivery_date": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Customer's desired delivery date in ISO 8601 format"
+      },
+      "pre_order_type": {
+        "type": "string",
+        "required": false,
+        "default": "backorder",
+        "description": "Type of pre-order: backorder, upcoming_release, seasonal_restock"
+      }
+    },
+    "error_messages": [
+      "Product not available for pre-order: The specified product does not support pre-order functionality",
+      "Invalid quantity: requested_quantity must be a positive integer",
+      "Invalid delivery date: desired_delivery_date must be in ISO 8601 format and in the future",
+      "Invalid pre-order type: Must be one of backorder, upcoming_release, seasonal_restock",
+      "Pre-order quota exceeded: Requested quantity exceeds available pre-order allocation"
+    ],
+    "usage": "Provide product_id and requested_quantity, optionally specify desired_delivery_date and pre_order_type to check pre-order availability and get estimated fulfillment information.",
+    "output_details": {
+      "pre_order_available": {
+        "type": "boolean",
+        "description": "Whether pre-order is available for requested quantity"
+      },
+      "available_pre_order_quantity": {
+        "type": "integer",
+        "description": "Maximum quantity available for pre-order"
+      },
+      "estimated_fulfillment_date": {
+        "type": "string",
+        "description": "ISO 8601 estimated date when pre-order will be fulfilled"
+      },
+      "pre_order_price": {
+        "type": "number",
+        "description": "Pre-order price (may include discount)"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence in fulfillment date: high, medium, or low"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cart Inventory Synchronizer",
+    "tool_description": "Synchronizes shopping cart contents with real-time inventory levels, updating quantities, removing unavailable items, and flagging potential issues.",
+    "parameters": {
+      "customer_session_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer session ID to synchronize cart for"
+      },
+      "cart_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of product_id:quantity pairs currently in cart",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "sync_mode": {
+        "type": "string",
+        "required": false,
+        "default": "adjust",
+        "description": "Synchronization mode: adjust (modify quantities), remove (remove unavailable), or notify (flag only)"
+      },
+      "preserve_reservations": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Maintain existing inventory reservations during sync"
+      },
+      "auto_substitute": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Automatically suggest substitutions for unavailable items"
+      }
+    },
+    "error_messages": [
+      "Invalid session: customer_session_id is not recognized or has expired",
+      "Invalid cart format: cart_items must be array of product_id:quantity pairs",
+      "Cart too large: Maximum 500 items allowed in cart",
+      "Invalid sync mode: Must be one of adjust, remove, or notify",
+      "Synchronization failed: Unable to connect to inventory system for real-time data"
+    ],
+    "usage": "Provide customer_session_id and current cart_items array. Choose sync_mode to control how discrepancies are handled, and set flags for preserve_reservations and auto_substitute as needed.",
+    "output_details": {
+      "synchronized_cart": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Updated cart contents after synchronization"
+      },
+      "changes_made": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Description of changes made during synchronization"
+      },
+      "removed_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Items removed due to unavailability"
+      },
+      "quantity_adjustments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Items with adjusted quantities"
+      },
+      "suggested_substitutions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Suggested product substitutions if auto_substitute enabled"
+      },
+      "sync_timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp when synchronization was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Reservation Validator",
+    "tool_description": "Validates the feasibility of new stock reservations against existing reservations, current inventory, and business rules to prevent overselling.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product ID for the new reservation request"
+      },
+      "requested_quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Quantity requested for reservation"
+      },
+      "customer_session_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer session ID making the reservation request"
+      },
+      "warehouse_id": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Specific warehouse for reservation, null for any available"
+      },
+      "check_existing_session": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Check for existing reservations by the same customer session"
+      }
+    },
+    "error_messages": [
+      "Product not found: The specified product_id does not exist",
+      "Invalid quantity: requested_quantity must be a positive integer",
+      "Invalid session: customer_session_id is malformed or empty",
+      "Warehouse not found: Specified warehouse_id is invalid or unavailable",
+      "Insufficient stock: Not enough available inventory after accounting for existing reservations",
+      "Duplicate reservation: Customer session already has a reservation for this product",
+      "Validation service unavailable: Unable to access reservation data for validation"
+    ],
+    "usage": "Provide product_id, requested_quantity, and customer_session_id to validate reservation feasibility. Optionally specify warehouse_id and set check_existing_session flag to control validation behavior.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the reservation request can be fulfilled"
+      },
+      "available_quantity": {
+        "type": "integer",
+        "description": "Maximum quantity available for reservation"
+      },
+      "conflicting_reservations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Details of existing conflicting reservations"
+      },
+      "recommended_warehouse": {
+        "type": "string",
+        "description": "Optimal warehouse ID for the reservation"
+      },
+      "validation_timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp when validation was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Conflict Resolver",
+    "tool_description": "Resolves conflicts when multiple customers or processes compete for the same inventory, implementing fair allocation algorithms and business priority rules.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product ID with conflicting inventory demands"
+      },
+      "competing_requests": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of session_id:quantity:priority tu

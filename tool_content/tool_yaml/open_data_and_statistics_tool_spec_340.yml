@@ -1,0 +1,857 @@
+field_name: open_data_and_statistics
+subfield: Government Transparency and Public Records
+task: Public records search and retrieval across government databases
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves medium complexity due to the diversity of government database structures, varying access protocols, potential authentication requirements, and the need to handle different data formats across multiple jurisdictions. The coordination between search, retrieval, parsing, and compliance verification adds moderate complexity.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools to cover the various workflows involved in searching and retrieving public records across different government databases.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their dependencies:**
+  1. **Database Registry Search** - Consumes: search criteria → Produces: available databases list
+  2. **Record Query Builder** - Consumes: search parameters → Produces: structured query
+  3. **Authentication Manager** - Consumes: database credentials → Produces: access tokens
+  4. **Record Search Executor** - Consumes: queries, auth tokens → Produces: search results
+  5. **Bulk Record Retriever** - Consumes: record IDs, auth tokens → Produces: raw records
+  6. **Record Parser** - Consumes: raw records → Produces: structured data
+  7. **Data Format Converter** - Consumes: structured data → Produces: standardized format
+  8. **Compliance Checker** - Consumes: records, jurisdiction → Produces: compliance status
+  9. **Access Rights Validator** - Consumes: user info, database → Produces: permission status
+  10. **Search Results Merger** - Consumes: multiple result sets → Produces: consolidated results
+  11. **Record Export Generator** - Consumes: processed records → Produces: export files
+  12. **Request Status Tracker** - Consumes: request IDs → Produces: status updates
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Single Database Search**: Database Registry Search → Record Query Builder → Authentication Manager → Record Search Executor → Record Parser
+  2. **Export Ready Records**: Record Search Executor → Record Parser → Data Format Converter → Record Export Generator
+
+  **Medium Plans:**
+  1. **Compliant Multi-Database Search**: Database Registry Search → Access Rights Validator → Record Query Builder → Authentication Manager → Record Search Executor → Search Results Merger → Compliance Checker
+  2. **Bulk Retrieval with Validation**: Bulk Record Retriever → Record Parser → Data Format Converter → Compliance Checker → Record Export Generator
+
+  **Complex Plans:**
+  1. **Full Cross-Jurisdiction Search**: Database Registry Search → Access Rights Validator → Authentication Manager → Record Query Builder → Record Search Executor → Bulk Record Retriever → Record Parser → Data Format Converter → Compliance Checker → Search Results Merger → Record Export Generator
+  2. **Monitored Long-Running Request**: Authentication Manager → Record Query Builder → Record Search Executor → Request Status Tracker → Bulk Record Retriever → Record Parser → Compliance Checker → Record Export Generator
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Database Registry Search",
+    "tool_description": "Searches available government databases based on jurisdiction, record type, and other criteria to identify relevant data sources for public records retrieval.",
+    "parameters": {
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Government jurisdiction (federal, state, county, city, or specific agency name)"
+      },
+      "record_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of public record sought (court, property, business, permits, etc.)"
+      },
+      "geographic_scope": {
+        "type": "string",
+        "required": false,
+        "description": "Geographic area or location filter",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid jurisdiction: Provide a valid government jurisdiction name or agency identifier.",
+      "Unsupported record type: The specified record type is not available in our database registry.",
+      "Geographic scope not found: The provided geographic area is not recognized."
+    ],
+    "usage": "Specify the jurisdiction and record_type to find available databases. Optionally provide geographic_scope to narrow results to specific locations.",
+    "output_details": {
+      "available_databases": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of database identifiers that match the search criteria"
+      },
+      "database_descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Human-readable descriptions of each available database"
+      },
+      "access_requirements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Authentication or permission requirements for each database"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Record Query Builder",
+    "tool_description": "Constructs structured queries for government database searches using standardized parameters and handles database-specific query syntax.",
+    "parameters": {
+      "database_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target database identifier from registry search"
+      },
+      "search_terms": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Keywords or phrases to search for",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for record date filtering (ISO 8601 format)",
+        "format": "date-time",
+        "default": "None"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date for record date filtering (ISO 8601 format)",
+        "format": "date-time",
+        "default": "None"
+      },
+      "result_limit": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of results to return (1-1000)",
+        "default": 100
+      },
+      "sort_field": {
+        "type": "string",
+        "required": false,
+        "description": "Field to sort results by",
+        "default": "date"
+      },
+      "sort_order": {
+        "type": "string",
+        "required": false,
+        "description": "Sort order: ascending or descending",
+        "default": "descending"
+      }
+    },
+    "error_messages": [
+      "Invalid database_id: The specified database identifier is not recognized.",
+      "Empty search terms: At least one search term must be provided.",
+      "Invalid date range: Ensure date_range_start is before date_range_end and both use ISO 8601 format.",
+      "Result limit out of range: result_limit must be between 1 and 1000.",
+      "Invalid sort parameters: sort_order must be 'ascending' or 'descending'."
+    ],
+    "usage": "Provide database_id and search_terms to build a query. Optionally set date ranges, result limits, and sorting preferences. The tool returns a structured query object ready for execution.",
+    "output_details": {
+      "query_string": {
+        "type": "string",
+        "description": "Formatted query string for the target database"
+      },
+      "query_parameters": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of parameter values used in the query"
+      },
+      "estimated_results": {
+        "type": "integer",
+        "description": "Estimated number of records that match the query"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Authentication Manager",
+    "tool_description": "Manages authentication and authorization for accessing government databases, handling API keys, tokens, and credential validation.",
+    "parameters": {
+      "database_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target database requiring authentication"
+      },
+      "auth_type": {
+        "type": "string",
+        "required": true,
+        "description": "Authentication method: api_key, oauth, basic_auth, or certificate"
+      },
+      "credentials": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Authentication credentials (API key, username/password, etc.)",
+        "minItems": 1,
+        "maxItems": 5
+      }
+    },
+    "error_messages": [
+      "Invalid database_id: The specified database is not found or does not require authentication.",
+      "Unsupported auth_type: Use one of [api_key, oauth, basic_auth, certificate].",
+      "Invalid credentials: The provided credentials are malformed or insufficient for the auth_type.",
+      "Authentication failed: The credentials were rejected by the target database.",
+      "Token expired: The authentication token has expired and needs renewal."
+    ],
+    "usage": "Specify database_id, auth_type, and appropriate credentials array. For api_key, provide [key]. For basic_auth, provide [username, password]. For oauth, provide [client_id, client_secret]. The tool returns valid access tokens.",
+    "output_details": {
+      "access_token": {
+        "type": "string",
+        "description": "Valid access token for database authentication"
+      },
+      "token_expiry": {
+        "type": "string",
+        "description": "Token expiration timestamp",
+        "format": "date-time"
+      },
+      "auth_status": {
+        "type": "string",
+        "description": "Authentication status message"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Record Search Executor",
+    "tool_description": "Executes constructed queries against government databases and retrieves search results with metadata.",
+    "parameters": {
+      "database_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target database identifier"
+      },
+      "query_string": {
+        "type": "string",
+        "required": true,
+        "description": "Formatted query string from query builder"
+      },
+      "access_token": {
+        "type": "string",
+        "required": false,
+        "description": "Authentication token if required",
+        "default": "None"
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Query timeout in seconds (10-300)",
+        "default": 60
+      }
+    },
+    "error_messages": [
+      "Database connection failed: Unable to connect to the specified database.",
+      "Query execution error: The query syntax is invalid or unsupported by the target database.",
+      "Authentication required: Valid access_token is required for this database.",
+      "Query timeout: The search exceeded the specified timeout period.",
+      "Rate limit exceeded: Too many requests to the database within the allowed time window."
+    ],
+    "usage": "Provide database_id and query_string from the query builder. Include access_token if authentication is required. Optionally set timeout_seconds for long-running queries.",
+    "output_details": {
+      "search_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of record identifiers or summary information matching the query"
+      },
+      "total_matches": {
+        "type": "integer",
+        "description": "Total number of records matching the query"
+      },
+      "execution_time": {
+        "type": "number",
+        "description": "Query execution time in seconds"
+      },
+      "next_page_token": {
+        "type": "string",
+        "description": "Token for retrieving additional results if pagination is needed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bulk Record Retriever",
+    "tool_description": "Retrieves full record details for multiple record IDs from government databases, handling batch operations and rate limiting.",
+    "parameters": {
+      "database_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target database identifier"
+      },
+      "record_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of record identifiers to retrieve",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "access_token": {
+        "type": "string",
+        "required": false,
+        "description": "Authentication token if required",
+        "default": "None"
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of records to process per batch (1-100)",
+        "default": 25
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include record metadata in results",
+        "default": true
+      },
+      "retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of retry attempts for failed retrievals (0-5)",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Invalid record_ids: One or more record identifiers are not found in the specified database.",
+      "Batch size out of range: batch_size must be between 1 and 100.",
+      "Authentication required: Valid access_token is required for this database.",
+      "Rate limit exceeded: Reduce batch_size or add delays between requests.",
+      "Retrieval failed: Some records could not be retrieved after maximum retry attempts."
+    ],
+    "usage": "Provide database_id and array of record_ids to retrieve. Include access_token if required. Adjust batch_size and retry_attempts based on database performance and reliability.",
+    "output_details": {
+      "retrieved_records": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of full record content in original database format"
+      },
+      "successful_retrievals": {
+        "type": "integer",
+        "description": "Number of records successfully retrieved"
+      },
+      "failed_retrievals": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of record IDs that could not be retrieved"
+      },
+      "retrieval_timestamp": {
+        "type": "string",
+        "description": "Timestamp when retrieval was completed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Record Parser",
+    "tool_description": "Parses raw government records from various formats into structured data, extracting key fields and metadata.",
+    "parameters": {
+      "raw_records": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of raw record content to parse",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "source_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format of input records: xml, json, csv, pdf_text, html, or fixed_width"
+      },
+      "parsing_schema": {
+        "type": "string",
+        "required": false,
+        "description": "Specific parsing schema or template to use",
+        "default": "auto_detect"
+      },
+      "extract_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Specific fields to extract from records",
+        "default": "None"
+      },
+      "date_format": {
+        "type": "string",
+        "required": false,
+        "description": "Expected date format in source records",
+        "default": "auto_detect"
+      }
+    },
+    "error_messages": [
+      "Unsupported source_format: Use one of [xml, json, csv, pdf_text, html, fixed_width].",
+      "Parsing failed: Unable to parse records with the specified format and schema.",
+      "Invalid parsing_schema: The specified schema is not available or malformed.",
+      "Field extraction error: One or more specified fields could not be found in the records.",
+      "Date format mismatch: Unable to parse dates with the specified or detected format."
+    ],
+    "usage": "Provide raw_records array and source_format. Optionally specify parsing_schema, extract_fields, and date_format for customized parsing. The tool returns structured data extracted from the raw records.",
+    "output_details": {
+      "parsed_records": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of structured record data in JSON-like string format"
+      },
+      "parsing_success_rate": {
+        "type": "number",
+        "description": "Percentage of records successfully parsed"
+      },
+      "extracted_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of field names found and extracted from records"
+      },
+      "parsing_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of error messages for records that failed parsing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Format Converter",
+    "tool_description": "Converts parsed government records between different data formats and applies standardization for consistent output across databases.",
+    "parameters": {
+      "input_records": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of structured records to convert",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "output_format": {
+        "type": "string",
+        "required": true,
+        "description": "Target output format: json, csv, xml, or standardized"
+      },
+      "standardization_level": {
+        "type": "string",
+        "required": false,
+        "description": "Level of data standardization: none, basic, or full",
+        "default": "basic"
+      }
+    },
+    "error_messages": [
+      "Unsupported output_format: Use one of [json, csv, xml, standardized].",
+      "Invalid standardization_level: Use one of [none, basic, full].",
+      "Conversion failed: Unable to convert records to the specified output format.",
+      "Data structure mismatch: Input records have inconsistent structure for the requested conversion."
+    ],
+    "usage": "Provide input_records and specify the desired output_format. Set standardization_level to control how much data normalization to apply during conversion.",
+    "output_details": {
+      "converted_records": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of records in the requested output format"
+      },
+      "conversion_summary": {
+        "type": "string",
+        "description": "Summary of the conversion process and any transformations applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Checker",
+    "tool_description": "Validates that retrieved records comply with privacy regulations, access restrictions, and redaction requirements for public disclosure.",
+    "parameters": {
+      "records": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of records to check for compliance",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Government jurisdiction for compliance rules"
+      },
+      "record_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of records being checked"
+      },
+      "requester_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of entity requesting records: public, media, researcher, legal, or government"
+      },
+      "check_privacy": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check for privacy violations",
+        "default": true
+      },
+      "apply_redactions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply automatic redactions",
+        "default": true
+      },
+      "compliance_standard": {
+        "type": "string",
+        "required": false,
+        "description": "Specific compliance standard to apply: FOIA, state_sunshine, HIPAA, or FERPA",
+        "default": "FOIA"
+      }
+    },
+    "error_messages": [
+      "Invalid jurisdiction: The specified jurisdiction is not recognized for compliance checking.",
+      "Unsupported record_type: The record type is not supported for compliance validation.",
+      "Invalid requester_type: Use one of [public, media, researcher, legal, government].",
+      "Unsupported compliance_standard: Use one of [FOIA, state_sunshine, HIPAA, FERPA].",
+      "Compliance check failed: Unable to complete compliance validation due to data format issues."
+    ],
+    "usage": "Provide records, jurisdiction, record_type, and requester_type to validate compliance. Set check_privacy and apply_redactions based on disclosure requirements. Specify compliance_standard if different from FOIA.",
+    "output_details": {
+      "compliant_records": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of records that passed compliance checks, with redactions applied if requested"
+      },
+      "compliance_issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of compliance issues found in the records"
+      },
+      "redaction_summary": {
+        "type": "string",
+        "description": "Summary of redactions applied to protect sensitive information"
+      },
+      "disclosure_allowed": {
+        "type": "boolean",
+        "description": "Whether the records can be disclosed to the specified requester type"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Access Rights Validator",
+    "tool_description": "Validates user permissions and access rights for specific government databases and record types before attempting retrieval.",
+    "parameters": {
+      "user_credentials": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "User identification credentials",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "database_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target database to validate access for"
+      },
+      "record_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Types of records user wants to access",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "access_purpose": {
+        "type": "string",
+        "required": true,
+        "description": "Purpose of access request: research, journalism, legal, personal, or commercial"
+      },
+      "organization": {
+        "type": "string",
+        "required": false,
+        "description": "Requesting organization name",
+        "default": "None"
+      },
+      "jurisdiction_override": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether user has special jurisdiction override privileges",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid user_credentials: User identification credentials are malformed or insufficient.",
+      "Database not found: The specified database_id does not exist in the registry.",
+      "Unsupported record_types: One or more record types are not available in the target database.",
+      "Invalid access_purpose: Use one of [research, journalism, legal, personal, commercial].",
+      "Access denied: User does not have permission to access the requested records.",
+      "Verification failed: Unable to verify user credentials with the authentication system."
+    ],
+    "usage": "Provide user_credentials, database_id, record_types, and access_purpose to validate access rights. Include organization if accessing on behalf of an entity. Set jurisdiction_override for users with special privileges.",
+    "output_details": {
+      "access_granted": {
+        "type": "boolean",
+        "description": "Whether access is granted for the requested database and record types"
+      },
+      "permitted_record_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of record types user is permitted to access"
+      },
+      "access_level": {
+        "type": "string",
+        "description": "Level of access granted: full, limited, or restricted"
+      },
+      "restrictions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any restrictions or conditions on the granted access"
+      },
+      "expiration_date": {
+        "type": "string",
+        "description": "When the access permission expires",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Search Results Merger",
+    "tool_description": "Combines and deduplicates search results from multiple government databases, resolving conflicts and creating unified result sets.",
+    "parameters": {
+      "result_sets": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of search result sets to merge",
+        "minItems": 2,
+        "maxItems": 20
+      },
+      "merge_strategy": {
+        "type": "string",
+        "required": true,
+        "description": "Strategy for merging: union, intersection, or priority_based"
+      },
+      "deduplication_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Fields to use for identifying duplicate records",
+        "default": "None"
+      },
+      "priority_order": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Database priority order for conflict resolution",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid merge_strategy: Use one of [union, intersection, priority_based].",
+      "Insufficient result_sets: At least two result sets are required for merging.",
+      "Incompatible data structures: Result sets have incompatible formats that cannot be merged.",
+      "Missing priority_order: priority_based merge strategy requires priority_order parameter.",
+      "Deduplication failed: Unable to identify duplicates using the specified fields."
+    ],
+    "usage": "Provide multiple result_sets and specify merge_strategy. For deduplication, include deduplication_fields. For priority_based merging, provide priority_order with database identifiers in preference order.",
+    "output_details": {
+      "merged_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Unified result set combining all input results according to the specified strategy"
+      },
+      "duplicate_count": {
+        "type": "integer",
+        "description": "Number of duplicate records identified and removed"
+      },
+      "source_summary": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Summary of records contributed by each source database"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Record Export Generator",
+    "tool_description": "Generates export files from processed government records in various formats with customizable layouts and metadata inclusion.",
+    "parameters": {
+      "records": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of processed records to export",
+        "minItems": 1,
+        "maxItems": 5000
+      },
+      "export_format": {
+        "type": "string",
+        "required": true,
+        "description": "Output format: csv, json, xml, pdf, or excel"
+      },
+      "filename": {
+        "type": "string",
+        "required": true,
+        "description": "Name for the export file"
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include record metadata in export",
+        "default": true
+      },
+      "field_selection": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Specific fields to include in export",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Unsupported export_format: Use one of [csv, json, xml, pdf, excel].",
+      "Invalid filename: Filename contains invalid characters or is empty.",
+      "Export generation failed: Unable to generate export file due to data format issues.",
+      "Field selection error: One or more specified fields are not found in the records."
+    ],
+    "usage": "Provide records array, export_format, and filename to generate an export file. Set include_metadata and field_selection to customize the output content.",
+    "output_details": {
+      "export_path": {
+        "type": "string",
+        "description": "Path to the generated export file"
+      },
+      "file_size": {
+        "type": "integer",
+        "description": "Size of the export file in bytes"
+      },
+      "record_count": {
+        "type": "integer",
+        "description": "Number of records included in the export"
+      },
+      "generation_timestamp": {
+        "type": "string",
+        "description": "When the export was generated",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Request Status Tracker",
+    "tool_description": "Tracks the status of long-running government record requests and provides updates on processing progress and completion.",
+    "parameters": {
+      "request_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of request identifiers to track",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "database_id": {
+        "type": "string",
+        "required": true,
+        "description": "Database where requests were submitted"
+      },
+      "access_token": {
+        "type": "string",
+        "required": false,
+        "description": "Authentication token if required",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid request_ids: One or more request identifiers are not found in the system.",
+      "Database not found: The specified database_id does not exist or is not accessible.",
+      "Authentication required: Valid access_token is required to track requests in this database.",
+      "Status check failed: Unable to retrieve status information from the database."
+    ],
+    "usage": "Provide request_ids array and database_id to check request status. Include access_token if the database requires authentication for status checks.",
+    "output_details": {
+      "request_statuses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Current status of each request (pending, processing, completed, failed, cancelled)"
+      },

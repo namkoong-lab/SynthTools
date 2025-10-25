@@ -1,0 +1,825 @@
+field_name: field_service_management
+subfield: Work Order Management
+task: Create and schedule work orders with customer information, service requirements, and priority levels
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves moderate complexity with multiple interconnected components: customer data management, service requirement specification, priority assessment, scheduling optimization, and resource allocation. The task requires coordination between different data sources and has moderate impact on service delivery, making it a **medium** difficulty task.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'm targeting **12 tools** to cover all aspects of work order creation and scheduling while maintaining composability and focused functionality.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flows:**
+  1. **Customer Data Validator** - Consumes: customer info → Produces: validated customer records
+  2. **Service Requirement Parser** - Consumes: service descriptions → Produces: structured service requirements
+  3. **Priority Level Calculator** - Consumes: urgency, impact factors → Produces: priority scores
+  4. **Technician Availability Checker** - Consumes: time ranges, skill requirements → Produces: available technicians
+  5. **Work Order Creator** - Consumes: validated data, requirements → Produces: work order records
+  6. **Schedule Optimizer** - Consumes: work orders, constraints → Produces: optimized schedules
+  7. **Resource Availability Tracker** - Consumes: resource IDs, time ranges → Produces: availability status
+  8. **SLA Compliance Validator** - Consumes: work orders, SLA rules → Produces: compliance status
+  9. **Equipment Requirement Matcher** - Consumes: service needs → Produces: required equipment lists
+  10. **Location Route Calculator** - Consumes: addresses, vehicle info → Produces: route plans
+  11. **Work Order Status Updater** - Consumes: status changes → Produces: updated records
+  12. **Schedule Conflict Detector** - Consumes: proposed schedules → Produces: conflict reports
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  - Create basic work order: Customer Data Validator → Service Requirement Parser → Work Order Creator
+  - Check technician availability: Technician Availability Checker → Resource Availability Tracker
+
+  **Medium plans:**
+  - Schedule with priority: Priority Level Calculator → Technician Availability Checker → Schedule Optimizer → SLA Compliance Validator
+  - Equipment planning: Service Requirement Parser → Equipment Requirement Matcher → Resource Availability Tracker
+
+  **Complex plans:**
+  - Full work order lifecycle: Customer Data Validator → Service Requirement Parser → Priority Level Calculator → Equipment Requirement Matcher → Technician Availability Checker → Schedule Optimizer → Schedule Conflict Detector → SLA Compliance Validator → Work Order Creator
+  - Route-optimized scheduling: Location Route Calculator → Schedule Optimizer → Schedule Conflict Detector → Work Order Status Updater
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Customer Data Validator",
+    "tool_description": "Validates and standardizes customer information including contact details, service addresses, and account status for work order creation.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer"
+      },
+      "customer_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of the customer"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": true,
+        "description": "Primary contact phone number"
+      },
+      "email": {
+        "type": "string",
+        "required": false,
+        "description": "Customer email address",
+        "default": "None"
+      },
+      "service_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete service location address"
+      }
+    },
+    "error_messages": [
+      "Invalid customer ID: Customer ID must be a non-empty string and exist in the system.",
+      "Invalid phone number: Phone number must be in valid format (e.g., +1-555-123-4567).",
+      "Invalid email format: Email must be in valid format (user@domain.com) if provided.",
+      "Address validation failed: Service address must be a complete, verifiable address.",
+      "Customer account inactive: Customer account is suspended or closed."
+    ],
+    "usage": "Provide customer_id, customer_name, phone_number, and service_address. Optionally include email. The tool validates all information against system records and formatting rules.",
+    "output_details": {
+      "validation_status": {
+        "type": "boolean",
+        "description": "Whether all customer data passed validation"
+      },
+      "validated_customer_id": {
+        "type": "string",
+        "description": "Confirmed customer identifier"
+      },
+      "formatted_phone": {
+        "type": "string",
+        "description": "Phone number in standardized format"
+      },
+      "validated_address": {
+        "type": "string",
+        "description": "Standardized service address"
+      },
+      "account_status": {
+        "type": "string",
+        "description": "Current customer account status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Service Requirement Parser",
+    "tool_description": "Analyzes service descriptions and converts them into structured requirements including skill needs, estimated duration, and required resources.",
+    "parameters": {
+      "service_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the service needed"
+      },
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Category of service (maintenance, repair, installation, inspection)"
+      },
+      "equipment_involved": {
+        "type": "array",
+        "required": false,
+        "description": "List of equipment or systems involved",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty service description: Service description cannot be empty or null.",
+      "Invalid service type: Service type must be one of [maintenance, repair, installation, inspection].",
+      "Description too vague: Service description must contain specific details about the work required."
+    ],
+    "usage": "Provide service_description and service_type. Optionally specify equipment_involved array. The tool extracts structured requirements from the description.",
+    "output_details": {
+      "required_skills": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of skills needed to complete the service"
+      },
+      "estimated_duration_hours": {
+        "type": "number",
+        "description": "Estimated time to complete the work in hours"
+      },
+      "complexity_level": {
+        "type": "string",
+        "description": "Service complexity rating (low, medium, high)"
+      },
+      "safety_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Safety protocols or certifications required"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Priority Level Calculator",
+    "tool_description": "Calculates work order priority based on urgency factors, business impact, customer tier, and SLA requirements.",
+    "parameters": {
+      "urgency_level": {
+        "type": "string",
+        "required": true,
+        "description": "Urgency classification (low, medium, high, critical)"
+      },
+      "business_impact": {
+        "type": "string",
+        "required": true,
+        "description": "Impact on business operations (minimal, moderate, significant, severe)"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service level (basic, premium, enterprise)"
+      },
+      "sla_response_hours": {
+        "type": "number",
+        "required": true,
+        "description": "Required response time in hours per SLA"
+      },
+      "equipment_criticality": {
+        "type": "string",
+        "required": false,
+        "description": "Equipment importance level (non-critical, important, mission-critical)",
+        "default": "non-critical"
+      }
+    },
+    "error_messages": [
+      "Invalid urgency level: Must be one of [low, medium, high, critical].",
+      "Invalid business impact: Must be one of [minimal, moderate, significant, severe].",
+      "Invalid customer tier: Must be one of [basic, premium, enterprise].",
+      "Invalid SLA hours: SLA response hours must be a positive number.",
+      "Invalid equipment criticality: Must be one of [non-critical, important, mission-critical]."
+    ],
+    "usage": "Provide urgency_level, business_impact, customer_tier, and sla_response_hours. Optionally specify equipment_criticality. The tool calculates a comprehensive priority score.",
+    "output_details": {
+      "priority_score": {
+        "type": "integer",
+        "description": "Calculated priority score from 1-100 (higher = more urgent)"
+      },
+      "priority_category": {
+        "type": "string",
+        "description": "Priority classification (P1, P2, P3, P4)"
+      },
+      "recommended_response_time": {
+        "type": "number",
+        "description": "Recommended response time in hours"
+      },
+      "escalation_required": {
+        "type": "boolean",
+        "description": "Whether immediate escalation is needed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Technician Availability Checker",
+    "tool_description": "Checks technician availability based on schedules, skills, location, and workload capacity for specific time periods.",
+    "parameters": {
+      "start_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "Start of availability window to check",
+        "format": "date-time"
+      },
+      "end_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "End of availability window to check",
+        "format": "date-time"
+      },
+      "required_skills": {
+        "type": "array",
+        "required": true,
+        "description": "Skills needed for the work",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "service_location": {
+        "type": "string",
+        "required": true,
+        "description": "Address where service will be performed"
+      },
+      "estimated_duration": {
+        "type": "number",
+        "required": true,
+        "description": "Estimated work duration in hours"
+      },
+      "technician_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific technician IDs to check (if empty, checks all)",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid time range: start_datetime must be before end_datetime and in the future.",
+      "Empty skills list: At least one required skill must be specified.",
+      "Invalid location: Service location must be a valid address.",
+      "Invalid duration: Estimated duration must be a positive number.",
+      "No matching technicians: No technicians found with the required skills."
+    ],
+    "usage": "Provide start_datetime, end_datetime, required_skills, service_location, and estimated_duration. Optionally specify technician_ids to limit search. Returns available technicians with their capacity.",
+    "output_details": {
+      "available_technicians": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of available technician IDs"
+      },
+      "technician_distances": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Distance in miles from each technician to service location"
+      },
+      "capacity_percentages": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Current workload capacity for each available technician (0-100%)"
+      },
+      "earliest_available_time": {
+        "type": "string",
+        "description": "Earliest time when any qualified technician is available",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Work Order Creator",
+    "tool_description": "Creates a new work order record with all validated information, assigns unique ID, and sets initial status.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Validated customer identifier"
+      },
+      "service_address": {
+        "type": "string",
+        "required": true,
+        "description": "Service location address"
+      },
+      "service_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of work to be performed"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": true,
+        "description": "Priority classification (P1, P2, P3, P4)"
+      },
+      "required_skills": {
+        "type": "array",
+        "required": true,
+        "description": "Skills needed for the work",
+        "items": {"type": "string"}
+      },
+      "estimated_duration": {
+        "type": "number",
+        "required": true,
+        "description": "Estimated work duration in hours"
+      },
+      "assigned_technician_id": {
+        "type": "string",
+        "required": false,
+        "description": "ID of assigned technician if already determined",
+        "default": "None"
+      },
+      "scheduled_start_time": {
+        "type": "string",
+        "required": false,
+        "description": "Scheduled start time for the work",
+        "format": "date-time",
+        "default": "None"
+      },
+      "equipment_required": {
+        "type": "array",
+        "required": false,
+        "description": "List of required equipment",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "description": "Any special instructions for the technician",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid customer ID: Customer ID must exist in the system.",
+      "Empty service description: Service description cannot be empty.",
+      "Invalid priority level: Must be one of [P1, P2, P3, P4].",
+      "Empty skills array: At least one required skill must be specified.",
+      "Invalid duration: Estimated duration must be a positive number.",
+      "Invalid technician ID: Assigned technician ID does not exist if provided.",
+      "Invalid scheduled time: Scheduled start time must be in the future if provided."
+    ],
+    "usage": "Provide customer_id, service_address, service_description, priority_level, required_skills, and estimated_duration. Optionally include assigned_technician_id, scheduled_start_time, equipment_required, and special_instructions.",
+    "output_details": {
+      "work_order_id": {
+        "type": "string",
+        "description": "Unique identifier for the created work order"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "When the work order was created",
+        "format": "date-time"
+      },
+      "initial_status": {
+        "type": "string",
+        "description": "Initial status of the work order"
+      },
+      "sla_due_date": {
+        "type": "string",
+        "description": "SLA deadline for completion",
+        "format": "date-time"
+      },
+      "work_order_number": {
+        "type": "string",
+        "description": "Human-readable work order number"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Optimizer",
+    "tool_description": "Optimizes work order scheduling to minimize travel time, maximize technician utilization, and meet SLA requirements.",
+    "parameters": {
+      "work_order_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of work order IDs to schedule",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "optimization_window_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start of scheduling window",
+        "format": "date-time"
+      },
+      "optimization_window_end": {
+        "type": "string",
+        "required": true,
+        "description": "End of scheduling window",
+        "format": "date-time"
+      },
+      "optimization_criteria": {
+        "type": "string",
+        "required": true,
+        "description": "Primary optimization goal (minimize_travel, maximize_utilization, meet_sla)"
+      },
+      "max_daily_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum daily working hours per technician",
+        "default": 8
+      },
+      "travel_buffer_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Buffer time between appointments for travel",
+        "default": 30
+      },
+      "allow_overtime": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether overtime scheduling is allowed",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid work order list: Work order IDs array cannot be empty and must not exceed 50 items.",
+      "Invalid time window: optimization_window_start must be before optimization_window_end.",
+      "Invalid optimization criteria: Must be one of [minimize_travel, maximize_utilization, meet_sla].",
+      "Invalid daily hours: max_daily_hours must be between 6 and 12.",
+      "Invalid travel buffer: travel_buffer_minutes must be between 15 and 120.",
+      "Scheduling conflict: Unable to schedule all work orders within the given constraints."
+    ],
+    "usage": "Provide work_order_ids, optimization_window_start, optimization_window_end, and optimization_criteria. Optionally set max_daily_hours, travel_buffer_minutes, and allow_overtime for fine-tuning.",
+    "output_details": {
+      "optimized_schedule": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of work order IDs in optimized sequence"
+      },
+      "scheduled_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Corresponding scheduled start times for each work order"
+      },
+      "assigned_technicians": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Technician IDs assigned to each work order"
+      },
+      "total_travel_time": {
+        "type": "number",
+        "description": "Total estimated travel time in hours"
+      },
+      "utilization_percentage": {
+        "type": "number",
+        "description": "Average technician utilization percentage"
+      },
+      "sla_compliance_rate": {
+        "type": "number",
+        "description": "Percentage of work orders meeting SLA requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Resource Availability Tracker",
+    "tool_description": "Tracks availability of equipment, tools, vehicles, and other resources needed for work orders during specified time periods.",
+    "parameters": {
+      "resource_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of resource IDs to check",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "start_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "Start of availability check period",
+        "format": "date-time"
+      },
+      "end_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "End of availability check period",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid resource list: resource_ids cannot be empty and must not exceed 20 items.",
+      "Invalid time range: start_datetime must be before end_datetime.",
+      "Resource not found: One or more resource IDs do not exist in the system.",
+      "Past time range: Cannot check availability for past dates."
+    ],
+    "usage": "Provide resource_ids array with the resources to check, plus start_datetime and end_datetime for the availability window. Returns detailed availability status for each resource.",
+    "output_details": {
+      "resource_availability": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Availability status for each requested resource (true = available)"
+      },
+      "unavailable_periods": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Time periods when each resource is unavailable"
+      },
+      "resource_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current location of each resource"
+      },
+      "maintenance_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Maintenance status for each resource (operational, maintenance, repair)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SLA Compliance Validator",
+    "tool_description": "Validates that work order scheduling and assignments comply with service level agreement requirements and customer contracts.",
+    "parameters": {
+      "work_order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Work order ID to validate"
+      },
+      "proposed_start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Proposed start time for the work",
+        "format": "date-time"
+      },
+      "estimated_completion_time": {
+        "type": "string",
+        "required": true,
+        "description": "Expected completion time",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid work order ID: Work order does not exist in the system.",
+      "Invalid time sequence: proposed_start_time must be before estimated_completion_time.",
+      "SLA violation: Proposed schedule violates customer SLA requirements.",
+      "Missing customer SLA: No SLA found for the customer associated with this work order."
+    ],
+    "usage": "Provide work_order_id, proposed_start_time, and estimated_completion_time. The tool checks against all applicable SLA requirements and returns compliance status.",
+    "output_details": {
+      "sla_compliant": {
+        "type": "boolean",
+        "description": "Whether the proposed schedule meets SLA requirements"
+      },
+      "sla_deadline": {
+        "type": "string",
+        "description": "SLA deadline for this work order",
+        "format": "date-time"
+      },
+      "response_time_hours": {
+        "type": "number",
+        "description": "Required response time in hours per SLA"
+      },
+      "compliance_margin": {
+        "type": "number",
+        "description": "Hours before/after SLA deadline (negative = violation)"
+      },
+      "violation_details": {
+        "type": "string",
+        "description": "Details of SLA violations if any"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Equipment Requirement Matcher",
+    "tool_description": "Matches service requirements with specific equipment needs and identifies required tools, parts, and materials for work orders.",
+    "parameters": {
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of service being performed"
+      },
+      "equipment_category": {
+        "type": "string",
+        "required": true,
+        "description": "Category of equipment involved in the service"
+      },
+      "specific_tasks": {
+        "type": "array",
+        "required": true,
+        "description": "List of specific tasks to be performed",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "work_environment": {
+        "type": "string",
+        "required": true,
+        "description": "Work environment type (indoor, outdoor, industrial, residential)"
+      },
+      "safety_level": {
+        "type": "string",
+        "required": false,
+        "description": "Required safety level (standard, elevated, high-risk)",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid service type: Service type must be a recognized service category.",
+      "Invalid equipment category: Equipment category not found in the system.",
+      "Empty tasks list: At least one specific task must be provided.",
+      "Invalid work environment: Must be one of [indoor, outdoor, industrial, residential].",
+      "Invalid safety level: Must be one of [standard, elevated, high-risk].",
+      "Equipment matching failed: Unable to match requirements with available equipment database."
+    ],
+    "usage": "Provide service_type, equipment_category, specific_tasks array, and work_environment. Optionally specify safety_level. The tool returns detailed equipment and material requirements.",
+    "output_details": {
+      "required_tools": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of tools needed for the work"
+      },
+      "required_parts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of parts that may be needed"
+      },
+      "safety_equipment": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Required safety equipment"
+      },
+      "estimated_cost": {
+        "type": "number",
+        "description": "Estimated cost of required materials and parts"
+      },
+      "equipment_weight": {
+        "type": "number",
+        "description": "Total weight of equipment in pounds"
+      },
+      "special_handling": {
+        "type": "boolean",
+        "description": "Whether special handling or transport is required"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Location Route Calculator",
+    "tool_description": "Calculates optimal routes between service locations, estimates travel times, and provides turn-by-turn directions for technicians.",
+    "parameters": {
+      "start_address": {
+        "type": "string",
+        "required": true,
+        "description": "Starting location address"
+      },
+      "destination_addresses": {
+        "type": "array",
+        "required": true,
+        "description": "List of destination addresses in order",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "vehicle_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of vehicle (car, van, truck)"
+      },
+      "optimize_route": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to optimize the order of destinations",
+        "default": true
+      },
+      "avoid_tolls": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to avoid toll roads",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid start address: Starting address cannot be empty or invalid.",
+      "Invalid destinations: Destination addresses array cannot be empty and must not exceed 15 locations.",
+      "Address not found: One or more addresses could not be geocoded.",
+      "Invalid vehicle type: Must be one of [car, van, truck].",
+      "Route calculation failed: Unable to calculate route between specified locations."
+    ],
+    "usage": "Provide start_address, destination_addresses array, and vehicle_type. Optionally set optimize_route and avoid_tolls flags. Returns optimized route with time and distance estimates.",
+    "output_details": {
+      "optimized_sequence": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Optimal order of destination indices"
+      },
+      "total_distance_miles": {
+        "type": "number",
+        "description": "Total route distance in miles"
+      },
+      "total_time_minutes": {
+        "type": "number",
+        "description": "Total estimated travel time in minutes"
+      },
+      "segment_distances": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Distance for each route segment in miles"
+      },
+      "segment_times": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Estimated time for each segment in minutes"
+      },
+      "fuel_estimate": {
+        "type": "number",
+        "description": "Estimated fuel consumption in gallons"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Conflict Detector",
+    "tool_description": "Detects scheduling conflicts between work orders, technician availability, and resource allocation to prevent double-booking.",
+    "parameters": {
+      "proposed_schedule": {
+        "type": "array",
+        "required": true,
+        "description": "Array of work order IDs in proposed schedule order",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "schedule_start_times": {
+        "type": "array",
+        "required": true,
+        "description": "Corresponding start times for each work order",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "technician_assignments": {
+        "type": "array",
+        "required": true,
+        "description": "Technician ID assigned to each work order",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "check_resources": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check for resource conflicts",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: proposed_schedule, schedule_start_times, and technician_assignments must have the same length.",
+      "Invalid schedule format: All arrays must have between 1 and 25 items.",
+      "Invalid datetime format: schedule_start_times must contain valid ISO 8601 datetime strings.",
+      "Technician not found: One or more assigned technician IDs do not exist.",
+      "Work order not found: One or more work order IDs do not exist in the system."
+    ],
+    "usage": "Provide proposed_schedule, schedule_start_times, and technician_assignments arrays of equal length. Optionally set check_resources to include resource conflict detection.",
+    "output_details": {
+      "has_conflicts": {
+        "type": "boolean",
+        "description": "Whether any scheduling conflicts were detected"
+      },
+      "conflict_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Descriptions of each conflict found"
+      },
+      "conflicting_work_orders": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Work order IDs involved in conflicts"
+      },
+      "affected_technicians": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Technician IDs with scheduling conflicts"
+      },
+      "suggested_resolutions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Suggested actions to resolve conflicts"
+      }
+    }
+  }
+  ```

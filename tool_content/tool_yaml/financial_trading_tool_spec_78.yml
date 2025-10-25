@@ -1,0 +1,787 @@
+field_name: financial_trading
+subfield: trade_execution_and_order_management
+task: Trade settlement and confirmation processing
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task involves processing and confirming the final settlement of executed trades, including validation of trade details, counterparty verification, regulatory compliance checks, and integration with clearing systems. The task has medium difficulty due to the coordination between multiple financial institutions, strict regulatory requirements, real-time processing needs, and the high impact of settlement failures on market integrity and firm reputation.
+
+  STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'll target 12 tools to cover the various aspects of trade settlement and confirmation processing, including trade validation, counterparty management, regulatory compliance, settlement processing, and reporting.
+
+  STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Trade Validation Engine** - Consumes: raw trade data → Produces: validated trade records
+  2. **Counterparty Verification Service** - Consumes: counterparty identifiers → Produces: verification status
+  3. **Regulatory Compliance Checker** - Consumes: trade details, regulations → Produces: compliance reports
+  4. **Settlement Instruction Generator** - Consumes: validated trades → Produces: settlement instructions
+  5. **Clearing House Interface** - Consumes: settlement instructions → Produces: clearing confirmations
+  6. **Trade Matching Engine** - Consumes: trade records from both sides → Produces: match results
+  7. **Risk Assessment Calculator** - Consumes: trade details, market data → Produces: risk metrics
+  8. **Confirmation Message Builder** - Consumes: trade data, templates → Produces: confirmation messages
+  9. **Settlement Status Tracker** - Consumes: settlement IDs → Produces: status updates
+  10. **Exception Handler** - Consumes: failed transactions → Produces: exception reports
+  11. **Audit Trail Generator** - Consumes: all transaction data → Produces: audit logs
+  12. **Settlement Reporting Dashboard** - Consumes: settlement data → Produces: summary reports
+
+  STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. Basic trade confirmation: Trade Validation Engine → Confirmation Message Builder → Settlement Status Tracker
+  2. Counterparty check: Counterparty Verification Service → Trade Matching Engine → Confirmation Message Builder
+
+  **Medium Plans:**
+  1. Standard settlement flow: Trade Validation Engine → Counterparty Verification Service → Settlement Instruction Generator → Clearing House Interface → Settlement Status Tracker → Audit Trail Generator
+  2. Risk-based settlement: Trade Validation Engine → Risk Assessment Calculator → Regulatory Compliance Checker → Settlement Instruction Generator → Clearing House Interface
+
+  **Complex Plans:**
+  1. Full settlement lifecycle: Trade Validation Engine → Counterparty Verification Service → Trade Matching Engine → Risk Assessment Calculator → Regulatory Compliance Checker → Settlement Instruction Generator → Clearing House Interface → Settlement Status Tracker → Audit Trail Generator → Settlement Reporting Dashboard
+  2. Exception handling workflow: Trade Validation Engine → Trade Matching Engine → Exception Handler → Risk Assessment Calculator → Settlement Status Tracker → Audit Trail Generator → Settlement Reporting Dashboard
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Trade Validation Engine",
+    "tool_description": "Validates incoming trade data for completeness, accuracy, and format compliance before processing for settlement.",
+    "parameters": {
+      "trade_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the trade transaction"
+      },
+      "instrument_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of financial instrument (equity, bond, derivative, forex)"
+      },
+      "quantity": {
+        "type": "number",
+        "required": true,
+        "description": "Trade quantity, must be positive"
+      },
+      "price": {
+        "type": "number",
+        "required": true,
+        "description": "Trade execution price, must be positive"
+      },
+      "trade_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when trade was executed",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid trade_id: Trade ID must be a non-empty alphanumeric string",
+      "Unsupported instrument_type: Use one of [equity, bond, derivative, forex]",
+      "Invalid quantity: Quantity must be a positive number greater than 0",
+      "Invalid price: Price must be a positive number greater than 0",
+      "Invalid trade_date: Provide a valid ISO 8601 date-time string"
+    ],
+    "usage": "Provide all required trade parameters to validate the trade data structure and values before settlement processing.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Status of validation: PASS or FAIL"
+      },
+      "validated_trade_id": {
+        "type": "string",
+        "description": "Confirmed trade identifier"
+      },
+      "validation_timestamp": {
+        "type": "string",
+        "description": "When validation was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Counterparty Verification Service",
+    "tool_description": "Verifies counterparty credentials, credit status, and regulatory standing for trade settlement authorization.",
+    "parameters": {
+      "counterparty_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the counterparty"
+      },
+      "counterparty_name": {
+        "type": "string",
+        "required": true,
+        "description": "Legal name of the counterparty organization"
+      },
+      "lei_code": {
+        "type": "string",
+        "required": false,
+        "description": "Legal Entity Identifier code",
+        "default": "None"
+      },
+      "credit_check_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform credit assessment",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid counterparty_id: Counterparty ID must be a non-empty string",
+      "Invalid counterparty_name: Counterparty name must be a non-empty string",
+      "Invalid LEI code: LEI code must be 20 characters alphanumeric format",
+      "Counterparty not found: The specified counterparty is not in the system",
+      "Credit check failed: Counterparty does not meet minimum credit requirements"
+    ],
+    "usage": "Provide counterparty identification details to verify their authorization and creditworthiness for trade settlement.",
+    "output_details": {
+      "verification_status": {
+        "type": "string",
+        "description": "Verification result: VERIFIED, PENDING, or FAILED"
+      },
+      "credit_rating": {
+        "type": "string",
+        "description": "Current credit rating of counterparty"
+      },
+      "regulatory_status": {
+        "type": "string",
+        "description": "Regulatory compliance status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Trade Matching Engine",
+    "tool_description": "Matches trade records between counterparties to ensure both sides agree on trade details before settlement.",
+    "parameters": {
+      "primary_trade_id": {
+        "type": "string",
+        "required": true,
+        "description": "Trade ID from primary counterparty"
+      },
+      "secondary_trade_id": {
+        "type": "string",
+        "required": true,
+        "description": "Trade ID from secondary counterparty"
+      },
+      "primary_quantity": {
+        "type": "number",
+        "required": true,
+        "description": "Quantity reported by primary counterparty"
+      },
+      "secondary_quantity": {
+        "type": "number",
+        "required": true,
+        "description": "Quantity reported by secondary counterparty"
+      },
+      "primary_price": {
+        "type": "number",
+        "required": true,
+        "description": "Price reported by primary counterparty"
+      },
+      "secondary_price": {
+        "type": "number",
+        "required": true,
+        "description": "Price reported by secondary counterparty"
+      },
+      "tolerance_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Acceptable variance percentage for matching",
+        "default": 0.01
+      },
+      "match_timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum time to wait for matching in seconds",
+        "default": 300
+      }
+    },
+    "error_messages": [
+      "Invalid trade IDs: Both primary_trade_id and secondary_trade_id must be non-empty strings",
+      "Quantity mismatch: Primary and secondary quantities exceed tolerance threshold",
+      "Price mismatch: Primary and secondary prices exceed tolerance threshold",
+      "Invalid tolerance_percentage: Must be between 0 and 1",
+      "Invalid match_timeout_seconds: Must be a positive integer between 1 and 3600",
+      "Matching timeout: Trade matching could not be completed within specified timeout"
+    ],
+    "usage": "Provide trade details from both counterparties to verify they match within acceptable tolerances before proceeding with settlement.",
+    "output_details": {
+      "match_status": {
+        "type": "string",
+        "description": "Matching result: MATCHED, UNMATCHED, or PENDING"
+      },
+      "matched_trade_id": {
+        "type": "string",
+        "description": "Unified trade identifier for matched trades"
+      },
+      "discrepancies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of any discrepancies found between trade records"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Regulatory Compliance Checker",
+    "tool_description": "Verifies that trade settlement complies with applicable financial regulations and reporting requirements.",
+    "parameters": {
+      "trade_id": {
+        "type": "string",
+        "required": true,
+        "description": "Trade identifier to check for compliance"
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Regulatory jurisdiction (US, EU, UK, APAC)"
+      },
+      "instrument_type": {
+        "type": "string",
+        "required": true,
+        "description": "Financial instrument type for regulatory classification"
+      },
+      "trade_value": {
+        "type": "number",
+        "required": true,
+        "description": "Total value of the trade in base currency"
+      },
+      "counterparty_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of counterparty (bank, broker, institutional, retail)"
+      },
+      "settlement_date": {
+        "type": "string",
+        "required": true,
+        "description": "Intended settlement date",
+        "format": "date-time"
+      },
+      "reporting_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether regulatory reporting is required",
+        "default": true
+      },
+      "risk_category": {
+        "type": "string",
+        "required": false,
+        "description": "Risk classification (low, medium, high)",
+        "default": "medium"
+      },
+      "cross_border": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this is a cross-border transaction",
+        "default": false
+      },
+      "large_exposure": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether trade exceeds large exposure thresholds",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid jurisdiction: Use one of [US, EU, UK, APAC]",
+      "Invalid counterparty_type: Use one of [bank, broker, institutional, retail]",
+      "Invalid risk_category: Use one of [low, medium, high]",
+      "Trade value exceeds regulatory limits: Trade value exceeds maximum allowed for this counterparty type",
+      "Settlement date non-compliant: Settlement date does not meet T+N requirements for this instrument",
+      "Missing regulatory approval: Trade requires additional regulatory approval before settlement",
+      "Prohibited transaction: This trade type is not permitted under current regulations"
+    ],
+    "usage": "Provide trade details and regulatory context to verify compliance with applicable financial regulations before settlement.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Compliance result: COMPLIANT, NON_COMPLIANT, or CONDITIONAL"
+      },
+      "required_reports": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of regulatory reports that must be filed"
+      },
+      "compliance_notes": {
+        "type": "string",
+        "description": "Additional compliance requirements or conditions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Settlement Instruction Generator",
+    "tool_description": "Generates standardized settlement instructions for validated trades to be sent to clearing and settlement systems.",
+    "parameters": {
+      "trade_id": {
+        "type": "string",
+        "required": true,
+        "description": "Validated trade identifier"
+      },
+      "settlement_method": {
+        "type": "string",
+        "required": true,
+        "description": "Settlement method (DVP, FOP, PVP)"
+      },
+      "settlement_currency": {
+        "type": "string",
+        "required": true,
+        "description": "Currency for settlement (3-letter ISO code)"
+      },
+      "custodian_info": {
+        "type": "string",
+        "required": true,
+        "description": "Custodian or depository details"
+      },
+      "settlement_account": {
+        "type": "string",
+        "required": true,
+        "description": "Settlement account identifier"
+      }
+    },
+    "error_messages": [
+      "Invalid settlement_method: Use one of [DVP, FOP, PVP]",
+      "Invalid settlement_currency: Must be a valid 3-letter ISO currency code",
+      "Invalid settlement_account: Settlement account must be a non-empty alphanumeric string",
+      "Trade not validated: Trade must be validated before generating settlement instructions",
+      "Custodian not recognized: Custodian information is not in the approved list"
+    ],
+    "usage": "Provide validated trade details and settlement preferences to generate standardized settlement instructions.",
+    "output_details": {
+      "instruction_id": {
+        "type": "string",
+        "description": "Unique settlement instruction identifier"
+      },
+      "settlement_instructions": {
+        "type": "string",
+        "description": "Formatted settlement instruction message"
+      },
+      "expected_settlement_date": {
+        "type": "string",
+        "description": "Expected settlement completion date"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Risk Assessment Calculator",
+    "tool_description": "Calculates settlement risk metrics including credit risk, liquidity risk, and operational risk for trade settlements.",
+    "parameters": {
+      "trade_id": {
+        "type": "string",
+        "required": true,
+        "description": "Trade identifier for risk assessment"
+      },
+      "counterparty_rating": {
+        "type": "string",
+        "required": true,
+        "description": "Counterparty credit rating"
+      },
+      "trade_value": {
+        "type": "number",
+        "required": true,
+        "description": "Total trade value for risk calculation"
+      },
+      "settlement_period": {
+        "type": "integer",
+        "required": true,
+        "description": "Days until settlement"
+      },
+      "market_volatility": {
+        "type": "number",
+        "required": false,
+        "description": "Current market volatility measure",
+        "default": 0.2
+      }
+    },
+    "error_messages": [
+      "Invalid counterparty_rating: Must be a standard credit rating (AAA, AA, A, BBB, etc.)",
+      "Invalid trade_value: Trade value must be a positive number",
+      "Invalid settlement_period: Settlement period must be a positive integer",
+      "Invalid market_volatility: Market volatility must be between 0 and 1",
+      "Insufficient data: Unable to calculate risk metrics with provided parameters"
+    ],
+    "usage": "Provide trade and counterparty details to calculate comprehensive settlement risk metrics.",
+    "output_details": {
+      "credit_risk_score": {
+        "type": "number",
+        "description": "Credit risk score from 0-100"
+      },
+      "liquidity_risk_score": {
+        "type": "number",
+        "description": "Liquidity risk score from 0-100"
+      },
+      "overall_risk_rating": {
+        "type": "string",
+        "description": "Overall risk classification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Clearing House Interface",
+    "tool_description": "Interfaces with external clearing houses to submit settlement instructions and receive confirmation responses.",
+    "parameters": {
+      "clearing_house": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the clearing house (DTCC, LCH, CME)"
+      },
+      "instruction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Settlement instruction identifier"
+      },
+      "instruction_data": {
+        "type": "string",
+        "required": true,
+        "description": "Formatted settlement instruction message"
+      }
+    },
+    "error_messages": [
+      "Unsupported clearing_house: Use one of [DTCC, LCH, CME, EUREX, ICE]",
+      "Invalid instruction_data: Settlement instruction format is not compliant with clearing house standards",
+      "Clearing house unavailable: Cannot connect to clearing house system",
+      "Instruction rejected: Clearing house rejected the settlement instruction",
+      "Timeout error: No response received from clearing house within timeout period"
+    ],
+    "usage": "Submit properly formatted settlement instructions to the specified clearing house and receive confirmation.",
+    "output_details": {
+      "submission_status": {
+        "type": "string",
+        "description": "Submission result: ACCEPTED, REJECTED, or PENDING"
+      },
+      "clearing_reference": {
+        "type": "string",
+        "description": "Clearing house reference number"
+      },
+      "response_message": {
+        "type": "string",
+        "description": "Response message from clearing house"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Confirmation Message Builder",
+    "tool_description": "Creates standardized trade confirmation messages in various formats for counterparties and internal systems.",
+    "parameters": {
+      "trade_id": {
+        "type": "string",
+        "required": true,
+        "description": "Trade identifier for confirmation"
+      },
+      "message_format": {
+        "type": "string",
+        "required": true,
+        "description": "Confirmation message format (SWIFT, FIX, XML, JSON)"
+      },
+      "recipient_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of message recipient (counterparty, regulator, internal)"
+      },
+      "template_version": {
+        "type": "string",
+        "required": false,
+        "description": "Message template version to use",
+        "default": "latest"
+      },
+      "include_settlement_details": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include settlement instruction details",
+        "default": true
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Message priority (high, normal, low)",
+        "default": "normal"
+      },
+      "encryption_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether message should be encrypted",
+        "default": false
+      },
+      "delivery_method": {
+        "type": "string",
+        "required": false,
+        "description": "Message delivery method (email, SWIFT, API, FTP)",
+        "default": "email"
+      },
+      "language_code": {
+        "type": "string",
+        "required": false,
+        "description": "Language for confirmation message (2-letter ISO code)",
+        "default": "en"
+      },
+      "custom_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Additional custom fields to include",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid message_format: Use one of [SWIFT, FIX, XML, JSON]",
+      "Invalid recipient_type: Use one of [counterparty, regulator, internal]",
+      "Invalid priority_level: Use one of [high, normal, low]",
+      "Invalid delivery_method: Use one of [email, SWIFT, API, FTP]",
+      "Invalid language_code: Must be a valid 2-letter ISO language code",
+      "Template not found: Specified template version is not available",
+      "Trade data incomplete: Cannot build confirmation message due to missing trade details"
+    ],
+    "usage": "Provide trade identifier and message specifications to generate standardized confirmation messages for various recipients.",
+    "output_details": {
+      "confirmation_id": {
+        "type": "string",
+        "description": "Unique confirmation message identifier"
+      },
+      "formatted_message": {
+        "type": "string",
+        "description": "Complete formatted confirmation message"
+      },
+      "message_size": {
+        "type": "integer",
+        "description": "Size of confirmation message in bytes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Settlement Status Tracker",
+    "tool_description": "Tracks and monitors the status of settlement instructions throughout the settlement lifecycle.",
+    "parameters": {
+      "settlement_id": {
+        "type": "string",
+        "required": true,
+        "description": "Settlement instruction identifier to track"
+      },
+      "status_check_interval": {
+        "type": "integer",
+        "required": false,
+        "description": "Interval in minutes between status checks",
+        "default": 15
+      }
+    },
+    "error_messages": [
+      "Invalid settlement_id: Settlement ID must be a non-empty string",
+      "Settlement not found: No settlement instruction found with the provided ID",
+      "Invalid status_check_interval: Interval must be between 1 and 1440 minutes",
+      "Status service unavailable: Cannot connect to settlement status service",
+      "Tracking timeout: Status tracking exceeded maximum duration"
+    ],
+    "usage": "Provide settlement instruction ID to monitor its progress through the settlement system with periodic status updates.",
+    "output_details": {
+      "current_status": {
+        "type": "string",
+        "description": "Current settlement status"
+      },
+      "status_history": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Chronological list of status changes"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated completion time for settlement"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Exception Handler",
+    "tool_description": "Processes failed settlements and generates exception reports with recommended remediation actions.",
+    "parameters": {
+      "failed_trade_id": {
+        "type": "string",
+        "required": true,
+        "description": "Trade identifier that failed settlement"
+      },
+      "failure_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Primary reason for settlement failure"
+      },
+      "error_severity": {
+        "type": "string",
+        "required": true,
+        "description": "Severity level of the error (critical, high, medium, low)"
+      }
+    },
+    "error_messages": [
+      "Invalid error_severity: Use one of [critical, high, medium, low]",
+      "Missing failure details: Failure reason cannot be empty",
+      "Trade not found: Cannot process exception for non-existent trade",
+      "Duplicate exception: Exception already exists for this trade failure"
+    ],
+    "usage": "Provide details of failed settlement to generate exception report and receive remediation recommendations.",
+    "output_details": {
+      "exception_id": {
+        "type": "string",
+        "description": "Unique exception identifier"
+      },
+      "remediation_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended actions to resolve the exception"
+      },
+      "escalation_required": {
+        "type": "boolean",
+        "description": "Whether exception requires management escalation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audit Trail Generator",
+    "tool_description": "Creates comprehensive audit trails for all settlement activities to meet regulatory and compliance requirements.",
+    "parameters": {
+      "audit_scope": {
+        "type": "string",
+        "required": true,
+        "description": "Scope of audit (single_trade, batch, daily, monthly)"
+      },
+      "start_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Start time for audit period",
+        "format": "date-time"
+      },
+      "end_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "End time for audit period",
+        "format": "date-time"
+      },
+      "trade_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Specific trade IDs to include in audit",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid audit_scope: Use one of [single_trade, batch, daily, monthly]",
+      "Invalid timestamp range: end_timestamp must be after start_timestamp",
+      "Audit period too long: Maximum audit period is 1 year",
+      "No data found: No settlement activities found in specified time range",
+      "Access denied: Insufficient permissions to generate audit trail"
+    ],
+    "usage": "Specify audit scope and time range to generate comprehensive audit trails of settlement activities.",
+    "output_details": {
+      "audit_id": {
+        "type": "string",
+        "description": "Unique audit trail identifier"
+      },
+      "total_transactions": {
+        "type": "integer",
+        "description": "Total number of transactions in audit"
+      },
+      "audit_file_path": {
+        "type": "string",
+        "description": "Path to generated audit file"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Settlement Reporting Dashboard",
+    "tool_description": "Generates comprehensive settlement performance reports and dashboards with key metrics and analytics.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report (daily_summary, weekly_analysis, monthly_report, exception_summary)"
+      },
+      "report_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date for the report",
+        "format": "date-time"
+      },
+      "include_charts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include visual charts in report",
+        "default": true
+      },
+      "distribution_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Email addresses for report distribution",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid report_type: Use one of [daily_summary, weekly_analysis, monthly_report, exception_summary]",
+      "Invalid report_date: Provide a valid ISO 8601 date-time",
+      "Report date in future: Cannot generate reports for future dates",
+      "Insufficient data: Not enough settlement data available for specified date",
+      "Report generation failed: Error occurred while generating report"
+    ],
+    "usage": "Specify report type and date to generate comprehensive settlement performance dashboards and analytics.",
+    "output_details": {
+      "report_id": {
+        "type": "string",
+        "description": "Unique report identifier"
+      },
+      "settlement_rate": {
+        "type": "number",
+        "description": "Overall settlement success rate percentage"
+      },
+      "total_volume": {
+        "type": "number",
+        "description": "Total settlement volume processed"
+      },
+      "exception_count": {
+        "type": "integer",
+        "description": "Number of settlement exceptions"
+      },
+      "report_url": {
+        "type": "string",
+        "description": "URL to access the generated report"
+      }
+    }
+  }
+  ```

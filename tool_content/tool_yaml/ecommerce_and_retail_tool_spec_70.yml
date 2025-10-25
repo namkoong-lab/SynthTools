@@ -1,0 +1,862 @@
+field_name: ecommerce_and_retail
+subfield: Shopping Cart and Checkout Systems
+task: Manage guest checkout and user account creation workflows
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. It involves coordinating multiple workflows (guest checkout vs. account creation), handling sensitive payment and personal data, managing state transitions between anonymous and authenticated users, and ensuring security compliance. The task requires integration between multiple systems but has well-established patterns in e-commerce.
+
+  **STEP 2 — Set a tool budget**
+
+  For medium difficulty, targeting **12 tools** to cover guest checkout flows, account management, payment processing, order management, and security validation.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  - **Session Manager** → creates/manages sessions (consumed by most tools)
+  - **Guest Validator** → validates guest info (consumes form data, produces validation status)
+  - **Account Creator** → creates user accounts (consumes validated data, produces user ID)
+  - **Login Authenticator** → handles user login (consumes credentials, produces auth tokens)
+  - **Cart Merger** → merges guest/user carts (consumes session data, produces unified cart)
+  - **Address Validator** → validates shipping addresses (consumes address data, produces validation)
+  - **Payment Processor** → handles payments (consumes payment data, produces transaction status)
+  - **Order Creator** → creates orders (consumes cart/user data, produces order ID)
+  - **Email Sender** → sends notifications (consumes templates/data, produces delivery status)
+  - **Inventory Checker** → validates stock (consumes product IDs, produces availability)
+  - **Shipping Calculator** → calculates rates (consumes address/items, produces shipping options)
+  - **Workflow Router** → manages checkout flow decisions (consumes user state, produces next steps)
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  1. **Guest info validation**: Guest Validator → Address Validator → Email Sender
+  2. **Quick stock check**: Inventory Checker → Shipping Calculator
+
+  **Medium plans:**
+  1. **Standard guest checkout**: Session Manager → Guest Validator → Address Validator → Inventory Checker → Shipping Calculator → Payment Processor → Order Creator → Email Sender
+  2. **Account creation during checkout**: Guest Validator → Account Creator → Login Authenticator → Cart Merger → Order Creator
+
+  **Complex plans:**
+  1. **Full guest-to-user conversion**: Session Manager → Guest Validator → Workflow Router → Account Creator → Login Authenticator → Cart Merger → Address Validator → Inventory Checker → Shipping Calculator → Payment Processor → Order Creator → Email Sender
+  2. **Returning user with guest cart**: Session Manager → Login Authenticator → Cart Merger → Inventory Checker → Address Validator → Payment Processor → Order Creator → Email Sender
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Session Manager",
+    "tool_description": "Creates and manages guest or user sessions, tracking cart state and user preferences throughout the checkout process.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: create, update, retrieve, or destroy"
+      },
+      "session_id": {
+        "type": "string",
+        "required": false,
+        "description": "Existing session identifier for update/retrieve/destroy actions",
+        "default": null
+      },
+      "user_id": {
+        "type": "string",
+        "required": false,
+        "description": "User ID to associate with session (for authenticated users)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid action: Use one of [create, update, retrieve, destroy]",
+      "Session not found: The provided session_id does not exist or has expired",
+      "Session creation failed: Unable to create new session due to system limits"
+    ],
+    "usage": "Use 'create' action to start new sessions, 'update' to modify existing sessions, 'retrieve' to get session data, or 'destroy' to end sessions. Provide session_id for existing sessions and user_id when associating with authenticated users.",
+    "output_details": {
+      "session_id": {
+        "type": "string",
+        "description": "Unique session identifier"
+      },
+      "status": {
+        "type": "string",
+        "description": "Operation status: success or failed"
+      },
+      "expires_at": {
+        "type": "string",
+        "description": "Session expiration timestamp in ISO 8601 format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Guest Validator",
+    "tool_description": "Validates guest user information including email, name, and contact details for checkout without account creation.",
+    "parameters": {
+      "email": {
+        "type": "string",
+        "required": true,
+        "description": "Guest email address"
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Guest first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Guest last name"
+      },
+      "phone": {
+        "type": "string",
+        "required": false,
+        "description": "Guest phone number",
+        "default": null
+      },
+      "marketing_consent": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether guest consents to marketing emails",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid email format: Provide a valid email address in format user@domain.com",
+      "Name validation failed: First and last names must contain only letters and be 2-50 characters long",
+      "Phone format invalid: Phone number must be 10-15 digits with optional country code",
+      "Required fields missing: email, first_name, and last_name are mandatory"
+    ],
+    "usage": "Provide guest information for validation before proceeding with checkout. All fields are validated for format and completeness. Use for guest checkout workflows where account creation is not required.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether all provided information is valid"
+      },
+      "errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation error messages if any"
+      },
+      "guest_id": {
+        "type": "string",
+        "description": "Temporary guest identifier for this session"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Account Creator",
+    "tool_description": "Creates new user accounts during or after checkout, converting guest users to registered users with login credentials.",
+    "parameters": {
+      "email": {
+        "type": "string",
+        "required": true,
+        "description": "User email address (will be username)"
+      },
+      "password": {
+        "type": "string",
+        "required": true,
+        "description": "User password (must meet security requirements)"
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "User first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "User last name"
+      },
+      "phone": {
+        "type": "string",
+        "required": false,
+        "description": "User phone number",
+        "default": null
+      },
+      "marketing_consent": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether user consents to marketing communications",
+        "default": false
+      },
+      "terms_accepted": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether user has accepted terms and conditions"
+      },
+      "guest_session_id": {
+        "type": "string",
+        "required": false,
+        "description": "Existing guest session to convert to user account",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Email already exists: An account with this email address already exists",
+      "Password requirements not met: Password must be 8+ characters with uppercase, lowercase, number, and special character",
+      "Invalid email format: Provide a valid email address",
+      "Terms not accepted: User must accept terms and conditions to create account",
+      "Account creation failed: Unable to create account due to system error"
+    ],
+    "usage": "Create new user accounts by providing required information. Use guest_session_id to convert existing guest sessions to user accounts. Ensures email uniqueness and password security requirements.",
+    "output_details": {
+      "user_id": {
+        "type": "string",
+        "description": "Unique identifier for the created user account"
+      },
+      "account_created": {
+        "type": "boolean",
+        "description": "Whether account creation was successful"
+      },
+      "verification_required": {
+        "type": "boolean",
+        "description": "Whether email verification is required before account activation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Login Authenticator",
+    "tool_description": "Authenticates existing users with email/password credentials and manages login sessions for checkout workflows.",
+    "parameters": {
+      "email": {
+        "type": "string",
+        "required": true,
+        "description": "User email address"
+      },
+      "password": {
+        "type": "string",
+        "required": true,
+        "description": "User password"
+      },
+      "remember_me": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to create persistent login session",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid credentials: Email or password is incorrect",
+      "Account not found: No account exists with the provided email address",
+      "Account locked: Account is temporarily locked due to multiple failed login attempts",
+      "Email not verified: Account exists but email verification is required before login",
+      "Authentication service unavailable: Unable to process login request at this time"
+    ],
+    "usage": "Authenticate existing users with their email and password. Use remember_me for persistent sessions. Returns authentication token for subsequent requests requiring user identification.",
+    "output_details": {
+      "authenticated": {
+        "type": "boolean",
+        "description": "Whether authentication was successful"
+      },
+      "user_id": {
+        "type": "string",
+        "description": "Unique user identifier if authentication successful"
+      },
+      "auth_token": {
+        "type": "string",
+        "description": "Authentication token for subsequent requests"
+      },
+      "session_expires_at": {
+        "type": "string",
+        "description": "Session expiration timestamp in ISO 8601 format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cart Merger",
+    "tool_description": "Merges guest shopping cart items with user account cart when users log in during checkout or create accounts.",
+    "parameters": {
+      "guest_session_id": {
+        "type": "string",
+        "required": true,
+        "description": "Guest session identifier containing cart items"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "User account identifier"
+      },
+      "merge_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "How to handle duplicate items: sum_quantities, keep_guest, keep_user, or prompt_user",
+        "default": "sum_quantities"
+      },
+      "preserve_guest_cart": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to keep guest cart data after merging",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Guest session not found: The provided guest_session_id does not exist or has expired",
+      "User account not found: The provided user_id does not exist",
+      "Invalid merge strategy: Use one of [sum_quantities, keep_guest, keep_user, prompt_user]",
+      "Cart merge failed: Unable to merge carts due to system error",
+      "Empty carts: Both guest and user carts are empty, no merge needed"
+    ],
+    "usage": "Merge guest cart with user cart when users authenticate during checkout. Choose merge_strategy to handle duplicate items. Set preserve_guest_cart to true if guest data should be retained.",
+    "output_details": {
+      "merge_successful": {
+        "type": "boolean",
+        "description": "Whether cart merge completed successfully"
+      },
+      "total_items": {
+        "type": "integer",
+        "description": "Total number of items in merged cart"
+      },
+      "conflicts_resolved": {
+        "type": "integer",
+        "description": "Number of duplicate items that were resolved during merge"
+      },
+      "merged_cart_id": {
+        "type": "string",
+        "description": "Identifier for the merged cart"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Address Validator",
+    "tool_description": "Validates and standardizes shipping and billing addresses, checking format, completeness, and deliverability.",
+    "parameters": {
+      "address_line_1": {
+        "type": "string",
+        "required": true,
+        "description": "Primary address line (street number and name)"
+      },
+      "address_line_2": {
+        "type": "string",
+        "required": false,
+        "description": "Secondary address line (apartment, suite, etc.)",
+        "default": null
+      },
+      "city": {
+        "type": "string",
+        "required": true,
+        "description": "City name"
+      },
+      "state_province": {
+        "type": "string",
+        "required": true,
+        "description": "State or province code/name"
+      },
+      "postal_code": {
+        "type": "string",
+        "required": true,
+        "description": "ZIP or postal code"
+      },
+      "country_code": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter country code (ISO 3166-1 alpha-2)"
+      },
+      "address_type": {
+        "type": "string",
+        "required": false,
+        "description": "Address type: shipping or billing",
+        "default": "shipping"
+      },
+      "validate_deliverability": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check if address is deliverable",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid country code: Use valid ISO 3166-1 alpha-2 country codes",
+      "Address format invalid: Address components do not meet format requirements for the specified country",
+      "Address not deliverable: Address exists but may not be deliverable by standard shipping services",
+      "Postal code mismatch: Postal code does not match the specified city and state/province",
+      "Required fields missing: address_line_1, city, state_province, postal_code, and country_code are mandatory",
+      "Address validation service unavailable: Unable to validate address at this time"
+    ],
+    "usage": "Validate shipping and billing addresses by providing all required address components. Set validate_deliverability to check shipping feasibility. Returns standardized address format and validation status.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the address is valid and properly formatted"
+      },
+      "is_deliverable": {
+        "type": "boolean",
+        "description": "Whether the address can receive standard shipping deliveries"
+      },
+      "standardized_address": {
+        "type": "string",
+        "description": "Address in standardized postal format"
+      },
+      "suggestions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Alternative address suggestions if original is invalid"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Processor",
+    "tool_description": "Processes payment transactions for checkout, handling multiple payment methods including credit cards, digital wallets, and alternative payments.",
+    "parameters": {
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method: credit_card, debit_card, paypal, apple_pay, google_pay, or bank_transfer"
+      },
+      "amount": {
+        "type": "number",
+        "required": true,
+        "description": "Payment amount in base currency units (e.g., cents for USD)"
+      },
+      "currency": {
+        "type": "string",
+        "required": true,
+        "description": "Three-letter currency code (ISO 4217)"
+      },
+      "payment_token": {
+        "type": "string",
+        "required": true,
+        "description": "Secure payment token from payment method provider"
+      },
+      "billing_address_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to validated billing address"
+      },
+      "order_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Order or cart identifier for this payment"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": false,
+        "description": "User ID for registered customers",
+        "default": null
+      },
+      "save_payment_method": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to save payment method for future use (registered users only)",
+        "default": false
+      },
+      "capture_immediately": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to capture payment immediately or authorize only",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid payment method: Use one of [credit_card, debit_card, paypal, apple_pay, google_pay, bank_transfer]",
+      "Payment declined: Payment was declined by the payment provider",
+      "Invalid currency: Use valid ISO 4217 currency codes",
+      "Payment token expired: The payment token is no longer valid",
+      "Insufficient funds: Customer's account has insufficient funds for this transaction",
+      "Payment processing failed: Unable to process payment due to system error",
+      "Amount validation failed: Amount must be greater than 0 and within acceptable limits"
+    ],
+    "usage": "Process payments by providing payment method, amount, secure token, and billing address. For registered users, set save_payment_method to store payment details. Use capture_immediately for immediate charging or false for authorization only.",
+    "output_details": {
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique transaction identifier"
+      },
+      "payment_status": {
+        "type": "string",
+        "description": "Payment status: success, failed, pending, or requires_action"
+      },
+      "amount_charged": {
+        "type": "number",
+        "description": "Actual amount charged including any fees"
+      },
+      "payment_method_saved": {
+        "type": "boolean",
+        "description": "Whether payment method was saved for future use"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order Creator",
+    "tool_description": "Creates order records from cart contents, customer information, and payment details, generating order confirmations and tracking numbers.",
+    "parameters": {
+      "cart_id": {
+        "type": "string",
+        "required": true,
+        "description": "Shopping cart identifier"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": false,
+        "description": "User ID for registered customers",
+        "default": null
+      },
+      "guest_id": {
+        "type": "string",
+        "required": false,
+        "description": "Guest identifier for non-registered customers",
+        "default": null
+      },
+      "shipping_address_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to validated shipping address"
+      },
+      "billing_address_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to validated billing address"
+      },
+      "payment_transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Successful payment transaction reference"
+      },
+      "shipping_method": {
+        "type": "string",
+        "required": true,
+        "description": "Selected shipping method identifier"
+      },
+      "order_notes": {
+        "type": "string",
+        "required": false,
+        "description": "Special instructions or notes for the order",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Cart not found: The specified cart_id does not exist or is empty",
+      "Invalid customer: Either customer_id or guest_id must be provided",
+      "Address not found: Shipping or billing address references are invalid",
+      "Payment transaction invalid: The payment transaction was not successful or not found",
+      "Shipping method unavailable: Selected shipping method is not available for this order",
+      "Order creation failed: Unable to create order due to system error",
+      "Inventory insufficient: Some items in cart are no longer available in requested quantities"
+    ],
+    "usage": "Create orders after successful payment processing by providing cart, customer, address, payment, and shipping information. Either customer_id or guest_id must be specified. Returns order confirmation details.",
+    "output_details": {
+      "order_id": {
+        "type": "string",
+        "description": "Unique order identifier"
+      },
+      "order_number": {
+        "type": "string",
+        "description": "Human-readable order number for customer reference"
+      },
+      "order_status": {
+        "type": "string",
+        "description": "Initial order status: confirmed, pending, or processing"
+      },
+      "estimated_delivery_date": {
+        "type": "string",
+        "description": "Estimated delivery date in ISO 8601 format"
+      },
+      "tracking_number": {
+        "type": "string",
+        "description": "Shipping tracking number if immediately available"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Email Sender",
+    "tool_description": "Sends transactional and notification emails for checkout processes including order confirmations, account creation, and password resets.",
+    "parameters": {
+      "recipient_email": {
+        "type": "string",
+        "required": true,
+        "description": "Recipient email address"
+      },
+      "email_type": {
+        "type": "string",
+        "required": true,
+        "description": "Email template type: order_confirmation, account_created, welcome, password_reset, or shipping_notification"
+      },
+      "template_data": {
+        "type": "array",
+        "required": true,
+        "description": "Key-value pairs for email template personalization",
+        "items": {
+          "type": "string"
+        }
+      },
+      "sender_name": {
+        "type": "string",
+        "required": false,
+        "description": "Custom sender name",
+        "default": null
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Email priority: high, normal, or low",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Invalid recipient email: Provide a valid email address format",
+      "Unsupported email type: Use one of [order_confirmation, account_created, welcome, password_reset, shipping_notification]",
+      "Template data missing: Required template data fields are not provided",
+      "Email delivery failed: Unable to send email due to delivery service error",
+      "Recipient unsubscribed: Recipient has opted out of this type of email",
+      "Invalid priority level: Use one of [high, normal, low]"
+    ],
+    "usage": "Send transactional emails by specifying recipient, email type, and template data. Template data should include all variables needed for the specified email template. Set priority for urgent communications.",
+    "output_details": {
+      "email_sent": {
+        "type": "boolean",
+        "description": "Whether email was successfully queued for delivery"
+      },
+      "message_id": {
+        "type": "string",
+        "description": "Unique identifier for tracking email delivery"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Initial delivery status: queued, sent, or failed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Checker",
+    "tool_description": "Validates product availability and stock levels for items in shopping cart before order processing.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of product identifiers to check",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Requested quantities for each product",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "warehouse_location": {
+        "type": "string",
+        "required": false,
+        "description": "Specific warehouse to check inventory",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Product array mismatch: product_ids and quantities arrays must have the same length",
+      "Invalid product ID: One or more product identifiers are not valid",
+      "Invalid quantity: All quantities must be positive integers",
+      "Warehouse not found: Specified warehouse_location does not exist",
+      "Inventory service unavailable: Unable to check stock levels at this time"
+    ],
+    "usage": "Check inventory availability by providing product IDs and requested quantities in matching arrays. Optionally specify warehouse location for location-specific inventory checks.",
+    "output_details": {
+      "all_available": {
+        "type": "boolean",
+        "description": "Whether all requested items are available in requested quantities"
+      },
+      "availability_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Per-item availability status messages"
+      },
+      "alternative_quantities": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Maximum available quantities for each product if requested quantity unavailable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Calculator",
+    "tool_description": "Calculates shipping costs and delivery options based on order contents, destination address, and available carriers.",
+    "parameters": {
+      "items": {
+        "type": "array",
+        "required": true,
+        "description": "Product identifiers in the shipment",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantity of each item",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "destination_address_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to validated destination address"
+      },
+      "origin_warehouse": {
+        "type": "string",
+        "required": false,
+        "description": "Shipping origin warehouse identifier",
+        "default": null
+      },
+      "preferred_carriers": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred shipping carriers",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "delivery_date_required": {
+        "type": "string",
+        "required": false,
+        "description": "Required delivery date in ISO 8601 format",
+        "default": null
+      },
+      "insurance_requested": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether shipping insurance is requested",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Items and quantities mismatch: items and quantities arrays must have the same length",
+      "Invalid destination: destination_address_id does not reference a valid address",
+      "No shipping options available: No carriers can deliver to the specified address",
+      "Delivery date impossible: Required delivery date cannot be met by any shipping method",
+      "Item shipping restrictions: Some items cannot be shipped to the destination address",
+      "Weight/size limits exceeded: Shipment exceeds carrier limitations"
+    ],
+    "usage": "Calculate shipping options by providing items, quantities, and destination address. Optionally specify origin warehouse, preferred carriers, required delivery date, and insurance needs. Returns available shipping methods with costs and delivery estimates.",
+    "output_details": {
+      "shipping_options": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Available shipping methods with carrier, service, cost, and delivery estimate"
+      },
+      "cheapest_option": {
+        "type": "string",
+        "description": "Identifier for the lowest cost shipping option"
+      },
+      "fastest_option": {
+        "type": "string",
+        "description": "Identifier for the fastest delivery shipping option"
+      },
+      "total_weight": {
+        "type": "number",
+        "description": "Total shipment weight in pounds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Workflow Router",
+    "tool_description": "Manages checkout workflow decisions and routing based on user status, cart contents, and business rules to determine next steps in the checkout process.",
+    "parameters": {
+      "current_step": {
+        "type": "string",
+        "required": true,
+        "description": "Current checkout step: cart_review, guest_info, login, account_creation, shipping, payment, or confirmation"
+      },
+      "user_type": {
+        "type": "string",
+        "required": true,
+        "description": "User classification: guest, returning_user, or new_user"
+      },
+      "cart_value": {
+        "type": "number",
+        "required": true,
+        "description": "Total cart value in base currency units"
+      },
+      "user_preferences": {
+        "type": "array",
+        "required": false,
+        "description": "User preferences affecting workflow",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "business_rules": {
+        "type": "array",
+        "required": false,
+        "description": "Active business rules to apply",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid current step: Use one of [cart_review, guest_info, login, account_creation, shipping, payment, confirmation]",
+      "Invalid user type: Use one of [guest, returning_user, new_user]",
+      "Cart value invalid: Cart value must be a positive number",
+      "Workflow routing failed: Unable to determine next step due to conflicting rules",
+      "Step transition invalid: Current step cannot transition to requested next step"
+    ],
+    "usage": "Route checkout workflow by providing current step, user type, and cart value. Include user preferences and business rules to customize the flow. Returns recommended next steps and any required actions.",
+    "output_details": {
+      "next_step": {
+        "type": "string",
+        "description": "Recommended next checkout step"
+      },
+      "alternative_steps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Alternative valid next steps user can choose"
+      },
+      "required_actions": {
+        "type": "array",
+        "items": {
+          "type": "string

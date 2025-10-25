@@ -1,0 +1,799 @@
+field_name: appraisals_and_valuations
+subfield: Real Estate Property Appraisal
+task: Comparable property research and analysis
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task involves medium complexity as it requires coordinating multiple data sources, applying various valuation methodologies, and handling subjective property characteristics. The scope includes market research, property comparison, adjustment calculations, and regulatory compliance, with moderate coordination dependencies between data gathering and analysis phases.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium difficulty, I will target 12 tools to cover the comprehensive workflow from property identification through final valuation reporting.
+
+  **STEP 3 — List all tool names and dependencies**
+  1. Property Search Engine - consumes location/criteria → produces property listings
+  2. Property Details Extractor - consumes property IDs → produces detailed specifications
+  3. Market Data Collector - consumes location/timeframe → produces sales/listing data
+  4. Comparable Selector - consumes subject property + candidates → produces filtered comparables
+  5. Property Distance Calculator - consumes property coordinates → produces distances/travel times
+  6. Adjustment Calculator - consumes property differences → produces price adjustments
+  7. Market Trend Analyzer - consumes historical data → produces trend metrics
+  8. Property Photo Analyzer - consumes image URLs → produces condition/feature assessments
+  9. Valuation Model Executor - consumes comparables + adjustments → produces value estimates
+  10. Report Generator - consumes analysis results → produces formatted appraisal report
+  11. Compliance Checker - consumes report data → produces regulatory validation
+  12. Quality Validator - consumes all inputs/outputs → produces accuracy assessment
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple Plans:
+  - Basic Property Search: Property Search Engine → Property Details Extractor → Report Generator
+  - Distance Analysis: Property Search Engine → Property Distance Calculator → Report Generator
+
+  Medium Plans:
+  - Market Analysis: Property Search Engine → Market Data Collector → Market Trend Analyzer → Valuation Model Executor → Report Generator
+  - Comparable Analysis: Property Search Engine → Comparable Selector → Adjustment Calculator → Valuation Model Executor → Report Generator
+
+  Complex Plans:
+  - Full Appraisal Workflow: Property Search Engine → Property Details Extractor → Market Data Collector → Comparable Selector → Property Distance Calculator → Adjustment Calculator → Property Photo Analyzer → Market Trend Analyzer → Valuation Model Executor → Report Generator → Compliance Checker → Quality Validator
+  - Comprehensive Validation: Property Search Engine → Property Details Extractor → Market Data Collector → Comparable Selector → Property Photo Analyzer → Valuation Model Executor → Quality Validator → Compliance Checker → Report Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Property Search Engine",
+    "tool_description": "Searches for properties within specified criteria including location, property type, size, and price range to identify potential comparable properties.",
+    "parameters": {
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Geographic area to search (address, city, zip code, or coordinates)"
+      },
+      "property_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of property (residential, commercial, industrial, mixed-use)"
+      },
+      "radius_miles": {
+        "type": "number",
+        "required": false,
+        "description": "Search radius in miles from the location",
+        "default": 1.0
+      },
+      "min_price": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum price filter",
+        "default": null
+      },
+      "max_price": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum price filter",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid location: Provide a valid address, city, zip code, or coordinates.",
+      "Unsupported property type: Use one of [residential, commercial, industrial, mixed-use].",
+      "Invalid radius: Radius must be between 0.1 and 50 miles.",
+      "Invalid price range: min_price must be less than max_price, and both must be positive numbers."
+    ],
+    "usage": "Provide location and property_type as required parameters. Optionally set radius_miles, min_price, and max_price to narrow search results. Returns a list of matching properties with basic information.",
+    "output_details": {
+      "property_count": {
+        "type": "integer",
+        "description": "Total number of properties found"
+      },
+      "property_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of unique property identifiers"
+      },
+      "property_addresses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of property addresses corresponding to property_ids"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Property Details Extractor",
+    "tool_description": "Extracts comprehensive property details including physical characteristics, features, condition, and historical information for specified properties.",
+    "parameters": {
+      "property_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of property identifiers to extract details for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "include_photos": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include property photo URLs",
+        "default": true
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include sales and listing history",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid property_ids: Provide an array of valid property identifiers with 1-50 items.",
+      "Property not found: One or more property IDs could not be located in the database.",
+      "Access denied: Some properties have restricted access or are not publicly available."
+    ],
+    "usage": "Provide an array of property_ids obtained from Property Search Engine. Optionally set include_photos and include_history flags. Returns detailed property information for each requested property.",
+    "output_details": {
+      "property_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of detailed property information strings"
+      },
+      "square_footages": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Array of property sizes in square feet"
+      },
+      "lot_sizes": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of lot sizes in acres"
+      },
+      "year_built": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Array of construction years"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Market Data Collector",
+    "tool_description": "Collects comprehensive market data including recent sales, active listings, price trends, and market statistics for a specified area and time period.",
+    "parameters": {
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Geographic area for market data collection"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for data collection period",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for data collection period",
+        "format": "date-time"
+      },
+      "property_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of property for market analysis"
+      },
+      "include_pending": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include pending sales",
+        "default": false
+      },
+      "data_sources": {
+        "type": "array",
+        "required": false,
+        "description": "Specific data sources to use",
+        "items": {
+          "type": "string"
+        },
+        "default": ["mls", "public_records"]
+      },
+      "min_confidence": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence level for data inclusion (0-1)",
+        "default": 0.8
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date, and both must be valid ISO 8601 dates.",
+      "Location not found: The specified location could not be identified.",
+      "Insufficient data: Not enough market data available for the specified criteria.",
+      "Invalid confidence level: min_confidence must be between 0 and 1.",
+      "Unsupported data source: Use valid data sources from [mls, public_records, tax_assessor, courthouse]."
+    ],
+    "usage": "Provide location, start_date, end_date, and property_type. Optionally configure include_pending, data_sources, and min_confidence. Returns comprehensive market data for the specified area and period.",
+    "output_details": {
+      "total_sales": {
+        "type": "integer",
+        "description": "Total number of sales in the period"
+      },
+      "median_price": {
+        "type": "number",
+        "description": "Median sale price for the period"
+      },
+      "average_days_on_market": {
+        "type": "number",
+        "description": "Average days properties stayed on market"
+      },
+      "price_per_sqft": {
+        "type": "number",
+        "description": "Average price per square foot"
+      },
+      "sale_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of individual sale dates"
+      },
+      "sale_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of individual sale prices"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Comparable Selector",
+    "tool_description": "Analyzes and selects the most appropriate comparable properties based on similarity criteria, location proximity, and sale recency.",
+    "parameters": {
+      "subject_property_id": {
+        "type": "string",
+        "required": true,
+        "description": "Property ID of the subject property being appraised"
+      },
+      "candidate_property_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of potential comparable property IDs",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 3,
+        "maxItems": 100
+      },
+      "max_comparables": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of comparables to select",
+        "default": 6
+      },
+      "max_age_months": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum age of sales in months",
+        "default": 12
+      }
+    },
+    "error_messages": [
+      "Invalid subject property: subject_property_id must be a valid property identifier.",
+      "Insufficient candidates: candidate_property_ids must contain at least 3 properties.",
+      "Invalid parameters: max_comparables must be 1-20, max_age_months must be 1-60.",
+      "No suitable comparables: No properties meet the similarity and recency criteria."
+    ],
+    "usage": "Provide subject_property_id and candidate_property_ids from previous searches. Optionally set max_comparables and max_age_months. Returns the best comparable properties ranked by similarity.",
+    "output_details": {
+      "selected_property_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of selected comparable property IDs"
+      },
+      "similarity_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Similarity scores for each selected comparable (0-1)"
+      },
+      "selection_reasons": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Reasons why each comparable was selected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Property Distance Calculator",
+    "tool_description": "Calculates distances, travel times, and accessibility metrics between properties and key locations like subject property, amenities, and transportation.",
+    "parameters": {
+      "origin_address": {
+        "type": "string",
+        "required": true,
+        "description": "Starting address or coordinates"
+      },
+      "destination_addresses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of destination addresses",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "travel_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Mode of travel for time calculation",
+        "default": "driving"
+      }
+    },
+    "error_messages": [
+      "Invalid addresses: One or more addresses could not be geocoded or are invalid.",
+      "Unsupported travel mode: Use one of [driving, walking, transit, bicycling].",
+      "Service unavailable: Distance calculation service is temporarily unavailable.",
+      "Too many destinations: Maximum 50 destinations allowed per request."
+    ],
+    "usage": "Provide origin_address and destination_addresses array. Optionally specify travel_mode. Returns distances and travel times between origin and all destinations.",
+    "output_details": {
+      "distances_miles": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of distances in miles to each destination"
+      },
+      "travel_times_minutes": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of travel times in minutes to each destination"
+      },
+      "accessibility_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Accessibility scores for each destination (0-10)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Adjustment Calculator",
+    "tool_description": "Calculates price adjustments for comparable properties based on differences in size, condition, features, location, and other valuation factors.",
+    "parameters": {
+      "subject_property_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing subject property characteristics"
+      },
+      "comparable_property_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of JSON strings containing comparable property data",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "adjustment_factors": {
+        "type": "array",
+        "required": true,
+        "description": "Factors to consider for adjustments",
+        "items": {
+          "type": "string"
+        }
+      },
+      "market_conditions_date": {
+        "type": "string",
+        "required": true,
+        "description": "Effective date for market conditions",
+        "format": "date-time"
+      },
+      "adjustment_method": {
+        "type": "string",
+        "required": false,
+        "description": "Calculation method for adjustments",
+        "default": "percentage"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence level for adjustments",
+        "default": 0.7
+      },
+      "cap_adjustment_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum total adjustment percentage",
+        "default": 25.0
+      },
+      "include_time_adjustment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include time-based market adjustments",
+        "default": true
+      },
+      "local_market_multiplier": {
+        "type": "number",
+        "required": false,
+        "description": "Local market adjustment multiplier",
+        "default": 1.0
+      },
+      "quality_weighting": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for property quality factors",
+        "default": 0.3
+      }
+    },
+    "error_messages": [
+      "Invalid property data: Property data must be valid JSON strings with required fields.",
+      "Unsupported adjustment method: Use one of [percentage, dollar_amount, square_foot].",
+      "Invalid confidence threshold: Threshold must be between 0 and 1.",
+      "Excessive adjustments: Total adjustments exceed the specified cap percentage.",
+      "Missing adjustment factors: At least one adjustment factor must be specified.",
+      "Invalid market date: market_conditions_date must be a valid ISO 8601 date.",
+      "Invalid multiplier values: local_market_multiplier must be > 0, quality_weighting must be 0-1."
+    ],
+    "usage": "Provide subject_property_data, comparable_property_data array, adjustment_factors, and market_conditions_date. Configure optional parameters for calculation method and constraints. Returns calculated adjustments for each comparable.",
+    "output_details": {
+      "adjusted_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of price-adjusted values for each comparable"
+      },
+      "total_adjustments": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Total adjustment amounts for each comparable"
+      },
+      "adjustment_breakdown": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed breakdown of adjustments for each comparable"
+      },
+      "confidence_levels": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence levels for each adjustment calculation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Market Trend Analyzer",
+    "tool_description": "Analyzes market trends, price movements, and forecasting based on historical sales data and market indicators.",
+    "parameters": {
+      "market_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing historical market data"
+      },
+      "analysis_period_months": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of months to analyze for trends",
+        "default": 24
+      },
+      "trend_indicators": {
+        "type": "array",
+        "required": false,
+        "description": "Specific indicators to analyze",
+        "items": {
+          "type": "string"
+        },
+        "default": ["price", "volume", "days_on_market"]
+      }
+    },
+    "error_messages": [
+      "Invalid market data: Market data must be a valid JSON string with required time series fields.",
+      "Insufficient data: Not enough historical data for meaningful trend analysis.",
+      "Invalid analysis period: analysis_period_months must be between 6 and 120.",
+      "Unsupported indicators: Use valid indicators from [price, volume, days_on_market, inventory, absorption_rate]."
+    ],
+    "usage": "Provide market_data as JSON string from Market Data Collector. Optionally set analysis_period_months and trend_indicators array. Returns comprehensive trend analysis and market insights.",
+    "output_details": {
+      "trend_direction": {
+        "type": "string",
+        "description": "Overall market trend direction (increasing, decreasing, stable)"
+      },
+      "price_change_percent": {
+        "type": "number",
+        "description": "Percentage change in median price over analysis period"
+      },
+      "market_velocity": {
+        "type": "string",
+        "description": "Market velocity classification (hot, warm, cool, cold)"
+      },
+      "seasonal_patterns": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Identified seasonal patterns in the market"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Property Photo Analyzer",
+    "tool_description": "Analyzes property photos to assess condition, features, and quality factors that impact valuation.",
+    "parameters": {
+      "photo_urls": {
+        "type": "array",
+        "required": true,
+        "description": "Array of property photo URLs to analyze",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "analysis_focus": {
+        "type": "array",
+        "required": false,
+        "description": "Specific aspects to analyze in photos",
+        "items": {
+          "type": "string"
+        },
+        "default": ["condition", "features", "quality"]
+      }
+    },
+    "error_messages": [
+      "Invalid photo URLs: One or more URLs are inaccessible or not valid image formats.",
+      "Too many photos: Maximum 100 photos allowed per analysis.",
+      "Analysis failed: Unable to process images due to poor quality or format issues.",
+      "Unsupported focus areas: Use valid focus areas from [condition, features, quality, layout, exterior, interior]."
+    ],
+    "usage": "Provide array of photo_urls from property listings. Optionally specify analysis_focus areas. Returns detailed analysis of visible property characteristics and condition assessment.",
+    "output_details": {
+      "overall_condition": {
+        "type": "string",
+        "description": "Overall property condition assessment (excellent, good, fair, poor)"
+      },
+      "condition_score": {
+        "type": "number",
+        "description": "Numerical condition score from 1-10"
+      },
+      "identified_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of identified property features and amenities"
+      },
+      "quality_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Quality indicators observed in photos"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Valuation Model Executor",
+    "tool_description": "Executes valuation models using comparable sales data, adjustments, and market analysis to generate property value estimates.",
+    "parameters": {
+      "subject_property_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string with subject property information"
+      },
+      "comparable_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string with comparable sales data and adjustments"
+      },
+      "valuation_methods": {
+        "type": "array",
+        "required": true,
+        "description": "Valuation methods to apply",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "market_trend_data": {
+        "type": "string",
+        "required": false,
+        "description": "JSON string with market trend analysis",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid property data: Subject property data must be a valid JSON string with required fields.",
+      "Invalid comparable data: Comparable data must contain valid sales information and adjustments.",
+      "Unsupported valuation method: Use methods from [sales_comparison, cost_approach, income_approach, automated_valuation].",
+      "Insufficient data: Not enough comparable sales data for reliable valuation.",
+      "Calculation error: Unable to complete valuation due to data inconsistencies."
+    ],
+    "usage": "Provide subject_property_data, comparable_data, and valuation_methods array. Optionally include market_trend_data for enhanced accuracy. Returns multiple value estimates using specified methods.",
+    "output_details": {
+      "estimated_value": {
+        "type": "number",
+        "description": "Final estimated property value"
+      },
+      "value_range_low": {
+        "type": "number",
+        "description": "Lower bound of value range"
+      },
+      "value_range_high": {
+        "type": "number",
+        "description": "Upper bound of value range"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence level in the valuation (0-1)"
+      },
+      "method_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Results from each valuation method applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Report Generator",
+    "tool_description": "Generates comprehensive appraisal reports combining all analysis components into standardized formats for different audiences.",
+    "parameters": {
+      "valuation_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing valuation results and supporting data"
+      },
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report to generate"
+      },
+      "client_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the client requesting the appraisal"
+      },
+      "appraiser_credentials": {
+        "type": "string",
+        "required": true,
+        "description": "Appraiser name and professional credentials"
+      },
+      "report_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of the appraisal report",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid valuation data: Valuation data must be a complete JSON string with all required components.",
+      "Unsupported report type: Use one of [full_narrative, summary, desktop, drive_by].",
+      "Missing required fields: client_name, appraiser_credentials, and report_date are required.",
+      "Invalid report date: report_date must be a valid ISO 8601 date-time string."
+    ],
+    "usage": "Provide valuation_data from Valuation Model Executor, specify report_type, and include client_name, appraiser_credentials, and report_date. Returns formatted appraisal report ready for delivery.",
+    "output_details": {
+      "report_content": {
+        "type": "string",
+        "description": "Complete formatted appraisal report content"
+      },
+      "executive_summary": {
+        "type": "string",
+        "description": "Executive summary of key findings"
+      },
+      "page_count": {
+        "type": "integer",
+        "description": "Total number of pages in the report"
+      },
+      "report_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated report"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quality Validator",
+    "tool_description": "Validates the quality and accuracy of appraisal analysis by checking data consistency, methodology compliance, and result reasonableness.",
+    "parameters": {
+      "analysis_data": {
+        "type": "string",
+        "required": true,
+        "description": "Complete analysis data to validate"
+      },
+      "validation_criteria": {
+        "type": "array",
+        "required": false,
+        "description": "Specific validation checks to perform",
+        "items": {
+          "type": "string"
+        },
+        "default": ["data_consistency", "methodology", "result_reasonableness"]
+      }
+    },
+    "error_messages": [
+      "Invalid analysis data: Analysis data must be a valid JSON string with complete appraisal information.",
+      "Unsupported validation criteria: Use criteria from [data_consistency, methodology, result_reasonableness, comparable_quality, adjustment_logic].",
+      "Validation failed: Critical errors found that prevent report completion."
+    ],
+    "usage": "Provide analysis_data containing all appraisal components. Optionally specify validation_criteria array. Returns quality assessment with identified issues and recommendations.",
+    "output_details": {
+      "overall_quality_score": {
+        "type": "number",
+        "description": "Overall quality score from 0-100"
+      },
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Whether the analysis passes quality validation"
+      },
+      "identified_issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of quality issues identified"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommendations for improving analysis quality"
+      }
+    }
+  }
+  ```

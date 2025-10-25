@@ -1,0 +1,852 @@
+field_name: ecommerce_and_retail
+subfield: Shopping Cart and Checkout Systems
+task: Process payment transactions through multiple payment methods
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  The task of processing payment transactions through multiple payment methods is **medium** difficulty. It involves moderate complexity due to the need to handle various payment gateways, security requirements, transaction validation, error handling across different providers, and coordination between multiple systems, but follows well-established patterns in the ecommerce industry.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target **12 tools** within the 10-15 range to cover payment processing, validation, security, reconciliation, and reporting workflows.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Payment Method Validator** - Consumes: payment details → Produces: validation status
+  2. **Payment Gateway Router** - Consumes: payment request → Produces: gateway assignment
+  3. **Transaction Authorizer** - Consumes: payment details + gateway → Produces: authorization result
+  4. **Payment Processor** - Consumes: authorized transaction → Produces: processing result
+  5. **Fraud Detection Analyzer** - Consumes: transaction data → Produces: fraud risk score
+  6. **Payment Status Tracker** - Consumes: transaction ID → Produces: current status
+  7. **Refund Handler** - Consumes: refund request → Produces: refund result
+  8. **Transaction Reconciler** - Consumes: transaction records → Produces: reconciliation report
+  9. **Payment Retry Manager** - Consumes: failed transaction → Produces: retry result
+  10. **Webhook Event Processor** - Consumes: webhook data → Produces: processed event
+  11. **Payment Analytics Generator** - Consumes: transaction data → Produces: analytics report
+  12. **Compliance Validator** - Consumes: transaction details → Produces: compliance status
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. Basic payment processing: Payment Method Validator → Transaction Authorizer → Payment Processor
+  2. Payment status inquiry: Payment Status Tracker → Transaction Reconciler
+
+  **Medium Plans:**
+  1. Secure payment flow: Payment Method Validator → Fraud Detection Analyzer → Payment Gateway Router → Transaction Authorizer → Payment Processor
+  2. Failed payment handling: Payment Status Tracker → Payment Retry Manager → Transaction Authorizer → Payment Processor
+
+  **Complex Plans:**
+  1. Full payment lifecycle: Payment Method Validator → Fraud Detection Analyzer → Compliance Validator → Payment Gateway Router → Transaction Authorizer → Payment Processor → Webhook Event Processor → Payment Analytics Generator
+  2. Comprehensive reconciliation: Transaction Reconciler → Payment Status Tracker → Refund Handler → Payment Analytics Generator → Compliance Validator
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Payment Method Validator",
+    "tool_description": "Validates payment method details including card numbers, expiry dates, CVV codes, and bank account information for various payment types.",
+    "parameters": {
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Type of payment method: credit_card, debit_card, bank_transfer, digital_wallet, cryptocurrency"
+      },
+      "card_number": {
+        "type": "string",
+        "required": false,
+        "description": "Credit/debit card number (for card payments)",
+        "default": null
+      },
+      "expiry_month": {
+        "type": "integer",
+        "required": false,
+        "description": "Card expiry month (1-12, for card payments)",
+        "default": null
+      },
+      "expiry_year": {
+        "type": "integer",
+        "required": false,
+        "description": "Card expiry year (for card payments)",
+        "default": null
+      },
+      "cvv": {
+        "type": "string",
+        "required": false,
+        "description": "Card verification value (for card payments)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid payment method: Use one of [credit_card, debit_card, bank_transfer, digital_wallet, cryptocurrency].",
+      "Missing card details: For card payments, provide card_number, expiry_month, expiry_year, and cvv.",
+      "Invalid card number: Card number must be 13-19 digits and pass Luhn algorithm validation.",
+      "Invalid expiry date: Expiry month must be 1-12 and date must be in the future.",
+      "Invalid CVV: CVV must be 3-4 digits depending on card type."
+    ],
+    "usage": "Specify payment_method and provide corresponding details (card_number, expiry_month, expiry_year, cvv for cards). The tool validates format and basic security checks.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the payment method details are valid"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation error messages if any"
+      },
+      "card_brand": {
+        "type": "string",
+        "description": "Detected card brand (Visa, Mastercard, etc.) for card payments"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Gateway Router",
+    "tool_description": "Routes payment requests to the most appropriate payment gateway based on factors like payment method, amount, currency, and gateway availability.",
+    "parameters": {
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Type of payment method being processed"
+      },
+      "amount": {
+        "type": "number",
+        "required": true,
+        "description": "Transaction amount in decimal format"
+      },
+      "currency": {
+        "type": "string",
+        "required": true,
+        "description": "Three-letter ISO currency code (USD, EUR, GBP, etc.)"
+      },
+      "customer_country": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's country code (ISO 3166-1 alpha-2)"
+      },
+      "preferred_gateway": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred payment gateway if any",
+        "default": null
+      },
+      "merchant_id": {
+        "type": "string",
+        "required": true,
+        "description": "Merchant identifier for gateway routing"
+      }
+    },
+    "error_messages": [
+      "Unsupported currency: The specified currency is not supported by any available gateway.",
+      "No available gateway: No payment gateway is available for the given payment method and region combination.",
+      "Amount exceeds limit: The transaction amount exceeds the maximum limit for available gateways.",
+      "Invalid country code: Provide a valid ISO 3166-1 alpha-2 country code.",
+      "Merchant not configured: The merchant is not configured for any payment gateway."
+    ],
+    "usage": "Provide payment_method, amount, currency, customer_country, and merchant_id. Optionally specify preferred_gateway. The tool selects the optimal gateway based on routing logic.",
+    "output_details": {
+      "selected_gateway": {
+        "type": "string",
+        "description": "Name of the selected payment gateway"
+      },
+      "gateway_config": {
+        "type": "string",
+        "description": "Configuration identifier for the selected gateway"
+      },
+      "routing_reason": {
+        "type": "string",
+        "description": "Explanation of why this gateway was selected"
+      },
+      "estimated_fees": {
+        "type": "number",
+        "description": "Estimated processing fees for this gateway"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transaction Authorizer",
+    "tool_description": "Requests authorization from the selected payment gateway for a transaction, handling gateway-specific protocols and responses.",
+    "parameters": {
+      "gateway_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the payment gateway to use"
+      },
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique transaction identifier"
+      },
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method type"
+      },
+      "amount": {
+        "type": "number",
+        "required": true,
+        "description": "Transaction amount"
+      },
+      "currency": {
+        "type": "string",
+        "required": true,
+        "description": "Transaction currency code"
+      },
+      "customer_email": {
+        "type": "string",
+        "required": true,
+        "description": "Customer email address"
+      },
+      "billing_address": {
+        "type": "string",
+        "required": true,
+        "description": "Customer billing address"
+      },
+      "card_token": {
+        "type": "string",
+        "required": false,
+        "description": "Tokenized card information (if using card payment)",
+        "default": null
+      },
+      "three_d_secure": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to enable 3D Secure authentication",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Gateway connection failed: Unable to connect to the specified payment gateway.",
+      "Invalid transaction data: Transaction amount, currency, or other required fields are invalid.",
+      "Authorization declined: The payment was declined by the gateway or issuing bank.",
+      "Insufficient funds: The customer's account has insufficient funds for the transaction.",
+      "3D Secure authentication required: Customer must complete 3D Secure authentication to proceed.",
+      "Gateway timeout: The payment gateway did not respond within the timeout period."
+    ],
+    "usage": "Provide gateway_name, transaction_id, payment details (payment_method, amount, currency), customer information (customer_email, billing_address), and optionally card_token and three_d_secure flag.",
+    "output_details": {
+      "authorization_status": {
+        "type": "string",
+        "description": "Status of authorization: approved, declined, pending, requires_action"
+      },
+      "authorization_code": {
+        "type": "string",
+        "description": "Gateway authorization code if approved"
+      },
+      "gateway_transaction_id": {
+        "type": "string",
+        "description": "Gateway's internal transaction identifier"
+      },
+      "decline_reason": {
+        "type": "string",
+        "description": "Reason for decline if applicable"
+      },
+      "three_d_secure_url": {
+        "type": "string",
+        "description": "3D Secure authentication URL if required"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Processor",
+    "tool_description": "Processes authorized payments by capturing funds and updating transaction status, handling both immediate and delayed capture scenarios.",
+    "parameters": {
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique transaction identifier"
+      },
+      "authorization_code": {
+        "type": "string",
+        "required": true,
+        "description": "Authorization code from the gateway"
+      },
+      "gateway_transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Gateway's transaction identifier"
+      },
+      "capture_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Amount to capture (defaults to full authorized amount)",
+        "default": null
+      },
+      "capture_immediately": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to capture funds immediately",
+        "default": true
+      },
+      "order_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to the associated order"
+      }
+    },
+    "error_messages": [
+      "Authorization expired: The authorization code has expired and cannot be captured.",
+      "Capture amount exceeds authorized: The capture amount is greater than the authorized amount.",
+      "Payment already captured: This transaction has already been fully captured.",
+      "Gateway processing error: The payment gateway returned an error during capture.",
+      "Invalid authorization code: The provided authorization code is invalid or not found."
+    ],
+    "usage": "Provide transaction_id, authorization_code, gateway_transaction_id, and order_reference. Optionally specify capture_amount and capture_immediately flag for delayed capture scenarios.",
+    "output_details": {
+      "capture_status": {
+        "type": "string",
+        "description": "Status of capture: captured, failed, pending"
+      },
+      "captured_amount": {
+        "type": "number",
+        "description": "Amount successfully captured"
+      },
+      "capture_reference": {
+        "type": "string",
+        "description": "Gateway reference for the capture"
+      },
+      "processing_timestamp": {
+        "type": "string",
+        "description": "Timestamp when processing completed"
+      },
+      "settlement_date": {
+        "type": "string",
+        "description": "Expected settlement date for funds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fraud Detection Analyzer",
+    "tool_description": "Analyzes transaction patterns, customer behavior, and payment details to assess fraud risk and recommend actions.",
+    "parameters": {
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique transaction identifier"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier"
+      },
+      "transaction_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Transaction amount"
+      },
+      "customer_ip": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's IP address"
+      },
+      "billing_country": {
+        "type": "string",
+        "required": true,
+        "description": "Billing address country code"
+      },
+      "shipping_country": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping address country code"
+      },
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method used"
+      },
+      "device_fingerprint": {
+        "type": "string",
+        "required": false,
+        "description": "Device fingerprint hash",
+        "default": null
+      },
+      "customer_age_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days since customer account creation",
+        "default": null
+      },
+      "previous_transaction_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of previous successful transactions by this customer",
+        "default": 0
+      },
+      "transaction_hour": {
+        "type": "integer",
+        "required": true,
+        "description": "Hour of transaction (0-23)"
+      },
+      "user_agent": {
+        "type": "string",
+        "required": false,
+        "description": "Customer's browser user agent string",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid IP address: Provide a valid IPv4 or IPv6 address format.",
+      "Invalid country code: Use valid ISO 3166-1 alpha-2 country codes.",
+      "Invalid transaction hour: Hour must be between 0 and 23.",
+      "Customer data incomplete: Insufficient customer history data for accurate analysis.",
+      "Analysis service unavailable: Fraud detection service is temporarily unavailable."
+    ],
+    "usage": "Provide transaction details (transaction_id, transaction_amount, payment_method), customer information (customer_id, customer_ip, billing_country, shipping_country), and contextual data (transaction_hour). Optionally include device_fingerprint, customer_age_days, previous_transaction_count, and user_agent for enhanced analysis.",
+    "output_details": {
+      "fraud_score": {
+        "type": "number",
+        "description": "Fraud risk score from 0-100 (higher = more risky)"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Risk assessment: low, medium, high"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Recommended action: approve, review, decline"
+      },
+      "risk_factors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of identified risk factors"
+      },
+      "geolocation_risk": {
+        "type": "boolean",
+        "description": "Whether geographic mismatch poses risk"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Status Tracker",
+    "tool_description": "Tracks and retrieves current status of payment transactions across different gateways and provides status history.",
+    "parameters": {
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique transaction identifier to track"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include full status history",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Transaction not found: No transaction exists with the provided transaction_id.",
+      "Gateway communication error: Unable to retrieve status from payment gateway.",
+      "Invalid transaction ID format: Provide a valid transaction identifier."
+    ],
+    "usage": "Provide transaction_id to get current status. Set include_history to true to get complete status change history.",
+    "output_details": {
+      "current_status": {
+        "type": "string",
+        "description": "Current transaction status"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last status update"
+      },
+      "gateway_status": {
+        "type": "string",
+        "description": "Status as reported by payment gateway"
+      },
+      "amount_captured": {
+        "type": "number",
+        "description": "Amount successfully captured"
+      },
+      "status_history": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Chronological list of status changes (if requested)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Refund Handler",
+    "tool_description": "Processes refund requests for completed transactions, handling partial and full refunds across different payment gateways.",
+    "parameters": {
+      "original_transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Transaction ID of the original payment to refund"
+      },
+      "refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Amount to refund (must not exceed captured amount)"
+      },
+      "refund_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for refund: customer_request, defective_product, order_cancelled, duplicate_charge, fraud_chargeback"
+      },
+      "refund_reference": {
+        "type": "string",
+        "required": false,
+        "description": "Internal reference for the refund",
+        "default": null
+      },
+      "notify_customer": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to send refund notification to customer",
+        "default": true
+      },
+      "admin_notes": {
+        "type": "string",
+        "required": false,
+        "description": "Internal notes about the refund",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Original transaction not found: No transaction exists with the provided transaction_id.",
+      "Refund amount exceeds captured: Refund amount cannot exceed the amount captured from original transaction.",
+      "Transaction not refundable: Original transaction status does not allow refunds.",
+      "Gateway refund failed: Payment gateway declined the refund request.",
+      "Invalid refund reason: Use one of [customer_request, defective_product, order_cancelled, duplicate_charge, fraud_chargeback].",
+      "Refund already processed: A refund for this amount has already been processed for this transaction."
+    ],
+    "usage": "Provide original_transaction_id, refund_amount, and refund_reason. Optionally include refund_reference, notify_customer flag, and admin_notes for record keeping.",
+    "output_details": {
+      "refund_status": {
+        "type": "string",
+        "description": "Status of refund: processed, pending, failed"
+      },
+      "refund_id": {
+        "type": "string",
+        "description": "Unique identifier for this refund"
+      },
+      "gateway_refund_id": {
+        "type": "string",
+        "description": "Payment gateway's refund identifier"
+      },
+      "refund_timestamp": {
+        "type": "string",
+        "description": "Timestamp when refund was processed"
+      },
+      "expected_completion": {
+        "type": "string",
+        "description": "Expected date when refund will appear in customer account"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transaction Reconciler",
+    "tool_description": "Reconciles transaction records between internal systems and payment gateway reports, identifying discrepancies and settlement status.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for reconciliation period (ISO 8601 format)",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for reconciliation period (ISO 8601 format)",
+        "format": "date-time"
+      },
+      "gateway_name": {
+        "type": "string",
+        "required": true,
+        "description": "Payment gateway to reconcile against"
+      },
+      "transaction_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of transactions to include",
+        "items": {
+          "type": "string"
+        },
+        "default": ["payment", "refund"]
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Filter by specific currency (ISO 4217 code)",
+        "default": null
+      },
+      "include_fees": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include gateway fees in reconciliation",
+        "default": true
+      },
+      "merchant_id": {
+        "type": "string",
+        "required": true,
+        "description": "Merchant account identifier for the gateway"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: End date must be after start date and both must be valid ISO 8601 timestamps.",
+      "Gateway data unavailable: Cannot retrieve transaction data from the specified gateway for the given period.",
+      "Unsupported gateway: The specified gateway is not supported for reconciliation.",
+      "Date range too large: Reconciliation period cannot exceed 31 days.",
+      "Invalid transaction types: Use only [payment, refund, chargeback, adjustment]."
+    ],
+    "usage": "Provide start_date, end_date, gateway_name, and merchant_id for the reconciliation period. Optionally filter by transaction_types, currency, and set include_fees flag.",
+    "output_details": {
+      "reconciliation_summary": {
+        "type": "string",
+        "description": "Summary of reconciliation results"
+      },
+      "total_internal_amount": {
+        "type": "number",
+        "description": "Total amount from internal transaction records"
+      },
+      "total_gateway_amount": {
+        "type": "number",
+        "description": "Total amount from gateway reports"
+      },
+      "discrepancy_count": {
+        "type": "integer",
+        "description": "Number of transactions with discrepancies"
+      },
+      "discrepancy_amount": {
+        "type": "number",
+        "description": "Total monetary value of discrepancies"
+      },
+      "settlement_status": {
+        "type": "string",
+        "description": "Overall settlement status for the period"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Retry Manager",
+    "tool_description": "Manages retry logic for failed payments, implementing intelligent retry schedules and alternative payment method suggestions.",
+    "parameters": {
+      "failed_transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Transaction ID of the failed payment"
+      },
+      "failure_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for payment failure"
+      },
+      "retry_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Retry strategy: immediate, delayed, smart, manual",
+        "default": "smart"
+      },
+      "max_retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of retry attempts (1-5)",
+        "default": 3
+      },
+      "customer_consent": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether customer has consented to retry attempts"
+      }
+    },
+    "error_messages": [
+      "Transaction not eligible for retry: The failed transaction cannot be retried due to its failure type.",
+      "Max retries exceeded: The transaction has already reached maximum retry attempts.",
+      "Customer consent required: Customer must consent to retry attempts.",
+      "Invalid retry strategy: Use one of [immediate, delayed, smart, manual].",
+      "Invalid max retry attempts: Must be between 1 and 5."
+    ],
+    "usage": "Provide failed_transaction_id, failure_reason, and customer_consent. Optionally specify retry_strategy and max_retry_attempts to customize retry behavior.",
+    "output_details": {
+      "retry_scheduled": {
+        "type": "boolean",
+        "description": "Whether retry has been scheduled"
+      },
+      "next_retry_time": {
+        "type": "string",
+        "description": "Timestamp of next retry attempt"
+      },
+      "retry_method": {
+        "type": "string",
+        "description": "Method to be used for retry"
+      },
+      "alternative_methods": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggested alternative payment methods"
+      },
+      "retry_probability": {
+        "type": "number",
+        "description": "Estimated success probability for retry (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Webhook Event Processor",
+    "tool_description": "Processes incoming webhook notifications from payment gateways, validates signatures, and updates transaction status accordingly.",
+    "parameters": {
+      "webhook_payload": {
+        "type": "string",
+        "required": true,
+        "description": "Raw webhook payload from payment gateway"
+      },
+      "webhook_signature": {
+        "type": "string",
+        "required": true,
+        "description": "Webhook signature for validation"
+      },
+      "gateway_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the payment gateway sending the webhook"
+      },
+      "event_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of webhook event if known",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid webhook signature: Webhook signature validation failed.",
+      "Malformed payload: Webhook payload is not valid JSON or is corrupted.",
+      "Unsupported gateway: Webhook processing not supported for this gateway.",
+      "Unknown event type: The webhook event type is not recognized.",
+      "Processing timeout: Webhook processing exceeded maximum allowed time."
+    ],
+    "usage": "Provide webhook_payload, webhook_signature, and gateway_name. Optionally specify event_type if known. The tool validates and processes the webhook appropriately.",
+    "output_details": {
+      "processing_status": {
+        "type": "string",
+        "description": "Status of webhook processing: success, failed, ignored"
+      },
+      "event_type": {
+        "type": "string",
+        "description": "Identified type of webhook event"
+      },
+      "transaction_id": {
+        "type": "string",
+        "description": "Associated transaction ID if applicable"
+      },
+      "status_updated": {
+        "type": "boolean",
+        "description": "Whether transaction status was updated"
+      },
+      "new_status": {
+        "type": "string",
+        "description": "New transaction status if updated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Analytics Generator",
+    "tool_description": "Generates comprehensive analytics reports on payment performance, success rates, popular methods, and revenue metrics for specified time periods.",
+    "parameters": {
+      "report_start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analytics period (ISO 8601 format)",
+        "format": "date-time"
+      },
+      "report_end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analytics period (ISO 8601 format)",
+        "format": "date-time"
+      },
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: performance, revenue, methods, geography, fraud, trends"
+      },
+      "merchant_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific merchant IDs to include in report",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "currencies": {
+        "type": "array",
+        "required": false,
+        "description": "Currencies to include in report",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "payment_methods": {
+        "type": "array",
+        "required": false,
+        "description": "Payment methods to analyze",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "grouping_period": {
+        "type": "string",
+        "required": false,
+        "description": "Data grouping period: daily, weekly, monthly",
+        "default": "daily"
+      },
+      "include_comparisons": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include period-over-period comparisons",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid date range: End date must be after start date and both must be valid ISO 8601 timestamps.",
+      "Report period too long: Analytics period cannot exceed 365 days.",
+      "Invalid report type: Use one of [performance, revenue, methods, geography, fraud, trends].",
+      "Insufficient data: Not enough transaction data available for the specified period and filters.",
+      "Invalid grouping period: Use one of [daily, weekly, monthly]."
+    ],
+    "usage": "Provide report_start_date, report_end_date, and report_type. Optionally filter by merchant_ids, currencies, payment_methods, and customize grouping_period. Set include_comparisons for period comparisons.",
+    "output_details": {
+      "report_summary": {
+        "type": "string",
+        "description": "Executive summary of the analytics report"
+      },
+      "total_transactions": {
+        "type":

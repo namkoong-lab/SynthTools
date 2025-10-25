@@ -1,0 +1,800 @@
+field_name: open_data_and_statistics
+subfield: Census and Demographic Analysis
+task: Census tract mapping and geographic boundary analysis for demographic studies
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to its broad scope involving multiple complex subproblems: geographic data processing, boundary analysis, spatial joins, demographic data integration, coordinate system transformations, and statistical analysis. The task has significant dependencies between geographic and demographic datasets, requires handling large spatial datasets, and errors in boundary analysis or mapping can significantly impact demographic study validity.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'll target **17 tools** within the 15-20 range to cover the comprehensive workflow from data acquisition through boundary analysis to demographic insights.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  **Data Acquisition Tools:**
+  - Census Data Fetcher (produces: raw census data)
+  - Boundary Data Loader (produces: geographic boundary files)
+  - Tract Metadata Extractor (consumes: census data; produces: tract metadata)
+
+  **Geographic Processing Tools:**
+  - Coordinate Transformer (consumes: coordinates; produces: transformed coordinates)
+  - Boundary Validator (consumes: boundary data; produces: validation results)
+  - Spatial Index Builder (consumes: boundary data; produces: spatial index)
+  - Buffer Zone Generator (consumes: boundaries; produces: buffered boundaries)
+
+  **Analysis Tools:**
+  - Tract Intersection Analyzer (consumes: boundaries, spatial index; produces: intersection results)
+  - Demographic Calculator (consumes: census data, tract metadata; produces: demographic metrics)
+  - Spatial Join Processor (consumes: boundaries, demographic data; produces: joined datasets)
+  - Boundary Neighbor Finder (consumes: boundaries, spatial index; produces: neighbor relationships)
+  - Area Perimeter Calculator (consumes: boundaries; produces: geometric measurements)
+
+  **Validation and Output Tools:**
+  - Data Quality Assessor (consumes: all data types; produces: quality metrics)
+  - Topological Validator (consumes: boundaries; produces: topology validation)
+  - Map Projection Analyzer (consumes: geographic data; produces: projection analysis)
+  - Statistical Summarizer (consumes: demographic metrics; produces: statistical summaries)
+  - Export Formatter (consumes: analysis results; produces: formatted outputs)
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Tract Data Retrieval:** Census Data Fetcher → Tract Metadata Extractor → Export Formatter (retrieve and format basic census tract information)
+  2. **Boundary Validation:** Boundary Data Loader → Boundary Validator → Topological Validator (validate geographic boundary data integrity)
+
+  **Medium Plans:**
+  1. **Demographic Mapping:** Census Data Fetcher → Boundary Data Loader → Spatial Join Processor → Demographic Calculator → Statistical Summarizer (create demographic maps with statistical analysis)
+  2. **Tract Analysis with Neighbors:** Boundary Data Loader → Spatial Index Builder → Boundary Neighbor Finder → Area Perimeter Calculator → Export Formatter (analyze tract relationships and geometry)
+
+  **Complex Plans:**
+  1. **Comprehensive Boundary Analysis:** Boundary Data Loader → Coordinate Transformer → Boundary Validator → Spatial Index Builder → Tract Intersection Analyzer → Boundary Neighbor Finder → Topological Validator → Data Quality Assessor (complete boundary analysis workflow)
+  2. **Full Demographic Study:** Census Data Fetcher → Tract Metadata Extractor → Boundary Data Loader → Coordinate Transformer → Spatial Join Processor → Demographic Calculator → Buffer Zone Generator → Statistical Summarizer → Map Projection Analyzer → Export Formatter (end-to-end demographic analysis with geographic context)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Census Data Fetcher",
+    "tool_description": "Retrieves census data from specified geographic areas and demographic variables for a given census year and geography level.",
+    "parameters": {
+      "census_year": {
+        "type": "integer",
+        "required": true,
+        "description": "Census year (e.g., 2020, 2010, 2000)"
+      },
+      "geography_level": {
+        "type": "string",
+        "required": true,
+        "description": "Geographic level: tract, block_group, county, state"
+      },
+      "state_code": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter state code (e.g., CA, NY, TX)"
+      },
+      "county_codes": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Array of 3-digit county FIPS codes to filter results",
+        "default": "None"
+      },
+      "variables": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Census variables to retrieve (e.g., B01003_001E for total population)"
+      }
+    },
+    "error_messages": [
+      "Invalid census year: Supported years are 2000, 2010, 2020. Ensure the year is available in the census API.",
+      "Invalid geography level: Use one of [tract, block_group, county, state].",
+      "Invalid state code: Provide a valid two-letter state abbreviation.",
+      "Invalid county codes: County codes must be 3-digit FIPS codes.",
+      "Invalid variables: Census variable codes must follow the format like B01003_001E. Check the census API documentation."
+    ],
+    "usage": "Specify census_year, geography_level, state_code, and variables. Optionally filter by county_codes. Returns census data with geographic identifiers.",
+    "output_details": {
+      "record_count": {
+        "type": "integer",
+        "description": "Number of census records retrieved"
+      },
+      "geographic_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of geographic identifiers (FIPS codes)"
+      },
+      "variable_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of variable names retrieved"
+      },
+      "data_summary": {
+        "type": "string",
+        "description": "Summary of the retrieved census data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Boundary Data Loader",
+    "tool_description": "Loads and parses geographic boundary files in various formats and extracts spatial geometry and attribute information.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the boundary file (shapefile, geojson, kml)"
+      },
+      "file_format": {
+        "type": "string",
+        "required": true,
+        "description": "File format: shapefile, geojson, kml, gpkg"
+      },
+      "encoding": {
+        "type": "string",
+        "required": false,
+        "description": "Character encoding for the file",
+        "default": "utf-8"
+      }
+    },
+    "error_messages": [
+      "File not found: Ensure the file path exists and is accessible.",
+      "Unsupported file format: Use one of [shapefile, geojson, kml, gpkg].",
+      "Invalid encoding: Provide a valid character encoding (e.g., utf-8, latin-1).",
+      "Corrupted file: The boundary file appears to be corrupted or incomplete.",
+      "Missing projection information: The file lacks coordinate reference system information."
+    ],
+    "usage": "Provide file_path and file_format. Optionally specify encoding for text-based formats. Returns loaded boundary data with geometry and attributes.",
+    "output_details": {
+      "feature_count": {
+        "type": "integer",
+        "description": "Number of boundary features loaded"
+      },
+      "geometry_type": {
+        "type": "string",
+        "description": "Type of geometry (Polygon, MultiPolygon, etc.)"
+      },
+      "coordinate_system": {
+        "type": "string",
+        "description": "Coordinate reference system of the data"
+      },
+      "attribute_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of attribute field names"
+      },
+      "bounding_box": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Bounding box coordinates [min_x, min_y, max_x, max_y]"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Coordinate Transformer",
+    "tool_description": "Transforms coordinates between different coordinate reference systems and validates transformation accuracy.",
+    "parameters": {
+      "source_crs": {
+        "type": "string",
+        "required": true,
+        "description": "Source coordinate reference system (EPSG code or proj4 string)"
+      },
+      "target_crs": {
+        "type": "string",
+        "required": true,
+        "description": "Target coordinate reference system (EPSG code or proj4 string)"
+      },
+      "coordinates": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "number"},
+        "description": "Array of coordinates [x1, y1, x2, y2, ...]"
+      },
+      "validation_tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Tolerance for transformation validation in target units",
+        "default": 0.01
+      }
+    },
+    "error_messages": [
+      "Invalid source CRS: Provide a valid EPSG code (e.g., EPSG:4326) or proj4 string.",
+      "Invalid target CRS: Provide a valid EPSG code (e.g., EPSG:3857) or proj4 string.",
+      "Invalid coordinates: Coordinates must be provided as pairs (even number of values).",
+      "Transformation failed: Unable to transform between the specified coordinate systems.",
+      "High transformation error: Transformation accuracy exceeds the specified tolerance."
+    ],
+    "usage": "Specify source_crs, target_crs, and coordinates array. Optionally set validation_tolerance. Returns transformed coordinates with accuracy metrics.",
+    "output_details": {
+      "transformed_coordinates": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of transformed coordinates"
+      },
+      "transformation_accuracy": {
+        "type": "number",
+        "description": "Estimated transformation accuracy in target units"
+      },
+      "coordinate_count": {
+        "type": "integer",
+        "description": "Number of coordinate pairs transformed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tract Intersection Analyzer",
+    "tool_description": "Analyzes spatial intersections between census tracts and other geographic features, calculating intersection areas and overlap percentages.",
+    "parameters": {
+      "tract_boundaries": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to loaded tract boundary data"
+      },
+      "overlay_features": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to overlay feature data for intersection analysis"
+      },
+      "intersection_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of intersection: intersects, contains, within, overlaps, touches"
+      },
+      "minimum_area_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum intersection area to report (in map units)",
+        "default": 0
+      },
+      "minimum_overlap_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum overlap percentage to report (0-100)",
+        "default": 0
+      },
+      "output_geometry": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include intersection geometries in output",
+        "default": false
+      },
+      "area_calculation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Area calculation method: planar, geodesic",
+        "default": "planar"
+      },
+      "spatial_index_reference": {
+        "type": "string",
+        "required": false,
+        "description": "Reference to pre-built spatial index for optimization",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid tract boundaries reference: Ensure tract boundary data is properly loaded.",
+      "Invalid overlay features reference: Ensure overlay feature data is properly loaded.",
+      "Invalid intersection type: Use one of [intersects, contains, within, overlaps, touches].",
+      "Invalid area threshold: Minimum area threshold must be non-negative.",
+      "Invalid overlap percentage: Overlap percentage must be between 0 and 100.",
+      "Invalid area calculation method: Use either 'planar' or 'geodesic'.",
+      "Coordinate system mismatch: Tract boundaries and overlay features must use the same CRS.",
+      "Invalid spatial index reference: Provided spatial index reference does not exist."
+    ],
+    "usage": "Provide references to tract_boundaries and overlay_features, specify intersection_type. Optionally set thresholds and calculation methods. Returns intersection analysis results.",
+    "output_details": {
+      "intersection_count": {
+        "type": "integer",
+        "description": "Number of intersections found"
+      },
+      "tract_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of intersecting tract identifiers"
+      },
+      "intersection_areas": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of intersection areas in map units"
+      },
+      "overlap_percentages": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of overlap percentages for each intersection"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Summary of intersection analysis results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Demographic Calculator",
+    "tool_description": "Calculates demographic metrics, rates, and derived statistics from census data including population density, demographic ratios, and change rates.",
+    "parameters": {
+      "census_data_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to loaded census data"
+      },
+      "calculation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of calculation: density, ratio, rate, percentage, change, index"
+      },
+      "primary_variable": {
+        "type": "string",
+        "required": true,
+        "description": "Primary census variable for calculation"
+      },
+      "secondary_variable": {
+        "type": "string",
+        "required": false,
+        "description": "Secondary variable for ratio/rate calculations",
+        "default": "None"
+      },
+      "area_data_reference": {
+        "type": "string",
+        "required": false,
+        "description": "Reference to area data for density calculations",
+        "default": "None"
+      },
+      "comparison_year_data": {
+        "type": "string",
+        "required": false,
+        "description": "Reference to comparison year data for change calculations",
+        "default": "None"
+      },
+      "calculation_units": {
+        "type": "string",
+        "required": false,
+        "description": "Units for result: per_square_mile, per_square_km, per_1000, percentage",
+        "default": "raw"
+      },
+      "exclude_zero_values": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to exclude zero values from calculations",
+        "default": true
+      },
+      "confidence_interval": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to calculate confidence intervals for estimates",
+        "default": false
+      },
+      "aggregation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Aggregation level: individual, county, state, national",
+        "default": "individual"
+      }
+    },
+    "error_messages": [
+      "Invalid census data reference: Ensure census data is properly loaded and referenced.",
+      "Invalid calculation type: Use one of [density, ratio, rate, percentage, change, index].",
+      "Invalid primary variable: Primary variable must exist in the census data.",
+      "Invalid secondary variable: Secondary variable must exist in the census data for ratio/rate calculations.",
+      "Missing area data: Area data reference required for density calculations.",
+      "Missing comparison data: Comparison year data required for change calculations.",
+      "Invalid calculation units: Use one of [per_square_mile, per_square_km, per_1000, percentage, raw].",
+      "Division by zero: Secondary variable contains zero values that would cause division by zero.",
+      "Invalid aggregation level: Use one of [individual, county, state, national]."
+    ],
+    "usage": "Provide census_data_reference, calculation_type, and primary_variable. Add secondary_variable for ratios, area_data_reference for density, comparison_year_data for change calculations. Returns calculated demographic metrics.",
+    "output_details": {
+      "calculated_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of calculated demographic values"
+      },
+      "geographic_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of geographic identifiers corresponding to calculated values"
+      },
+      "summary_statistics": {
+        "type": "string",
+        "description": "Summary statistics of calculated values (mean, median, std dev)"
+      },
+      "calculation_metadata": {
+        "type": "string",
+        "description": "Metadata about the calculation including units and method"
+      },
+      "confidence_intervals": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of confidence interval bounds if requested"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Boundary Validator",
+    "tool_description": "Validates geographic boundary data for completeness, geometric validity, and data quality issues.",
+    "parameters": {
+      "boundary_data_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to loaded boundary data"
+      },
+      "validation_checks": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Array of validation checks to perform: geometry, topology, attributes, completeness"
+      },
+      "tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Geometric tolerance for validation checks",
+        "default": 0.001
+      },
+      "fix_minor_issues": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to attempt automatic fixing of minor geometric issues",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid boundary data reference: Ensure boundary data is properly loaded and referenced.",
+      "Invalid validation checks: Use one or more of [geometry, topology, attributes, completeness].",
+      "Invalid tolerance: Tolerance must be a positive number.",
+      "Validation failed: Critical validation errors prevent processing."
+    ],
+    "usage": "Provide boundary_data_reference and select validation_checks to perform. Optionally set tolerance and fix_minor_issues. Returns validation results and quality metrics.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation status: passed, warning, failed"
+      },
+      "error_count": {
+        "type": "integer",
+        "description": "Total number of validation errors found"
+      },
+      "warning_count": {
+        "type": "integer",
+        "description": "Total number of validation warnings"
+      },
+      "validation_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of detailed validation messages"
+      },
+      "fixed_issues": {
+        "type": "integer",
+        "description": "Number of minor issues automatically fixed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Spatial Index Builder",
+    "tool_description": "Creates spatial indices to optimize geographic queries and spatial operations on boundary data.",
+    "parameters": {
+      "boundary_data_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to boundary data for indexing"
+      },
+      "index_type": {
+        "type": "string",
+        "required": true,
+        "description": "Spatial index type: rtree, quadtree, grid"
+      },
+      "index_parameters": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "number"},
+        "description": "Array of index-specific parameters",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid boundary data reference: Ensure boundary data is properly loaded and referenced.",
+      "Invalid index type: Use one of [rtree, quadtree, grid].",
+      "Invalid index parameters: Parameters must be positive numbers appropriate for the index type.",
+      "Insufficient memory: Not enough memory available to build the spatial index."
+    ],
+    "usage": "Provide boundary_data_reference and specify index_type. Optionally provide index_parameters for fine-tuning. Returns spatial index reference for use in other operations.",
+    "output_details": {
+      "index_reference": {
+        "type": "string",
+        "description": "Reference identifier for the created spatial index"
+      },
+      "index_size": {
+        "type": "integer",
+        "description": "Number of features indexed"
+      },
+      "build_time": {
+        "type": "number",
+        "description": "Time taken to build the index in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Buffer Zone Generator",
+    "tool_description": "Creates buffer zones around geographic boundaries at specified distances with various buffer styles and options.",
+    "parameters": {
+      "boundary_data_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to boundary data for buffering"
+      },
+      "buffer_distance": {
+        "type": "number",
+        "required": true,
+        "description": "Buffer distance in map units"
+      },
+      "buffer_style": {
+        "type": "string",
+        "required": false,
+        "description": "Buffer style: round, square, flat",
+        "default": "round"
+      },
+      "segments": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of segments for round buffers (4-64)",
+        "default": 16
+      },
+      "dissolve_buffers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to dissolve overlapping buffers",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid boundary data reference: Ensure boundary data is properly loaded and referenced.",
+      "Invalid buffer distance: Buffer distance must be a positive number.",
+      "Invalid buffer style: Use one of [round, square, flat].",
+      "Invalid segments: Number of segments must be between 4 and 64.",
+      "Buffer operation failed: Unable to create buffers with the specified parameters."
+    ],
+    "usage": "Provide boundary_data_reference and buffer_distance. Optionally specify buffer_style, segments, and dissolve_buffers. Returns buffered boundary data.",
+    "output_details": {
+      "buffered_feature_count": {
+        "type": "integer",
+        "description": "Number of buffered features created"
+      },
+      "total_buffer_area": {
+        "type": "number",
+        "description": "Total area of all buffer zones"
+      },
+      "buffer_reference": {
+        "type": "string",
+        "description": "Reference to the created buffer data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Spatial Join Processor",
+    "tool_description": "Performs spatial joins between census tract boundaries and demographic data based on spatial relationships.",
+    "parameters": {
+      "left_data_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to left dataset (typically boundary data)"
+      },
+      "right_data_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to right dataset (typically demographic data)"
+      },
+      "join_type": {
+        "type": "string",
+        "required": true,
+        "description": "Spatial join type: intersects, within, contains, nearest"
+      },
+      "join_fields": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Fields to include in join result",
+        "default": "None"
+      },
+      "distance_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum distance for nearest joins",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid left data reference: Ensure left dataset is properly loaded and referenced.",
+      "Invalid right data reference: Ensure right dataset is properly loaded and referenced.",
+      "Invalid join type: Use one of [intersects, within, contains, nearest].",
+      "Invalid join fields: Specified fields must exist in the datasets.",
+      "Coordinate system mismatch: Both datasets must use the same coordinate reference system.",
+      "Distance threshold required: Nearest joins require a distance threshold."
+    ],
+    "usage": "Provide left_data_reference, right_data_reference, and join_type. Optionally specify join_fields and distance_threshold for nearest joins. Returns spatially joined data.",
+    "output_details": {
+      "joined_record_count": {
+        "type": "integer",
+        "description": "Number of records in the joined dataset"
+      },
+      "join_success_rate": {
+        "type": "number",
+        "description": "Percentage of successful joins"
+      },
+      "joined_data_reference": {
+        "type": "string",
+        "description": "Reference to the joined dataset"
+      },
+      "unmatched_records": {
+        "type": "integer",
+        "description": "Number of records that could not be joined"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Boundary Neighbor Finder",
+    "tool_description": "Identifies neighboring census tracts and calculates adjacency relationships with shared boundary lengths.",
+    "parameters": {
+      "boundary_data_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to boundary data for neighbor analysis"
+      },
+      "adjacency_type": {
+        "type": "string",
+        "required": true,
+        "description": "Adjacency type: touches, intersects, queen, rook"
+      },
+      "spatial_index_reference": {
+        "type": "string",
+        "required": false,
+        "description": "Reference to spatial index for optimization",
+        "default": "None"
+      },
+      "include_boundary_length": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to calculate shared boundary lengths",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid boundary data reference: Ensure boundary data is properly loaded and referenced.",
+      "Invalid adjacency type: Use one of [touches, intersects, queen, rook].",
+      "Invalid spatial index reference: Provided spatial index reference does not exist.",
+      "Neighbor analysis failed: Unable to complete neighbor analysis with current parameters."
+    ],
+    "usage": "Provide boundary_data_reference and adjacency_type. Optionally provide spatial_index_reference for performance and enable include_boundary_length. Returns neighbor relationships.",
+    "output_details": {
+      "neighbor_pairs": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of neighbor pair identifiers"
+      },
+      "shared_boundary_lengths": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of shared boundary lengths corresponding to neighbor pairs"
+      },
+      "average_neighbors": {
+        "type": "number",
+        "description": "Average number of neighbors per tract"
+      },
+      "neighbor_analysis_summary": {
+        "type": "string",
+        "description": "Summary of neighbor analysis results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Area Perimeter Calculator",
+    "tool_description": "Calculates area and perimeter measurements for census tract boundaries with various measurement options.",
+    "parameters": {
+      "boundary_data_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to boundary data for measurement"
+      },
+      "measurement_type": {
+        "type": "string",
+        "required": true,
+        "description": "Measurement type: planar, geodesic, spheroidal"
+      },
+      "output_units": {
+        "type": "string",
+        "required": false,
+        "description": "Output units: square_meters, square_kilometers, square_miles, acres",
+        "default": "square_meters"
+      },
+      "include_perimeter": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to calculate perimeter in addition to area",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid boundary data reference: Ensure boundary data is properly loaded and referenced.",
+      "Invalid measurement type: Use one of [planar, geodesic, spheroidal].",
+      "Invalid output units: Use one of [square_meters, square_kilometers, square_miles, acres].",
+      "Measurement calculation failed: Unable to calculate measurements with current parameters."
+    ],
+    "usage": "Provide boundary_data_reference and measurement_type. Optionally specify output_units and include_perimeter. Returns area and optionally perimeter measurements.",
+    "output_details": {
+      "geographic_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of geographic identifiers"
+      },
+      "areas": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of calculated areas in specified units"
+      },
+      "perimeters": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of calculated perimeters if requested"
+      },
+      "total_area": {
+        "type": "number",
+        "description": "Sum of all calculated areas"
+      },
+      "measurement_summary": {
+        "type": "string",
+        "description": "Summary of measurement calculations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tract Metadata Extractor",
+    "tool_description": "Extracts and organizes metadata from census tract data including geographic identifiers and classification information.",
+    "parameters": {
+      "census_data_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to census data for metadata extraction"
+      },
+      "metadata_fields": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Fields to extract: tract_id, county_id, state_id, tract_name, urban_rural"
+      }
+    },
+    "error_messages": [
+      "Invalid census data reference: Ensure census data is properly loaded and referenced.",
+      "Invalid metadata fields: Use valid field names like tract_id, county_id, state_id, tract_name, urban_rural.",
+      "Missing required fields: Some requested metadata fields are not available in the data."
+    ],
+    "usage": "Provide census_data_reference and specify metadata_fields to extract. Returns

@@ -1,0 +1,779 @@
+field_name: vehicle_care_and_maintenance
+subfield: diagnostic_troubleshooting
+task: Perform real-time monitoring of engine parameters and sensor readings during vehicle operation
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task has medium complexity due to the need to coordinate multiple real-time data streams from various engine sensors, interpret diverse parameter readings with different normal ranges, and provide actionable diagnostic insights. The challenge lies in handling continuous data flow, detecting anomalies across multiple parameters simultaneously, and maintaining data integrity during vehicle operation.
+
+  STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools to cover data acquisition, processing, analysis, alerting, and reporting functions needed for comprehensive real-time engine monitoring.
+
+  STEP 3 — List all tool names and dependencies
+
+  1. **Engine Data Collector** - Consumes: sensor IDs, sampling rate → Produces: raw sensor readings
+  2. **Parameter Range Validator** - Consumes: sensor readings, threshold configs → Produces: validation status
+  3. **Anomaly Detection Engine** - Consumes: historical data, current readings → Produces: anomaly scores
+  4. **Sensor Health Monitor** - Consumes: sensor metadata, readings → Produces: sensor status
+  5. **Data Stream Buffer** - Consumes: real-time data → Produces: buffered data windows
+  6. **Alert Generator** - Consumes: validation results, anomaly scores → Produces: alerts
+  7. **Diagnostic Report Builder** - Consumes: processed data, alerts → Produces: diagnostic reports
+  8. **Performance Trend Analyzer** - Consumes: time-series data → Produces: trend analysis
+  9. **Multi-Parameter Correlator** - Consumes: multiple parameter streams → Produces: correlation insights
+  10. **Data Export Manager** - Consumes: processed data → Produces: exported datasets
+  11. **Real-Time Dashboard Generator** - Consumes: all data streams → Produces: dashboard data
+  12. **Historical Baseline Updater** - Consumes: validated data → Produces: updated baselines
+
+  STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Basic monitoring: Engine Data Collector → Parameter Range Validator → Alert Generator
+  - Sensor health check: Engine Data Collector → Sensor Health Monitor → Diagnostic Report Builder
+
+  **Medium Plans:**
+  - Comprehensive monitoring: Engine Data Collector → Data Stream Buffer → Parameter Range Validator → Anomaly Detection Engine → Alert Generator → Real-Time Dashboard Generator
+  - Trend analysis workflow: Engine Data Collector → Performance Trend Analyzer → Multi-Parameter Correlator → Diagnostic Report Builder
+
+  **Complex Plans:**
+  - Full diagnostic system: Engine Data Collector → Data Stream Buffer → Parameter Range Validator → Anomaly Detection Engine → Sensor Health Monitor → Multi-Parameter Correlator → Alert Generator → Diagnostic Report Builder → Data Export Manager → Historical Baseline Updater
+  - Advanced monitoring with learning: Engine Data Collector → Data Stream Buffer → Performance Trend Analyzer → Anomaly Detection Engine → Multi-Parameter Correlator → Alert Generator → Real-Time Dashboard Generator → Historical Baseline Updater → Diagnostic Report Builder
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Engine Data Collector",
+    "tool_description": "Collects real-time data from specified engine sensors at configurable sampling rates during vehicle operation.",
+    "parameters": {
+      "sensor_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of sensor identifiers to monitor (e.g., MAF, RPM, ECT, IAT, etc.)"
+      },
+      "sampling_rate_hz": {
+        "type": "number",
+        "required": true,
+        "description": "Data collection frequency in Hz (0.1 to 100)"
+      },
+      "duration_seconds": {
+        "type": "integer",
+        "required": true,
+        "description": "Collection duration in seconds (1 to 3600)"
+      },
+      "vehicle_state": {
+        "type": "string",
+        "required": false,
+        "description": "Vehicle operational state filter",
+        "default": "all"
+      }
+    },
+    "error_messages": [
+      "Invalid sensor ID: One or more sensor IDs are not recognized. Use valid engine sensor codes like MAF, RPM, ECT, IAT, MAP, TPS, etc.",
+      "Sampling rate out of range: sampling_rate_hz must be between 0.1 and 100 Hz.",
+      "Duration too long: duration_seconds must be between 1 and 3600 seconds.",
+      "Vehicle communication error: Unable to establish connection with vehicle ECU. Check OBD-II connection.",
+      "Sensor not responding: One or more specified sensors are not providing data. Check sensor functionality."
+    ],
+    "usage": "Specify sensor_ids array, sampling_rate_hz, and duration_seconds. Optionally set vehicle_state to filter data collection based on operational conditions.",
+    "output_details": {
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of ISO 8601 timestamp strings for each data point"
+      },
+      "sensor_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Flattened array of sensor readings in the order of sensor_ids"
+      },
+      "data_points_collected": {
+        "type": "integer",
+        "description": "Total number of data points collected per sensor"
+      },
+      "collection_status": {
+        "type": "string",
+        "description": "Status of the data collection process"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Parameter Range Validator",
+    "tool_description": "Validates sensor readings against normal operating ranges and flags parameters that exceed safe thresholds.",
+    "parameters": {
+      "sensor_readings": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of current sensor reading values"
+      },
+      "sensor_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of sensor type identifiers corresponding to readings"
+      },
+      "custom_thresholds": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Custom threshold definitions in format 'sensor_id:min:max'",
+        "default": "None"
+      },
+      "severity_level": {
+        "type": "string",
+        "required": false,
+        "description": "Validation severity: strict, normal, or relaxed",
+        "default": "normal"
+      },
+      "engine_load": {
+        "type": "number",
+        "required": false,
+        "description": "Current engine load percentage (0-100) for context-aware validation",
+        "default": "50"
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: sensor_readings and sensor_types arrays must have the same length.",
+      "Invalid sensor type: Unknown sensor type provided. Use standard automotive sensor codes.",
+      "Invalid threshold format: Custom thresholds must follow 'sensor_id:min:max' format with numeric values.",
+      "Invalid severity level: Use 'strict', 'normal', or 'relaxed' for severity_level.",
+      "Invalid engine load: engine_load must be between 0 and 100."
+    ],
+    "usage": "Provide sensor_readings and corresponding sensor_types arrays. Optionally specify custom_thresholds, severity_level, and engine_load for more accurate validation.",
+    "output_details": {
+      "validation_results": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Boolean array indicating if each reading is within normal range"
+      },
+      "out_of_range_sensors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of sensor IDs that have readings outside normal range"
+      },
+      "severity_flags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Severity level for each out-of-range reading: warning, critical, or severe"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Overall validation status and summary message"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Anomaly Detection Engine",
+    "tool_description": "Detects unusual patterns and anomalies in engine sensor data using statistical analysis and machine learning techniques.",
+    "parameters": {
+      "current_readings": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Current sensor reading values for anomaly detection"
+      },
+      "historical_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Historical sensor data for baseline comparison (minimum 100 points)"
+      },
+      "sensor_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Labels identifying each sensor in the data arrays"
+      },
+      "detection_method": {
+        "type": "string",
+        "required": false,
+        "description": "Anomaly detection algorithm: statistical, isolation_forest, or hybrid",
+        "default": "hybrid"
+      },
+      "sensitivity": {
+        "type": "number",
+        "required": false,
+        "description": "Detection sensitivity (0.1 to 1.0, higher = more sensitive)",
+        "default": "0.7"
+      },
+      "window_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Rolling window size for analysis (10 to 1000)",
+        "default": "50"
+      },
+      "exclude_transients": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to exclude transient spikes during acceleration/deceleration",
+        "default": "true"
+      }
+    },
+    "error_messages": [
+      "Insufficient historical data: historical_data must contain at least 100 data points for reliable anomaly detection.",
+      "Array length mismatch: current_readings, historical_data sections, and sensor_labels must have consistent dimensions.",
+      "Invalid detection method: Use 'statistical', 'isolation_forest', or 'hybrid' for detection_method.",
+      "Invalid sensitivity: sensitivity must be between 0.1 and 1.0.",
+      "Invalid window size: window_size must be between 10 and 1000.",
+      "Data quality issue: Historical data contains too many missing values or outliers for reliable baseline establishment."
+    ],
+    "usage": "Provide current_readings, historical_data, and sensor_labels. Optionally configure detection_method, sensitivity, window_size, and exclude_transients based on monitoring requirements.",
+    "output_details": {
+      "anomaly_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Anomaly score for each sensor (0-1, higher indicates more anomalous)"
+      },
+      "anomalous_sensors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of sensor IDs that show anomalous behavior"
+      },
+      "confidence_levels": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence level for each anomaly detection (0-1)"
+      },
+      "detection_summary": {
+        "type": "string",
+        "description": "Summary of anomaly detection results and recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sensor Health Monitor",
+    "tool_description": "Monitors the health and functionality of individual sensors by analyzing signal quality, response patterns, and diagnostic indicators.",
+    "parameters": {
+      "sensor_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Recent sensor reading values for health assessment"
+      },
+      "sensor_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the sensor being monitored"
+      },
+      "check_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of health check: signal_quality, response_time, or comprehensive",
+        "default": "comprehensive"
+      }
+    },
+    "error_messages": [
+      "Insufficient data: sensor_data must contain at least 10 readings for health assessment.",
+      "Invalid sensor ID: Provided sensor_id is not recognized in the system database.",
+      "Invalid check type: Use 'signal_quality', 'response_time', or 'comprehensive' for check_type.",
+      "Sensor communication failure: Unable to retrieve diagnostic data from the specified sensor.",
+      "Data corruption detected: Sensor data contains invalid values that prevent health assessment."
+    ],
+    "usage": "Provide sensor_data array and sensor_id for the target sensor. Optionally specify check_type to focus on specific health aspects.",
+    "output_details": {
+      "health_status": {
+        "type": "string",
+        "description": "Overall sensor health status: healthy, degraded, or failing"
+      },
+      "health_score": {
+        "type": "number",
+        "description": "Numeric health score from 0-100 (100 = perfect health)"
+      },
+      "issues_detected": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of specific issues or concerns identified"
+      },
+      "recommendations": {
+        "type": "string",
+        "description": "Maintenance recommendations based on health assessment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Stream Buffer",
+    "tool_description": "Buffers and manages real-time sensor data streams, providing windowed data access and stream synchronization capabilities.",
+    "parameters": {
+      "input_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Incoming sensor data stream to be buffered"
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Timestamp array corresponding to input data"
+      },
+      "buffer_size": {
+        "type": "integer",
+        "required": true,
+        "description": "Maximum number of data points to keep in buffer (50 to 10000)"
+      },
+      "window_type": {
+        "type": "string",
+        "required": false,
+        "description": "Buffering strategy: sliding, tumbling, or session",
+        "default": "sliding"
+      },
+      "sync_tolerance_ms": {
+        "type": "integer",
+        "required": false,
+        "description": "Timestamp synchronization tolerance in milliseconds",
+        "default": "100"
+      }
+    },
+    "error_messages": [
+      "Data timestamp mismatch: input_data and timestamps arrays must have the same length.",
+      "Buffer size out of range: buffer_size must be between 50 and 10000.",
+      "Invalid window type: Use 'sliding', 'tumbling', or 'session' for window_type.",
+      "Invalid sync tolerance: sync_tolerance_ms must be between 1 and 5000 milliseconds.",
+      "Timestamp format error: Timestamps must be valid ISO 8601 date-time strings."
+    ],
+    "usage": "Provide input_data with corresponding timestamps and specify buffer_size. Optionally configure window_type and sync_tolerance_ms for specific buffering behavior.",
+    "output_details": {
+      "buffered_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Current contents of the data buffer"
+      },
+      "buffer_timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Timestamps for buffered data points"
+      },
+      "buffer_status": {
+        "type": "string",
+        "description": "Current buffer status and utilization information"
+      },
+      "data_rate": {
+        "type": "number",
+        "description": "Current data ingestion rate in points per second"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Generator",
+    "tool_description": "Generates prioritized alerts and notifications based on sensor validation results, anomaly detection, and predefined threshold violations.",
+    "parameters": {
+      "validation_results": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "required": true,
+        "description": "Results from parameter range validation"
+      },
+      "anomaly_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Anomaly scores for monitored parameters"
+      },
+      "sensor_identifiers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Sensor IDs corresponding to validation and anomaly data"
+      },
+      "alert_thresholds": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Custom alert threshold values for each sensor",
+        "default": "None"
+      },
+      "priority_levels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Priority assignments for each sensor: low, medium, high, critical",
+        "default": "None"
+      },
+      "alert_cooldown_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum time between duplicate alerts for the same sensor (10-3600)",
+        "default": "300"
+      },
+      "enable_predictive_alerts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to generate alerts for predicted future issues",
+        "default": "false"
+      },
+      "vehicle_context": {
+        "type": "string",
+        "required": false,
+        "description": "Current vehicle operational context for alert prioritization",
+        "default": "normal_driving"
+      },
+      "driver_notification_level": {
+        "type": "string",
+        "required": false,
+        "description": "Driver notification level: minimal, standard, detailed",
+        "default": "standard"
+      },
+      "maintenance_mode": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether vehicle is in maintenance/diagnostic mode",
+        "default": "false"
+      },
+      "location_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "GPS coordinates [latitude, longitude] for location-aware alerts",
+        "default": "None"
+      },
+      "weather_conditions": {
+        "type": "string",
+        "required": false,
+        "description": "Current weather conditions affecting alert interpretation",
+        "default": "unknown"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: validation_results, anomaly_scores, and sensor_identifiers must have the same length.",
+      "Invalid anomaly score: All anomaly scores must be between 0.0 and 1.0.",
+      "Invalid priority level: Priority levels must be 'low', 'medium', 'high', or 'critical'.",
+      "Invalid cooldown period: alert_cooldown_seconds must be between 10 and 3600.",
+      "Invalid notification level: Use 'minimal', 'standard', or 'detailed' for driver_notification_level.",
+      "Invalid location format: location_data must contain exactly 2 numeric values [latitude, longitude].",
+      "Threshold mismatch: If provided, alert_thresholds array must match the length of sensor_identifiers."
+    ],
+    "usage": "Provide validation_results, anomaly_scores, and sensor_identifiers arrays. Optionally configure alert behavior with thresholds, priorities, cooldown settings, and contextual information for more intelligent alerting.",
+    "output_details": {
+      "active_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of currently active alert messages"
+      },
+      "alert_priorities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Priority level for each active alert"
+      },
+      "alert_timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Timestamp when each alert was generated"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended actions for each alert"
+      },
+      "alert_summary": {
+        "type": "string",
+        "description": "Overall alert status and summary"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Diagnostic Report Builder",
+    "tool_description": "Compiles comprehensive diagnostic reports from sensor data, analysis results, and alert information for technical review and maintenance planning.",
+    "parameters": {
+      "sensor_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Processed sensor data for report inclusion"
+      },
+      "alert_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Alert messages and findings to include in report"
+      },
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: summary, detailed, or technical"
+      },
+      "time_period": {
+        "type": "string",
+        "required": false,
+        "description": "Time period covered by report (e.g., '1 hour', '1 day', '1 week')",
+        "default": "current_session"
+      },
+      "include_recommendations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include maintenance recommendations",
+        "default": "true"
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Both sensor_data and alert_data must contain at least one element.",
+      "Invalid report type: Use 'summary', 'detailed', or 'technical' for report_type.",
+      "Invalid time period: time_period must be a valid duration string or 'current_session'.",
+      "Data format error: sensor_data must contain only numeric values.",
+      "Alert format error: alert_data must contain valid alert message strings."
+    ],
+    "usage": "Provide sensor_data and alert_data arrays along with desired report_type. Optionally specify time_period and include_recommendations to customize report content.",
+    "output_details": {
+      "report_content": {
+        "type": "string",
+        "description": "Complete diagnostic report in formatted text"
+      },
+      "key_findings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Summary of key diagnostic findings"
+      },
+      "maintenance_recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended maintenance actions"
+      },
+      "report_timestamp": {
+        "type": "string",
+        "description": "Timestamp when report was generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Trend Analyzer",
+    "tool_description": "Analyzes historical sensor data to identify performance trends, degradation patterns, and predictive maintenance indicators.",
+    "parameters": {
+      "time_series_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Time-ordered sensor data for trend analysis"
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Timestamps corresponding to time series data"
+      },
+      "analysis_window": {
+        "type": "string",
+        "required": false,
+        "description": "Analysis window size: hourly, daily, weekly, monthly",
+        "default": "daily"
+      },
+      "trend_sensitivity": {
+        "type": "number",
+        "required": false,
+        "description": "Trend detection sensitivity (0.1 to 1.0)",
+        "default": "0.5"
+      }
+    },
+    "error_messages": [
+      "Data length mismatch: time_series_data and timestamps must have equal length.",
+      "Insufficient data: At least 20 data points required for meaningful trend analysis.",
+      "Invalid analysis window: Use 'hourly', 'daily', 'weekly', or 'monthly' for analysis_window.",
+      "Invalid sensitivity: trend_sensitivity must be between 0.1 and 1.0.",
+      "Timestamp order error: Timestamps must be in chronological order."
+    ],
+    "usage": "Provide time_series_data with corresponding timestamps. Optionally adjust analysis_window and trend_sensitivity based on desired trend detection characteristics.",
+    "output_details": {
+      "trend_direction": {
+        "type": "string",
+        "description": "Overall trend direction: improving, stable, degrading"
+      },
+      "trend_strength": {
+        "type": "number",
+        "description": "Strength of detected trend (0-1)"
+      },
+      "prediction_confidence": {
+        "type": "number",
+        "description": "Confidence level in trend predictions (0-1)"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Summary of trend analysis results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi-Parameter Correlator",
+    "tool_description": "Analyzes correlations between multiple engine parameters to identify interdependencies and system-level performance patterns.",
+    "parameters": {
+      "parameter_data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Flattened array of multi-parameter data"
+      },
+      "parameter_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Names of parameters included in the analysis"
+      },
+      "data_points_per_parameter": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of data points for each parameter"
+      },
+      "correlation_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum correlation coefficient to report (0.1 to 1.0)",
+        "default": "0.3"
+      }
+    },
+    "error_messages": [
+      "Data dimension error: parameter_data length must equal parameter_names length multiplied by data_points_per_parameter.",
+      "Insufficient parameters: At least 2 parameters required for correlation analysis.",
+      "Insufficient data points: At least 10 data points per parameter required.",
+      "Invalid correlation threshold: correlation_threshold must be between 0.1 and 1.0.",
+      "Parameter name duplicate: All parameter names must be unique."
+    ],
+    "usage": "Provide parameter_data as a flattened array, parameter_names, and data_points_per_parameter. Optionally set correlation_threshold to filter results.",
+    "output_details": {
+      "correlation_matrix": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Flattened correlation matrix between parameters"
+      },
+      "strong_correlations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Parameter pairs with strong correlations"
+      },
+      "correlation_summary": {
+        "type": "string",
+        "description": "Summary of correlation analysis findings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Export Manager",
+    "tool_description": "Exports processed sensor data and analysis results in various formats for external analysis, reporting, or archival purposes.",
+    "parameters": {
+      "data_to_export": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Processed data array to be exported"
+      },
+      "export_format": {
+        "type": "string",
+        "required": true,
+        "description": "Export format: csv, json, or xml"
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include metadata headers and descriptions",
+        "default": "true"
+      }
+    },
+    "error_messages": [
+      "Empty data: data_to_export must contain at least one data point.",
+      "Invalid export format: Use 'csv', 'json', or 'xml' for export_format.",
+      "Export size limit: Data size exceeds maximum export limit of 1 million data points.",
+      "Data format error: data_to_export must contain only numeric values."
+    ],
+    "usage": "Provide data_to_export array and specify desired export_format. Optionally include metadata for enhanced export documentation.",
+    "output_details": {
+      "export_content": {
+        "type": "string",
+        "description": "Formatted export data as string"
+      },
+      "export_size": {
+        "type": "integer",
+        "description": "Size of exported data in characters"
+      },
+      "export_timestamp": {
+        "type": "string",
+        "description": "Timestamp of export operation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Real-Time Dashboard Generator",
+    "tool_description": "Generates real-time dashboard data structures for visualizing engine parameters, alerts, and system status in monitoring interfaces.",
+    "parameters": {
+      "current_parameters": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Current engine parameter values for dashboard display"
+      },
+      "parameter_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Labels for dashboard parameter display"
+      },
+      "alert_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Current alert status for each parameter"
+      },
+      "refresh_rate": {
+        "type": "integer",
+        "required": false,
+        "description": "Dashboard refresh rate in seconds (1-60)",
+        "default": "5"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: current_parameters, parameter_labels, and alert_status must have equal length.",
+      "Invalid refresh rate: refresh_rate must be between 1 and 60 seconds.",
+      "Empty parameter data: At least one parameter must be provided for dashboard generation.",
+      "Invalid alert status: Alert status must be valid status strings (normal, warning, critical, etc.)."
+    ],
+    "usage": "Provide current_parameters, parameter_labels, and alert_status arrays. Optionally set refresh_rate for dashboard update frequency.",
+    "output_details": {
+      "dashboard_data": {
+        "type": "string",
+        "description": "Formatted dashboard data structure as JSON string"
+      },
+      "update_timestamp": {
+        "type": "string",
+        "description": "Timestamp of dashboard data generation"
+      },
+      "dashboard_status": {
+        "type": "string",
+        "description": "Overall dashboard status and health indicator"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Historical Baseline Updater",
+    "tool_description": "Updates historical baseline values and normal operating ranges based on validated sensor data to improve future monitoring accuracy.",
+    "parameters": {
+      "validated_data": {

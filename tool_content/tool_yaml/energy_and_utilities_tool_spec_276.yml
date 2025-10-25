@@ -1,0 +1,840 @@
+field_name: energy_and_utilities
+subfield: renewable_energy_forecasting
+task: Solar irradiance and weather data collection for photovoltaic generation forecasting
+tool_description: |-
+  STEP 1 — Rate task difficulty
+  This task is of medium difficulty. It involves collecting and processing multiple heterogeneous data sources (meteorological, solar irradiance, satellite imagery) with varying temporal resolutions and quality levels. The coordination between different data providers, handling of missing data, and ensuring temporal alignment across sources adds complexity, while the real-time nature and accuracy requirements for forecasting applications increase the impact of errors.
+
+  STEP 2 — Set a tool budget
+  Given the medium difficulty, I'll target 12 tools within the 10-15 range. This allows for comprehensive coverage of data collection, processing, validation, and integration workflows while maintaining tool modularity and composability.
+
+  STEP 3 — List all tool names and dependencies
+  1. **Weather Station Collector** - consumes: location/time parameters → produces: ground weather measurements
+  2. **Satellite Data Retriever** - consumes: coordinates/time → produces: satellite irradiance estimates
+  3. **Solar Irradiance Fetcher** - consumes: location/time → produces: direct/diffuse irradiance data
+  4. **Historical Weather Aggregator** - consumes: location/time range → produces: historical weather patterns
+  5. **Data Quality Validator** - consumes: raw data arrays → produces: quality scores and flags
+  6. **Temporal Data Aligner** - consumes: multiple timestamped datasets → produces: synchronized data
+  7. **Missing Data Interpolator** - consumes: incomplete datasets → produces: gap-filled data
+  8. **Solar Angle Calculator** - consumes: location/time → produces: sun position metrics
+  9. **Cloud Cover Estimator** - consumes: satellite/weather data → produces: cloud coverage metrics
+  10. **Data Export Formatter** - consumes: processed datasets → produces: formatted output files
+  11. **Forecast Input Preprocessor** - consumes: collected data → produces: ML-ready feature matrices
+  12. **Multi Source Merger** - consumes: multiple data sources → produces: unified dataset
+
+  STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  1. Basic irradiance collection: Solar Irradiance Fetcher → Data Quality Validator → Data Export Formatter
+  2. Weather data gathering: Weather Station Collector → Missing Data Interpolator → Data Export Formatter
+
+  **Medium plans:**
+  1. Historical analysis: Historical Weather Aggregator → Solar Angle Calculator → Temporal Data Aligner → Data Export Formatter
+  2. Satellite processing: Satellite Data Retriever → Cloud Cover Estimator → Data Quality Validator → Missing Data Interpolator → Data Export Formatter
+
+  **Complex plans:**
+  1. Complete forecasting pipeline: Weather Station Collector + Satellite Data Retriever + Solar Irradiance Fetcher → Multi Source Merger → Temporal Data Aligner → Data Quality Validator → Missing Data Interpolator → Solar Angle Calculator → Cloud Cover Estimator → Forecast Input Preprocessor → Data Export Formatter
+  2. Quality-assured integration: Historical Weather Aggregator + Solar Irradiance Fetcher → Temporal Data Aligner → Data Quality Validator → Missing Data Interpolator → Multi Source Merger → Forecast Input Preprocessor
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Weather Station Collector",
+    "tool_description": "Retrieves real-time and historical weather measurements from meteorological stations including temperature, humidity, wind speed, and atmospheric pressure.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Latitude coordinate in decimal degrees (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Longitude coordinate in decimal degrees (-180 to 180)"
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Start timestamp in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "End timestamp in ISO 8601 format",
+        "format": "date-time"
+      },
+      "station_radius_km": {
+        "type": "number",
+        "required": false,
+        "description": "Search radius for nearby stations in kilometers (1-100)",
+        "default": 50
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be between -90 and 90, longitude between -180 and 180.",
+      "Invalid time range: End time must be after start time and both must be valid ISO 8601 timestamps.",
+      "No stations found: No weather stations available within specified radius. Try increasing station_radius_km.",
+      "Data unavailable: Weather data not available for the specified time period.",
+      "Invalid radius: station_radius_km must be between 1 and 100 kilometers."
+    ],
+    "usage": "Provide latitude, longitude, start_time, and end_time. Optionally adjust station_radius_km to expand search area for weather stations.",
+    "output_details": {
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of timestamp strings for measurements"
+      },
+      "temperature_celsius": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Temperature measurements in degrees Celsius"
+      },
+      "humidity_percent": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Relative humidity percentages"
+      },
+      "wind_speed_ms": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Wind speed measurements in meters per second"
+      },
+      "pressure_hpa": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Atmospheric pressure in hectopascals"
+      },
+      "station_count": {
+        "type": "integer",
+        "description": "Number of stations used for data collection"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Satellite Data Retriever",
+    "tool_description": "Fetches satellite-derived solar irradiance estimates and cloud imagery data from various satellite sources for photovoltaic forecasting applications.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Latitude coordinate in decimal degrees (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Longitude coordinate in decimal degrees (-180 to 180)"
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Start timestamp in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "End timestamp in ISO 8601 format",
+        "format": "date-time"
+      },
+      "spatial_resolution_km": {
+        "type": "number",
+        "required": false,
+        "description": "Desired spatial resolution in kilometers (1-10)",
+        "default": 3
+      },
+      "temporal_resolution_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Desired temporal resolution in minutes (15, 30, 60)",
+        "default": 30
+      },
+      "satellite_source": {
+        "type": "string",
+        "required": false,
+        "description": "Satellite data source (GOES, MSG, HIMAWARI, AUTO)",
+        "default": "AUTO"
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be between -90 and 90, longitude between -180 and 180.",
+      "Invalid time range: End time must be after start time with maximum 30-day span.",
+      "Invalid resolution: spatial_resolution_km must be 1-10, temporal_resolution_minutes must be 15, 30, or 60.",
+      "Unsupported satellite source: Use GOES, MSG, HIMAWARI, or AUTO for automatic selection.",
+      "Data coverage unavailable: No satellite coverage for specified location and time period.",
+      "Temporal resolution not supported: Selected satellite source doesn't support requested temporal resolution."
+    ],
+    "usage": "Specify location coordinates and time range. Optionally configure spatial/temporal resolution and satellite source. AUTO source selects best available satellite for the location.",
+    "output_details": {
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of timestamp strings for satellite observations"
+      },
+      "ghi_satellite_wm2": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Global horizontal irradiance from satellite in W/m²"
+      },
+      "cloud_optical_depth": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Cloud optical depth measurements"
+      },
+      "satellite_used": {
+        "type": "string",
+        "description": "Name of satellite constellation used for data retrieval"
+      },
+      "data_quality_flags": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Quality flags for each measurement (0=good, 1=fair, 2=poor)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Solar Irradiance Fetcher",
+    "tool_description": "Collects ground-based solar irradiance measurements including global horizontal, direct normal, and diffuse horizontal irradiance from pyranometer networks.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Latitude coordinate in decimal degrees (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Longitude coordinate in decimal degrees (-180 to 180)"
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Start timestamp in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "End timestamp in ISO 8601 format",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be between -90 and 90, longitude between -180 and 180.",
+      "Invalid time range: End time must be after start time and both must be valid ISO 8601 timestamps.",
+      "No measurement stations: No solar irradiance stations found within reasonable distance of coordinates.",
+      "Instrument maintenance period: Data unavailable due to instrument calibration or maintenance.",
+      "Nighttime data requested: Solar irradiance is only available during daylight hours for the specified period."
+    ],
+    "usage": "Provide latitude, longitude, start_time, and end_time to retrieve solar irradiance measurements from nearby ground stations. Data is automatically filtered to daylight hours.",
+    "output_details": {
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of measurement timestamps"
+      },
+      "ghi_wm2": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Global horizontal irradiance in W/m²"
+      },
+      "dni_wm2": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Direct normal irradiance in W/m²"
+      },
+      "dhi_wm2": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Diffuse horizontal irradiance in W/m²"
+      },
+      "station_distance_km": {
+        "type": "number",
+        "description": "Distance to nearest irradiance measurement station in kilometers"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Historical Weather Aggregator",
+    "tool_description": "Aggregates long-term historical weather patterns and climatological data to establish baseline conditions and seasonal variations for solar forecasting applications.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Latitude coordinate in decimal degrees (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Longitude coordinate in decimal degrees (-180 to 180)"
+      },
+      "start_year": {
+        "type": "integer",
+        "required": true,
+        "description": "Starting year for historical data (1980-2020)"
+      },
+      "end_year": {
+        "type": "integer",
+        "required": true,
+        "description": "Ending year for historical data (1980-2023)"
+      },
+      "aggregation_period": {
+        "type": "string",
+        "required": false,
+        "description": "Data aggregation period (daily, weekly, monthly, seasonal)",
+        "default": "daily"
+      },
+      "include_extremes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include extreme weather event statistics",
+        "default": true
+      },
+      "weather_variables": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Weather variables to include (temperature, humidity, wind, pressure, precipitation, cloudiness)",
+        "default": ["temperature", "humidity", "wind", "cloudiness"]
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be between -90 and 90, longitude between -180 and 180.",
+      "Invalid year range: start_year must be 1980-2020, end_year must be 1980-2023, and start_year must be less than end_year.",
+      "Invalid aggregation period: Use daily, weekly, monthly, or seasonal.",
+      "Unknown weather variable: Supported variables are temperature, humidity, wind, pressure, precipitation, cloudiness.",
+      "Insufficient data coverage: Less than 70% data availability for the specified period and location.",
+      "Data processing timeout: Request covers too large a time span, reduce the year range."
+    ],
+    "usage": "Specify location coordinates and year range. Choose aggregation_period based on analysis needs. Set weather_variables array to focus on relevant meteorological parameters for solar forecasting.",
+    "output_details": {
+      "period_labels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Time period labels based on aggregation setting"
+      },
+      "mean_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Mean values for each weather variable across periods"
+      },
+      "std_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Standard deviation values for variability assessment"
+      },
+      "percentile_95": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "95th percentile values for each variable"
+      },
+      "percentile_5": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "5th percentile values for each variable"
+      },
+      "data_completeness_percent": {
+        "type": "number",
+        "description": "Percentage of complete data for the requested period"
+      },
+      "climate_zone": {
+        "type": "string",
+        "description": "Köppen climate classification for the location"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Quality Validator",
+    "tool_description": "Validates and scores the quality of collected solar and weather data by detecting outliers, missing values, and measurement inconsistencies.",
+    "parameters": {
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of timestamp strings",
+        "minItems": 1,
+        "maxItems": 10000
+      },
+      "data_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Array of measurement values corresponding to timestamps",
+        "minItems": 1,
+        "maxItems": 10000
+      },
+      "data_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of data being validated (irradiance, temperature, humidity, wind_speed, pressure)"
+      },
+      "outlier_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Standard deviations for outlier detection (1-5)",
+        "default": 3
+      },
+      "temporal_consistency_check": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable temporal consistency validation",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: timestamps and data_values arrays must have the same length.",
+      "Invalid data type: Use irradiance, temperature, humidity, wind_speed, or pressure.",
+      "Invalid outlier threshold: Value must be between 1 and 5 standard deviations.",
+      "Empty data arrays: Both timestamps and data_values must contain at least one element.",
+      "Invalid timestamp format: All timestamps must be valid ISO 8601 date-time strings.",
+      "Non-numeric data values: All data_values must be valid numbers."
+    ],
+    "usage": "Provide arrays of timestamps and corresponding data values along with data_type. Adjust outlier_threshold for sensitivity and enable temporal_consistency_check for time-series validation.",
+    "output_details": {
+      "overall_quality_score": {
+        "type": "number",
+        "description": "Overall data quality score from 0-100"
+      },
+      "missing_data_percent": {
+        "type": "number",
+        "description": "Percentage of missing or invalid data points"
+      },
+      "outlier_indices": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Array indices of detected outlier values"
+      },
+      "gap_count": {
+        "type": "integer",
+        "description": "Number of temporal gaps in the data series"
+      },
+      "consistency_flags": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Flags indicating consistency issues (0=good, 1=warning, 2=error)"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended data cleaning actions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Temporal Data Aligner",
+    "tool_description": "Synchronizes multiple time series datasets to a common temporal grid, handling different sampling frequencies and time zone conversions.",
+    "parameters": {
+      "dataset_timestamps": {
+        "type": "array",
+        "items": {
+          "type": "array"
+        },
+        "required": true,
+        "description": "Array containing timestamp arrays for each dataset",
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "dataset_values": {
+        "type": "array",
+        "items": {
+          "type": "array"
+        },
+        "required": true,
+        "description": "Array containing value arrays for each dataset",
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "target_frequency_minutes": {
+        "type": "integer",
+        "required": true,
+        "description": "Target temporal resolution in minutes (1-1440)"
+      },
+      "alignment_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for temporal alignment (nearest, linear, average)",
+        "default": "linear"
+      },
+      "common_start_time": {
+        "type": "string",
+        "required": false,
+        "description": "Common start time for alignment in ISO 8601 format",
+        "format": "date-time",
+        "default": "None"
+      },
+      "common_end_time": {
+        "type": "string",
+        "required": false,
+        "description": "Common end time for alignment in ISO 8601 format",
+        "format": "date-time",
+        "default": "None"
+      },
+      "dataset_labels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Labels for each dataset for identification",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Dataset array mismatch: dataset_timestamps and dataset_values must have the same number of datasets.",
+      "Invalid target frequency: target_frequency_minutes must be between 1 and 1440.",
+      "Invalid alignment method: Use nearest, linear, or average.",
+      "Insufficient data overlap: Datasets have insufficient temporal overlap for alignment.",
+      "Invalid time format: All timestamps must be valid ISO 8601 date-time strings.",
+      "Empty datasets: Each dataset must contain at least one timestamp-value pair."
+    ],
+    "usage": "Provide arrays of timestamps and values for multiple datasets. Set target_frequency_minutes for desired output resolution. Use alignment_method to control interpolation behavior.",
+    "output_details": {
+      "aligned_timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Common timestamp array for all aligned datasets"
+      },
+      "aligned_datasets": {
+        "type": "array",
+        "items": {
+          "type": "array"
+        },
+        "description": "Array containing aligned value arrays for each dataset"
+      },
+      "alignment_quality_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Quality scores (0-100) for each dataset alignment"
+      },
+      "interpolated_points_count": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Number of interpolated points for each dataset"
+      },
+      "temporal_coverage_percent": {
+        "type": "number",
+        "description": "Percentage of target time range covered by aligned data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Missing Data Interpolator",
+    "tool_description": "Fills gaps in time series data using various interpolation methods suitable for solar irradiance and weather data characteristics.",
+    "parameters": {
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of timestamp strings with potential gaps",
+        "minItems": 3,
+        "maxItems": 10000
+      },
+      "values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Array of values with missing data (use null for missing)",
+        "minItems": 3,
+        "maxItems": 10000
+      },
+      "interpolation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Interpolation method (linear, spline, seasonal, clearsky_model)",
+        "default": "linear"
+      },
+      "max_gap_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum gap size to interpolate in hours (0.25-24)",
+        "default": 4
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: timestamps and values arrays must have the same length.",
+      "Invalid interpolation method: Use linear, spline, seasonal, or clearsky_model.",
+      "Excessive missing data: More than 50% of data points are missing.",
+      "Invalid gap threshold: max_gap_hours must be between 0.25 and 24 hours.",
+      "Insufficient surrounding data: Not enough valid data points around gaps for interpolation.",
+      "Invalid timestamp sequence: Timestamps must be in chronological order."
+    ],
+    "usage": "Provide timestamps and values arrays where missing values are represented as null. Choose interpolation_method based on data characteristics. Set max_gap_hours to limit interpolation to reasonable gap sizes.",
+    "output_details": {
+      "interpolated_timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Complete timestamp array after interpolation"
+      },
+      "interpolated_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Complete value array with interpolated data"
+      },
+      "interpolated_indices": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Indices of interpolated data points"
+      },
+      "interpolation_quality": {
+        "type": "number",
+        "description": "Quality score of interpolation from 0-100"
+      },
+      "gaps_filled": {
+        "type": "integer",
+        "description": "Number of data gaps successfully filled"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Solar Angle Calculator",
+    "tool_description": "Calculates solar position angles including elevation, azimuth, and air mass for specified locations and times to support solar irradiance modeling.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Latitude coordinate in decimal degrees (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Longitude coordinate in decimal degrees (-180 to 180)"
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of timestamp strings in ISO 8601 format",
+        "minItems": 1,
+        "maxItems": 1000
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be between -90 and 90, longitude between -180 and 180.",
+      "Invalid timestamp format: All timestamps must be valid ISO 8601 date-time strings.",
+      "Empty timestamp array: At least one timestamp must be provided.",
+      "Future timestamp limit: Timestamps cannot be more than 1 year in the future due to orbital precision limits."
+    ],
+    "usage": "Provide latitude, longitude, and array of timestamps. The tool calculates solar position for each timestamp and returns arrays of solar angles and related parameters.",
+    "output_details": {
+      "solar_elevation_degrees": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Solar elevation angles in degrees above horizon"
+      },
+      "solar_azimuth_degrees": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Solar azimuth angles in degrees from north"
+      },
+      "air_mass": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Air mass values for atmospheric attenuation calculations"
+      },
+      "sunrise_sunset_flags": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Boolean flags indicating daylight periods"
+      },
+      "extraterrestrial_irradiance": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Extraterrestrial irradiance values in W/m²"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cloud Cover Estimator",
+    "tool_description": "Estimates cloud coverage and characteristics from satellite imagery and weather data to support solar irradiance forecasting applications.",
+    "parameters": {
+      "satellite_cloud_data": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Array of satellite cloud optical depth values",
+        "minItems": 1,
+        "maxItems": 5000
+      },
+      "weather_humidity": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Array of humidity percentage values",
+        "default": "None"
+      },
+      "weather_temperature": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Array of temperature values in Celsius",
+        "default": "None"
+      },
+      "estimation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Cloud coverage estimation method (optical_depth, combined, statistical)",
+        "default": "combined"
+      },
+      "cloud_type_detection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable cloud type classification",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid satellite data: satellite_cloud_data values must be non-negative numbers.",
+      "Array length mismatch: weather_humidity and weather_temperature arrays must match satellite_cloud_data length when provided.",
+      "Invalid estimation method: Use optical_depth, combined, or statistical.",
+      "Insufficient data quality: Satellite cloud data quality too poor for reliable estimation.",
+      "Missing complementary data: Combined method requires both humidity and temperature data."
+    ],
+    "usage": "Provide satellite_cloud_data array. Optionally include weather_humidity and weather_temperature for improved accuracy with combined method. Enable cloud_type_detection for detailed cloud analysis.",
+    "output_details": {
+      "cloud_cover_percent": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Estimated cloud cover percentage for each data point"
+      },
+      "cloud_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Estimated cloud types (clear, cumulus, stratus, cirrus, mixed)"
+      },
+      "irradiance_reduction_factor": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Expected irradiance reduction factors due to clouds (0-1)"
+      },
+      "estimation_confidence": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each estimation (0-100)"
+      },
+      "average_cloud_cover": {
+        "type": "number",
+        "description": "Mean cloud cover percentage for the entire period"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Export Formatter",
+    "tool_description": "Formats an

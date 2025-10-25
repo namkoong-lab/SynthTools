@@ -1,0 +1,831 @@
+field_name: ecommerce_and_retail
+subfield: Customer Account Management
+task: Customer profile data management and privacy controls
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty due to the complex interplay of data management, privacy regulations (GDPR/CCPA), security requirements, and real-time profile updates across multiple customer touchpoints. While individual operations are straightforward, coordinating privacy controls with data integrity and compliance creates moderate complexity.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover profile CRUD operations, privacy controls, consent management, data export/deletion, audit trails, and compliance verification.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Profile Data Validator** - Consumes: raw profile data → Produces: validated profile data
+  2. **Profile Creator** - Consumes: validated profile data → Produces: new customer profile
+  3. **Profile Retriever** - Consumes: customer identifiers → Produces: profile data
+  4. **Profile Updater** - Consumes: profile updates + customer ID → Produces: updated profile
+  5. **Consent Manager** - Consumes: consent preferences → Produces: consent records
+  6. **Privacy Setting Controller** - Consumes: privacy preferences → Produces: privacy configurations
+  7. **Data Export Generator** - Consumes: customer ID + export scope → Produces: exportable data package
+  8. **Profile Deletion Handler** - Consumes: deletion request → Produces: deletion confirmation
+  9. **Audit Logger** - Consumes: profile operations → Produces: audit trails
+  10. **Compliance Checker** - Consumes: profile data + regulations → Produces: compliance status
+  11. **Data Anonymizer** - Consumes: sensitive profile data → Produces: anonymized data
+  12. **Merge Profile Handler** - Consumes: multiple profile IDs → Produces: merged profile
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic profile creation: Profile Data Validator → Profile Creator → Audit Logger
+  - Profile retrieval: Profile Retriever → Privacy Setting Controller (filter data) → Audit Logger
+
+  **Medium Plans:**
+  - Privacy-compliant update: Consent Manager → Profile Updater → Compliance Checker → Audit Logger
+  - Data export request: Consent Manager → Data Export Generator → Data Anonymizer → Audit Logger
+
+  **Complex Plans:**
+  - Full GDPR deletion: Consent Manager → Profile Retriever → Data Export Generator → Profile Deletion Handler → Audit Logger → Compliance Checker
+  - Account merge with privacy controls: Profile Retriever (multiple) → Consent Manager → Merge Profile Handler → Privacy Setting Controller → Compliance Checker → Audit Logger
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Profile Data Validator",
+    "tool_description": "Validates customer profile data against schema requirements, business rules, and data quality standards before processing.",
+    "parameters": {
+      "email": {
+        "type": "string",
+        "required": true,
+        "description": "Customer email address to validate"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "Customer phone number in international format",
+        "default": "None"
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Customer first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Customer last name"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": false,
+        "description": "Customer date of birth in ISO 8601 format",
+        "format": "date-time",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid email format: Provide a valid email address format (user@domain.com).",
+      "Invalid phone number: Provide phone number in international format (+1234567890).",
+      "Name validation failed: First name and last name must be 1-50 characters, letters only.",
+      "Invalid date of birth: Provide date in ISO 8601 format and ensure customer is at least 13 years old.",
+      "Missing required fields: Email, first_name, and last_name are mandatory."
+    ],
+    "usage": "Provide customer data fields to validate. The tool checks format, length, and business rule compliance before profile creation or updates.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether all validation checks passed"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation error messages if any"
+      },
+      "validated_data": {
+        "type": "string",
+        "description": "JSON string of cleaned and validated profile data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Profile Creator",
+    "tool_description": "Creates a new customer profile with validated data, assigns unique identifiers, and initializes default privacy settings.",
+    "parameters": {
+      "validated_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string of validated profile data from Profile Data Validator"
+      },
+      "account_type": {
+        "type": "string",
+        "required": false,
+        "description": "Account type: standard, premium, or business",
+        "default": "standard"
+      },
+      "marketing_opt_in": {
+        "type": "boolean",
+        "required": false,
+        "description": "Initial marketing communication consent",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid validated_data format: Provide properly formatted JSON string from Profile Data Validator.",
+      "Duplicate email detected: This email address is already registered in the system.",
+      "Invalid account_type: Use one of [standard, premium, business].",
+      "Profile creation failed: Unable to create profile due to system constraints."
+    ],
+    "usage": "Use validated data from Profile Data Validator to create a new customer profile. The tool generates unique customer ID and sets up initial account structure.",
+    "output_details": {
+      "customer_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to the new customer profile"
+      },
+      "profile_created": {
+        "type": "boolean",
+        "description": "Whether profile creation was successful"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the profile was created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Profile Retriever",
+    "tool_description": "Retrieves customer profile data based on various identifier types while respecting privacy settings and access permissions.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": false,
+        "description": "Unique customer identifier",
+        "default": "None"
+      },
+      "email": {
+        "type": "string",
+        "required": false,
+        "description": "Customer email address",
+        "default": "None"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "Customer phone number",
+        "default": "None"
+      },
+      "include_sensitive_data": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include sensitive PII in response",
+        "default": false
+      },
+      "access_purpose": {
+        "type": "string",
+        "required": true,
+        "description": "Purpose of data access: customer_service, marketing, analytics, or legal_compliance"
+      }
+    ],
+    "error_messages": [
+      "No identifier provided: Must provide at least one of customer_id, email, or phone_number.",
+      "Customer not found: No profile exists matching the provided identifier(s).",
+      "Invalid access_purpose: Use one of [customer_service, marketing, analytics, legal_compliance].",
+      "Access denied: Insufficient permissions for requested data access purpose.",
+      "Privacy restrictions: Customer privacy settings prevent this data access."
+    ],
+    "usage": "Provide at least one customer identifier and specify the access purpose. The tool returns profile data filtered according to privacy settings and access permissions.",
+    "output_details": {
+      "customer_id": {
+        "type": "string",
+        "description": "Customer unique identifier"
+      },
+      "profile_data": {
+        "type": "string",
+        "description": "JSON string containing accessible profile information"
+      },
+      "last_updated": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the profile was last modified"
+      },
+      "data_access_level": {
+        "type": "string",
+        "description": "Level of data returned: basic, standard, or full"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Profile Updater",
+    "tool_description": "Updates existing customer profile data with validation, version control, and privacy compliance checks.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "update_fields": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string of fields to update with new values"
+      },
+      "update_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for update: customer_request, admin_correction, system_sync, or data_enrichment"
+      },
+      "override_privacy": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to override privacy restrictions for admin updates",
+        "default": false
+      },
+      "validate_changes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate updated data against business rules",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Customer not found: No profile exists for the provided customer_id.",
+      "Invalid update_fields format: Provide properly formatted JSON string with field updates.",
+      "Invalid update_reason: Use one of [customer_request, admin_correction, system_sync, data_enrichment].",
+      "Validation failed: Updated data does not meet validation requirements.",
+      "Privacy violation: Update conflicts with customer privacy settings and override not authorized.",
+      "Read-only field: Some fields cannot be updated through this interface."
+    ],
+    "usage": "Provide customer_id, update_fields as JSON, and update_reason. The tool validates changes and updates the profile while maintaining audit trail.",
+    "output_details": {
+      "update_successful": {
+        "type": "boolean",
+        "description": "Whether the update operation completed successfully"
+      },
+      "updated_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of fields that were actually updated"
+      },
+      "update_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the update was processed"
+      },
+      "version_number": {
+        "type": "integer",
+        "description": "New profile version number after update"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Consent Manager",
+    "tool_description": "Manages customer consent preferences for data processing, marketing communications, and privacy settings with legal compliance tracking.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "consent_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of consent: marketing, analytics, personalization, data_sharing, or cookies"
+      },
+      "consent_status": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether consent is granted (true) or withdrawn (false)"
+      },
+      "consent_method": {
+        "type": "string",
+        "required": true,
+        "description": "How consent was obtained: website_form, email_click, phone_call, in_person, or system_default"
+      },
+      "legal_basis": {
+        "type": "string",
+        "required": false,
+        "description": "Legal basis for processing: consent, contract, legal_obligation, vital_interests, public_task, or legitimate_interests",
+        "default": "consent"
+      },
+      "expiry_date": {
+        "type": "string",
+        "required": false,
+        "description": "When consent expires in ISO 8601 format",
+        "format": "date-time",
+        "default": "None"
+      },
+      "consent_details": {
+        "type": "string",
+        "required": false,
+        "description": "Additional details about the consent context",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Customer not found: No profile exists for the provided customer_id.",
+      "Invalid consent_type: Use one of [marketing, analytics, personalization, data_sharing, cookies].",
+      "Invalid consent_method: Use one of [website_form, email_click, phone_call, in_person, system_default].",
+      "Invalid legal_basis: Use one of [consent, contract, legal_obligation, vital_interests, public_task, legitimate_interests].",
+      "Invalid expiry_date: Provide date in ISO 8601 format and ensure it's in the future.",
+      "Consent conflict: Cannot withdraw mandatory consent required for core service functionality."
+    ],
+    "usage": "Provide customer_id, consent_type, consent_status, and consent_method to record consent decisions. The tool maintains legal compliance records and consent history.",
+    "output_details": {
+      "consent_recorded": {
+        "type": "boolean",
+        "description": "Whether consent was successfully recorded"
+      },
+      "consent_id": {
+        "type": "string",
+        "description": "Unique identifier for this consent record"
+      },
+      "effective_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the consent becomes effective"
+      },
+      "previous_consent_status": {
+        "type": "boolean",
+        "description": "Previous consent status before this change"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Privacy Setting Controller",
+    "tool_description": "Configures and manages customer privacy preferences, data visibility controls, and access restrictions across different system components.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "visibility_level": {
+        "type": "string",
+        "required": true,
+        "description": "Overall profile visibility: public, limited, private, or hidden"
+      },
+      "data_sharing_preferences": {
+        "type": "array",
+        "required": true,
+        "description": "List of data sharing preferences",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "communication_channels": {
+        "type": "array",
+        "required": true,
+        "description": "Allowed communication channels",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 0,
+        "maxItems": 5
+      },
+      "data_retention_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Data retention preference: minimum, standard, or extended",
+        "default": "standard"
+      },
+      "third_party_sharing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to allow data sharing with third parties",
+        "default": false
+      },
+      "analytics_participation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to participate in analytics and research",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Customer not found: No profile exists for the provided customer_id.",
+      "Invalid visibility_level: Use one of [public, limited, private, hidden].",
+      "Invalid data_sharing_preferences: Provide valid sharing preference options.",
+      "Invalid communication_channels: Provide valid communication channel options.",
+      "Invalid data_retention_preference: Use one of [minimum, standard, extended].",
+      "Configuration conflict: Some privacy settings conflict with active service requirements."
+    ],
+    "usage": "Provide customer_id, visibility_level, data_sharing_preferences, and communication_channels to configure privacy settings. The tool ensures settings are compatible with service requirements.",
+    "output_details": {
+      "settings_applied": {
+        "type": "boolean",
+        "description": "Whether privacy settings were successfully applied"
+      },
+      "active_settings": {
+        "type": "string",
+        "description": "JSON string of currently active privacy settings"
+      },
+      "restrictions_count": {
+        "type": "integer",
+        "description": "Number of data access restrictions in effect"
+      },
+      "last_updated": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When privacy settings were last modified"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Export Generator",
+    "tool_description": "Generates comprehensive data exports for customers in compliance with GDPR Article 20 and similar data portability requirements.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "export_scope": {
+        "type": "array",
+        "required": true,
+        "description": "Data categories to include in export",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "export_format": {
+        "type": "string",
+        "required": false,
+        "description": "Export format: json, csv, xml, or pdf",
+        "default": "json"
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include data creation and modification timestamps",
+        "default": true
+      },
+      "anonymize_references": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to anonymize references to other customers",
+        "default": true
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for data range in ISO 8601 format",
+        "format": "date-time",
+        "default": "None"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date for data range in ISO 8601 format",
+        "format": "date-time",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Customer not found: No profile exists for the provided customer_id.",
+      "Invalid export_scope: Provide valid data category names for export.",
+      "Invalid export_format: Use one of [json, csv, xml, pdf].",
+      "Invalid date range: Ensure date_range_start is before date_range_end and both are in ISO 8601 format.",
+      "Export size exceeded: Requested data export exceeds maximum allowed size limits.",
+      "Access denied: Customer privacy settings prevent export of some requested data categories."
+    ],
+    "usage": "Provide customer_id and export_scope to generate a data export. Optionally specify format, date ranges, and metadata preferences for customized exports.",
+    "output_details": {
+      "export_id": {
+        "type": "string",
+        "description": "Unique identifier for this export request"
+      },
+      "export_url": {
+        "type": "string",
+        "description": "Secure download URL for the generated export file"
+      },
+      "export_size_bytes": {
+        "type": "integer",
+        "description": "Size of the export file in bytes"
+      },
+      "records_included": {
+        "type": "integer",
+        "description": "Number of data records included in the export"
+      },
+      "generation_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the export was generated"
+      },
+      "expiry_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the download URL expires"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Profile Deletion Handler",
+    "tool_description": "Manages customer profile deletion requests with compliance validation, data anonymization, and audit trail generation for GDPR right to erasure.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "deletion_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of deletion: soft_delete, hard_delete, or anonymize"
+      },
+      "deletion_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for deletion: customer_request, gdpr_erasure, account_closure, legal_requirement, or admin_action"
+      },
+      "retain_transaction_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to retain anonymized transaction data for legal/financial compliance",
+        "default": true
+      },
+      "force_deletion": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to override retention requirements (admin only)",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Customer not found: No profile exists for the provided customer_id.",
+      "Invalid deletion_type: Use one of [soft_delete, hard_delete, anonymize].",
+      "Invalid deletion_reason: Use one of [customer_request, gdpr_erasure, account_closure, legal_requirement, admin_action].",
+      "Deletion blocked: Active legal hold or regulatory requirement prevents deletion.",
+      "Outstanding obligations: Customer has pending orders or unresolved disputes that prevent deletion.",
+      "Insufficient permissions: User lacks authorization for requested deletion type."
+    ],
+    "usage": "Provide customer_id, deletion_type, and deletion_reason to process deletion request. The tool validates legal requirements and executes appropriate deletion strategy.",
+    "output_details": {
+      "deletion_successful": {
+        "type": "boolean",
+        "description": "Whether deletion request was successfully processed"
+      },
+      "deletion_id": {
+        "type": "string",
+        "description": "Unique identifier for this deletion operation"
+      },
+      "data_categories_deleted": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of data categories that were deleted or anonymized"
+      },
+      "data_categories_retained": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of data categories retained due to legal requirements"
+      },
+      "deletion_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the deletion was executed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audit Logger",
+    "tool_description": "Creates detailed audit logs for all customer profile operations to ensure compliance, traceability, and security monitoring.",
+    "parameters": {
+      "operation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of operation: create, read, update, delete, export, consent_change, privacy_update, or merge"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier affected by the operation"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of user or system performing the operation"
+      },
+      "operation_details": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string describing what was modified or accessed"
+      },
+      "ip_address": {
+        "type": "string",
+        "required": false,
+        "description": "IP address from which operation was performed",
+        "default": "None"
+      },
+      "success_status": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether the operation completed successfully"
+      },
+      "error_message": {
+        "type": "string",
+        "required": false,
+        "description": "Error message if operation failed",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid operation_type: Use one of [create, read, update, delete, export, consent_change, privacy_update, merge].",
+      "Missing required fields: operation_type, customer_id, user_id, operation_details, and success_status are required.",
+      "Invalid operation_details format: Provide properly formatted JSON string describing the operation.",
+      "Audit log storage failed: Unable to write audit record to secure storage.",
+      "Invalid IP address format: Provide valid IPv4 or IPv6 address format."
+    ],
+    "usage": "Provide operation details immediately after any customer profile operation to create audit trail. The tool ensures tamper-proof logging for compliance requirements.",
+    "output_details": {
+      "audit_id": {
+        "type": "string",
+        "description": "Unique identifier for this audit log entry"
+      },
+      "log_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the audit log was created"
+      },
+      "log_recorded": {
+        "type": "boolean",
+        "description": "Whether audit log was successfully recorded"
+      },
+      "compliance_hash": {
+        "type": "string",
+        "description": "Cryptographic hash of log entry for integrity verification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Checker",
+    "tool_description": "Validates customer profile operations and data handling against GDPR, CCPA, COPPA, and other privacy regulations to ensure legal compliance.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier to check compliance for"
+      },
+      "regulation_framework": {
+        "type": "array",
+        "required": true,
+        "description": "Regulatory frameworks to check against",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "operation_context": {
+        "type": "string",
+        "required": true,
+        "description": "Context of compliance check: data_collection, data_processing, data_sharing, data_retention, or data_deletion"
+      },
+      "customer_age": {
+        "type": "integer",
+        "required": false,
+        "description": "Customer age for COPPA and age-related compliance checks",
+        "default": "None"
+      },
+      "customer_location": {
+        "type": "string",
+        "required": false,
+        "description": "Customer location for jurisdiction-specific compliance",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Customer not found: No profile exists for the provided customer_id.",
+      "Invalid regulation_framework: Provide valid regulatory framework names (GDPR, CCPA, COPPA, etc.).",
+      "Invalid operation_context: Use one of [data_collection, data_processing, data_sharing, data_retention, data_deletion].",
+      "Invalid customer_age: Age must be a positive integer between 1 and 150.",
+      "Compliance check failed: Unable to complete compliance validation due to missing consent data."
+    ],
+    "usage": "Provide customer_id, regulation_framework, and operation_context to validate compliance. Include customer_age and customer_location for jurisdiction-specific checks.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance status: compliant, non_compliant, or requires_attention"
+      },
+      "violations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of compliance violations found"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of recommended actions to achieve compliance"
+      },
+      "check_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When compliance check was performed"
+      },
+      "applicable_regulations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of regulations that apply to this customer"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Anonymizer",
+    "tool_description": "Anonymizes or pseudonymizes customer data while preserving analytical value, ensuring irreversible privacy protection for data sharing or retention.",
+    "parameters": {
+      "customer_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string of customer data to anonymize"
+      },
+      "anonymization_level": {
+        "type": "string",
+        "required": true,
+        "description": "Level of anonymization: pseudonymization, k_anonymity, differential_privacy, or full_anonymization"
+      },
+      "preserve_fields": {
+        "type": "array",
+        "required": false,
+        "description": "Fields to preserve for analytical purposes",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 0,
+        "maxItems": 10,
+        "default": []
+      },
+      "k_value": {
+        "type": "integer",
+        "required": false,
+        "description": "K-anonymity parameter when using k_anonymity method",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Invalid customer_data format: Provide properly formatted JSON string of customer data.",
+      "Invalid anonymization_level: Use one of [pseudonymization, k_anonymity, differential_privacy, full_anonymization].",
+      "Invalid preserve_fields: Specified fields do not exist in the customer data.",
+      "Invalid k_value: K-anonymity parameter must be an integer between 2 and 100.",
+      "Anonymization failed: Unable to apply requested anonymization method to provided data."
+    ],
+    "usage": "Provide customer_data as JSON and specify anonymization_level. Optionally preserve specific fields and set k_value for k-anonymity method.",
+    "output_details": {
+      "anonymized_data": {
+        "type": "string",
+        "description": "JSON string of anonymized customer data"
+      },
+      "anonymization_method_used": {
+        "type": "string",
+        "description": "Anonymization method that was applied"
+      },
+      "fields_modified": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of fields that were anonymized"
+      },
+      "privacy_level_achieved": {
+        "type": "string",
+        "description": "Level of privacy protection achieved: low, medium, high, or maximum"
+      }
+    }
+  }
+  ```

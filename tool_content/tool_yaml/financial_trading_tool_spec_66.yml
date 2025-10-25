@@ -1,0 +1,821 @@
+field_name: financial_trading
+subfield: algorithmic_trading_strategy_development
+task: Strategy backtesting and performance evaluation
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task is **hard** due to its broad scope requiring multiple complex subproblems (data processing, signal generation, portfolio simulation, risk calculation, performance attribution), significant coordination between components, high impact of errors on financial outcomes, and substantial data infrastructure requirements for accurate historical backtesting.
+
+  STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'm targeting 17 tools within the 15-20 range to cover the comprehensive workflow of strategy backtesting and performance evaluation.
+
+  STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Historical Data Fetcher** - Consumes: ticker symbols, date ranges → Produces: OHLCV price data
+  2. **Market Data Validator** - Consumes: raw price data → Produces: cleaned, validated datasets
+  3. **Technical Indicator Calculator** - Consumes: price data → Produces: technical indicators
+  4. **Signal Generator** - Consumes: price data, indicators → Produces: trading signals
+  5. **Trade Executor Simulator** - Consumes: signals, execution params → Produces: trade records
+  6. **Portfolio State Tracker** - Consumes: trades, initial capital → Produces: position/cash tracking
+  7. **Risk Metrics Calculator** - Consumes: returns, portfolio data → Produces: risk measurements
+  8. **Performance Analytics Engine** - Consumes: portfolio data → Produces: performance metrics
+  9. **Drawdown Analyzer** - Consumes: equity curve → Produces: drawdown statistics
+  10. **Benchmark Comparator** - Consumes: strategy returns, benchmark data → Produces: relative performance
+  11. **Transaction Cost Modeler** - Consumes: trade data, cost params → Produces: adjusted returns
+  12. **Slippage Simulator** - Consumes: trades, market conditions → Produces: realistic execution prices
+  13. **Position Sizing Calculator** - Consumes: signals, risk params → Produces: position sizes
+  14. **Market Regime Detector** - Consumes: price data → Produces: market condition classifications
+  15. **Correlation Matrix Builder** - Consumes: multiple asset returns → Produces: correlation analysis
+  16. **Backtest Report Generator** - Consumes: all metrics → Produces: comprehensive reports
+  17. **Strategy Parameter Optimizer** - Consumes: strategy logic, param ranges → Produces: optimal parameters
+
+  STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Basic backtest: Historical Data Fetcher → Market Data Validator → Signal Generator → Trade Executor Simulator → Performance Analytics Engine
+  - Risk assessment: Portfolio State Tracker → Risk Metrics Calculator → Drawdown Analyzer
+
+  **Medium Plans:**
+  - Enhanced backtest: Data Fetcher → Validator → Technical Indicator Calculator → Signal Generator → Position Sizing Calculator → Trade Executor Simulator → Transaction Cost Modeler → Portfolio State Tracker → Performance Analytics Engine → Benchmark Comparator
+  - Multi-asset analysis: Data Fetcher → Validator → Correlation Matrix Builder → Market Regime Detector → Signal Generator → Trade Executor Simulator → Risk Metrics Calculator
+
+  **Complex Plans:**
+  - Full strategy optimization: Data Fetcher → Validator → Technical Indicator Calculator → Market Regime Detector → Strategy Parameter Optimizer → Signal Generator → Position Sizing Calculator → Trade Executor Simulator → Slippage Simulator → Transaction Cost Modeler → Portfolio State Tracker → Risk Metrics Calculator → Performance Analytics Engine → Drawdown Analyzer → Benchmark Comparator → Backtest Report Generator
+  - Comprehensive performance attribution: All tools integrated for complete strategy evaluation with regime-specific analysis and detailed reporting
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Historical Data Fetcher",
+    "tool_description": "Retrieves historical OHLCV price data for specified financial instruments within a given date range and frequency.",
+    "parameters": {
+      "ticker_symbols": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of ticker symbols to fetch data for",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for data retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for data retrieval",
+        "format": "date-time"
+      },
+      "frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Data frequency: 1m, 5m, 15m, 1h, 4h, 1d",
+        "default": "1d"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date and both must be valid ISO 8601 datetime strings",
+      "Unsupported ticker: One or more ticker symbols are not recognized or supported",
+      "Invalid frequency: Use one of [1m, 5m, 15m, 1h, 4h, 1d]",
+      "Data unavailable: No data found for the specified ticker(s) and date range",
+      "Rate limit exceeded: Too many requests, please reduce the number of tickers or retry later"
+    ],
+    "usage": "Provide ticker_symbols array, start_date, end_date, and optionally frequency. Returns historical price data for backtesting purposes.",
+    "output_details": {
+      "data_points": {
+        "type": "integer",
+        "description": "Total number of data points retrieved"
+      },
+      "tickers_processed": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of successfully processed ticker symbols"
+      },
+      "date_range": {
+        "type": "string",
+        "description": "Actual date range of retrieved data"
+      },
+      "data_quality_score": {
+        "type": "number",
+        "description": "Quality score from 0-1 indicating completeness"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Market Data Validator",
+    "tool_description": "Validates and cleans historical market data by detecting anomalies, filling gaps, and ensuring data integrity for reliable backtesting.",
+    "parameters": {
+      "data_source": {
+        "type": "string",
+        "required": true,
+        "description": "Source identifier for the data to validate"
+      },
+      "validation_rules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Validation rules to apply: price_gaps, volume_spikes, outliers, missing_data",
+        "default": ["price_gaps", "outliers", "missing_data"]
+      },
+      "outlier_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Standard deviations for outlier detection (1-5)",
+        "default": 3.0
+      }
+    },
+    "error_messages": [
+      "Invalid data source: The specified data source cannot be found or accessed",
+      "Unsupported validation rule: Use rules from [price_gaps, volume_spikes, outliers, missing_data]",
+      "Invalid threshold: outlier_threshold must be between 1 and 5",
+      "Insufficient data: Not enough data points to perform meaningful validation",
+      "Validation failed: Data quality is too poor for reliable backtesting"
+    ],
+    "usage": "Provide data_source and optionally specify validation_rules and outlier_threshold. The tool cleans and validates the data for backtesting use.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: passed, warning, or failed"
+      },
+      "issues_detected": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of data quality issues found"
+      },
+      "records_cleaned": {
+        "type": "integer",
+        "description": "Number of records that were cleaned or corrected"
+      },
+      "final_quality_score": {
+        "type": "number",
+        "description": "Final data quality score from 0-1"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Technical Indicator Calculator",
+    "tool_description": "Calculates technical indicators from price data including moving averages, oscillators, and momentum indicators for strategy signal generation.",
+    "parameters": {
+      "data_source": {
+        "type": "string",
+        "required": true,
+        "description": "Source of validated price data"
+      },
+      "indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Technical indicators to calculate: sma, ema, rsi, macd, bollinger, stochastic, atr, adx",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "sma_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Simple moving average period (5-200)",
+        "default": 20
+      },
+      "ema_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Exponential moving average period (5-200)",
+        "default": 20
+      },
+      "rsi_period": {
+        "type": "integer",
+        "required": false,
+        "description": "RSI calculation period (5-30)",
+        "default": 14
+      },
+      "macd_fast": {
+        "type": "integer",
+        "required": false,
+        "description": "MACD fast period (5-50)",
+        "default": 12
+      },
+      "macd_slow": {
+        "type": "integer",
+        "required": false,
+        "description": "MACD slow period (10-100)",
+        "default": 26
+      },
+      "macd_signal": {
+        "type": "integer",
+        "required": false,
+        "description": "MACD signal period (5-20)",
+        "default": 9
+      },
+      "bollinger_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Bollinger bands period (10-50)",
+        "default": 20
+      },
+      "bollinger_std": {
+        "type": "number",
+        "required": false,
+        "description": "Bollinger bands standard deviations (1-3)",
+        "default": 2.0
+      },
+      "stochastic_k": {
+        "type": "integer",
+        "required": false,
+        "description": "Stochastic %K period (5-30)",
+        "default": 14
+      },
+      "stochastic_d": {
+        "type": "integer",
+        "required": false,
+        "description": "Stochastic %D period (3-10)",
+        "default": 3
+      },
+      "atr_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Average True Range period (5-30)",
+        "default": 14
+      },
+      "adx_period": {
+        "type": "integer",
+        "required": false,
+        "description": "ADX period (10-30)",
+        "default": 14
+      }
+    },
+    "error_messages": [
+      "Invalid data source: Cannot access the specified price data source",
+      "Unsupported indicator: Use indicators from [sma, ema, rsi, macd, bollinger, stochastic, atr, adx]",
+      "Invalid period parameter: All period parameters must be within their specified ranges",
+      "Insufficient data: Not enough historical data to calculate the requested indicators with given periods",
+      "Calculation error: Unable to compute indicators due to data quality issues"
+    ],
+    "usage": "Provide data_source and indicators array, optionally specify period parameters for each indicator. Returns calculated technical indicators for use in signal generation.",
+    "output_details": {
+      "indicators_calculated": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of successfully calculated indicators"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Number of data points with calculated indicators"
+      },
+      "calculation_summary": {
+        "type": "string",
+        "description": "Summary of the indicator calculations performed"
+      },
+      "lookback_period": {
+        "type": "integer",
+        "description": "Maximum lookback period required for calculations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Signal Generator",
+    "tool_description": "Generates buy/sell/hold trading signals based on price data and technical indicators using configurable logic rules.",
+    "parameters": {
+      "price_data_source": {
+        "type": "string",
+        "required": true,
+        "description": "Source of validated price data"
+      },
+      "indicators_source": {
+        "type": "string",
+        "required": true,
+        "description": "Source of calculated technical indicators"
+      },
+      "strategy_logic": {
+        "type": "string",
+        "required": true,
+        "description": "Signal generation logic: ma_crossover, rsi_oversold, macd_divergence, bollinger_squeeze, momentum_breakout"
+      },
+      "signal_strength": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include signal strength scores (0-1)",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid data source: Cannot access price data or indicators source",
+      "Unsupported strategy logic: Use one of [ma_crossover, rsi_oversold, macd_divergence, bollinger_squeeze, momentum_breakout]",
+      "Insufficient indicator data: Required indicators for the chosen strategy are not available",
+      "Signal generation failed: Unable to generate signals due to data incompatibility"
+    ],
+    "usage": "Provide price_data_source, indicators_source, and strategy_logic. Optionally enable signal_strength. Returns timestamped trading signals.",
+    "output_details": {
+      "total_signals": {
+        "type": "integer",
+        "description": "Total number of signals generated"
+      },
+      "buy_signals": {
+        "type": "integer",
+        "description": "Number of buy signals"
+      },
+      "sell_signals": {
+        "type": "integer",
+        "description": "Number of sell signals"
+      },
+      "strategy_used": {
+        "type": "string",
+        "description": "Strategy logic that was applied"
+      },
+      "signal_quality": {
+        "type": "number",
+        "description": "Average signal quality score from 0-1"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Trade Executor Simulator",
+    "tool_description": "Simulates trade execution based on generated signals, considering market conditions, order types, and timing constraints for realistic backtesting.",
+    "parameters": {
+      "signals_source": {
+        "type": "string",
+        "required": true,
+        "description": "Source of trading signals to execute"
+      },
+      "order_type": {
+        "type": "string",
+        "required": false,
+        "description": "Order execution type: market, limit, stop, stop_limit",
+        "default": "market"
+      },
+      "execution_delay": {
+        "type": "integer",
+        "required": false,
+        "description": "Execution delay in minutes (0-60)",
+        "default": 0
+      },
+      "fill_probability": {
+        "type": "number",
+        "required": false,
+        "description": "Probability of order fill (0.5-1.0)",
+        "default": 0.95
+      },
+      "partial_fill_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Allow partial order fills",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid signals source: Cannot access the specified trading signals",
+      "Unsupported order type: Use one of [market, limit, stop, stop_limit]",
+      "Invalid execution delay: Must be between 0 and 60 minutes",
+      "Invalid fill probability: Must be between 0.5 and 1.0",
+      "Execution simulation failed: Unable to simulate trades due to insufficient market data"
+    ],
+    "usage": "Provide signals_source and optionally configure order_type, execution_delay, fill_probability, and partial_fill_enabled. Returns executed trade records.",
+    "output_details": {
+      "trades_executed": {
+        "type": "integer",
+        "description": "Number of trades successfully executed"
+      },
+      "trades_failed": {
+        "type": "integer",
+        "description": "Number of trades that failed to execute"
+      },
+      "total_volume": {
+        "type": "number",
+        "description": "Total trading volume executed"
+      },
+      "average_fill_price": {
+        "type": "number",
+        "description": "Average fill price across all trades"
+      },
+      "execution_summary": {
+        "type": "string",
+        "description": "Summary of trade execution results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Portfolio State Tracker",
+    "tool_description": "Tracks portfolio positions, cash balance, and equity throughout the backtesting period, maintaining accurate state for performance calculation.",
+    "parameters": {
+      "trades_source": {
+        "type": "string",
+        "required": true,
+        "description": "Source of executed trade records"
+      },
+      "initial_capital": {
+        "type": "number",
+        "required": true,
+        "description": "Starting portfolio capital"
+      },
+      "position_tracking": {
+        "type": "boolean",
+        "required": false,
+        "description": "Track individual position details",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid trades source: Cannot access the specified trade records",
+      "Invalid initial capital: Must be a positive number greater than zero",
+      "Portfolio tracking failed: Unable to maintain consistent portfolio state",
+      "Insufficient capital: Trades exceed available capital for execution"
+    ],
+    "usage": "Provide trades_source and initial_capital, optionally enable position_tracking. Maintains and returns portfolio state throughout backtesting.",
+    "output_details": {
+      "final_equity": {
+        "type": "number",
+        "description": "Final portfolio equity value"
+      },
+      "cash_balance": {
+        "type": "number",
+        "description": "Final cash balance"
+      },
+      "total_positions": {
+        "type": "integer",
+        "description": "Number of positions held"
+      },
+      "equity_curve_points": {
+        "type": "integer",
+        "description": "Number of equity curve data points"
+      },
+      "tracking_status": {
+        "type": "string",
+        "description": "Portfolio tracking status and any issues"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Risk Metrics Calculator",
+    "tool_description": "Calculates comprehensive risk metrics including VaR, maximum drawdown, volatility, beta, and Sharpe ratio for portfolio risk assessment.",
+    "parameters": {
+      "portfolio_data": {
+        "type": "string",
+        "required": true,
+        "description": "Source of portfolio state and returns data"
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "VaR confidence level (0.9-0.99)",
+        "default": 0.95
+      },
+      "risk_free_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Risk-free rate for Sharpe ratio calculation",
+        "default": 0.02
+      },
+      "benchmark_data": {
+        "type": "string",
+        "required": false,
+        "description": "Benchmark data source for beta calculation",
+        "default": "None"
+      },
+      "lookback_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Rolling window for risk calculations in days (30-252)",
+        "default": 252
+      },
+      "annualization_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Factor for annualizing metrics (252 for daily, 12 for monthly)",
+        "default": 252
+      }
+    },
+    "error_messages": [
+      "Invalid portfolio data: Cannot access portfolio returns or state data",
+      "Invalid confidence level: Must be between 0.9 and 0.99",
+      "Invalid risk-free rate: Must be between -0.05 and 0.15",
+      "Invalid lookback window: Must be between 30 and 252 days",
+      "Insufficient data: Not enough return data to calculate meaningful risk metrics",
+      "Benchmark data error: Cannot access or process benchmark data for beta calculation"
+    ],
+    "usage": "Provide portfolio_data and optionally configure confidence_level, risk_free_rate, benchmark_data, lookback_window, and annualization_factor. Returns comprehensive risk analysis.",
+    "output_details": {
+      "sharpe_ratio": {
+        "type": "number",
+        "description": "Annualized Sharpe ratio"
+      },
+      "max_drawdown": {
+        "type": "number",
+        "description": "Maximum drawdown percentage"
+      },
+      "volatility": {
+        "type": "number",
+        "description": "Annualized volatility"
+      },
+      "var_95": {
+        "type": "number",
+        "description": "Value at Risk at specified confidence level"
+      },
+      "beta": {
+        "type": "number",
+        "description": "Beta relative to benchmark (if provided)"
+      },
+      "risk_summary": {
+        "type": "string",
+        "description": "Overall risk assessment summary"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Analytics Engine",
+    "tool_description": "Calculates comprehensive performance metrics including returns, win rate, profit factor, and various performance ratios for strategy evaluation.",
+    "parameters": {
+      "portfolio_data": {
+        "type": "string",
+        "required": true,
+        "description": "Source of portfolio equity and trade data"
+      },
+      "benchmark_returns": {
+        "type": "string",
+        "required": false,
+        "description": "Benchmark returns for comparison",
+        "default": "None"
+      },
+      "performance_period": {
+        "type": "string",
+        "required": false,
+        "description": "Period for performance calculation: daily, weekly, monthly, full",
+        "default": "daily"
+      },
+      "include_trade_analysis": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include individual trade performance analysis",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid portfolio data: Cannot access portfolio performance data",
+      "Invalid performance period: Use one of [daily, weekly, monthly, full]",
+      "Insufficient performance data: Not enough data to calculate meaningful performance metrics",
+      "Benchmark comparison failed: Unable to align benchmark data with portfolio returns"
+    ],
+    "usage": "Provide portfolio_data and optionally benchmark_returns, performance_period, and include_trade_analysis. Returns detailed performance analysis.",
+    "output_details": {
+      "total_return": {
+        "type": "number",
+        "description": "Total portfolio return percentage"
+      },
+      "annualized_return": {
+        "type": "number",
+        "description": "Annualized return percentage"
+      },
+      "win_rate": {
+        "type": "number",
+        "description": "Percentage of winning trades"
+      },
+      "profit_factor": {
+        "type": "number",
+        "description": "Ratio of gross profits to gross losses"
+      },
+      "calmar_ratio": {
+        "type": "number",
+        "description": "Annualized return divided by maximum drawdown"
+      },
+      "total_trades": {
+        "type": "integer",
+        "description": "Total number of completed trades"
+      },
+      "performance_summary": {
+        "type": "string",
+        "description": "Overall performance summary and insights"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Drawdown Analyzer",
+    "tool_description": "Analyzes drawdown patterns, duration, and recovery characteristics to assess portfolio resilience and risk periods.",
+    "parameters": {
+      "equity_curve": {
+        "type": "string",
+        "required": true,
+        "description": "Source of portfolio equity curve data"
+      },
+      "drawdown_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum drawdown percentage to analyze (1-50)",
+        "default": 5.0
+      }
+    },
+    "error_messages": [
+      "Invalid equity curve: Cannot access or process equity curve data",
+      "Invalid drawdown threshold: Must be between 1 and 50 percent",
+      "Insufficient data: Not enough equity curve data for drawdown analysis",
+      "Analysis failed: Unable to identify drawdown periods from equity data"
+    ],
+    "usage": "Provide equity_curve source and optionally set drawdown_threshold. Returns detailed drawdown analysis including duration and recovery statistics.",
+    "output_details": {
+      "max_drawdown": {
+        "type": "number",
+        "description": "Maximum drawdown percentage"
+      },
+      "avg_drawdown": {
+        "type": "number",
+        "description": "Average drawdown percentage"
+      },
+      "max_drawdown_duration": {
+        "type": "integer",
+        "description": "Longest drawdown period in days"
+      },
+      "avg_recovery_time": {
+        "type": "integer",
+        "description": "Average time to recover from drawdowns in days"
+      },
+      "drawdown_frequency": {
+        "type": "integer",
+        "description": "Number of significant drawdown periods"
+      },
+      "current_drawdown": {
+        "type": "number",
+        "description": "Current drawdown percentage if in drawdown"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Benchmark Comparator",
+    "tool_description": "Compares strategy performance against benchmarks, calculating relative metrics, tracking error, and information ratio.",
+    "parameters": {
+      "strategy_returns": {
+        "type": "string",
+        "required": true,
+        "description": "Source of strategy return data"
+      },
+      "benchmark_returns": {
+        "type": "string",
+        "required": true,
+        "description": "Source of benchmark return data"
+      },
+      "comparison_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Metrics to calculate: alpha, beta, tracking_error, information_ratio, correlation",
+        "default": ["alpha", "beta", "tracking_error", "information_ratio"]
+      }
+    },
+    "error_messages": [
+      "Invalid strategy returns: Cannot access strategy performance data",
+      "Invalid benchmark returns: Cannot access benchmark performance data",
+      "Unsupported comparison metric: Use metrics from [alpha, beta, tracking_error, information_ratio, correlation]",
+      "Data alignment error: Strategy and benchmark data cannot be properly aligned for comparison",
+      "Insufficient data: Not enough overlapping data points for meaningful comparison"
+    ],
+    "usage": "Provide strategy_returns and benchmark_returns sources, optionally specify comparison_metrics. Returns relative performance analysis.",
+    "output_details": {
+      "alpha": {
+        "type": "number",
+        "description": "Alpha relative to benchmark"
+      },
+      "beta": {
+        "type": "number",
+        "description": "Beta relative to benchmark"
+      },
+      "tracking_error": {
+        "type": "number",
+        "description": "Annualized tracking error"
+      },
+      "information_ratio": {
+        "type": "number",
+        "description": "Information ratio (alpha/tracking error)"
+      },
+      "correlation": {
+        "type": "number",
+        "description": "Correlation with benchmark"
+      },
+      "excess_return": {
+        "type": "number",
+        "description": "Total excess return over benchmark"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transaction Cost Modeler",
+    "tool_description": "Models realistic transaction costs including commissions, spreads, and market impact to adjust backtest returns for actual trading costs.",
+    "parameters": {
+      "trade_data": {
+        "type": "string",
+        "required": true,
+        "description": "Source of executed trade records"
+      },
+      "commission_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Commission rate per trade or percentage (0-1)",
+        "default": 0.001
+      },
+      "spread_cost": {
+        "type": "number",
+        "required": false,
+        "description": "Bid-ask spread cost as percentage (0-0.5)",
+        "default": 0.0005
+      },
+      "market_impact": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include market impact costs based on trade size",
+        "default": true
+      },
+      "cost_model": {
+        "type": "string",
+        "required": false,
+        "description": "Cost model type: fixed, percentage, tiered, realistic",
+        "default": "realistic"
+      }
+    },
+    "error_messages": [
+      "Invalid trade data: Cannot access trade execution records",
+      "Invalid commission rate: Must be between 0 and 1",
+      "Invalid spread cost: Must be between 0 and 0.5 percent",
+      "Unsupported cost model: Use one of [fixed, percentage, tiered, realistic]",
+      "Cost calculation failed: Unable to calculate transaction costs from trade data"
+    ],
+    "usage": "Provide trade_data and optionally configure commission_rate, spread_cost, market_impact, and cost_model. Returns cost-adjusted performance metrics.",
+    "output_details": {
+      "total_costs": {
+        "type": "number",
+        "description": "Total transaction costs incurred"
+      },
+      "cost_percentage": {
+        "type": "number",
+        "description": "Transaction costs as percentage of total traded value"
+      },
+      "adjusted_return": {
+        "type": "number",
+        "description": "Return adjusted for transaction costs"
+      },
+      "cost_breakdown": {
+        "type": "string",
+        "description": "Breakdown of different cost components"
+      },
+      "avg_cost_per_trade": {
+        "type": "number",
+        "description": "Average transaction cost per trade"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Slippage Simulator",
+    "tool_description": "Simulates realistic price slippage during trade execution based on market volatility, liquidity, and order size to improve backtest accuracy.",
+    "parameters": {
+      "trade_data": {
+        "type": "string",
+        "required": true,
+        "description": "Source of trade execution records"
+      },
+      "market_data": {
+        "type": "string",
+        "required": true,
+        "description": "Source of market volatility and liquidity data"
+      },
+      "slippage_model": {
+        "type": "string",
+        "required": false,
+        "description": "Slippage model: linear, square_root, market_impact",
+        "default": "square_root"
+      },
+      "base_slippage": {
+        "type": "number",
+        "required": false,
+        "description": "Base slippage rate as percentage (0-1)",
+        "default":

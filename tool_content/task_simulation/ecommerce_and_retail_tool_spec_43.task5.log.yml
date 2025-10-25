@@ -1,0 +1,1153 @@
+interaction_0:
+  multi_turn_prompt: |-
+    You are an agent task solver. You will receive a task and a list of tools with their exact signatures. Your job is to plan, make exploratory tool calls for all the tools you need to use, then output a verified sequence of tool calls that solves the task.
+
+    Protocol
+    1. Read the task and the provided tool signatures carefully.
+    2. Explore the tool calls by making exploratory tool calls. Do not fabricate values. To make such exploratory calls you need output the tool call and wait for the response. 
+    3. When you are confident you have all required values, output a single solution attempt using the exact Attempt format below.
+    4. If any call fails, read the error message, adjust only what is necessary, gather any missing values, and try again.
+    5. The task is completed solely when you output the whole sequence of tool in one block in the format below.
+    6. If an attempt fails is because of either a wrong tool call, a missing tool call. 
+
+    Tool calling rules
+    1. Every call must be written exactly as: ToolName(param1 = value1, param2 = value2, ...). No spaces are allowed between the tool name words. 
+    2. Use only parameters that appear in the tool signature. If a parameter is optional and not provided by the task or prior tool outputs, omit it.
+    3. Preserve the exact parameter order shown in the tool signature. Order matters.
+    4. Use only tools that are provided. Do not invent tools or aliases.
+    5. Use only values grounded in the task or prior tool outputs.
+    6. Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    7. You can make only one tool call per turn. You will output the tool call and wait for the response before making the next tool call.
+
+    Attempt format
+    When you are ready to submit a solution, write exactly:
+    <ATTEMPT_START>
+    ToolCallOne(param1 = ..., param2 = ...)
+    ToolCallTwo(param1 = ..., param2 = ...)
+    ...
+    <ATTEMPT_END>
+
+    Attempt rules
+    1. Delimiters must be exactly <ATTEMPT_START> on its own line and <ATTEMPT_END> on its own line.
+    2. Inside the delimiters include only the whole sequence of tool calls needed to solve the entire task, one per line. No prose, no comments, no extra whitespace before the first call or after the last call.
+    3. Do not include any parameters that are not present in the provided signature. Omit optional parameters that were not provided.
+    4. Follow the exact parameter order from the tool signature.
+    5. If a required value is unknown, gather it first with exploratory tool calls before submitting an attempt.
+    6. The task is completed solely when you output the whole sequence of tool calls needed to solve the entire task in one block in the format below. Even if you called tools in multiple turns, you need to output the whole sequence of tool calls in one block.
+    7. Note that some tools may be needed multiple times in the sequence of tool calls, with or without different parameters.
+    8. Every call must be written exactly as: ToolName(param1 = value1, param2 = value2, ...). No spaces are allowed between the tool name words.
+
+    Error handling
+    1. If a tool returns an error, diagnose whether the issue is the tool choice, a missing or invalid parameter, parameter order, or a constraint violation.
+    2. Fix only what is necessary. Re query tools to collect missing values if needed.
+    3. Submit a new attempt using the same strict Attempt format.
+
+    TASK
+      Complete return processing for customer CUST002's order ORD002 (original total $177.96, tax rate 8%, shipping cost $15.99) containing 2 cotton t-shirts and 1 kitchen knife set. One t-shirt was wrong item (ITEM002). Validate request RET002, generate UPS standard shipping label, inspect (basic) returned item using inspector INS002 - item received in good condition, original packaging intact, all accessories complete, calculate refund for $29.99 item with original order total $177.96, tax rate 8%, shipping cost $15.99, no return shipping cost, process PayPal refund to transaction TXN002, update inventory for 1 sellable t-shirt at warehouse WH001, and notify customer at each necessary step.
+
+    TOOLS
+      - tool_name: Return Request Validator
+        tool_json:
+          tool_name: Return Request Validator
+          tool_description: Validates return requests against order history, return policies, and business rules to determine eligibility and calculate time remaining for returns.
+          parameters:
+            return_request_id:
+              type: string
+              required: true
+              description: Unique identifier for the return request
+            order_id:
+              type: string
+              required: true
+              description: Original order identifier associated with the return
+            customer_id:
+              type: string
+              required: true
+              description: Customer identifier making the return request
+            return_reason:
+              type: string
+              required: true
+              description: 'Reason for return: defective, wrong_item, not_as_described, changed_mind, damaged_shipping'
+          error_messages:
+          - 'Order not found: The provided order_id does not exist in the system.'
+          - 'Return window expired: The return request exceeds the allowed return period for this product category.'
+          - 'Invalid return reason: Use one of [defective, wrong_item, not_as_described, changed_mind, damaged_shipping].'
+          - 'Customer mismatch: The customer_id does not match the original order customer.'
+          - 'Already returned: This order has already been fully returned and processed.'
+          usage: Provide return_request_id, order_id, customer_id, and return_reason. The tool validates the request against policies and returns eligibility status with detailed reasoning.
+          output_details:
+            is_valid:
+              type: boolean
+              description: Whether the return request is valid and eligible
+            validation_status:
+              type: string
+              description: 'Status of validation: approved, rejected, or pending_review'
+            days_remaining:
+              type: integer
+              description: Number of days remaining in return window
+            applicable_fees:
+              type: array
+              items:
+                type: string
+              description: List of applicable fees for this return type
+      - tool_name: Return Label Generator
+        tool_json:
+          tool_name: Return Label Generator
+          tool_description: Generates prepaid return shipping labels with tracking information for validated return requests, supporting multiple carriers and service levels.
+          parameters:
+            return_request_id:
+              type: string
+              required: true
+              description: Unique identifier for the validated return request
+            carrier:
+              type: string
+              required: true
+              description: 'Shipping carrier: ups, fedex, usps, dhl'
+            service_level:
+              type: string
+              required: false
+              default: standard
+              description: 'Shipping service level: standard, expedited, overnight'
+            pickup_required:
+              type: boolean
+              required: false
+              default: false
+              description: Whether pickup service is required at customer location
+          error_messages:
+          - 'Return request not validated: The return_request_id must be validated before generating labels.'
+          - 'Invalid carrier: Use one of [ups, fedex, usps, dhl].'
+          - 'Invalid service level: Use one of [standard, expedited, overnight].'
+          - 'Address validation failed: Customer address cannot be validated for shipping.'
+          - 'Carrier service unavailable: The selected carrier and service level combination is not available for this location.'
+          usage: Provide return_request_id and carrier; optionally specify service_level and pickup_required. The tool generates shipping labels and returns tracking information.
+          output_details:
+            label_url:
+              type: string
+              description: URL to download the printable shipping label
+            tracking_number:
+              type: string
+              description: Tracking number for the return shipment
+            estimated_delivery:
+              type: string
+              description: Estimated delivery date to warehouse
+            shipping_cost:
+              type: number
+              description: Cost of return shipping in dollars
+      - tool_name: Return Item Inspector
+        tool_json:
+          tool_name: Return Item Inspector
+          tool_description: Conducts detailed inspection of returned items, assessing condition, completeness, and authenticity to determine appropriate processing actions.
+          parameters:
+            return_request_id:
+              type: string
+              required: true
+              description: Unique identifier for the return request
+            item_ids:
+              type: array
+              required: true
+              description: List of item identifiers being inspected
+              items:
+                type: string
+              minItems: 1
+              maxItems: 50
+            inspection_type:
+              type: string
+              required: true
+              description: 'Type of inspection: basic, detailed, quality_assurance'
+            inspector_id:
+              type: string
+              required: true
+              description: Identifier of the inspector conducting the assessment
+            received_condition:
+              type: array
+              required: true
+              description: Condition of each received item
+              items:
+                type: string
+              minItems: 1
+              maxItems: 50
+            packaging_intact:
+              type: boolean
+              required: true
+              description: Whether original packaging is intact and included
+            accessories_complete:
+              type: boolean
+              required: true
+              description: Whether all accessories and components are included
+            damage_notes:
+              type: string
+              required: false
+              default: ''
+              description: Detailed notes about any damage or issues found
+            photos_taken:
+              type: array
+              required: false
+              default: []
+              description: List of photo filenames for documentation
+              items:
+                type: string
+          error_messages:
+          - 'Return request not found: The provided return_request_id does not exist in the system.'
+          - 'Item count mismatch: The number of item_ids must match the number of received_condition entries.'
+          - 'Invalid inspection type: Use one of [basic, detailed, quality_assurance].'
+          - 'Inspector not authorized: The inspector_id is not authorized to perform inspections.'
+          - 'Missing required assessment: packaging_intact and accessories_complete must be specified.'
+          usage: Provide return_request_id, item_ids, inspection_type, inspector_id, received_condition, packaging_intact, and accessories_complete. Optionally add damage_notes and photos_taken for detailed documentation.
+          output_details:
+            inspection_status:
+              type: string
+              description: 'Overall inspection result: passed, failed, partial'
+            item_assessments:
+              type: array
+              items:
+                type: string
+              description: Individual assessment result for each item
+            restockable_items:
+              type: array
+              items:
+                type: string
+              description: List of item IDs that can be restocked
+            damaged_items:
+              type: array
+              items:
+                type: string
+              description: List of item IDs that are damaged or unsellable
+            inspection_score:
+              type: number
+              description: Numerical score from 0-100 representing overall condition
+      - tool_name: Refund Calculator
+        tool_json:
+          tool_name: Refund Calculator
+          tool_description: Calculates accurate refund amounts considering original pricing, taxes, shipping costs, return fees, and applicable deductions based on item condition and return policies.
+          parameters:
+            return_request_id:
+              type: string
+              required: true
+              description: Unique identifier for the return request
+            original_order_total:
+              type: number
+              required: true
+              description: Original order total amount in dollars including tax and shipping
+            item_values:
+              type: array
+              required: true
+              description: Original value of each returned item in dollars
+              items:
+                type: number
+              minItems: 1
+              maxItems: 50
+            tax_rate:
+              type: number
+              required: true
+              description: Tax rate applied to original order as decimal (e.g., 0.08 for 8%)
+            shipping_cost:
+              type: number
+              required: true
+              description: Original shipping cost in dollars
+            return_shipping_cost:
+              type: number
+              required: false
+              default: 0
+              description: Cost of return shipping to be deducted in dollars
+            restocking_fee_rate:
+              type: number
+              required: false
+              default: 0
+              description: Restocking fee rate as decimal (e.g., 0.15 for 15%)
+            condition_deduction_rate:
+              type: number
+              required: false
+              default: 0
+              description: Deduction rate for item condition as decimal (e.g., 0.20 for 20%)
+          error_messages:
+          - 'Invalid monetary values: All dollar amounts must be non-negative numbers.'
+          - 'Invalid rate values: Tax rate, restocking fee rate, and condition deduction rate must be between 0 and 1.'
+          - 'Return request not found: The provided return_request_id does not exist in the system.'
+          - 'Item value mismatch: Sum of item_values cannot exceed original_order_total.'
+          - 'Calculation error: Refund calculation resulted in negative amount, please verify input values.'
+          usage: Provide return_request_id, original_order_total, item_values, tax_rate, and shipping_cost. Optionally specify return_shipping_cost, restocking_fee_rate, and condition_deduction_rate for accurate refund calculation.
+          output_details:
+            gross_refund:
+              type: number
+              description: Gross refund amount before deductions
+            tax_refund:
+              type: number
+              description: Tax amount to be refunded
+            shipping_refund:
+              type: number
+              description: Shipping amount to be refunded
+            total_deductions:
+              type: number
+              description: Total amount of all deductions applied
+            net_refund:
+              type: number
+              description: Final net refund amount to be processed
+            deduction_breakdown:
+              type: array
+              items:
+                type: string
+              description: Detailed breakdown of each deduction applied
+      - tool_name: Payment Processor
+        tool_json:
+          tool_name: Payment Processor
+          tool_description: Processes refund payments through various payment methods, handles transaction validation, and manages payment gateway communications for return refunds.
+          parameters:
+            refund_amount:
+              type: number
+              required: true
+              description: Amount to refund in dollars
+            original_payment_method:
+              type: string
+              required: true
+              description: 'Original payment method: credit_card, debit_card, paypal, bank_transfer, store_credit'
+            customer_id:
+              type: string
+              required: true
+              description: Customer identifier for the refund recipient
+            original_transaction_id:
+              type: string
+              required: true
+              description: Original transaction identifier to refund against
+            refund_reason_code:
+              type: string
+              required: true
+              description: 'Reason code: customer_return, defective_product, wrong_item, damaged_goods'
+          error_messages:
+          - 'Invalid refund amount: Amount must be greater than 0 and not exceed original transaction amount.'
+          - 'Payment method not supported: Use one of [credit_card, debit_card, paypal, bank_transfer, store_credit].'
+          - 'Transaction not found: Original transaction_id does not exist or is not refundable.'
+          - 'Payment gateway error: Unable to process refund due to gateway communication failure.'
+          - 'Invalid reason code: Use one of [customer_return, defective_product, wrong_item, damaged_goods].'
+          - 'Refund limit exceeded: Refund amount exceeds the remaining refundable balance for this transaction.'
+          usage: Provide refund_amount, original_payment_method, customer_id, original_transaction_id, and refund_reason_code. The tool processes the refund and returns transaction details.
+          output_details:
+            refund_transaction_id:
+              type: string
+              description: Unique transaction ID for the refund
+            processing_status:
+              type: string
+              description: 'Status of refund processing: completed, pending, failed'
+            estimated_completion:
+              type: string
+              description: Estimated date when refund will appear in customer account
+            gateway_reference:
+              type: string
+              description: Payment gateway reference number for tracking
+            processing_fee:
+              type: number
+              description: Any processing fee charged for the refund
+      - tool_name: Inventory Updater
+        tool_json:
+          tool_name: Inventory Updater
+          tool_description: Updates inventory levels and item status based on returned items, condition assessments, and restocking decisions to maintain accurate stock counts.
+          parameters:
+            item_ids:
+              type: array
+              required: true
+              description: List of item identifiers to update in inventory
+              items:
+                type: string
+              minItems: 1
+              maxItems: 100
+            quantities:
+              type: array
+              required: true
+              description: Quantity of each item being processed
+              items:
+                type: integer
+              minItems: 1
+              maxItems: 100
+            condition_status:
+              type: array
+              required: true
+              description: 'Condition status for each item: sellable, damaged, defective, disposed'
+              items:
+                type: string
+              minItems: 1
+              maxItems: 100
+            warehouse_location:
+              type: string
+              required: true
+              description: Warehouse identifier where items are being processed
+          error_messages:
+          - 'Array length mismatch: item_ids, quantities, and condition_status arrays must have the same length.'
+          - 'Invalid item ID: One or more item IDs do not exist in the inventory system.'
+          - 'Invalid condition status: Use one of [sellable, damaged, defective, disposed] for each item.'
+          - 'Invalid quantity: Quantities must be positive integers.'
+          - 'Warehouse not found: The specified warehouse_location does not exist.'
+          - 'Inventory lock conflict: Cannot update inventory due to concurrent operations on these items.'
+          usage: Provide item_ids, quantities, condition_status arrays of equal length, and warehouse_location. The tool updates inventory based on item conditions and returns confirmation.
+          output_details:
+            updated_items:
+              type: array
+              items:
+                type: string
+              description: List of successfully updated item IDs
+            sellable_count:
+              type: integer
+              description: Number of items returned to sellable inventory
+            damaged_count:
+              type: integer
+              description: Number of items marked as damaged
+            disposed_count:
+              type: integer
+              description: Number of items marked for disposal
+            inventory_adjustment_total:
+              type: number
+              description: Total inventory value adjustment in dollars
+      - tool_name: Customer Notifier
+        tool_json:
+          tool_name: Customer Notifier
+          tool_description: Sends automated notifications to customers about return status updates, refund processing, and other return-related communications through multiple channels.
+          parameters:
+            customer_id:
+              type: string
+              required: true
+              description: Customer identifier for notification recipient
+            notification_type:
+              type: string
+              required: true
+              description: 'Type of notification: return_approved, label_ready, refund_processed, return_completed, return_rejected'
+            return_request_id:
+              type: string
+              required: true
+              description: Return request identifier for context
+            communication_channel:
+              type: string
+              required: false
+              default: email
+              description: 'Preferred communication channel: email, sms, push_notification, in_app'
+            additional_details:
+              type: string
+              required: false
+              default: ''
+              description: Additional details to include in the notification
+          error_messages:
+          - 'Customer not found: The provided customer_id does not exist in the system.'
+          - 'Invalid notification type: Use one of [return_approved, label_ready, refund_processed, return_completed, return_rejected].'
+          - 'Invalid communication channel: Use one of [email, sms, push_notification, in_app].'
+          - 'Notification delivery failed: Unable to deliver notification through selected channel.'
+          - 'Customer opt-out: Customer has opted out of this type of notification.'
+          - 'Return request not found: The provided return_request_id does not exist.'
+          usage: Provide customer_id, notification_type, and return_request_id. Optionally specify communication_channel and additional_details. The tool sends notifications and returns delivery confirmation.
+          output_details:
+            notification_id:
+              type: string
+              description: Unique identifier for the sent notification
+            delivery_status:
+              type: string
+              description: 'Delivery status: sent, delivered, failed, pending'
+            sent_timestamp:
+              type: string
+              description: Timestamp when notification was sent
+            delivery_channel_used:
+              type: string
+              description: Actual communication channel used for delivery
+            customer_response_required:
+              type: boolean
+              description: Whether the notification requires customer response
+  agent_system_prompt: |-
+    You are an agent task solver. You will receive a task and a list of tools with their exact signatures. Your job is to plan, make exploratory tool calls for all the tools you need to use, then output a verified sequence of tool calls that solves the task.
+
+    Protocol
+    1. Read the task and the provided tool signatures carefully.
+    2. Explore the tool calls by making exploratory tool calls. Do not fabricate values. To make such exploratory calls you need output the tool call and wait for the response. 
+    3. When you are confident you have all required values, output a single solution attempt using the exact Attempt format below.
+    4. If any call fails, read the error message, adjust only what is necessary, gather any missing values, and try again.
+    5. The task is completed solely when you output the whole sequence of tool in one block in the format below.
+    6. If an attempt fails is because of either a wrong tool call, a missing tool call. 
+
+    Tool calling rules
+    1. Every call must be written exactly as: ToolName(param1 = value1, param2 = value2, ...). No spaces are allowed between the tool name words. 
+    2. Use only parameters that appear in the tool signature. If a parameter is optional and not provided by the task or prior tool outputs, omit it.
+    3. Preserve the exact parameter order shown in the tool signature. Order matters.
+    4. Use only tools that are provided. Do not invent tools or aliases.
+    5. Use only values grounded in the task or prior tool outputs.
+    6. Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    7. You can make only one tool call per turn. You will output the tool call and wait for the response before making the next tool call.
+
+    Attempt format
+    When you are ready to submit a solution, write exactly:
+    <ATTEMPT_START>
+    ToolCallOne(param1 = ..., param2 = ...)
+    ToolCallTwo(param1 = ..., param2 = ...)
+    ...
+    <ATTEMPT_END>
+
+    Attempt rules
+    1. Delimiters must be exactly <ATTEMPT_START> on its own line and <ATTEMPT_END> on its own line.
+    2. Inside the delimiters include only the whole sequence of tool calls needed to solve the entire task, one per line. No prose, no comments, no extra whitespace before the first call or after the last call.
+    3. Do not include any parameters that are not present in the provided signature. Omit optional parameters that were not provided.
+    4. Follow the exact parameter order from the tool signature.
+    5. If a required value is unknown, gather it first with exploratory tool calls before submitting an attempt.
+    6. The task is completed solely when you output the whole sequence of tool calls needed to solve the entire task in one block in the format below. Even if you called tools in multiple turns, you need to output the whole sequence of tool calls in one block.
+    7. Note that some tools may be needed multiple times in the sequence of tool calls, with or without different parameters.
+    8. Every call must be written exactly as: ToolName(param1 = value1, param2 = value2, ...). No spaces are allowed between the tool name words.
+
+    Error handling
+    1. If a tool returns an error, diagnose whether the issue is the tool choice, a missing or invalid parameter, parameter order, or a constraint violation.
+    2. Fix only what is necessary. Re query tools to collect missing values if needed.
+    3. Submit a new attempt using the same strict Attempt format.
+
+    TASK
+    {{task}}
+
+    TOOLS
+    {{tools_data}}
+  agent_messages_init: |-
+    [
+      {
+        "role": "user",
+        "content": "You are an agent task solver. You will receive a task and a list of tools with their exact signatures. Your job is to plan, make exploratory tool calls for all the tools you need to use, then output a verified sequence of tool calls that solves the task.\n\nProtocol\n1. Read the task and the provided tool signatures carefully.\n2. Explore the tool calls by making exploratory tool calls. Do not fabricate values. To make such exploratory calls you need output the tool call and wait for the response. \n3. When you are confident you have all required values, output a single solution attempt using the exact Attempt format below.\n4. If any call fails, read the error message, adjust only what is necessary, gather any missing values, and try again.\n5. The task is completed solely when you output the whole sequence of tool in one block in the format below.\n6. If an attempt fails is because of either a wrong tool call, a missing tool call. \n\nTool calling rules\n1. Every call must be written exactly as: ToolName(param1 = value1, param2 = value2, ...). No spaces are allowed between the tool name words. \n2. Use only parameters that appear in the tool signature. If a parameter is optional and not provided by the task or prior tool outputs, omit it.\n3. Preserve the exact parameter order shown in the tool signature. Order matters.\n4. Use only tools that are provided. Do not invent tools or aliases.\n5. Use only values grounded in the task or prior tool outputs.\n6. Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.\n7. You can make only one tool call per turn. You will output the tool call and wait for the response before making the next tool call.\n\nAttempt format\nWhen you are ready to submit a solution, write exactly:\n<ATTEMPT_START>\nToolCallOne(param1 = ..., param2 = ...)\nToolCallTwo(param1 = ..., param2 = ...)\n...\n<ATTEMPT_END>\n\nAttempt rules\n1. Delimiters must be exactly <ATTEMPT_START> on its own line and <ATTEMPT_END> on its own line.\n2. Inside the delimiters include only the whole sequence of tool calls needed to solve the entire task, one per line. No prose, no comments, no extra whitespace before the first call or after the last call.\n3. Do not include any parameters that are not present in the provided signature. Omit optional parameters that were not provided.\n4. Follow the exact parameter order from the tool signature.\n5. If a required value is unknown, gather it first with exploratory tool calls before submitting an attempt.\n6. The task is completed solely when you output the whole sequence of tool calls needed to solve the entire task in one block in the format below. Even if you called tools in multiple turns, you need to output the whole sequence of tool calls in one block.\n7. Note that some tools may be needed multiple times in the sequence of tool calls, with or without different parameters.\n8. Every call must be written exactly as: ToolName(param1 = value1, param2 = value2, ...). No spaces are allowed between the tool name words.\n\nError handling\n1. If a tool returns an error, diagnose whether the issue is the tool choice, a missing or invalid parameter, parameter order, or a constraint violation.\n2. Fix only what is necessary. Re query tools to collect missing values if needed.\n3. Submit a new attempt using the same strict Attempt format.\n\nTASK\n  Complete return processing for customer CUST002's order ORD002 (original total $177.96, tax rate 8%, shipping cost $15.99) containing 2 cotton t-shirts and 1 kitchen knife set. One t-shirt was wrong item (ITEM002). Validate request RET002, generate UPS standard shipping label, inspect (basic) returned item using inspector INS002 - item received in good condition, original packaging intact, all accessories complete, calculate refund for $29.99 item with original order total $177.96, tax rate 8%, shipping cost $15.99, no return shipping cost, process PayPal refund to transaction TXN002, update inventory for 1 sellable t-shirt at warehouse WH001, and notify customer at each necessary step.\n\nTOOLS\n  - tool_name: Return Request Validator\n    tool_json:\n      tool_name: Return Request Validator\n      tool_description: Validates return requests against order history, return policies, and business rules to determine eligibility and calculate time remaining for returns.\n      parameters:\n        return_request_id:\n          type: string\n          required: true\n          description: Unique identifier for the return request\n        order_id:\n          type: string\n          required: true\n          description: Original order identifier associated with the return\n        customer_id:\n          type: string\n          required: true\n          description: Customer identifier making the return request\n        return_reason:\n          type: string\n          required: true\n          description: 'Reason for return: defective, wrong_item, not_as_described, changed_mind, damaged_shipping'\n      error_messages:\n      - 'Order not found: The provided order_id does not exist in the system.'\n      - 'Return window expired: The return request exceeds the allowed return period for this product category.'\n      - 'Invalid return reason: Use one of [defective, wrong_item, not_as_described, changed_mind, damaged_shipping].'\n      - 'Customer mismatch: The customer_id does not match the original order customer.'\n      - 'Already returned: This order has already been fully returned and processed.'\n      usage: Provide return_request_id, order_id, customer_id, and return_reason. The tool validates the request against policies and returns eligibility status with detailed reasoning.\n      output_details:\n        is_valid:\n          type: boolean\n          description: Whether the return request is valid and eligible\n        validation_status:\n          type: string\n          description: 'Status of validation: approved, rejected, or pending_review'\n        days_remaining:\n          type: integer\n          description: Number of days remaining in return window\n        applicable_fees:\n          type: array\n          items:\n            type: string\n          description: List of applicable fees for this return type\n  - tool_name: Return Label Generator\n    tool_json:\n      tool_name: Return Label Generator\n      tool_description: Generates prepaid return shipping labels with tracking information for validated return requests, supporting multiple carriers and service levels.\n      parameters:\n        return_request_id:\n          type: string\n          required: true\n          description: Unique identifier for the validated return request\n        carrier:\n          type: string\n          required: true\n          description: 'Shipping carrier: ups, fedex, usps, dhl'\n        service_level:\n          type: string\n          required: false\n          default: standard\n          description: 'Shipping service level: standard, expedited, overnight'\n        pickup_required:\n          type: boolean\n          required: false\n          default: false\n          description: Whether pickup service is required at customer location\n      error_messages:\n      - 'Return request not validated: The return_request_id must be validated before generating labels.'\n      - 'Invalid carrier: Use one of [ups, fedex, usps, dhl].'\n      - 'Invalid service level: Use one of [standard, expedited, overnight].'\n      - 'Address validation failed: Customer address cannot be validated for shipping.'\n      - 'Carrier service unavailable: The selected carrier and service level combination is not available for this location.'\n      usage: Provide return_request_id and carrier; optionally specify service_level and pickup_required. The tool generates shipping labels and returns tracking information.\n      output_details:\n        label_url:\n          type: string\n          description: URL to download the printable shipping label\n        tracking_number:\n          type: string\n          description: Tracking number for the return shipment\n        estimated_delivery:\n          type: string\n          description: Estimated delivery date to warehouse\n        shipping_cost:\n          type: number\n          description: Cost of return shipping in dollars\n  - tool_name: Return Item Inspector\n    tool_json:\n      tool_name: Return Item Inspector\n      tool_description: Conducts detailed inspection of returned items, assessing condition, completeness, and authenticity to determine appropriate processing actions.\n      parameters:\n        return_request_id:\n          type: string\n          required: true\n          description: Unique identifier for the return request\n        item_ids:\n          type: array\n          required: true\n          description: List of item identifiers being inspected\n          items:\n            type: string\n          minItems: 1\n          maxItems: 50\n        inspection_type:\n          type: string\n          required: true\n          description: 'Type of inspection: basic, detailed, quality_assurance'\n        inspector_id:\n          type: string\n          required: true\n          description: Identifier of the inspector conducting the assessment\n        received_condition:\n          type: array\n          required: true\n          description: Condition of each received item\n          items:\n            type: string\n          minItems: 1\n          maxItems: 50\n        packaging_intact:\n          type: boolean\n          required: true\n          description: Whether original packaging is intact and included\n        accessories_complete:\n          type: boolean\n          required: true\n          description: Whether all accessories and components are included\n        damage_notes:\n          type: string\n          required: false\n          default: ''\n          description: Detailed notes about any damage or issues found\n        photos_taken:\n          type: array\n          required: false\n          default: []\n          description: List of photo filenames for documentation\n          items:\n            type: string\n      error_messages:\n      - 'Return request not found: The provided return_request_id does not exist in the system.'\n      - 'Item count mismatch: The number of item_ids must match the number of received_condition entries.'\n      - 'Invalid inspection type: Use one of [basic, detailed, quality_assurance].'\n      - 'Inspector not authorized: The inspector_id is not authorized to perform inspections.'\n      - 'Missing required assessment: packaging_intact and accessories_complete must be specified.'\n      usage: Provide return_request_id, item_ids, inspection_type, inspector_id, received_condition, packaging_intact, and accessories_complete. Optionally add damage_notes and photos_taken for detailed documentation.\n      output_details:\n        inspection_status:\n          type: string\n          description: 'Overall inspection result: passed, failed, partial'\n        item_assessments:\n          type: array\n          items:\n            type: string\n          description: Individual assessment result for each item\n        restockable_items:\n          type: array\n          items:\n            type: string\n          description: List of item IDs that can be restocked\n        damaged_items:\n          type: array\n          items:\n            type: string\n          description: List of item IDs that are damaged or unsellable\n        inspection_score:\n          type: number\n          description: Numerical score from 0-100 representing overall condition\n  - tool_name: Refund Calculator\n    tool_json:\n      tool_name: Refund Calculator\n      tool_description: Calculates accurate refund amounts considering original pricing, taxes, shipping costs, return fees, and applicable deductions based on item condition and return policies.\n      parameters:\n        return_request_id:\n          type: string\n          required: true\n          description: Unique identifier for the return request\n        original_order_total:\n          type: number\n          required: true\n          description: Original order total amount in dollars including tax and shipping\n        item_values:\n          type: array\n          required: true\n          description: Original value of each returned item in dollars\n          items:\n            type: number\n          minItems: 1\n          maxItems: 50\n        tax_rate:\n          type: number\n          required: true\n          description: Tax rate applied to original order as decimal (e.g., 0.08 for 8%)\n        shipping_cost:\n          type: number\n          required: true\n          description: Original shipping cost in dollars\n        return_shipping_cost:\n          type: number\n          required: false\n          default: 0\n          description: Cost of return shipping to be deducted in dollars\n        restocking_fee_rate:\n          type: number\n          required: false\n          default: 0\n          description: Restocking fee rate as decimal (e.g., 0.15 for 15%)\n        condition_deduction_rate:\n          type: number\n          required: false\n          default: 0\n          description: Deduction rate for item condition as decimal (e.g., 0.20 for 20%)\n      error_messages:\n      - 'Invalid monetary values: All dollar amounts must be non-negative numbers.'\n      - 'Invalid rate values: Tax rate, restocking fee rate, and condition deduction rate must be between 0 and 1.'\n      - 'Return request not found: The provided return_request_id does not exist in the system.'\n      - 'Item value mismatch: Sum of item_values cannot exceed original_order_total.'\n      - 'Calculation error: Refund calculation resulted in negative amount, please verify input values.'\n      usage: Provide return_request_id, original_order_total, item_values, tax_rate, and shipping_cost. Optionally specify return_shipping_cost, restocking_fee_rate, and condition_deduction_rate for accurate refund calculation.\n      output_details:\n        gross_refund:\n          type: number\n          description: Gross refund amount before deductions\n        tax_refund:\n          type: number\n          description: Tax amount to be refunded\n        shipping_refund:\n          type: number\n          description: Shipping amount to be refunded\n        total_deductions:\n          type: number\n          description: Total amount of all deductions applied\n        net_refund:\n          type: number\n          description: Final net refund amount to be processed\n        deduction_breakdown:\n          type: array\n          items:\n            type: string\n          description: Detailed breakdown of each deduction applied\n  - tool_name: Payment Processor\n    tool_json:\n      tool_name: Payment Processor\n      tool_description: Processes refund payments through various payment methods, handles transaction validation, and manages payment gateway communications for return refunds.\n      parameters:\n        refund_amount:\n          type: number\n          required: true\n          description: Amount to refund in dollars\n        original_payment_method:\n          type: string\n          required: true\n          description: 'Original payment method: credit_card, debit_card, paypal, bank_transfer, store_credit'\n        customer_id:\n          type: string\n          required: true\n          description: Customer identifier for the refund recipient\n        original_transaction_id:\n          type: string\n          required: true\n          description: Original transaction identifier to refund against\n        refund_reason_code:\n          type: string\n          required: true\n          description: 'Reason code: customer_return, defective_product, wrong_item, damaged_goods'\n      error_messages:\n      - 'Invalid refund amount: Amount must be greater than 0 and not exceed original transaction amount.'\n      - 'Payment method not supported: Use one of [credit_card, debit_card, paypal, bank_transfer, store_credit].'\n      - 'Transaction not found: Original transaction_id does not exist or is not refundable.'\n      - 'Payment gateway error: Unable to process refund due to gateway communication failure.'\n      - 'Invalid reason code: Use one of [customer_return, defective_product, wrong_item, damaged_goods].'\n      - 'Refund limit exceeded: Refund amount exceeds the remaining refundable balance for this transaction.'\n      usage: Provide refund_amount, original_payment_method, customer_id, original_transaction_id, and refund_reason_code. The tool processes the refund and returns transaction details.\n      output_details:\n        refund_transaction_id:\n          type: string\n          description: Unique transaction ID for the refund\n        processing_status:\n          type: string\n          description: 'Status of refund processing: completed, pending, failed'\n        estimated_completion:\n          type: string\n          description: Estimated date when refund will appear in customer account\n        gateway_reference:\n          type: string\n          description: Payment gateway reference number for tracking\n        processing_fee:\n          type: number\n          description: Any processing fee charged for the refund\n  - tool_name: Inventory Updater\n    tool_json:\n      tool_name: Inventory Updater\n      tool_description: Updates inventory levels and item status based on returned items, condition assessments, and restocking decisions to maintain accurate stock counts.\n      parameters:\n        item_ids:\n          type: array\n          required: true\n          description: List of item identifiers to update in inventory\n          items:\n            type: string\n          minItems: 1\n          maxItems: 100\n        quantities:\n          type: array\n          required: true\n          description: Quantity of each item being processed\n          items:\n            type: integer\n          minItems: 1\n          maxItems: 100\n        condition_status:\n          type: array\n          required: true\n          description: 'Condition status for each item: sellable, damaged, defective, disposed'\n          items:\n            type: string\n          minItems: 1\n          maxItems: 100\n        warehouse_location:\n          type: string\n          required: true\n          description: Warehouse identifier where items are being processed\n      error_messages:\n      - 'Array length mismatch: item_ids, quantities, and condition_status arrays must have the same length.'\n      - 'Invalid item ID: One or more item IDs do not exist in the inventory system.'\n      - 'Invalid condition status: Use one of [sellable, damaged, defective, disposed] for each item.'\n      - 'Invalid quantity: Quantities must be positive integers.'\n      - 'Warehouse not found: The specified warehouse_location does not exist.'\n      - 'Inventory lock conflict: Cannot update inventory due to concurrent operations on these items.'\n      usage: Provide item_ids, quantities, condition_status arrays of equal length, and warehouse_location. The tool updates inventory based on item conditions and returns confirmation.\n      output_details:\n        updated_items:\n          type: array\n          items:\n            type: string\n          description: List of successfully updated item IDs\n        sellable_count:\n          type: integer\n          description: Number of items returned to sellable inventory\n        damaged_count:\n          type: integer\n          description: Number of items marked as damaged\n        disposed_count:\n          type: integer\n          description: Number of items marked for disposal\n        inventory_adjustment_total:\n          type: number\n          description: Total inventory value adjustment in dollars\n  - tool_name: Customer Notifier\n    tool_json:\n      tool_name: Customer Notifier\n      tool_description: Sends automated notifications to customers about return status updates, refund processing, and other return-related communications through multiple channels.\n      parameters:\n        customer_id:\n          type: string\n          required: true\n          description: Customer identifier for notification recipient\n        notification_type:\n          type: string\n          required: true\n          description: 'Type of notification: return_approved, label_ready, refund_processed, return_completed, return_rejected'\n        return_request_id:\n          type: string\n          required: true\n          description: Return request identifier for context\n        communication_channel:\n          type: string\n          required: false\n          default: email\n          description: 'Preferred communication channel: email, sms, push_notification, in_app'\n        additional_details:\n          type: string\n          required: false\n          default: ''\n          description: Additional details to include in the notification\n      error_messages:\n      - 'Customer not found: The provided customer_id does not exist in the system.'\n      - 'Invalid notification type: Use one of [return_approved, label_ready, refund_processed, return_completed, return_rejected].'\n      - 'Invalid communication channel: Use one of [email, sms, push_notification, in_app].'\n      - 'Notification delivery failed: Unable to deliver notification through selected channel.'\n      - 'Customer opt-out: Customer has opted out of this type of notification.'\n      - 'Return request not found: The provided return_request_id does not exist.'\n      usage: Provide customer_id, notification_type, and return_request_id. Optionally specify communication_channel and additional_details. The tool sends notifications and returns delivery confirmation.\n      output_details:\n        notification_id:\n          type: string\n          description: Unique identifier for the sent notification\n        delivery_status:\n          type: string\n          description: 'Delivery status: sent, delivered, failed, pending'\n        sent_timestamp:\n          type: string\n          description: Timestamp when notification was sent\n        delivery_channel_used:\n          type: string\n          description: Actual communication channel used for delivery\n        customer_response_required:\n          type: boolean\n          description: Whether the notification requires customer response\n"
+      }
+    ]
+interaction_1:
+  agent_text: |-
+    I'll analyze the task and explore the tools to complete the return processing for customer CUST002's order ORD002. Let me start by validating the return request.
+
+    ReturnRequestValidator(return_request_id = "RET002", order_id = "ORD002", customer_id = "CUST002", return_reason = "wrong_item")
+  prompt_simulator: |-
+    You are an API simulator acting as a backend server responding to a tool call. Process API requests and generate appropriate responses based on the provided documentation.
+
+    Tool Name: Return Request Validator
+    Tool Description: Validates return requests against order history, return policies, and business rules to determine eligibility and calculate time remaining for returns.
+    Parameters: {'return_request_id': {'type': 'string', 'required': True, 'description': 'Unique identifier for the return request'}, 'order_id': {'type': 'string', 'required': True, 'description': 'Original order identifier associated with the return'}, 'customer_id': {'type': 'string', 'required': True, 'description': 'Customer identifier making the return request'}, 'return_reason': {'type': 'string', 'required': True, 'description': 'Reason for return: defective, wrong_item, not_as_described, changed_mind, damaged_shipping'}}
+    Error Message Examples: ['Order not found: The provided order_id does not exist in the system.', 'Return window expired: The return request exceeds the allowed return period for this product category.', 'Invalid return reason: Use one of [defective, wrong_item, not_as_described, changed_mind, damaged_shipping].', 'Customer mismatch: The customer_id does not match the original order customer.', 'Already returned: This order has already been fully returned and processed.']
+    Usage: Provide return_request_id, order_id, customer_id, and return_reason. The tool validates the request against policies and returns eligibility status with detailed reasoning.
+    Example Tool Call: {'return_request_id': 'RR123456789', 'order_id': 'ORD987654321', 'customer_id': 'CUST123456', 'return_reason': 'defective'}
+    Example Return Data: {'is_valid': True, 'validation_status': 'approved', 'days_remaining': 14, 'applicable_fees': ['shipping_fee', 'restocking_fee']}
+
+    GUIDELINES:
+    1. **Validation**: Validate HTTP method and parameters according to the API specification. Check if prerequisites are met based on function requirements.
+
+    2. **Response Generation**: Generate responses that strictly adhere to the format shown in Example Return Data. Ensure all responses are valid JSON matching that structure.
+
+    3. **Given Metadata**: Use the provided metadata to generate the response.
+
+    4. **Error Handling**: Handle edge cases with appropriate error responses:
+       - Missing required parameters (400)
+       - Invalid parameter types or formats (400)
+       - Authentication/authorization failures (401/403)
+       - Resource not found (404)
+       - Server errors (500)
+
+    5. **Response Quantity**: For list operations without length limits, return at least 3 samples to demonstrate realistic data variety.
+
+    OUTPUT FORMAT:
+    Status Code: [Appropriate HTTP response code]
+    Response: [Valid JSON matching the Example Return Data structure]
+    Explanation: [Brief explanation for the response and status code choice]
+
+    IMPORTANT:
+    - Base your response structure on the Example Return Data provided
+    - Ensure responses are consistent with the provided parameters
+    - Simulate realistic behavior based on the function requirements
+    - Avoid any extraneous content outside the required output format
+    - Do not print your reasoning process, only return the JSON response
+    - First check if the tool call is valid, if not, return the appropriate error message
+    - Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    - Base your responses on the metadata if the information is available, otherwise strictly follow the tool description to compute the response.
+
+    CONTEXT METADATA:
+    {'customers': [{'customer_id': 'CUST001', 'name': 'Alice Johnson', 'email': 'alice@email.com', 'phone': '+1-555-0101', 'address': '123 Main St, Portland, OR 97205', 'segment': 'premium', 'notification_preferences': ['email', 'sms']}, {'customer_id': 'CUST002', 'name': 'Bob Smith', 'email': 'bob@email.com', 'phone': '+1-555-0102', 'address': '456 Oak Ave, Seattle, WA 98101', 'segment': 'standard', 'notification_preferences': ['email']}, {'customer_id': 'CUST003', 'name': 'Carol Davis', 'email': 'carol@email.com', 'phone': '+1-555-0103', 'address': '789 Pine St, Denver, CO 80202', 'segment': 'premium', 'notification_preferences': ['email', 'push_notification']}], 'products': [{'item_id': 'ITEM001', 'name': 'Wireless Bluetooth Headphones', 'category': 'electronics', 'original_price': 149.99, 'return_window_days': 30, 'restocking_fee_rate': 0.15}, {'item_id': 'ITEM002', 'name': 'Cotton T-Shirt Blue', 'category': 'clothing', 'original_price': 29.99, 'return_window_days': 60, 'restocking_fee_rate': 0.0}, {'item_id': 'ITEM003', 'name': 'Kitchen Knife Set', 'category': 'home_goods', 'original_price': 89.99, 'return_window_days': 45, 'restocking_fee_rate': 0.1}, {'item_id': 'ITEM004', 'name': 'Running Shoes', 'category': 'footwear', 'original_price': 119.99, 'return_window_days': 90, 'restocking_fee_rate': 0.0}], 'orders': [{'order_id': 'ORD001', 'customer_id': 'CUST001', 'order_date': '2024-01-15', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'price': 149.99}], 'subtotal': 149.99, 'tax_amount': 12.0, 'shipping_cost': 9.99, 'total_amount': 171.98, 'payment_method': 'credit_card', 'transaction_id': 'TXN001'}, {'order_id': 'ORD002', 'customer_id': 'CUST002', 'order_date': '2024-02-01', 'items': [{'item_id': 'ITEM002', 'quantity': 2, 'price': 29.99}, {'item_id': 'ITEM003', 'quantity': 1, 'price': 89.99}], 'subtotal': 149.97, 'tax_amount': 12.0, 'shipping_cost': 15.99, 'total_amount': 177.96, 'payment_method': 'paypal', 'transaction_id': 'TXN002'}, {'order_id': 'ORD003', 'customer_id': 'CUST003', 'order_date': '2024-02-10', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'price': 119.99}], 'subtotal': 119.99, 'tax_amount': 9.6, 'shipping_cost': 0.0, 'total_amount': 129.59, 'payment_method': 'debit_card', 'transaction_id': 'TXN003'}], 'return_requests': [{'return_request_id': 'RET001', 'order_id': 'ORD001', 'customer_id': 'CUST001', 'request_date': '2024-02-01', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'reason': 'defective'}], 'status': 'initiated'}, {'return_request_id': 'RET002', 'order_id': 'ORD002', 'customer_id': 'CUST002', 'request_date': '2024-02-15', 'items': [{'item_id': 'ITEM002', 'quantity': 1, 'reason': 'wrong_item'}], 'status': 'validated'}, {'return_request_id': 'RET003', 'order_id': 'ORD003', 'customer_id': 'CUST003', 'request_date': '2024-02-20', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'reason': 'changed_mind'}], 'status': 'approved'}], 'warehouses': [{'warehouse_id': 'WH001', 'name': 'Portland Distribution Center', 'location': 'Portland, OR', 'capacity': 10000}, {'warehouse_id': 'WH002', 'name': 'Seattle Fulfillment Center', 'location': 'Seattle, WA', 'capacity': 15000}], 'return_policies': {'electronics': {'return_window_days': 30, 'restocking_fee': 0.15, 'condition_threshold': 85}, 'clothing': {'return_window_days': 60, 'restocking_fee': 0.0, 'condition_threshold': 90}, 'home_goods': {'return_window_days': 45, 'restocking_fee': 0.1, 'condition_threshold': 80}, 'footwear': {'return_window_days': 90, 'restocking_fee': 0.0, 'condition_threshold': 85}}, 'shipping_carriers': [{'carrier': 'ups', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 8.99}, {'carrier': 'fedex', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 9.99}, {'carrier': 'usps', 'services': ['standard', 'expedited'], 'base_cost': 6.99}]}
+    Return Request Validator(return_request_id = "RET002", order_id = "ORD002", customer_id = "CUST002", return_reason = "wrong_item")
+  response_simulator: |-
+    Status Code: 200
+    Response: {"is_valid": true, "validation_status": "approved", "days_remaining": 46, "applicable_fees": []}
+    Explanation: The return request RET002 is valid. Order ORD002 was placed on 2024-02-01 and the return request was made on 2024-02-15, which is 14 days after purchase. The item ITEM002 (Cotton T-Shirt Blue) is in the clothing category with a 60-day return window, leaving 46 days remaining. The customer ID matches the original order, the return reason is valid, and clothing items have no restocking fee according to the return policy.
+  response_to_agent: |-
+    Status Code: 200
+    Response: {"is_valid": true, "validation_status": "approved", "days_remaining": 46, "applicable_fees": []}
+interaction_2:
+  agent_text: |-
+    Great! The return request is validated and approved. Now let me generate a UPS standard shipping label for the return.
+
+    ReturnLabelGenerator(return_request_id = "RET002", carrier = "ups", service_level = "standard")
+  prompt_simulator: |-
+    You are an API simulator acting as a backend server responding to a tool call. Process API requests and generate appropriate responses based on the provided documentation.
+
+    Tool Name: Return Label Generator
+    Tool Description: Generates prepaid return shipping labels with tracking information for validated return requests, supporting multiple carriers and service levels.
+    Parameters: {'return_request_id': {'type': 'string', 'required': True, 'description': 'Unique identifier for the validated return request'}, 'carrier': {'type': 'string', 'required': True, 'description': 'Shipping carrier: ups, fedex, usps, dhl'}, 'service_level': {'type': 'string', 'required': False, 'default': 'standard', 'description': 'Shipping service level: standard, expedited, overnight'}, 'pickup_required': {'type': 'boolean', 'required': False, 'default': False, 'description': 'Whether pickup service is required at customer location'}}
+    Error Message Examples: ['Return request not validated: The return_request_id must be validated before generating labels.', 'Invalid carrier: Use one of [ups, fedex, usps, dhl].', 'Invalid service level: Use one of [standard, expedited, overnight].', 'Address validation failed: Customer address cannot be validated for shipping.', 'Carrier service unavailable: The selected carrier and service level combination is not available for this location.']
+    Usage: Provide return_request_id and carrier; optionally specify service_level and pickup_required. The tool generates shipping labels and returns tracking information.
+    Example Tool Call: {'return_request_id': 'RR123456789', 'carrier': 'ups', 'service_level': 'standard', 'pickup_required': False}
+    Example Return Data: {'label_url': 'https://shipping.warehouse.com/labels/RR123456789.pdf', 'tracking_number': '1Z999AA1234567890', 'estimated_delivery': '2024-01-22', 'shipping_cost': 12.99}
+
+    GUIDELINES:
+    1. **Validation**: Validate HTTP method and parameters according to the API specification. Check if prerequisites are met based on function requirements.
+
+    2. **Response Generation**: Generate responses that strictly adhere to the format shown in Example Return Data. Ensure all responses are valid JSON matching that structure.
+
+    3. **Given Metadata**: Use the provided metadata to generate the response.
+
+    4. **Error Handling**: Handle edge cases with appropriate error responses:
+       - Missing required parameters (400)
+       - Invalid parameter types or formats (400)
+       - Authentication/authorization failures (401/403)
+       - Resource not found (404)
+       - Server errors (500)
+
+    5. **Response Quantity**: For list operations without length limits, return at least 3 samples to demonstrate realistic data variety.
+
+    OUTPUT FORMAT:
+    Status Code: [Appropriate HTTP response code]
+    Response: [Valid JSON matching the Example Return Data structure]
+    Explanation: [Brief explanation for the response and status code choice]
+
+    IMPORTANT:
+    - Base your response structure on the Example Return Data provided
+    - Ensure responses are consistent with the provided parameters
+    - Simulate realistic behavior based on the function requirements
+    - Avoid any extraneous content outside the required output format
+    - Do not print your reasoning process, only return the JSON response
+    - First check if the tool call is valid, if not, return the appropriate error message
+    - Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    - Base your responses on the metadata if the information is available, otherwise strictly follow the tool description to compute the response.
+
+    CONTEXT METADATA:
+    {'customers': [{'customer_id': 'CUST001', 'name': 'Alice Johnson', 'email': 'alice@email.com', 'phone': '+1-555-0101', 'address': '123 Main St, Portland, OR 97205', 'segment': 'premium', 'notification_preferences': ['email', 'sms']}, {'customer_id': 'CUST002', 'name': 'Bob Smith', 'email': 'bob@email.com', 'phone': '+1-555-0102', 'address': '456 Oak Ave, Seattle, WA 98101', 'segment': 'standard', 'notification_preferences': ['email']}, {'customer_id': 'CUST003', 'name': 'Carol Davis', 'email': 'carol@email.com', 'phone': '+1-555-0103', 'address': '789 Pine St, Denver, CO 80202', 'segment': 'premium', 'notification_preferences': ['email', 'push_notification']}], 'products': [{'item_id': 'ITEM001', 'name': 'Wireless Bluetooth Headphones', 'category': 'electronics', 'original_price': 149.99, 'return_window_days': 30, 'restocking_fee_rate': 0.15}, {'item_id': 'ITEM002', 'name': 'Cotton T-Shirt Blue', 'category': 'clothing', 'original_price': 29.99, 'return_window_days': 60, 'restocking_fee_rate': 0.0}, {'item_id': 'ITEM003', 'name': 'Kitchen Knife Set', 'category': 'home_goods', 'original_price': 89.99, 'return_window_days': 45, 'restocking_fee_rate': 0.1}, {'item_id': 'ITEM004', 'name': 'Running Shoes', 'category': 'footwear', 'original_price': 119.99, 'return_window_days': 90, 'restocking_fee_rate': 0.0}], 'orders': [{'order_id': 'ORD001', 'customer_id': 'CUST001', 'order_date': '2024-01-15', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'price': 149.99}], 'subtotal': 149.99, 'tax_amount': 12.0, 'shipping_cost': 9.99, 'total_amount': 171.98, 'payment_method': 'credit_card', 'transaction_id': 'TXN001'}, {'order_id': 'ORD002', 'customer_id': 'CUST002', 'order_date': '2024-02-01', 'items': [{'item_id': 'ITEM002', 'quantity': 2, 'price': 29.99}, {'item_id': 'ITEM003', 'quantity': 1, 'price': 89.99}], 'subtotal': 149.97, 'tax_amount': 12.0, 'shipping_cost': 15.99, 'total_amount': 177.96, 'payment_method': 'paypal', 'transaction_id': 'TXN002'}, {'order_id': 'ORD003', 'customer_id': 'CUST003', 'order_date': '2024-02-10', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'price': 119.99}], 'subtotal': 119.99, 'tax_amount': 9.6, 'shipping_cost': 0.0, 'total_amount': 129.59, 'payment_method': 'debit_card', 'transaction_id': 'TXN003'}], 'return_requests': [{'return_request_id': 'RET001', 'order_id': 'ORD001', 'customer_id': 'CUST001', 'request_date': '2024-02-01', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'reason': 'defective'}], 'status': 'initiated'}, {'return_request_id': 'RET002', 'order_id': 'ORD002', 'customer_id': 'CUST002', 'request_date': '2024-02-15', 'items': [{'item_id': 'ITEM002', 'quantity': 1, 'reason': 'wrong_item'}], 'status': 'validated'}, {'return_request_id': 'RET003', 'order_id': 'ORD003', 'customer_id': 'CUST003', 'request_date': '2024-02-20', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'reason': 'changed_mind'}], 'status': 'approved'}], 'warehouses': [{'warehouse_id': 'WH001', 'name': 'Portland Distribution Center', 'location': 'Portland, OR', 'capacity': 10000}, {'warehouse_id': 'WH002', 'name': 'Seattle Fulfillment Center', 'location': 'Seattle, WA', 'capacity': 15000}], 'return_policies': {'electronics': {'return_window_days': 30, 'restocking_fee': 0.15, 'condition_threshold': 85}, 'clothing': {'return_window_days': 60, 'restocking_fee': 0.0, 'condition_threshold': 90}, 'home_goods': {'return_window_days': 45, 'restocking_fee': 0.1, 'condition_threshold': 80}, 'footwear': {'return_window_days': 90, 'restocking_fee': 0.0, 'condition_threshold': 85}}, 'shipping_carriers': [{'carrier': 'ups', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 8.99}, {'carrier': 'fedex', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 9.99}, {'carrier': 'usps', 'services': ['standard', 'expedited'], 'base_cost': 6.99}]}
+    Return Label Generator(return_request_id = "RET002", carrier = "ups", service_level = "standard")
+  response_simulator: |-
+    Status Code: 200
+    Response: {"label_url": "https://shipping.warehouse.com/labels/RET002.pdf", "tracking_number": "1Z999AA1012345672", "estimated_delivery": "2024-02-22", "shipping_cost": 8.99}
+    Explanation: Successfully generated return shipping label for validated return request RET002 using UPS standard service. The return request exists in the metadata with "validated" status, UPS carrier supports standard service level, and customer address is available for shipping to Seattle, WA.
+  response_to_agent: |-
+    Status Code: 200
+    Response: {"label_url": "https://shipping.warehouse.com/labels/RET002.pdf", "tracking_number": "1Z999AA1012345672", "estimated_delivery": "2024-02-22", "shipping_cost": 8.99}
+interaction_3:
+  agent_text: |-
+    Perfect! The shipping label has been generated. Now let me conduct the inspection of the returned item using inspector INS002.
+
+    ReturnItemInspector(return_request_id = "RET002", item_ids = ["ITEM002"], inspection_type = "basic", inspector_id = "INS002", received_condition = ["good"], packaging_intact = true, accessories_complete = true)
+  prompt_simulator: |-
+    You are an API simulator acting as a backend server responding to a tool call. Process API requests and generate appropriate responses based on the provided documentation.
+
+    Tool Name: Return Item Inspector
+    Tool Description: Conducts detailed inspection of returned items, assessing condition, completeness, and authenticity to determine appropriate processing actions.
+    Parameters: {'return_request_id': {'type': 'string', 'required': True, 'description': 'Unique identifier for the return request'}, 'item_ids': {'type': 'array', 'required': True, 'description': 'List of item identifiers being inspected', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 50}, 'inspection_type': {'type': 'string', 'required': True, 'description': 'Type of inspection: basic, detailed, quality_assurance'}, 'inspector_id': {'type': 'string', 'required': True, 'description': 'Identifier of the inspector conducting the assessment'}, 'received_condition': {'type': 'array', 'required': True, 'description': 'Condition of each received item', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 50}, 'packaging_intact': {'type': 'boolean', 'required': True, 'description': 'Whether original packaging is intact and included'}, 'accessories_complete': {'type': 'boolean', 'required': True, 'description': 'Whether all accessories and components are included'}, 'damage_notes': {'type': 'string', 'required': False, 'default': '', 'description': 'Detailed notes about any damage or issues found'}, 'photos_taken': {'type': 'array', 'required': False, 'default': [], 'description': 'List of photo filenames for documentation', 'items': {'type': 'string'}}}
+    Error Message Examples: ['Return request not found: The provided return_request_id does not exist in the system.', 'Item count mismatch: The number of item_ids must match the number of received_condition entries.', 'Invalid inspection type: Use one of [basic, detailed, quality_assurance].', 'Inspector not authorized: The inspector_id is not authorized to perform inspections.', 'Missing required assessment: packaging_intact and accessories_complete must be specified.']
+    Usage: Provide return_request_id, item_ids, inspection_type, inspector_id, received_condition, packaging_intact, and accessories_complete. Optionally add damage_notes and photos_taken for detailed documentation.
+    Example Tool Call: {'return_request_id': 'RR78392', 'item_ids': ['SKU001', 'SKU002', 'SKU003'], 'inspection_type': 'detailed', 'inspector_id': 'INSP456', 'received_condition': ['good', 'damaged', 'like_new'], 'packaging_intact': False, 'accessories_complete': True, 'damage_notes': 'SKU002 has visible scratches on surface', 'photos_taken': ['SKU002_damage1.jpg', 'SKU002_damage2.jpg']}
+    Example Return Data: {'inspection_status': 'partial', 'item_assessments': ['pass', 'fail', 'pass'], 'restockable_items': ['SKU001', 'SKU003'], 'damaged_items': ['SKU002'], 'inspection_score': 75.5}
+
+    GUIDELINES:
+    1. **Validation**: Validate HTTP method and parameters according to the API specification. Check if prerequisites are met based on function requirements.
+
+    2. **Response Generation**: Generate responses that strictly adhere to the format shown in Example Return Data. Ensure all responses are valid JSON matching that structure.
+
+    3. **Given Metadata**: Use the provided metadata to generate the response.
+
+    4. **Error Handling**: Handle edge cases with appropriate error responses:
+       - Missing required parameters (400)
+       - Invalid parameter types or formats (400)
+       - Authentication/authorization failures (401/403)
+       - Resource not found (404)
+       - Server errors (500)
+
+    5. **Response Quantity**: For list operations without length limits, return at least 3 samples to demonstrate realistic data variety.
+
+    OUTPUT FORMAT:
+    Status Code: [Appropriate HTTP response code]
+    Response: [Valid JSON matching the Example Return Data structure]
+    Explanation: [Brief explanation for the response and status code choice]
+
+    IMPORTANT:
+    - Base your response structure on the Example Return Data provided
+    - Ensure responses are consistent with the provided parameters
+    - Simulate realistic behavior based on the function requirements
+    - Avoid any extraneous content outside the required output format
+    - Do not print your reasoning process, only return the JSON response
+    - First check if the tool call is valid, if not, return the appropriate error message
+    - Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    - Base your responses on the metadata if the information is available, otherwise strictly follow the tool description to compute the response.
+
+    CONTEXT METADATA:
+    {'customers': [{'customer_id': 'CUST001', 'name': 'Alice Johnson', 'email': 'alice@email.com', 'phone': '+1-555-0101', 'address': '123 Main St, Portland, OR 97205', 'segment': 'premium', 'notification_preferences': ['email', 'sms']}, {'customer_id': 'CUST002', 'name': 'Bob Smith', 'email': 'bob@email.com', 'phone': '+1-555-0102', 'address': '456 Oak Ave, Seattle, WA 98101', 'segment': 'standard', 'notification_preferences': ['email']}, {'customer_id': 'CUST003', 'name': 'Carol Davis', 'email': 'carol@email.com', 'phone': '+1-555-0103', 'address': '789 Pine St, Denver, CO 80202', 'segment': 'premium', 'notification_preferences': ['email', 'push_notification']}], 'products': [{'item_id': 'ITEM001', 'name': 'Wireless Bluetooth Headphones', 'category': 'electronics', 'original_price': 149.99, 'return_window_days': 30, 'restocking_fee_rate': 0.15}, {'item_id': 'ITEM002', 'name': 'Cotton T-Shirt Blue', 'category': 'clothing', 'original_price': 29.99, 'return_window_days': 60, 'restocking_fee_rate': 0.0}, {'item_id': 'ITEM003', 'name': 'Kitchen Knife Set', 'category': 'home_goods', 'original_price': 89.99, 'return_window_days': 45, 'restocking_fee_rate': 0.1}, {'item_id': 'ITEM004', 'name': 'Running Shoes', 'category': 'footwear', 'original_price': 119.99, 'return_window_days': 90, 'restocking_fee_rate': 0.0}], 'orders': [{'order_id': 'ORD001', 'customer_id': 'CUST001', 'order_date': '2024-01-15', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'price': 149.99}], 'subtotal': 149.99, 'tax_amount': 12.0, 'shipping_cost': 9.99, 'total_amount': 171.98, 'payment_method': 'credit_card', 'transaction_id': 'TXN001'}, {'order_id': 'ORD002', 'customer_id': 'CUST002', 'order_date': '2024-02-01', 'items': [{'item_id': 'ITEM002', 'quantity': 2, 'price': 29.99}, {'item_id': 'ITEM003', 'quantity': 1, 'price': 89.99}], 'subtotal': 149.97, 'tax_amount': 12.0, 'shipping_cost': 15.99, 'total_amount': 177.96, 'payment_method': 'paypal', 'transaction_id': 'TXN002'}, {'order_id': 'ORD003', 'customer_id': 'CUST003', 'order_date': '2024-02-10', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'price': 119.99}], 'subtotal': 119.99, 'tax_amount': 9.6, 'shipping_cost': 0.0, 'total_amount': 129.59, 'payment_method': 'debit_card', 'transaction_id': 'TXN003'}], 'return_requests': [{'return_request_id': 'RET001', 'order_id': 'ORD001', 'customer_id': 'CUST001', 'request_date': '2024-02-01', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'reason': 'defective'}], 'status': 'initiated'}, {'return_request_id': 'RET002', 'order_id': 'ORD002', 'customer_id': 'CUST002', 'request_date': '2024-02-15', 'items': [{'item_id': 'ITEM002', 'quantity': 1, 'reason': 'wrong_item'}], 'status': 'validated'}, {'return_request_id': 'RET003', 'order_id': 'ORD003', 'customer_id': 'CUST003', 'request_date': '2024-02-20', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'reason': 'changed_mind'}], 'status': 'approved'}], 'warehouses': [{'warehouse_id': 'WH001', 'name': 'Portland Distribution Center', 'location': 'Portland, OR', 'capacity': 10000}, {'warehouse_id': 'WH002', 'name': 'Seattle Fulfillment Center', 'location': 'Seattle, WA', 'capacity': 15000}], 'return_policies': {'electronics': {'return_window_days': 30, 'restocking_fee': 0.15, 'condition_threshold': 85}, 'clothing': {'return_window_days': 60, 'restocking_fee': 0.0, 'condition_threshold': 90}, 'home_goods': {'return_window_days': 45, 'restocking_fee': 0.1, 'condition_threshold': 80}, 'footwear': {'return_window_days': 90, 'restocking_fee': 0.0, 'condition_threshold': 85}}, 'shipping_carriers': [{'carrier': 'ups', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 8.99}, {'carrier': 'fedex', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 9.99}, {'carrier': 'usps', 'services': ['standard', 'expedited'], 'base_cost': 6.99}]}
+    Return Item Inspector(return_request_id = "RET002", item_ids = ["ITEM002"], inspection_type = "basic", inspector_id = "INS002", received_condition = ["good"], packaging_intact = true, accessories_complete = true)
+  response_simulator: |-
+    Status Code: 200
+    Response: {"inspection_status": "complete", "item_assessments": ["pass"], "restockable_items": ["ITEM002"], "damaged_items": [], "inspection_score": 95.0}
+    Explanation: The inspection was successfully completed for return request RET002. The Cotton T-Shirt Blue (ITEM002) was received in good condition with intact packaging and complete accessories, resulting in a pass assessment and full restockability with a high inspection score of 95.0.
+  response_to_agent: |-
+    Status Code: 200
+    Response: {"inspection_status": "complete", "item_assessments": ["pass"], "restockable_items": ["ITEM002"], "damaged_items": [], "inspection_score": 95.0}
+interaction_4:
+  agent_text: |-
+    Excellent! The inspection passed and the item is restockable. Now let me calculate the refund for the $29.99 item.
+
+    RefundCalculator(return_request_id = "RET002", original_order_total = 177.96, item_values = [29.99], tax_rate = 0.08, shipping_cost = 15.99, return_shipping_cost = 0)
+  prompt_simulator: |-
+    You are an API simulator acting as a backend server responding to a tool call. Process API requests and generate appropriate responses based on the provided documentation.
+
+    Tool Name: Refund Calculator
+    Tool Description: Calculates accurate refund amounts considering original pricing, taxes, shipping costs, return fees, and applicable deductions based on item condition and return policies.
+    Parameters: {'return_request_id': {'type': 'string', 'required': True, 'description': 'Unique identifier for the return request'}, 'original_order_total': {'type': 'number', 'required': True, 'description': 'Original order total amount in dollars including tax and shipping'}, 'item_values': {'type': 'array', 'required': True, 'description': 'Original value of each returned item in dollars', 'items': {'type': 'number'}, 'minItems': 1, 'maxItems': 50}, 'tax_rate': {'type': 'number', 'required': True, 'description': 'Tax rate applied to original order as decimal (e.g., 0.08 for 8%)'}, 'shipping_cost': {'type': 'number', 'required': True, 'description': 'Original shipping cost in dollars'}, 'return_shipping_cost': {'type': 'number', 'required': False, 'default': 0, 'description': 'Cost of return shipping to be deducted in dollars'}, 'restocking_fee_rate': {'type': 'number', 'required': False, 'default': 0, 'description': 'Restocking fee rate as decimal (e.g., 0.15 for 15%)'}, 'condition_deduction_rate': {'type': 'number', 'required': False, 'default': 0, 'description': 'Deduction rate for item condition as decimal (e.g., 0.20 for 20%)'}}
+    Error Message Examples: ['Invalid monetary values: All dollar amounts must be non-negative numbers.', 'Invalid rate values: Tax rate, restocking fee rate, and condition deduction rate must be between 0 and 1.', 'Return request not found: The provided return_request_id does not exist in the system.', 'Item value mismatch: Sum of item_values cannot exceed original_order_total.', 'Calculation error: Refund calculation resulted in negative amount, please verify input values.']
+    Usage: Provide return_request_id, original_order_total, item_values, tax_rate, and shipping_cost. Optionally specify return_shipping_cost, restocking_fee_rate, and condition_deduction_rate for accurate refund calculation.
+    Example Tool Call: {'return_request_id': 'RR-2023-12345', 'original_order_total': 299.99, 'item_values': [149.99, 89.99], 'tax_rate': 0.085, 'shipping_cost': 12.99, 'return_shipping_cost': 8.99, 'restocking_fee_rate': 0.15, 'condition_deduction_rate': 0.1}
+    Example Return Data: {'gross_refund': 239.98, 'tax_refund': 20.4, 'shipping_refund': 12.99, 'total_deductions': 84.39, 'net_refund': 188.98, 'deduction_breakdown': ['Return Shipping Fee: $8.99', 'Restocking Fee (15%): $36.00', 'Condition Deduction (10%): $24.00', 'Tax on Deductions: $15.40']}
+
+    GUIDELINES:
+    1. **Validation**: Validate HTTP method and parameters according to the API specification. Check if prerequisites are met based on function requirements.
+
+    2. **Response Generation**: Generate responses that strictly adhere to the format shown in Example Return Data. Ensure all responses are valid JSON matching that structure.
+
+    3. **Given Metadata**: Use the provided metadata to generate the response.
+
+    4. **Error Handling**: Handle edge cases with appropriate error responses:
+       - Missing required parameters (400)
+       - Invalid parameter types or formats (400)
+       - Authentication/authorization failures (401/403)
+       - Resource not found (404)
+       - Server errors (500)
+
+    5. **Response Quantity**: For list operations without length limits, return at least 3 samples to demonstrate realistic data variety.
+
+    OUTPUT FORMAT:
+    Status Code: [Appropriate HTTP response code]
+    Response: [Valid JSON matching the Example Return Data structure]
+    Explanation: [Brief explanation for the response and status code choice]
+
+    IMPORTANT:
+    - Base your response structure on the Example Return Data provided
+    - Ensure responses are consistent with the provided parameters
+    - Simulate realistic behavior based on the function requirements
+    - Avoid any extraneous content outside the required output format
+    - Do not print your reasoning process, only return the JSON response
+    - First check if the tool call is valid, if not, return the appropriate error message
+    - Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    - Base your responses on the metadata if the information is available, otherwise strictly follow the tool description to compute the response.
+
+    CONTEXT METADATA:
+    {'customers': [{'customer_id': 'CUST001', 'name': 'Alice Johnson', 'email': 'alice@email.com', 'phone': '+1-555-0101', 'address': '123 Main St, Portland, OR 97205', 'segment': 'premium', 'notification_preferences': ['email', 'sms']}, {'customer_id': 'CUST002', 'name': 'Bob Smith', 'email': 'bob@email.com', 'phone': '+1-555-0102', 'address': '456 Oak Ave, Seattle, WA 98101', 'segment': 'standard', 'notification_preferences': ['email']}, {'customer_id': 'CUST003', 'name': 'Carol Davis', 'email': 'carol@email.com', 'phone': '+1-555-0103', 'address': '789 Pine St, Denver, CO 80202', 'segment': 'premium', 'notification_preferences': ['email', 'push_notification']}], 'products': [{'item_id': 'ITEM001', 'name': 'Wireless Bluetooth Headphones', 'category': 'electronics', 'original_price': 149.99, 'return_window_days': 30, 'restocking_fee_rate': 0.15}, {'item_id': 'ITEM002', 'name': 'Cotton T-Shirt Blue', 'category': 'clothing', 'original_price': 29.99, 'return_window_days': 60, 'restocking_fee_rate': 0.0}, {'item_id': 'ITEM003', 'name': 'Kitchen Knife Set', 'category': 'home_goods', 'original_price': 89.99, 'return_window_days': 45, 'restocking_fee_rate': 0.1}, {'item_id': 'ITEM004', 'name': 'Running Shoes', 'category': 'footwear', 'original_price': 119.99, 'return_window_days': 90, 'restocking_fee_rate': 0.0}], 'orders': [{'order_id': 'ORD001', 'customer_id': 'CUST001', 'order_date': '2024-01-15', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'price': 149.99}], 'subtotal': 149.99, 'tax_amount': 12.0, 'shipping_cost': 9.99, 'total_amount': 171.98, 'payment_method': 'credit_card', 'transaction_id': 'TXN001'}, {'order_id': 'ORD002', 'customer_id': 'CUST002', 'order_date': '2024-02-01', 'items': [{'item_id': 'ITEM002', 'quantity': 2, 'price': 29.99}, {'item_id': 'ITEM003', 'quantity': 1, 'price': 89.99}], 'subtotal': 149.97, 'tax_amount': 12.0, 'shipping_cost': 15.99, 'total_amount': 177.96, 'payment_method': 'paypal', 'transaction_id': 'TXN002'}, {'order_id': 'ORD003', 'customer_id': 'CUST003', 'order_date': '2024-02-10', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'price': 119.99}], 'subtotal': 119.99, 'tax_amount': 9.6, 'shipping_cost': 0.0, 'total_amount': 129.59, 'payment_method': 'debit_card', 'transaction_id': 'TXN003'}], 'return_requests': [{'return_request_id': 'RET001', 'order_id': 'ORD001', 'customer_id': 'CUST001', 'request_date': '2024-02-01', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'reason': 'defective'}], 'status': 'initiated'}, {'return_request_id': 'RET002', 'order_id': 'ORD002', 'customer_id': 'CUST002', 'request_date': '2024-02-15', 'items': [{'item_id': 'ITEM002', 'quantity': 1, 'reason': 'wrong_item'}], 'status': 'validated'}, {'return_request_id': 'RET003', 'order_id': 'ORD003', 'customer_id': 'CUST003', 'request_date': '2024-02-20', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'reason': 'changed_mind'}], 'status': 'approved'}], 'warehouses': [{'warehouse_id': 'WH001', 'name': 'Portland Distribution Center', 'location': 'Portland, OR', 'capacity': 10000}, {'warehouse_id': 'WH002', 'name': 'Seattle Fulfillment Center', 'location': 'Seattle, WA', 'capacity': 15000}], 'return_policies': {'electronics': {'return_window_days': 30, 'restocking_fee': 0.15, 'condition_threshold': 85}, 'clothing': {'return_window_days': 60, 'restocking_fee': 0.0, 'condition_threshold': 90}, 'home_goods': {'return_window_days': 45, 'restocking_fee': 0.1, 'condition_threshold': 80}, 'footwear': {'return_window_days': 90, 'restocking_fee': 0.0, 'condition_threshold': 85}}, 'shipping_carriers': [{'carrier': 'ups', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 8.99}, {'carrier': 'fedex', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 9.99}, {'carrier': 'usps', 'services': ['standard', 'expedited'], 'base_cost': 6.99}]}
+    Refund Calculator(return_request_id = "RET002", original_order_total = 177.96, item_values = [29.99], tax_rate = 0.08, shipping_cost = 15.99, return_shipping_cost = 0)
+  response_simulator: |-
+    Status Code: 200
+    Response: {
+      "gross_refund": 29.99,
+      "tax_refund": 2.40,
+      "shipping_refund": 0.00,
+      "total_deductions": 0.00,
+      "net_refund": 32.39,
+      "deduction_breakdown": []
+    }
+    Explanation: Successfully calculated refund for return request RET002. The calculation includes the item value ($29.99) plus proportional tax refund ($2.40). No shipping refund is provided as only one item from a multi-item order is being returned. No deductions apply as return shipping cost is $0, and clothing items have no restocking fee according to the metadata.
+  response_to_agent: |-
+    Status Code: 200
+    Response: {
+      "gross_refund": 29.99,
+      "tax_refund": 2.40,
+      "shipping_refund": 0.00,
+      "total_deductions": 0.00,
+      "net_refund": 32.39,
+      "deduction_breakdown": []
+    }
+interaction_5:
+  agent_text: |-
+    Great! The refund calculation shows a net refund of $32.39. Now let me process the PayPal refund to transaction TXN002.
+
+    PaymentProcessor(refund_amount = 32.39, original_payment_method = "paypal", customer_id = "CUST002", original_transaction_id = "TXN002", refund_reason_code = "wrong_item")
+  prompt_simulator: |-
+    You are an API simulator acting as a backend server responding to a tool call. Process API requests and generate appropriate responses based on the provided documentation.
+
+    Tool Name: Payment Processor
+    Tool Description: Processes refund payments through various payment methods, handles transaction validation, and manages payment gateway communications for return refunds.
+    Parameters: {'refund_amount': {'type': 'number', 'required': True, 'description': 'Amount to refund in dollars'}, 'original_payment_method': {'type': 'string', 'required': True, 'description': 'Original payment method: credit_card, debit_card, paypal, bank_transfer, store_credit'}, 'customer_id': {'type': 'string', 'required': True, 'description': 'Customer identifier for the refund recipient'}, 'original_transaction_id': {'type': 'string', 'required': True, 'description': 'Original transaction identifier to refund against'}, 'refund_reason_code': {'type': 'string', 'required': True, 'description': 'Reason code: customer_return, defective_product, wrong_item, damaged_goods'}}
+    Error Message Examples: ['Invalid refund amount: Amount must be greater than 0 and not exceed original transaction amount.', 'Payment method not supported: Use one of [credit_card, debit_card, paypal, bank_transfer, store_credit].', 'Transaction not found: Original transaction_id does not exist or is not refundable.', 'Payment gateway error: Unable to process refund due to gateway communication failure.', 'Invalid reason code: Use one of [customer_return, defective_product, wrong_item, damaged_goods].', 'Refund limit exceeded: Refund amount exceeds the remaining refundable balance for this transaction.']
+    Usage: Provide refund_amount, original_payment_method, customer_id, original_transaction_id, and refund_reason_code. The tool processes the refund and returns transaction details.
+    Example Tool Call: {'refund_amount': 149.99, 'original_payment_method': 'credit_card', 'customer_id': 'CUST123456', 'original_transaction_id': 'TXN987654321', 'refund_reason_code': 'defective_product'}
+    Example Return Data: {'refund_transaction_id': 'REF123456789', 'processing_status': 'completed', 'estimated_completion': '2024-01-24', 'gateway_reference': 'GW456789123', 'processing_fee': 2.5}
+
+    GUIDELINES:
+    1. **Validation**: Validate HTTP method and parameters according to the API specification. Check if prerequisites are met based on function requirements.
+
+    2. **Response Generation**: Generate responses that strictly adhere to the format shown in Example Return Data. Ensure all responses are valid JSON matching that structure.
+
+    3. **Given Metadata**: Use the provided metadata to generate the response.
+
+    4. **Error Handling**: Handle edge cases with appropriate error responses:
+       - Missing required parameters (400)
+       - Invalid parameter types or formats (400)
+       - Authentication/authorization failures (401/403)
+       - Resource not found (404)
+       - Server errors (500)
+
+    5. **Response Quantity**: For list operations without length limits, return at least 3 samples to demonstrate realistic data variety.
+
+    OUTPUT FORMAT:
+    Status Code: [Appropriate HTTP response code]
+    Response: [Valid JSON matching the Example Return Data structure]
+    Explanation: [Brief explanation for the response and status code choice]
+
+    IMPORTANT:
+    - Base your response structure on the Example Return Data provided
+    - Ensure responses are consistent with the provided parameters
+    - Simulate realistic behavior based on the function requirements
+    - Avoid any extraneous content outside the required output format
+    - Do not print your reasoning process, only return the JSON response
+    - First check if the tool call is valid, if not, return the appropriate error message
+    - Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    - Base your responses on the metadata if the information is available, otherwise strictly follow the tool description to compute the response.
+
+    CONTEXT METADATA:
+    {'customers': [{'customer_id': 'CUST001', 'name': 'Alice Johnson', 'email': 'alice@email.com', 'phone': '+1-555-0101', 'address': '123 Main St, Portland, OR 97205', 'segment': 'premium', 'notification_preferences': ['email', 'sms']}, {'customer_id': 'CUST002', 'name': 'Bob Smith', 'email': 'bob@email.com', 'phone': '+1-555-0102', 'address': '456 Oak Ave, Seattle, WA 98101', 'segment': 'standard', 'notification_preferences': ['email']}, {'customer_id': 'CUST003', 'name': 'Carol Davis', 'email': 'carol@email.com', 'phone': '+1-555-0103', 'address': '789 Pine St, Denver, CO 80202', 'segment': 'premium', 'notification_preferences': ['email', 'push_notification']}], 'products': [{'item_id': 'ITEM001', 'name': 'Wireless Bluetooth Headphones', 'category': 'electronics', 'original_price': 149.99, 'return_window_days': 30, 'restocking_fee_rate': 0.15}, {'item_id': 'ITEM002', 'name': 'Cotton T-Shirt Blue', 'category': 'clothing', 'original_price': 29.99, 'return_window_days': 60, 'restocking_fee_rate': 0.0}, {'item_id': 'ITEM003', 'name': 'Kitchen Knife Set', 'category': 'home_goods', 'original_price': 89.99, 'return_window_days': 45, 'restocking_fee_rate': 0.1}, {'item_id': 'ITEM004', 'name': 'Running Shoes', 'category': 'footwear', 'original_price': 119.99, 'return_window_days': 90, 'restocking_fee_rate': 0.0}], 'orders': [{'order_id': 'ORD001', 'customer_id': 'CUST001', 'order_date': '2024-01-15', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'price': 149.99}], 'subtotal': 149.99, 'tax_amount': 12.0, 'shipping_cost': 9.99, 'total_amount': 171.98, 'payment_method': 'credit_card', 'transaction_id': 'TXN001'}, {'order_id': 'ORD002', 'customer_id': 'CUST002', 'order_date': '2024-02-01', 'items': [{'item_id': 'ITEM002', 'quantity': 2, 'price': 29.99}, {'item_id': 'ITEM003', 'quantity': 1, 'price': 89.99}], 'subtotal': 149.97, 'tax_amount': 12.0, 'shipping_cost': 15.99, 'total_amount': 177.96, 'payment_method': 'paypal', 'transaction_id': 'TXN002'}, {'order_id': 'ORD003', 'customer_id': 'CUST003', 'order_date': '2024-02-10', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'price': 119.99}], 'subtotal': 119.99, 'tax_amount': 9.6, 'shipping_cost': 0.0, 'total_amount': 129.59, 'payment_method': 'debit_card', 'transaction_id': 'TXN003'}], 'return_requests': [{'return_request_id': 'RET001', 'order_id': 'ORD001', 'customer_id': 'CUST001', 'request_date': '2024-02-01', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'reason': 'defective'}], 'status': 'initiated'}, {'return_request_id': 'RET002', 'order_id': 'ORD002', 'customer_id': 'CUST002', 'request_date': '2024-02-15', 'items': [{'item_id': 'ITEM002', 'quantity': 1, 'reason': 'wrong_item'}], 'status': 'validated'}, {'return_request_id': 'RET003', 'order_id': 'ORD003', 'customer_id': 'CUST003', 'request_date': '2024-02-20', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'reason': 'changed_mind'}], 'status': 'approved'}], 'warehouses': [{'warehouse_id': 'WH001', 'name': 'Portland Distribution Center', 'location': 'Portland, OR', 'capacity': 10000}, {'warehouse_id': 'WH002', 'name': 'Seattle Fulfillment Center', 'location': 'Seattle, WA', 'capacity': 15000}], 'return_policies': {'electronics': {'return_window_days': 30, 'restocking_fee': 0.15, 'condition_threshold': 85}, 'clothing': {'return_window_days': 60, 'restocking_fee': 0.0, 'condition_threshold': 90}, 'home_goods': {'return_window_days': 45, 'restocking_fee': 0.1, 'condition_threshold': 80}, 'footwear': {'return_window_days': 90, 'restocking_fee': 0.0, 'condition_threshold': 85}}, 'shipping_carriers': [{'carrier': 'ups', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 8.99}, {'carrier': 'fedex', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 9.99}, {'carrier': 'usps', 'services': ['standard', 'expedited'], 'base_cost': 6.99}]}
+    Payment Processor(refund_amount = 32.39, original_payment_method = "paypal", customer_id = "CUST002", original_transaction_id = "TXN002", refund_reason_code = "wrong_item")
+  response_simulator: |-
+    Status Code: 200
+    Response: {"refund_transaction_id": "REF789012345", "processing_status": "completed", "estimated_completion": "2024-01-25", "gateway_reference": "PP987654321", "processing_fee": 1.25}
+    Explanation: Successfully processed refund for customer CUST002. The refund amount of $32.39 is valid as it's less than the original transaction amount of $177.96 for TXN002. PayPal payment method and wrong_item reason code are both valid. Generated appropriate refund transaction ID and PayPal gateway reference.
+  response_to_agent: |-
+    Status Code: 200
+    Response: {"refund_transaction_id": "REF789012345", "processing_status": "completed", "estimated_completion": "2024-01-25", "gateway_reference": "PP987654321", "processing_fee": 1.25}
+interaction_6:
+  agent_text: |-
+    Perfect! The PayPal refund has been processed successfully. Now let me update the inventory for the 1 sellable t-shirt at warehouse WH001.
+
+    InventoryUpdater(item_ids = ["ITEM002"], quantities = [1], condition_status = ["sellable"], warehouse_location = "WH001")
+  prompt_simulator: |-
+    You are an API simulator acting as a backend server responding to a tool call. Process API requests and generate appropriate responses based on the provided documentation.
+
+    Tool Name: Inventory Updater
+    Tool Description: Updates inventory levels and item status based on returned items, condition assessments, and restocking decisions to maintain accurate stock counts.
+    Parameters: {'item_ids': {'type': 'array', 'required': True, 'description': 'List of item identifiers to update in inventory', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 100}, 'quantities': {'type': 'array', 'required': True, 'description': 'Quantity of each item being processed', 'items': {'type': 'integer'}, 'minItems': 1, 'maxItems': 100}, 'condition_status': {'type': 'array', 'required': True, 'description': 'Condition status for each item: sellable, damaged, defective, disposed', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 100}, 'warehouse_location': {'type': 'string', 'required': True, 'description': 'Warehouse identifier where items are being processed'}}
+    Error Message Examples: ['Array length mismatch: item_ids, quantities, and condition_status arrays must have the same length.', 'Invalid item ID: One or more item IDs do not exist in the inventory system.', 'Invalid condition status: Use one of [sellable, damaged, defective, disposed] for each item.', 'Invalid quantity: Quantities must be positive integers.', 'Warehouse not found: The specified warehouse_location does not exist.', 'Inventory lock conflict: Cannot update inventory due to concurrent operations on these items.']
+    Usage: Provide item_ids, quantities, condition_status arrays of equal length, and warehouse_location. The tool updates inventory based on item conditions and returns confirmation.
+    Example Tool Call: {'item_ids': ['SKU123', 'SKU456', 'SKU789', 'SKU012'], 'quantities': [5, 2, 3, 1], 'condition_status': ['sellable', 'damaged', 'disposed', 'defective'], 'warehouse_location': 'WAR-NYC-001'}
+    Example Return Data: {'updated_items': ['SKU123', 'SKU456', 'SKU789', 'SKU012'], 'sellable_count': 5, 'damaged_count': 2, 'disposed_count': 3, 'inventory_adjustment_total': 427.5}
+
+    GUIDELINES:
+    1. **Validation**: Validate HTTP method and parameters according to the API specification. Check if prerequisites are met based on function requirements.
+
+    2. **Response Generation**: Generate responses that strictly adhere to the format shown in Example Return Data. Ensure all responses are valid JSON matching that structure.
+
+    3. **Given Metadata**: Use the provided metadata to generate the response.
+
+    4. **Error Handling**: Handle edge cases with appropriate error responses:
+       - Missing required parameters (400)
+       - Invalid parameter types or formats (400)
+       - Authentication/authorization failures (401/403)
+       - Resource not found (404)
+       - Server errors (500)
+
+    5. **Response Quantity**: For list operations without length limits, return at least 3 samples to demonstrate realistic data variety.
+
+    OUTPUT FORMAT:
+    Status Code: [Appropriate HTTP response code]
+    Response: [Valid JSON matching the Example Return Data structure]
+    Explanation: [Brief explanation for the response and status code choice]
+
+    IMPORTANT:
+    - Base your response structure on the Example Return Data provided
+    - Ensure responses are consistent with the provided parameters
+    - Simulate realistic behavior based on the function requirements
+    - Avoid any extraneous content outside the required output format
+    - Do not print your reasoning process, only return the JSON response
+    - First check if the tool call is valid, if not, return the appropriate error message
+    - Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    - Base your responses on the metadata if the information is available, otherwise strictly follow the tool description to compute the response.
+
+    CONTEXT METADATA:
+    {'customers': [{'customer_id': 'CUST001', 'name': 'Alice Johnson', 'email': 'alice@email.com', 'phone': '+1-555-0101', 'address': '123 Main St, Portland, OR 97205', 'segment': 'premium', 'notification_preferences': ['email', 'sms']}, {'customer_id': 'CUST002', 'name': 'Bob Smith', 'email': 'bob@email.com', 'phone': '+1-555-0102', 'address': '456 Oak Ave, Seattle, WA 98101', 'segment': 'standard', 'notification_preferences': ['email']}, {'customer_id': 'CUST003', 'name': 'Carol Davis', 'email': 'carol@email.com', 'phone': '+1-555-0103', 'address': '789 Pine St, Denver, CO 80202', 'segment': 'premium', 'notification_preferences': ['email', 'push_notification']}], 'products': [{'item_id': 'ITEM001', 'name': 'Wireless Bluetooth Headphones', 'category': 'electronics', 'original_price': 149.99, 'return_window_days': 30, 'restocking_fee_rate': 0.15}, {'item_id': 'ITEM002', 'name': 'Cotton T-Shirt Blue', 'category': 'clothing', 'original_price': 29.99, 'return_window_days': 60, 'restocking_fee_rate': 0.0}, {'item_id': 'ITEM003', 'name': 'Kitchen Knife Set', 'category': 'home_goods', 'original_price': 89.99, 'return_window_days': 45, 'restocking_fee_rate': 0.1}, {'item_id': 'ITEM004', 'name': 'Running Shoes', 'category': 'footwear', 'original_price': 119.99, 'return_window_days': 90, 'restocking_fee_rate': 0.0}], 'orders': [{'order_id': 'ORD001', 'customer_id': 'CUST001', 'order_date': '2024-01-15', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'price': 149.99}], 'subtotal': 149.99, 'tax_amount': 12.0, 'shipping_cost': 9.99, 'total_amount': 171.98, 'payment_method': 'credit_card', 'transaction_id': 'TXN001'}, {'order_id': 'ORD002', 'customer_id': 'CUST002', 'order_date': '2024-02-01', 'items': [{'item_id': 'ITEM002', 'quantity': 2, 'price': 29.99}, {'item_id': 'ITEM003', 'quantity': 1, 'price': 89.99}], 'subtotal': 149.97, 'tax_amount': 12.0, 'shipping_cost': 15.99, 'total_amount': 177.96, 'payment_method': 'paypal', 'transaction_id': 'TXN002'}, {'order_id': 'ORD003', 'customer_id': 'CUST003', 'order_date': '2024-02-10', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'price': 119.99}], 'subtotal': 119.99, 'tax_amount': 9.6, 'shipping_cost': 0.0, 'total_amount': 129.59, 'payment_method': 'debit_card', 'transaction_id': 'TXN003'}], 'return_requests': [{'return_request_id': 'RET001', 'order_id': 'ORD001', 'customer_id': 'CUST001', 'request_date': '2024-02-01', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'reason': 'defective'}], 'status': 'initiated'}, {'return_request_id': 'RET002', 'order_id': 'ORD002', 'customer_id': 'CUST002', 'request_date': '2024-02-15', 'items': [{'item_id': 'ITEM002', 'quantity': 1, 'reason': 'wrong_item'}], 'status': 'validated'}, {'return_request_id': 'RET003', 'order_id': 'ORD003', 'customer_id': 'CUST003', 'request_date': '2024-02-20', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'reason': 'changed_mind'}], 'status': 'approved'}], 'warehouses': [{'warehouse_id': 'WH001', 'name': 'Portland Distribution Center', 'location': 'Portland, OR', 'capacity': 10000}, {'warehouse_id': 'WH002', 'name': 'Seattle Fulfillment Center', 'location': 'Seattle, WA', 'capacity': 15000}], 'return_policies': {'electronics': {'return_window_days': 30, 'restocking_fee': 0.15, 'condition_threshold': 85}, 'clothing': {'return_window_days': 60, 'restocking_fee': 0.0, 'condition_threshold': 90}, 'home_goods': {'return_window_days': 45, 'restocking_fee': 0.1, 'condition_threshold': 80}, 'footwear': {'return_window_days': 90, 'restocking_fee': 0.0, 'condition_threshold': 85}}, 'shipping_carriers': [{'carrier': 'ups', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 8.99}, {'carrier': 'fedex', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 9.99}, {'carrier': 'usps', 'services': ['standard', 'expedited'], 'base_cost': 6.99}]}
+    Inventory Updater(item_ids = ["ITEM002"], quantities = [1], condition_status = ["sellable"], warehouse_location = "WH001")
+  response_simulator: |-
+    Status Code: 200
+    Response: {"updated_items": ["ITEM002"], "sellable_count": 1, "damaged_count": 0, "disposed_count": 0, "inventory_adjustment_total": 29.99}
+    Explanation: Successfully updated inventory for item ITEM002 (Cotton T-Shirt Blue) with quantity 1 in sellable condition at warehouse WH001. The inventory adjustment total reflects the value of the sellable item being added back to inventory.
+  response_to_agent: |-
+    Status Code: 200
+    Response: {"updated_items": ["ITEM002"], "sellable_count": 1, "damaged_count": 0, "disposed_count": 0, "inventory_adjustment_total": 29.99}
+interaction_7:
+  agent_text: |-
+    Excellent! The inventory has been updated. Now I need to notify the customer at each necessary step. Let me start with notifying them that their return has been approved.
+
+    CustomerNotifier(customer_id = "CUST002", notification_type = "return_approved", return_request_id = "RET002")
+  prompt_simulator: |-
+    You are an API simulator acting as a backend server responding to a tool call. Process API requests and generate appropriate responses based on the provided documentation.
+
+    Tool Name: Customer Notifier
+    Tool Description: Sends automated notifications to customers about return status updates, refund processing, and other return-related communications through multiple channels.
+    Parameters: {'customer_id': {'type': 'string', 'required': True, 'description': 'Customer identifier for notification recipient'}, 'notification_type': {'type': 'string', 'required': True, 'description': 'Type of notification: return_approved, label_ready, refund_processed, return_completed, return_rejected'}, 'return_request_id': {'type': 'string', 'required': True, 'description': 'Return request identifier for context'}, 'communication_channel': {'type': 'string', 'required': False, 'default': 'email', 'description': 'Preferred communication channel: email, sms, push_notification, in_app'}, 'additional_details': {'type': 'string', 'required': False, 'default': '', 'description': 'Additional details to include in the notification'}}
+    Error Message Examples: ['Customer not found: The provided customer_id does not exist in the system.', 'Invalid notification type: Use one of [return_approved, label_ready, refund_processed, return_completed, return_rejected].', 'Invalid communication channel: Use one of [email, sms, push_notification, in_app].', 'Notification delivery failed: Unable to deliver notification through selected channel.', 'Customer opt-out: Customer has opted out of this type of notification.', 'Return request not found: The provided return_request_id does not exist.']
+    Usage: Provide customer_id, notification_type, and return_request_id. Optionally specify communication_channel and additional_details. The tool sends notifications and returns delivery confirmation.
+    Example Tool Call: {'customer_id': 'CUST123456', 'notification_type': 'refund_processed', 'return_request_id': 'RET789012', 'communication_channel': 'email'}
+    Example Return Data: {'notification_id': 'NOTIF_20231015_123456', 'delivery_status': 'delivered', 'sent_timestamp': '2023-10-15T14:30:22Z', 'delivery_channel_used': 'email', 'customer_response_required': False}
+
+    GUIDELINES:
+    1. **Validation**: Validate HTTP method and parameters according to the API specification. Check if prerequisites are met based on function requirements.
+
+    2. **Response Generation**: Generate responses that strictly adhere to the format shown in Example Return Data. Ensure all responses are valid JSON matching that structure.
+
+    3. **Given Metadata**: Use the provided metadata to generate the response.
+
+    4. **Error Handling**: Handle edge cases with appropriate error responses:
+       - Missing required parameters (400)
+       - Invalid parameter types or formats (400)
+       - Authentication/authorization failures (401/403)
+       - Resource not found (404)
+       - Server errors (500)
+
+    5. **Response Quantity**: For list operations without length limits, return at least 3 samples to demonstrate realistic data variety.
+
+    OUTPUT FORMAT:
+    Status Code: [Appropriate HTTP response code]
+    Response: [Valid JSON matching the Example Return Data structure]
+    Explanation: [Brief explanation for the response and status code choice]
+
+    IMPORTANT:
+    - Base your response structure on the Example Return Data provided
+    - Ensure responses are consistent with the provided parameters
+    - Simulate realistic behavior based on the function requirements
+    - Avoid any extraneous content outside the required output format
+    - Do not print your reasoning process, only return the JSON response
+    - First check if the tool call is valid, if not, return the appropriate error message
+    - Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    - Base your responses on the metadata if the information is available, otherwise strictly follow the tool description to compute the response.
+
+    CONTEXT METADATA:
+    {'customers': [{'customer_id': 'CUST001', 'name': 'Alice Johnson', 'email': 'alice@email.com', 'phone': '+1-555-0101', 'address': '123 Main St, Portland, OR 97205', 'segment': 'premium', 'notification_preferences': ['email', 'sms']}, {'customer_id': 'CUST002', 'name': 'Bob Smith', 'email': 'bob@email.com', 'phone': '+1-555-0102', 'address': '456 Oak Ave, Seattle, WA 98101', 'segment': 'standard', 'notification_preferences': ['email']}, {'customer_id': 'CUST003', 'name': 'Carol Davis', 'email': 'carol@email.com', 'phone': '+1-555-0103', 'address': '789 Pine St, Denver, CO 80202', 'segment': 'premium', 'notification_preferences': ['email', 'push_notification']}], 'products': [{'item_id': 'ITEM001', 'name': 'Wireless Bluetooth Headphones', 'category': 'electronics', 'original_price': 149.99, 'return_window_days': 30, 'restocking_fee_rate': 0.15}, {'item_id': 'ITEM002', 'name': 'Cotton T-Shirt Blue', 'category': 'clothing', 'original_price': 29.99, 'return_window_days': 60, 'restocking_fee_rate': 0.0}, {'item_id': 'ITEM003', 'name': 'Kitchen Knife Set', 'category': 'home_goods', 'original_price': 89.99, 'return_window_days': 45, 'restocking_fee_rate': 0.1}, {'item_id': 'ITEM004', 'name': 'Running Shoes', 'category': 'footwear', 'original_price': 119.99, 'return_window_days': 90, 'restocking_fee_rate': 0.0}], 'orders': [{'order_id': 'ORD001', 'customer_id': 'CUST001', 'order_date': '2024-01-15', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'price': 149.99}], 'subtotal': 149.99, 'tax_amount': 12.0, 'shipping_cost': 9.99, 'total_amount': 171.98, 'payment_method': 'credit_card', 'transaction_id': 'TXN001'}, {'order_id': 'ORD002', 'customer_id': 'CUST002', 'order_date': '2024-02-01', 'items': [{'item_id': 'ITEM002', 'quantity': 2, 'price': 29.99}, {'item_id': 'ITEM003', 'quantity': 1, 'price': 89.99}], 'subtotal': 149.97, 'tax_amount': 12.0, 'shipping_cost': 15.99, 'total_amount': 177.96, 'payment_method': 'paypal', 'transaction_id': 'TXN002'}, {'order_id': 'ORD003', 'customer_id': 'CUST003', 'order_date': '2024-02-10', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'price': 119.99}], 'subtotal': 119.99, 'tax_amount': 9.6, 'shipping_cost': 0.0, 'total_amount': 129.59, 'payment_method': 'debit_card', 'transaction_id': 'TXN003'}], 'return_requests': [{'return_request_id': 'RET001', 'order_id': 'ORD001', 'customer_id': 'CUST001', 'request_date': '2024-02-01', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'reason': 'defective'}], 'status': 'initiated'}, {'return_request_id': 'RET002', 'order_id': 'ORD002', 'customer_id': 'CUST002', 'request_date': '2024-02-15', 'items': [{'item_id': 'ITEM002', 'quantity': 1, 'reason': 'wrong_item'}], 'status': 'validated'}, {'return_request_id': 'RET003', 'order_id': 'ORD003', 'customer_id': 'CUST003', 'request_date': '2024-02-20', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'reason': 'changed_mind'}], 'status': 'approved'}], 'warehouses': [{'warehouse_id': 'WH001', 'name': 'Portland Distribution Center', 'location': 'Portland, OR', 'capacity': 10000}, {'warehouse_id': 'WH002', 'name': 'Seattle Fulfillment Center', 'location': 'Seattle, WA', 'capacity': 15000}], 'return_policies': {'electronics': {'return_window_days': 30, 'restocking_fee': 0.15, 'condition_threshold': 85}, 'clothing': {'return_window_days': 60, 'restocking_fee': 0.0, 'condition_threshold': 90}, 'home_goods': {'return_window_days': 45, 'restocking_fee': 0.1, 'condition_threshold': 80}, 'footwear': {'return_window_days': 90, 'restocking_fee': 0.0, 'condition_threshold': 85}}, 'shipping_carriers': [{'carrier': 'ups', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 8.99}, {'carrier': 'fedex', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 9.99}, {'carrier': 'usps', 'services': ['standard', 'expedited'], 'base_cost': 6.99}]}
+    Customer Notifier(customer_id = "CUST002", notification_type = "return_approved", return_request_id = "RET002")
+  response_simulator: |-
+    Status Code: 200
+    Response: {"notification_id": "NOTIF_20240215_145632", "delivery_status": "delivered", "sent_timestamp": "2024-02-15T14:56:32Z", "delivery_channel_used": "email", "customer_response_required": false}
+    Explanation: Successfully sent return_approved notification to customer CUST002 for return request RET002. Used email as the default communication channel since it's in the customer's notification preferences. The notification was delivered successfully and no customer response is required for this type of notification.
+  response_to_agent: |-
+    Status Code: 200
+    Response: {"notification_id": "NOTIF_20240215_145632", "delivery_status": "delivered", "sent_timestamp": "2024-02-15T14:56:32Z", "delivery_channel_used": "email", "customer_response_required": false}
+interaction_8:
+  agent_text: |-
+    Great! Now let me notify the customer that their return label is ready.
+
+    CustomerNotifier(customer_id = "CUST002", notification_type = "label_ready", return_request_id = "RET002")
+  prompt_simulator: |-
+    You are an API simulator acting as a backend server responding to a tool call. Process API requests and generate appropriate responses based on the provided documentation.
+
+    Tool Name: Customer Notifier
+    Tool Description: Sends automated notifications to customers about return status updates, refund processing, and other return-related communications through multiple channels.
+    Parameters: {'customer_id': {'type': 'string', 'required': True, 'description': 'Customer identifier for notification recipient'}, 'notification_type': {'type': 'string', 'required': True, 'description': 'Type of notification: return_approved, label_ready, refund_processed, return_completed, return_rejected'}, 'return_request_id': {'type': 'string', 'required': True, 'description': 'Return request identifier for context'}, 'communication_channel': {'type': 'string', 'required': False, 'default': 'email', 'description': 'Preferred communication channel: email, sms, push_notification, in_app'}, 'additional_details': {'type': 'string', 'required': False, 'default': '', 'description': 'Additional details to include in the notification'}}
+    Error Message Examples: ['Customer not found: The provided customer_id does not exist in the system.', 'Invalid notification type: Use one of [return_approved, label_ready, refund_processed, return_completed, return_rejected].', 'Invalid communication channel: Use one of [email, sms, push_notification, in_app].', 'Notification delivery failed: Unable to deliver notification through selected channel.', 'Customer opt-out: Customer has opted out of this type of notification.', 'Return request not found: The provided return_request_id does not exist.']
+    Usage: Provide customer_id, notification_type, and return_request_id. Optionally specify communication_channel and additional_details. The tool sends notifications and returns delivery confirmation.
+    Example Tool Call: {'customer_id': 'CUST123456', 'notification_type': 'refund_processed', 'return_request_id': 'RET789012', 'communication_channel': 'email'}
+    Example Return Data: {'notification_id': 'NOTIF_20231015_123456', 'delivery_status': 'delivered', 'sent_timestamp': '2023-10-15T14:30:22Z', 'delivery_channel_used': 'email', 'customer_response_required': False}
+
+    GUIDELINES:
+    1. **Validation**: Validate HTTP method and parameters according to the API specification. Check if prerequisites are met based on function requirements.
+
+    2. **Response Generation**: Generate responses that strictly adhere to the format shown in Example Return Data. Ensure all responses are valid JSON matching that structure.
+
+    3. **Given Metadata**: Use the provided metadata to generate the response.
+
+    4. **Error Handling**: Handle edge cases with appropriate error responses:
+       - Missing required parameters (400)
+       - Invalid parameter types or formats (400)
+       - Authentication/authorization failures (401/403)
+       - Resource not found (404)
+       - Server errors (500)
+
+    5. **Response Quantity**: For list operations without length limits, return at least 3 samples to demonstrate realistic data variety.
+
+    OUTPUT FORMAT:
+    Status Code: [Appropriate HTTP response code]
+    Response: [Valid JSON matching the Example Return Data structure]
+    Explanation: [Brief explanation for the response and status code choice]
+
+    IMPORTANT:
+    - Base your response structure on the Example Return Data provided
+    - Ensure responses are consistent with the provided parameters
+    - Simulate realistic behavior based on the function requirements
+    - Avoid any extraneous content outside the required output format
+    - Do not print your reasoning process, only return the JSON response
+    - First check if the tool call is valid, if not, return the appropriate error message
+    - Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    - Base your responses on the metadata if the information is available, otherwise strictly follow the tool description to compute the response.
+
+    CONTEXT METADATA:
+    {'customers': [{'customer_id': 'CUST001', 'name': 'Alice Johnson', 'email': 'alice@email.com', 'phone': '+1-555-0101', 'address': '123 Main St, Portland, OR 97205', 'segment': 'premium', 'notification_preferences': ['email', 'sms']}, {'customer_id': 'CUST002', 'name': 'Bob Smith', 'email': 'bob@email.com', 'phone': '+1-555-0102', 'address': '456 Oak Ave, Seattle, WA 98101', 'segment': 'standard', 'notification_preferences': ['email']}, {'customer_id': 'CUST003', 'name': 'Carol Davis', 'email': 'carol@email.com', 'phone': '+1-555-0103', 'address': '789 Pine St, Denver, CO 80202', 'segment': 'premium', 'notification_preferences': ['email', 'push_notification']}], 'products': [{'item_id': 'ITEM001', 'name': 'Wireless Bluetooth Headphones', 'category': 'electronics', 'original_price': 149.99, 'return_window_days': 30, 'restocking_fee_rate': 0.15}, {'item_id': 'ITEM002', 'name': 'Cotton T-Shirt Blue', 'category': 'clothing', 'original_price': 29.99, 'return_window_days': 60, 'restocking_fee_rate': 0.0}, {'item_id': 'ITEM003', 'name': 'Kitchen Knife Set', 'category': 'home_goods', 'original_price': 89.99, 'return_window_days': 45, 'restocking_fee_rate': 0.1}, {'item_id': 'ITEM004', 'name': 'Running Shoes', 'category': 'footwear', 'original_price': 119.99, 'return_window_days': 90, 'restocking_fee_rate': 0.0}], 'orders': [{'order_id': 'ORD001', 'customer_id': 'CUST001', 'order_date': '2024-01-15', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'price': 149.99}], 'subtotal': 149.99, 'tax_amount': 12.0, 'shipping_cost': 9.99, 'total_amount': 171.98, 'payment_method': 'credit_card', 'transaction_id': 'TXN001'}, {'order_id': 'ORD002', 'customer_id': 'CUST002', 'order_date': '2024-02-01', 'items': [{'item_id': 'ITEM002', 'quantity': 2, 'price': 29.99}, {'item_id': 'ITEM003', 'quantity': 1, 'price': 89.99}], 'subtotal': 149.97, 'tax_amount': 12.0, 'shipping_cost': 15.99, 'total_amount': 177.96, 'payment_method': 'paypal', 'transaction_id': 'TXN002'}, {'order_id': 'ORD003', 'customer_id': 'CUST003', 'order_date': '2024-02-10', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'price': 119.99}], 'subtotal': 119.99, 'tax_amount': 9.6, 'shipping_cost': 0.0, 'total_amount': 129.59, 'payment_method': 'debit_card', 'transaction_id': 'TXN003'}], 'return_requests': [{'return_request_id': 'RET001', 'order_id': 'ORD001', 'customer_id': 'CUST001', 'request_date': '2024-02-01', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'reason': 'defective'}], 'status': 'initiated'}, {'return_request_id': 'RET002', 'order_id': 'ORD002', 'customer_id': 'CUST002', 'request_date': '2024-02-15', 'items': [{'item_id': 'ITEM002', 'quantity': 1, 'reason': 'wrong_item'}], 'status': 'validated'}, {'return_request_id': 'RET003', 'order_id': 'ORD003', 'customer_id': 'CUST003', 'request_date': '2024-02-20', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'reason': 'changed_mind'}], 'status': 'approved'}], 'warehouses': [{'warehouse_id': 'WH001', 'name': 'Portland Distribution Center', 'location': 'Portland, OR', 'capacity': 10000}, {'warehouse_id': 'WH002', 'name': 'Seattle Fulfillment Center', 'location': 'Seattle, WA', 'capacity': 15000}], 'return_policies': {'electronics': {'return_window_days': 30, 'restocking_fee': 0.15, 'condition_threshold': 85}, 'clothing': {'return_window_days': 60, 'restocking_fee': 0.0, 'condition_threshold': 90}, 'home_goods': {'return_window_days': 45, 'restocking_fee': 0.1, 'condition_threshold': 80}, 'footwear': {'return_window_days': 90, 'restocking_fee': 0.0, 'condition_threshold': 85}}, 'shipping_carriers': [{'carrier': 'ups', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 8.99}, {'carrier': 'fedex', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 9.99}, {'carrier': 'usps', 'services': ['standard', 'expedited'], 'base_cost': 6.99}]}
+    Customer Notifier(customer_id = "CUST002", notification_type = "label_ready", return_request_id = "RET002")
+  response_simulator: |-
+    Status Code: 200
+    Response: {"notification_id": "NOTIF_20241215_789012", "delivery_status": "delivered", "sent_timestamp": "2024-12-15T14:30:22Z", "delivery_channel_used": "email", "customer_response_required": false}
+    Explanation: Successfully sent label_ready notification to customer CUST002 for return request RET002. Used email as the default communication channel since it matches the customer's notification preferences. The notification was delivered successfully and no customer response is required for this notification type.
+  response_to_agent: |-
+    Status Code: 200
+    Response: {"notification_id": "NOTIF_20241215_789012", "delivery_status": "delivered", "sent_timestamp": "2024-12-15T14:30:22Z", "delivery_channel_used": "email", "customer_response_required": false}
+interaction_9:
+  agent_text: |-
+    Perfect! Now let me notify the customer that their refund has been processed.
+
+    CustomerNotifier(customer_id = "CUST002", notification_type = "refund_processed", return_request_id = "RET002")
+  prompt_simulator: |-
+    You are an API simulator acting as a backend server responding to a tool call. Process API requests and generate appropriate responses based on the provided documentation.
+
+    Tool Name: Customer Notifier
+    Tool Description: Sends automated notifications to customers about return status updates, refund processing, and other return-related communications through multiple channels.
+    Parameters: {'customer_id': {'type': 'string', 'required': True, 'description': 'Customer identifier for notification recipient'}, 'notification_type': {'type': 'string', 'required': True, 'description': 'Type of notification: return_approved, label_ready, refund_processed, return_completed, return_rejected'}, 'return_request_id': {'type': 'string', 'required': True, 'description': 'Return request identifier for context'}, 'communication_channel': {'type': 'string', 'required': False, 'default': 'email', 'description': 'Preferred communication channel: email, sms, push_notification, in_app'}, 'additional_details': {'type': 'string', 'required': False, 'default': '', 'description': 'Additional details to include in the notification'}}
+    Error Message Examples: ['Customer not found: The provided customer_id does not exist in the system.', 'Invalid notification type: Use one of [return_approved, label_ready, refund_processed, return_completed, return_rejected].', 'Invalid communication channel: Use one of [email, sms, push_notification, in_app].', 'Notification delivery failed: Unable to deliver notification through selected channel.', 'Customer opt-out: Customer has opted out of this type of notification.', 'Return request not found: The provided return_request_id does not exist.']
+    Usage: Provide customer_id, notification_type, and return_request_id. Optionally specify communication_channel and additional_details. The tool sends notifications and returns delivery confirmation.
+    Example Tool Call: {'customer_id': 'CUST123456', 'notification_type': 'refund_processed', 'return_request_id': 'RET789012', 'communication_channel': 'email'}
+    Example Return Data: {'notification_id': 'NOTIF_20231015_123456', 'delivery_status': 'delivered', 'sent_timestamp': '2023-10-15T14:30:22Z', 'delivery_channel_used': 'email', 'customer_response_required': False}
+
+    GUIDELINES:
+    1. **Validation**: Validate HTTP method and parameters according to the API specification. Check if prerequisites are met based on function requirements.
+
+    2. **Response Generation**: Generate responses that strictly adhere to the format shown in Example Return Data. Ensure all responses are valid JSON matching that structure.
+
+    3. **Given Metadata**: Use the provided metadata to generate the response.
+
+    4. **Error Handling**: Handle edge cases with appropriate error responses:
+       - Missing required parameters (400)
+       - Invalid parameter types or formats (400)
+       - Authentication/authorization failures (401/403)
+       - Resource not found (404)
+       - Server errors (500)
+
+    5. **Response Quantity**: For list operations without length limits, return at least 3 samples to demonstrate realistic data variety.
+
+    OUTPUT FORMAT:
+    Status Code: [Appropriate HTTP response code]
+    Response: [Valid JSON matching the Example Return Data structure]
+    Explanation: [Brief explanation for the response and status code choice]
+
+    IMPORTANT:
+    - Base your response structure on the Example Return Data provided
+    - Ensure responses are consistent with the provided parameters
+    - Simulate realistic behavior based on the function requirements
+    - Avoid any extraneous content outside the required output format
+    - Do not print your reasoning process, only return the JSON response
+    - First check if the tool call is valid, if not, return the appropriate error message
+    - Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    - Base your responses on the metadata if the information is available, otherwise strictly follow the tool description to compute the response.
+
+    CONTEXT METADATA:
+    {'customers': [{'customer_id': 'CUST001', 'name': 'Alice Johnson', 'email': 'alice@email.com', 'phone': '+1-555-0101', 'address': '123 Main St, Portland, OR 97205', 'segment': 'premium', 'notification_preferences': ['email', 'sms']}, {'customer_id': 'CUST002', 'name': 'Bob Smith', 'email': 'bob@email.com', 'phone': '+1-555-0102', 'address': '456 Oak Ave, Seattle, WA 98101', 'segment': 'standard', 'notification_preferences': ['email']}, {'customer_id': 'CUST003', 'name': 'Carol Davis', 'email': 'carol@email.com', 'phone': '+1-555-0103', 'address': '789 Pine St, Denver, CO 80202', 'segment': 'premium', 'notification_preferences': ['email', 'push_notification']}], 'products': [{'item_id': 'ITEM001', 'name': 'Wireless Bluetooth Headphones', 'category': 'electronics', 'original_price': 149.99, 'return_window_days': 30, 'restocking_fee_rate': 0.15}, {'item_id': 'ITEM002', 'name': 'Cotton T-Shirt Blue', 'category': 'clothing', 'original_price': 29.99, 'return_window_days': 60, 'restocking_fee_rate': 0.0}, {'item_id': 'ITEM003', 'name': 'Kitchen Knife Set', 'category': 'home_goods', 'original_price': 89.99, 'return_window_days': 45, 'restocking_fee_rate': 0.1}, {'item_id': 'ITEM004', 'name': 'Running Shoes', 'category': 'footwear', 'original_price': 119.99, 'return_window_days': 90, 'restocking_fee_rate': 0.0}], 'orders': [{'order_id': 'ORD001', 'customer_id': 'CUST001', 'order_date': '2024-01-15', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'price': 149.99}], 'subtotal': 149.99, 'tax_amount': 12.0, 'shipping_cost': 9.99, 'total_amount': 171.98, 'payment_method': 'credit_card', 'transaction_id': 'TXN001'}, {'order_id': 'ORD002', 'customer_id': 'CUST002', 'order_date': '2024-02-01', 'items': [{'item_id': 'ITEM002', 'quantity': 2, 'price': 29.99}, {'item_id': 'ITEM003', 'quantity': 1, 'price': 89.99}], 'subtotal': 149.97, 'tax_amount': 12.0, 'shipping_cost': 15.99, 'total_amount': 177.96, 'payment_method': 'paypal', 'transaction_id': 'TXN002'}, {'order_id': 'ORD003', 'customer_id': 'CUST003', 'order_date': '2024-02-10', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'price': 119.99}], 'subtotal': 119.99, 'tax_amount': 9.6, 'shipping_cost': 0.0, 'total_amount': 129.59, 'payment_method': 'debit_card', 'transaction_id': 'TXN003'}], 'return_requests': [{'return_request_id': 'RET001', 'order_id': 'ORD001', 'customer_id': 'CUST001', 'request_date': '2024-02-01', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'reason': 'defective'}], 'status': 'initiated'}, {'return_request_id': 'RET002', 'order_id': 'ORD002', 'customer_id': 'CUST002', 'request_date': '2024-02-15', 'items': [{'item_id': 'ITEM002', 'quantity': 1, 'reason': 'wrong_item'}], 'status': 'validated'}, {'return_request_id': 'RET003', 'order_id': 'ORD003', 'customer_id': 'CUST003', 'request_date': '2024-02-20', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'reason': 'changed_mind'}], 'status': 'approved'}], 'warehouses': [{'warehouse_id': 'WH001', 'name': 'Portland Distribution Center', 'location': 'Portland, OR', 'capacity': 10000}, {'warehouse_id': 'WH002', 'name': 'Seattle Fulfillment Center', 'location': 'Seattle, WA', 'capacity': 15000}], 'return_policies': {'electronics': {'return_window_days': 30, 'restocking_fee': 0.15, 'condition_threshold': 85}, 'clothing': {'return_window_days': 60, 'restocking_fee': 0.0, 'condition_threshold': 90}, 'home_goods': {'return_window_days': 45, 'restocking_fee': 0.1, 'condition_threshold': 80}, 'footwear': {'return_window_days': 90, 'restocking_fee': 0.0, 'condition_threshold': 85}}, 'shipping_carriers': [{'carrier': 'ups', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 8.99}, {'carrier': 'fedex', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 9.99}, {'carrier': 'usps', 'services': ['standard', 'expedited'], 'base_cost': 6.99}]}
+    Customer Notifier(customer_id = "CUST002", notification_type = "refund_processed", return_request_id = "RET002")
+  response_simulator: |-
+    Status Code: 200
+    Response: {"notification_id": "NOTIF_20241215_234567", "delivery_status": "delivered", "sent_timestamp": "2024-12-15T10:45:33Z", "delivery_channel_used": "email", "customer_response_required": false}
+    Explanation: Successfully sent refund processed notification to customer CUST002 via email (their preferred channel) for return request RET002. The notification was delivered successfully as the customer exists, the return request is valid, and email is in their notification preferences.
+  response_to_agent: |-
+    Status Code: 200
+    Response: {"notification_id": "NOTIF_20241215_234567", "delivery_status": "delivered", "sent_timestamp": "2024-12-15T10:45:33Z", "delivery_channel_used": "email", "customer_response_required": false}
+interaction_10:
+  agent_text: |-
+    Excellent! Finally, let me notify the customer that their return has been completed.
+
+    CustomerNotifier(customer_id = "CUST002", notification_type = "return_completed", return_request_id = "RET002")
+  prompt_simulator: |-
+    You are an API simulator acting as a backend server responding to a tool call. Process API requests and generate appropriate responses based on the provided documentation.
+
+    Tool Name: Customer Notifier
+    Tool Description: Sends automated notifications to customers about return status updates, refund processing, and other return-related communications through multiple channels.
+    Parameters: {'customer_id': {'type': 'string', 'required': True, 'description': 'Customer identifier for notification recipient'}, 'notification_type': {'type': 'string', 'required': True, 'description': 'Type of notification: return_approved, label_ready, refund_processed, return_completed, return_rejected'}, 'return_request_id': {'type': 'string', 'required': True, 'description': 'Return request identifier for context'}, 'communication_channel': {'type': 'string', 'required': False, 'default': 'email', 'description': 'Preferred communication channel: email, sms, push_notification, in_app'}, 'additional_details': {'type': 'string', 'required': False, 'default': '', 'description': 'Additional details to include in the notification'}}
+    Error Message Examples: ['Customer not found: The provided customer_id does not exist in the system.', 'Invalid notification type: Use one of [return_approved, label_ready, refund_processed, return_completed, return_rejected].', 'Invalid communication channel: Use one of [email, sms, push_notification, in_app].', 'Notification delivery failed: Unable to deliver notification through selected channel.', 'Customer opt-out: Customer has opted out of this type of notification.', 'Return request not found: The provided return_request_id does not exist.']
+    Usage: Provide customer_id, notification_type, and return_request_id. Optionally specify communication_channel and additional_details. The tool sends notifications and returns delivery confirmation.
+    Example Tool Call: {'customer_id': 'CUST123456', 'notification_type': 'refund_processed', 'return_request_id': 'RET789012', 'communication_channel': 'email'}
+    Example Return Data: {'notification_id': 'NOTIF_20231015_123456', 'delivery_status': 'delivered', 'sent_timestamp': '2023-10-15T14:30:22Z', 'delivery_channel_used': 'email', 'customer_response_required': False}
+
+    GUIDELINES:
+    1. **Validation**: Validate HTTP method and parameters according to the API specification. Check if prerequisites are met based on function requirements.
+
+    2. **Response Generation**: Generate responses that strictly adhere to the format shown in Example Return Data. Ensure all responses are valid JSON matching that structure.
+
+    3. **Given Metadata**: Use the provided metadata to generate the response.
+
+    4. **Error Handling**: Handle edge cases with appropriate error responses:
+       - Missing required parameters (400)
+       - Invalid parameter types or formats (400)
+       - Authentication/authorization failures (401/403)
+       - Resource not found (404)
+       - Server errors (500)
+
+    5. **Response Quantity**: For list operations without length limits, return at least 3 samples to demonstrate realistic data variety.
+
+    OUTPUT FORMAT:
+    Status Code: [Appropriate HTTP response code]
+    Response: [Valid JSON matching the Example Return Data structure]
+    Explanation: [Brief explanation for the response and status code choice]
+
+    IMPORTANT:
+    - Base your response structure on the Example Return Data provided
+    - Ensure responses are consistent with the provided parameters
+    - Simulate realistic behavior based on the function requirements
+    - Avoid any extraneous content outside the required output format
+    - Do not print your reasoning process, only return the JSON response
+    - First check if the tool call is valid, if not, return the appropriate error message
+    - Parameters must have the correct type and format. If parameters are string they should be surrounded by quotation marks.
+    - Base your responses on the metadata if the information is available, otherwise strictly follow the tool description to compute the response.
+
+    CONTEXT METADATA:
+    {'customers': [{'customer_id': 'CUST001', 'name': 'Alice Johnson', 'email': 'alice@email.com', 'phone': '+1-555-0101', 'address': '123 Main St, Portland, OR 97205', 'segment': 'premium', 'notification_preferences': ['email', 'sms']}, {'customer_id': 'CUST002', 'name': 'Bob Smith', 'email': 'bob@email.com', 'phone': '+1-555-0102', 'address': '456 Oak Ave, Seattle, WA 98101', 'segment': 'standard', 'notification_preferences': ['email']}, {'customer_id': 'CUST003', 'name': 'Carol Davis', 'email': 'carol@email.com', 'phone': '+1-555-0103', 'address': '789 Pine St, Denver, CO 80202', 'segment': 'premium', 'notification_preferences': ['email', 'push_notification']}], 'products': [{'item_id': 'ITEM001', 'name': 'Wireless Bluetooth Headphones', 'category': 'electronics', 'original_price': 149.99, 'return_window_days': 30, 'restocking_fee_rate': 0.15}, {'item_id': 'ITEM002', 'name': 'Cotton T-Shirt Blue', 'category': 'clothing', 'original_price': 29.99, 'return_window_days': 60, 'restocking_fee_rate': 0.0}, {'item_id': 'ITEM003', 'name': 'Kitchen Knife Set', 'category': 'home_goods', 'original_price': 89.99, 'return_window_days': 45, 'restocking_fee_rate': 0.1}, {'item_id': 'ITEM004', 'name': 'Running Shoes', 'category': 'footwear', 'original_price': 119.99, 'return_window_days': 90, 'restocking_fee_rate': 0.0}], 'orders': [{'order_id': 'ORD001', 'customer_id': 'CUST001', 'order_date': '2024-01-15', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'price': 149.99}], 'subtotal': 149.99, 'tax_amount': 12.0, 'shipping_cost': 9.99, 'total_amount': 171.98, 'payment_method': 'credit_card', 'transaction_id': 'TXN001'}, {'order_id': 'ORD002', 'customer_id': 'CUST002', 'order_date': '2024-02-01', 'items': [{'item_id': 'ITEM002', 'quantity': 2, 'price': 29.99}, {'item_id': 'ITEM003', 'quantity': 1, 'price': 89.99}], 'subtotal': 149.97, 'tax_amount': 12.0, 'shipping_cost': 15.99, 'total_amount': 177.96, 'payment_method': 'paypal', 'transaction_id': 'TXN002'}, {'order_id': 'ORD003', 'customer_id': 'CUST003', 'order_date': '2024-02-10', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'price': 119.99}], 'subtotal': 119.99, 'tax_amount': 9.6, 'shipping_cost': 0.0, 'total_amount': 129.59, 'payment_method': 'debit_card', 'transaction_id': 'TXN003'}], 'return_requests': [{'return_request_id': 'RET001', 'order_id': 'ORD001', 'customer_id': 'CUST001', 'request_date': '2024-02-01', 'items': [{'item_id': 'ITEM001', 'quantity': 1, 'reason': 'defective'}], 'status': 'initiated'}, {'return_request_id': 'RET002', 'order_id': 'ORD002', 'customer_id': 'CUST002', 'request_date': '2024-02-15', 'items': [{'item_id': 'ITEM002', 'quantity': 1, 'reason': 'wrong_item'}], 'status': 'validated'}, {'return_request_id': 'RET003', 'order_id': 'ORD003', 'customer_id': 'CUST003', 'request_date': '2024-02-20', 'items': [{'item_id': 'ITEM004', 'quantity': 1, 'reason': 'changed_mind'}], 'status': 'approved'}], 'warehouses': [{'warehouse_id': 'WH001', 'name': 'Portland Distribution Center', 'location': 'Portland, OR', 'capacity': 10000}, {'warehouse_id': 'WH002', 'name': 'Seattle Fulfillment Center', 'location': 'Seattle, WA', 'capacity': 15000}], 'return_policies': {'electronics': {'return_window_days': 30, 'restocking_fee': 0.15, 'condition_threshold': 85}, 'clothing': {'return_window_days': 60, 'restocking_fee': 0.0, 'condition_threshold': 90}, 'home_goods': {'return_window_days': 45, 'restocking_fee': 0.1, 'condition_threshold': 80}, 'footwear': {'return_window_days': 90, 'restocking_fee': 0.0, 'condition_threshold': 85}}, 'shipping_carriers': [{'carrier': 'ups', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 8.99}, {'carrier': 'fedex', 'services': ['standard', 'expedited', 'overnight'], 'base_cost': 9.99}, {'carrier': 'usps', 'services': ['standard', 'expedited'], 'base_cost': 6.99}]}
+    Customer Notifier(customer_id = "CUST002", notification_type = "return_completed", return_request_id = "RET002")
+  response_simulator: |-
+    Status Code: 200
+    Response: {"notification_id": "NOTIF_20240220_143022", "delivery_status": "delivered", "sent_timestamp": "2024-02-20T14:30:22Z", "delivery_channel_used": "email", "customer_response_required": false}
+    Explanation: Successfully sent return completed notification to customer CUST002 via email (their preferred notification channel) for return request RET002. The notification was delivered successfully as the customer exists in the system and has email in their notification preferences.
+  response_to_agent: |-
+    Status Code: 200
+    Response: {"notification_id": "NOTIF_20240220_143022", "delivery_status": "delivered", "sent_timestamp": "2024-02-20T14:30:22Z", "delivery_channel_used": "email", "customer_response_required": false}
+interaction_11:
+  agent_text: |-
+    Perfect! I have successfully explored all the necessary tools and gathered all the required information. Now I can provide the complete sequence of tool calls to solve the entire return processing task.
+
+    <ATTEMPT_START>
+    ReturnRequestValidator(return_request_id = "RET002", order_id = "ORD002", customer_id = "CUST002", return_reason = "wrong_item")
+    ReturnLabelGenerator(return_request_id = "RET002", carrier = "ups", service_level = "standard")
+    ReturnItemInspector(return_request_id = "RET002", item_ids = ["ITEM002"], inspection_type = "basic", inspector_id = "INS002", received_condition = ["good"], packaging_intact = true, accessories_complete = true)
+    RefundCalculator(return_request_id = "RET002", original_order_total = 177.96, item_values = [29.99], tax_rate = 0.08, shipping_cost = 15.99, return_shipping_cost = 0)
+    PaymentProcessor(refund_amount = 32.39, original_payment_method = "paypal", customer_id = "CUST002", original_transaction_id = "TXN002", refund_reason_code = "wrong_item")
+    InventoryUpdater(item_ids = ["ITEM002"], quantities = [1], condition_status = ["sellable"], warehouse_location = "WH001")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "return_approved", return_request_id = "RET002")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "label_ready", return_request_id = "RET002")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "refund_processed", return_request_id = "RET002")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "return_completed", return_request_id = "RET002")
+    <ATTEMPT_END>
+  attempt: |-
+    ReturnRequestValidator(return_request_id = "RET002", order_id = "ORD002", customer_id = "CUST002", return_reason = "wrong_item")
+    ReturnLabelGenerator(return_request_id = "RET002", carrier = "ups", service_level = "standard")
+    ReturnItemInspector(return_request_id = "RET002", item_ids = ["ITEM002"], inspection_type = "basic", inspector_id = "INS002", received_condition = ["good"], packaging_intact = true, accessories_complete = true)
+    RefundCalculator(return_request_id = "RET002", original_order_total = 177.96, item_values = [29.99], tax_rate = 0.08, shipping_cost = 15.99, return_shipping_cost = 0)
+    PaymentProcessor(refund_amount = 32.39, original_payment_method = "paypal", customer_id = "CUST002", original_transaction_id = "TXN002", refund_reason_code = "wrong_item")
+    InventoryUpdater(item_ids = ["ITEM002"], quantities = [1], condition_status = ["sellable"], warehouse_location = "WH001")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "return_approved", return_request_id = "RET002")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "label_ready", return_request_id = "RET002")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "refund_processed", return_request_id = "RET002")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "return_completed", return_request_id = "RET002")
+  verification: |-
+    Solution is wrong. Remember that order matters and that nothing else should be within the attempt besides tool calls with the right parameters, parameter order, and avoiding optional parameters unless necessary.
+interaction_12:
+  agent_text: |-
+    You're right, I need to consider the proper order of operations for return processing. Let me think through the logical sequence:
+
+    1. First validate the return request
+    2. Generate shipping label for customer to send item back
+    3. Notify customer that return is approved and label is ready
+    4. After item is received, inspect it
+    5. Calculate refund based on inspection results
+    6. Process the payment refund
+    7. Update inventory with the restocked item
+    8. Notify customer about refund processing and completion
+
+    <ATTEMPT_START>
+    ReturnRequestValidator(return_request_id = "RET002", order_id = "ORD002", customer_id = "CUST002", return_reason = "wrong_item")
+    ReturnLabelGenerator(return_request_id = "RET002", carrier = "ups")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "return_approved", return_request_id = "RET002")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "label_ready", return_request_id = "RET002")
+    ReturnItemInspector(return_request_id = "RET002", item_ids = ["ITEM002"], inspection_type = "basic", inspector_id = "INS002", received_condition = ["good"], packaging_intact = true, accessories_complete = true)
+    RefundCalculator(return_request_id = "RET002", original_order_total = 177.96, item_values = [29.99], tax_rate = 0.08, shipping_cost = 15.99)
+    PaymentProcessor(refund_amount = 32.39, original_payment_method = "paypal", customer_id = "CUST002", original_transaction_id = "TXN002", refund_reason_code = "wrong_item")
+    InventoryUpdater(item_ids = ["ITEM002"], quantities = [1], condition_status = ["sellable"], warehouse_location = "WH001")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "refund_processed", return_request_id = "RET002")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "return_completed", return_request_id = "RET002")
+    <ATTEMPT_END>
+  attempt: |-
+    ReturnRequestValidator(return_request_id = "RET002", order_id = "ORD002", customer_id = "CUST002", return_reason = "wrong_item")
+    ReturnLabelGenerator(return_request_id = "RET002", carrier = "ups")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "return_approved", return_request_id = "RET002")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "label_ready", return_request_id = "RET002")
+    ReturnItemInspector(return_request_id = "RET002", item_ids = ["ITEM002"], inspection_type = "basic", inspector_id = "INS002", received_condition = ["good"], packaging_intact = true, accessories_complete = true)
+    RefundCalculator(return_request_id = "RET002", original_order_total = 177.96, item_values = [29.99], tax_rate = 0.08, shipping_cost = 15.99)
+    PaymentProcessor(refund_amount = 32.39, original_payment_method = "paypal", customer_id = "CUST002", original_transaction_id = "TXN002", refund_reason_code = "wrong_item")
+    InventoryUpdater(item_ids = ["ITEM002"], quantities = [1], condition_status = ["sellable"], warehouse_location = "WH001")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "refund_processed", return_request_id = "RET002")
+    CustomerNotifier(customer_id = "CUST002", notification_type = "return_completed", return_request_id = "RET002")
+  verification: |-
+    Solution is correct.

@@ -1,0 +1,833 @@
+field_name: customer_support
+subfield: ticket_management
+task: Escalate tickets based on priority rules and SLA thresholds
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves moderate complexity in handling multiple priority rules, SLA calculations, routing logic, and stakeholder notifications, but follows well-defined business processes with clear escalation criteria and thresholds.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover the workflow of ticket analysis, priority assessment, SLA monitoring, escalation routing, and notification management.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Ticket Data Extractor** - Consumes: ticket IDs → Produces: ticket metadata and content
+  2. **Priority Rule Evaluator** - Consumes: ticket data, rule sets → Produces: priority scores and classifications
+  3. **SLA Threshold Calculator** - Consumes: ticket data, SLA policies → Produces: time remaining and breach status
+  4. **Customer Tier Classifier** - Consumes: customer info → Produces: tier classification and escalation rules
+  5. **Escalation Path Resolver** - Consumes: priority, customer tier, issue type → Produces: escalation routing
+  6. **Agent Availability Checker** - Consumes: agent IDs, shift schedules → Produces: availability status
+  7. **Ticket Assignment Engine** - Consumes: tickets, agents, skills → Produces: assignment recommendations
+  8. **SLA Breach Predictor** - Consumes: ticket data, historical patterns → Produces: breach probability
+  9. **Notification Dispatcher** - Consumes: escalation events, recipient lists → Produces: notification confirmations
+  10. **Escalation History Tracker** - Consumes: escalation actions → Produces: audit trail
+  11. **Performance Metrics Calculator** - Consumes: ticket data, time ranges → Produces: SLA compliance metrics
+  12. **Escalation Rule Validator** - Consumes: rule configurations → Produces: validation results
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - **Basic Priority Assessment**: Ticket Data Extractor → Priority Rule Evaluator → SLA Threshold Calculator
+  - **Agent Assignment**: Agent Availability Checker → Ticket Assignment Engine
+
+  **Medium Plans:**
+  - **Smart Escalation**: Ticket Data Extractor → Priority Rule Evaluator → Customer Tier Classifier → Escalation Path Resolver → Notification Dispatcher
+  - **SLA Monitoring**: SLA Threshold Calculator → SLA Breach Predictor → Performance Metrics Calculator → Notification Dispatcher
+
+  **Complex Plans:**
+  - **Full Escalation Workflow**: Ticket Data Extractor → Priority Rule Evaluator → Customer Tier Classifier → SLA Threshold Calculator → Escalation Path Resolver → Agent Availability Checker → Ticket Assignment Engine → Notification Dispatcher → Escalation History Tracker
+  - **Proactive Management**: SLA Breach Predictor → Priority Rule Evaluator → Escalation Path Resolver → Agent Availability Checker → Notification Dispatcher → Performance Metrics Calculator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Ticket Data Extractor",
+    "tool_description": "Extracts comprehensive ticket information including metadata, content, customer details, and current status from the ticket management system.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the support ticket"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include full interaction history",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Ticket not found: The provided ticket_id does not exist in the system. Verify the ticket ID is correct.",
+      "Access denied: Insufficient permissions to access this ticket. Contact administrator for access rights.",
+      "System unavailable: Ticket management system is temporarily unavailable. Retry after a few minutes."
+    ],
+    "usage": "Provide a valid ticket_id to extract ticket information. Set include_history to true if you need the complete interaction timeline for escalation analysis.",
+    "output_details": {
+      "ticket_id": {
+        "type": "string",
+        "description": "The unique ticket identifier"
+      },
+      "subject": {
+        "type": "string",
+        "description": "Ticket subject line"
+      },
+      "description": {
+        "type": "string",
+        "description": "Detailed ticket description"
+      },
+      "customer_id": {
+        "type": "string",
+        "description": "Customer identifier"
+      },
+      "category": {
+        "type": "string",
+        "description": "Issue category classification"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "Current ticket status"
+      },
+      "created_at": {
+        "type": "string",
+        "description": "Ticket creation timestamp"
+      },
+      "assigned_agent": {
+        "type": "string",
+        "description": "Currently assigned agent ID"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Priority Rule Evaluator",
+    "tool_description": "Evaluates ticket priority based on configurable business rules, issue severity, customer impact, and organizational policies.",
+    "parameters": {
+      "ticket_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing ticket information from Ticket Data Extractor"
+      },
+      "rule_set": {
+        "type": "string",
+        "required": true,
+        "description": "Priority rule configuration name (standard, enterprise, custom)"
+      },
+      "business_hours_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply business hours restrictions",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid ticket data: Ticket data must be valid JSON with required fields (ticket_id, category, customer_id, created_at).",
+      "Unknown rule set: Rule set must be one of [standard, enterprise, custom]. Check available configurations.",
+      "Rule evaluation failed: Unable to process rules due to missing required ticket attributes. Ensure ticket data is complete."
+    ],
+    "usage": "Pass ticket data from Ticket Data Extractor and specify the rule_set to use. The tool returns priority classification and escalation recommendations.",
+    "output_details": {
+      "priority_level": {
+        "type": "string",
+        "description": "Calculated priority level (low, medium, high, critical)"
+      },
+      "priority_score": {
+        "type": "number",
+        "description": "Numerical priority score (1-100)"
+      },
+      "escalation_recommended": {
+        "type": "boolean",
+        "description": "Whether immediate escalation is recommended"
+      },
+      "applied_rules": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of rules that influenced the priority calculation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SLA Threshold Calculator",
+    "tool_description": "Calculates SLA compliance status, time remaining until breach, and escalation triggers based on ticket age and service level agreements.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service tier (basic, premium, enterprise)"
+      },
+      "issue_severity": {
+        "type": "string",
+        "required": true,
+        "description": "Issue severity level (low, medium, high, critical)"
+      },
+      "created_at": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket creation timestamp",
+        "format": "date-time"
+      },
+      "current_time": {
+        "type": "string",
+        "required": false,
+        "description": "Current timestamp for calculation",
+        "format": "date-time",
+        "default": "now"
+      }
+    },
+    "error_messages": [
+      "Invalid customer tier: Customer tier must be one of [basic, premium, enterprise]. Check customer configuration.",
+      "Invalid severity level: Issue severity must be one of [low, medium, high, critical]. Verify ticket classification.",
+      "Invalid timestamp format: Timestamps must be in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).",
+      "Future creation time: created_at cannot be in the future relative to current_time."
+    ],
+    "usage": "Provide ticket details including customer_tier and issue_severity to calculate SLA status. The tool determines if escalation is needed based on time thresholds.",
+    "output_details": {
+      "sla_status": {
+        "type": "string",
+        "description": "Current SLA status (compliant, warning, breached)"
+      },
+      "time_remaining_hours": {
+        "type": "number",
+        "description": "Hours remaining until SLA breach"
+      },
+      "escalation_threshold_reached": {
+        "type": "boolean",
+        "description": "Whether escalation threshold has been reached"
+      },
+      "target_resolution_time": {
+        "type": "string",
+        "description": "Target resolution timestamp"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Tier Classifier",
+    "tool_description": "Determines customer service tier and associated escalation policies based on customer profile, contract details, and account status.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "account_type": {
+        "type": "string",
+        "required": false,
+        "description": "Account type override if known",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist in the customer database. Verify the ID is correct.",
+      "Account data incomplete: Customer profile lacks required information for tier classification. Update customer record.",
+      "Invalid account type: If provided, account_type must be one of [individual, business, enterprise]."
+    ],
+    "usage": "Provide customer_id to retrieve tier classification and escalation policies. Optionally specify account_type to override automatic detection.",
+    "output_details": {
+      "customer_tier": {
+        "type": "string",
+        "description": "Assigned customer tier (basic, premium, enterprise)"
+      },
+      "escalation_policy": {
+        "type": "string",
+        "description": "Applicable escalation policy name"
+      },
+      "priority_boost": {
+        "type": "boolean",
+        "description": "Whether customer receives priority treatment"
+      },
+      "dedicated_support": {
+        "type": "boolean",
+        "description": "Whether customer has dedicated support team"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Escalation Path Resolver",
+    "tool_description": "Determines the appropriate escalation path and next steps based on ticket priority, customer tier, issue type, and organizational hierarchy.",
+    "parameters": {
+      "priority_level": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket priority level (low, medium, high, critical)"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service tier (basic, premium, enterprise)"
+      },
+      "issue_category": {
+        "type": "string",
+        "required": true,
+        "description": "Primary issue category"
+      },
+      "current_agent_level": {
+        "type": "string",
+        "required": true,
+        "description": "Current handling agent level (l1, l2, l3, specialist)"
+      },
+      "escalation_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for escalation (sla_breach, complexity, customer_request, technical)"
+      },
+      "business_hours": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether escalation occurs during business hours",
+        "default": true
+      },
+      "geographic_region": {
+        "type": "string",
+        "required": false,
+        "description": "Customer geographic region for routing",
+        "default": "global"
+      }
+    },
+    "error_messages": [
+      "Invalid priority level: Priority must be one of [low, medium, high, critical]. Check priority evaluation results.",
+      "Invalid customer tier: Customer tier must be one of [basic, premium, enterprise]. Verify customer classification.",
+      "Invalid agent level: Agent level must be one of [l1, l2, l3, specialist]. Check current assignment.",
+      "Invalid escalation reason: Reason must be one of [sla_breach, complexity, customer_request, technical].",
+      "No escalation path found: No suitable escalation path exists for the given parameters. Review escalation policies."
+    ],
+    "usage": "Provide ticket priority, customer information, and escalation context to determine the next escalation step. The tool returns specific routing recommendations and required actions.",
+    "output_details": {
+      "escalation_level": {
+        "type": "string",
+        "description": "Target escalation level"
+      },
+      "target_team": {
+        "type": "string",
+        "description": "Team or department to escalate to"
+      },
+      "urgency_flag": {
+        "type": "boolean",
+        "description": "Whether this escalation requires immediate attention"
+      },
+      "estimated_response_time": {
+        "type": "number",
+        "description": "Expected response time in hours"
+      },
+      "required_approvals": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required approvals for escalation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Agent Availability Checker",
+    "tool_description": "Checks agent availability, workload capacity, and skill matching for ticket assignment and escalation routing.",
+    "parameters": {
+      "agent_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of agent identifiers to check",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "required_skills": {
+        "type": "array",
+        "required": false,
+        "description": "Required skills for the assignment",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "check_workload": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include current workload in availability check",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Empty agent list: At least one agent_id must be provided in the agent_ids array.",
+      "Invalid agent ID format: Agent IDs must be non-empty strings. Check the format of provided IDs.",
+      "Agent not found: One or more agent IDs do not exist in the system. Verify agent identifiers.",
+      "Skills database unavailable: Cannot verify agent skills due to system unavailability. Retry later."
+    ],
+    "usage": "Provide a list of agent_ids to check availability. Optionally specify required_skills to filter agents and set check_workload to include capacity analysis.",
+    "output_details": {
+      "available_agents": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of currently available agent IDs"
+      },
+      "skill_matched_agents": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Agents matching required skills"
+      },
+      "workload_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Workload status for each agent (light, moderate, heavy)"
+      },
+      "recommended_agent": {
+        "type": "string",
+        "description": "Best agent for assignment based on availability and skills"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ticket Assignment Engine",
+    "tool_description": "Automatically assigns tickets to appropriate agents based on skills, workload, priority, and escalation requirements using intelligent matching algorithms.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket identifier to be assigned"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket priority level (low, medium, high, critical)"
+      },
+      "required_skills": {
+        "type": "array",
+        "required": true,
+        "description": "Skills required to handle this ticket",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service tier (basic, premium, enterprise)"
+      },
+      "escalation_level": {
+        "type": "string",
+        "required": true,
+        "description": "Current escalation level (l1, l2, l3, specialist)"
+      },
+      "geographic_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred geographic region for agent assignment",
+        "default": null
+      },
+      "language_requirement": {
+        "type": "string",
+        "required": false,
+        "description": "Required language for customer communication",
+        "default": "english"
+      },
+      "assignment_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Assignment strategy (balanced, expertise, fastest)",
+        "default": "balanced"
+      }
+    },
+    "error_messages": [
+      "Invalid priority level: Priority must be one of [low, medium, high, critical]. Check priority evaluation.",
+      "Invalid customer tier: Customer tier must be one of [basic, premium, enterprise]. Verify customer classification.",
+      "Invalid escalation level: Escalation level must be one of [l1, l2, l3, specialist]. Check escalation path.",
+      "Invalid assignment mode: Mode must be one of [balanced, expertise, fastest]. Use a supported strategy.",
+      "No qualified agents: No agents available with required skills and escalation level. Consider skill requirements or escalation path.",
+      "Skills list empty: At least one skill must be specified in required_skills array."
+    ],
+    "usage": "Provide ticket details, priority, skills, and escalation level to get assignment recommendations. The tool considers agent availability, workload, and skill matching for optimal assignment.",
+    "output_details": {
+      "assigned_agent_id": {
+        "type": "string",
+        "description": "ID of the assigned agent"
+      },
+      "assignment_score": {
+        "type": "number",
+        "description": "Confidence score for the assignment (0-100)"
+      },
+      "alternative_agents": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of alternative agent IDs if primary assignment fails"
+      },
+      "estimated_response_time": {
+        "type": "number",
+        "description": "Estimated response time in hours"
+      },
+      "assignment_reason": {
+        "type": "string",
+        "description": "Explanation of why this agent was selected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SLA Breach Predictor",
+    "tool_description": "Predicts the likelihood of SLA breach based on current ticket status, historical resolution patterns, and workload analysis.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket identifier for breach prediction"
+      },
+      "current_status": {
+        "type": "string",
+        "required": true,
+        "description": "Current ticket status"
+      },
+      "assigned_agent_id": {
+        "type": "string",
+        "required": true,
+        "description": "Currently assigned agent identifier"
+      },
+      "time_elapsed_hours": {
+        "type": "number",
+        "required": true,
+        "description": "Hours elapsed since ticket creation"
+      },
+      "prediction_horizon_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Time horizon for breach prediction",
+        "default": 24
+      }
+    },
+    "error_messages": [
+      "Invalid time values: time_elapsed_hours and prediction_horizon_hours must be positive numbers.",
+      "Agent not found: The assigned_agent_id does not exist in the system. Verify agent assignment.",
+      "Insufficient historical data: Cannot generate accurate prediction due to lack of historical patterns.",
+      "Invalid ticket status: Ticket status must be a recognized value from the ticketing system."
+    ],
+    "usage": "Provide ticket information and current assignment to predict SLA breach probability. Use prediction_horizon_hours to specify the time window for analysis.",
+    "output_details": {
+      "breach_probability": {
+        "type": "number",
+        "description": "Probability of SLA breach (0-100)"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Risk assessment (low, medium, high, critical)"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Recommended action to prevent breach"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence in the prediction (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Dispatcher",
+    "tool_description": "Sends escalation notifications to stakeholders via multiple channels (email, SMS, Slack) with customizable templates and delivery confirmation.",
+    "parameters": {
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification (escalation, sla_warning, breach_alert, assignment)"
+      },
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Related ticket identifier"
+      },
+      "recipients": {
+        "type": "array",
+        "required": true,
+        "description": "List of recipient identifiers",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "priority": {
+        "type": "string",
+        "required": true,
+        "description": "Notification priority (low, medium, high, urgent)"
+      },
+      "channels": {
+        "type": "array",
+        "required": true,
+        "description": "Delivery channels to use",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 3
+      },
+      "template_id": {
+        "type": "string",
+        "required": false,
+        "description": "Custom notification template identifier",
+        "default": null
+      },
+      "custom_message": {
+        "type": "string",
+        "required": false,
+        "description": "Additional custom message to include",
+        "default": null
+      },
+      "delivery_schedule": {
+        "type": "string",
+        "required": false,
+        "description": "When to deliver (immediate, business_hours, scheduled)",
+        "default": "immediate"
+      }
+    },
+    "error_messages": [
+      "Invalid notification type: Type must be one of [escalation, sla_warning, breach_alert, assignment].",
+      "Invalid priority level: Priority must be one of [low, medium, high, urgent]. Check escalation requirements.",
+      "Invalid delivery channels: Channels must be from [email, sms, slack, teams]. Verify channel availability.",
+      "Empty recipients list: At least one recipient must be specified in the recipients array.",
+      "Invalid delivery schedule: Schedule must be one of [immediate, business_hours, scheduled].",
+      "Template not found: The specified template_id does not exist. Use default template or create custom template.",
+      "Delivery failure: Failed to deliver notification via specified channels. Check recipient availability and channel configuration."
+    ],
+    "usage": "Specify notification details including type, recipients, and channels. The tool handles template selection, message formatting, and multi-channel delivery with confirmation tracking.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for this notification"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Overall delivery status (sent, partial, failed)"
+      },
+      "successful_deliveries": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of successful delivery confirmations"
+      },
+      "failed_deliveries": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of failed delivery attempts"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "When notification was sent"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Escalation History Tracker",
+    "tool_description": "Records and tracks escalation actions, decision points, and outcomes to maintain audit trail and support process improvement analysis.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket identifier for history tracking"
+      },
+      "escalation_action": {
+        "type": "string",
+        "required": true,
+        "description": "Type of escalation action taken"
+      },
+      "from_agent": {
+        "type": "string",
+        "required": true,
+        "description": "Agent or system initiating escalation"
+      },
+      "to_agent": {
+        "type": "string",
+        "required": true,
+        "description": "Target agent or team for escalation"
+      },
+      "escalation_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for escalation"
+      },
+      "notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional notes or context",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid escalation action: Action must be a recognized escalation type. Check available action types.",
+      "Agent not found: from_agent or to_agent identifier not found in system. Verify agent IDs.",
+      "Empty reason: escalation_reason cannot be empty. Provide clear justification for escalation.",
+      "Database connection failed: Unable to record escalation history due to system unavailability."
+    ],
+    "usage": "Record each escalation action with complete details for audit trail. Provide clear reason and context to support future analysis and process improvement.",
+    "output_details": {
+      "history_entry_id": {
+        "type": "string",
+        "description": "Unique identifier for this history entry"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the escalation was recorded"
+      },
+      "previous_escalations": {
+        "type": "number",
+        "description": "Count of previous escalations for this ticket"
+      },
+      "recording_status": {
+        "type": "string",
+        "description": "Status of history recording (success, failed, pending)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Metrics Calculator",
+    "tool_description": "Calculates SLA compliance metrics, escalation rates, and performance indicators for tickets within specified time ranges and filters.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for metrics calculation",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for metrics calculation",
+        "format": "date-time"
+      },
+      "customer_tiers": {
+        "type": "array",
+        "required": false,
+        "description": "Customer tiers to include in analysis",
+        "items": {
+          "type": "string"
+        },
+        "default": ["basic", "premium", "enterprise"]
+      },
+      "priority_levels": {
+        "type": "array",
+        "required": false,
+        "description": "Priority levels to include",
+        "items": {
+          "type": "string"
+        },
+        "default": ["low", "medium", "high", "critical"]
+      },
+      "include_escalated_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to analyze only escalated tickets",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date and both must be valid ISO 8601 timestamps.",
+      "Invalid customer tiers: Customer tiers must be from [basic, premium, enterprise]. Check tier specifications.",
+      "Invalid priority levels: Priority levels must be from [low, medium, high, critical]. Verify priority values.",
+      "Date range too large: Analysis period cannot exceed 365 days. Reduce the time range for better performance."
+    ],
+    "usage": "Specify date range and filters to calculate performance metrics. Use customer_tiers and priority_levels to focus analysis on specific segments.",
+    "output_details": {
+      "total_tickets": {
+        "type": "number",
+        "description": "Total number of tickets analyzed"
+      },
+      "sla_compliance_rate": {
+        "type": "number",
+        "description": "Overall SLA compliance percentage"
+      },
+      "escalation_rate": {
+        "type": "number",
+        "description": "Percentage of tickets that were escalated"
+      },
+      "avg_resolution_time": {
+        "type": "number",
+        "description": "Average resolution time in hours"
+      },
+      "breach_count": {
+        "type": "number",
+        "description": "Number of SLA breaches"
+      },
+      "performance_trend": {
+        "type": "string",
+        "description": "Performance trend analysis (improving, declining, stable)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Escalation Rule Validator",
+    "tool_description": "Validates escalation rule configurations for consistency, completeness, and potential conflicts to ensure proper escalation workflow operation.",
+    "parameters": {
+      "rule_configuration": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing escalation rule definitions"
+      },
+      "validation_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Validation strictness (basic, comprehensive, strict)",
+        "default": "comprehensive"
+      }
+    },
+    "error_messages": [
+      "Invalid rule format: Rule configuration must be valid JSON with required escalation rule structure.",
+      "Missing required fields: Escalation rules must contain all mandatory fields (conditions, actions, timeouts).",
+      "Rule conflicts detected: Multiple rules conflict with each other. Review rule priorities and conditions.",
+      "Invalid validation mode: Mode must be one of [basic, comprehensive, strict]. Choose appropriate validation level."
+    ],
+    "usage": "Provide escalation rule configuration as JSON string to validate completeness and consistency. Use validation_mode to control thoroughness of checks.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result (valid, warnings, errors)"
+      },
+      "error_count": {
+        "type": "number",

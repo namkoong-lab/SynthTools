@@ -1,0 +1,847 @@
+field_name: field_service_management
+subfield: Technician Scheduling and Dispatch
+task: Match available technicians to service requests based on skills, certifications, and geographic proximity
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium complexity due to multiple interdependent factors: matching technician skills and certifications to service requirements, optimizing geographic routing, handling real-time availability constraints, and balancing workload distribution. The task involves moderate coordination between scheduling systems and field operations with significant impact if matching errors occur.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the various aspects of technician-service request matching, skill validation, geographic optimization, and scheduling coordination.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Service Request Parser** - Consumes: raw service request data → Produces: structured service requirements
+  2. **Technician Availability Checker** - Consumes: technician IDs, time ranges → Produces: availability status
+  3. **Skill Requirement Analyzer** - Consumes: service types, equipment models → Produces: required skills/certifications
+  4. **Technician Skills Matcher** - Consumes: technician profiles, skill requirements → Produces: capability scores
+  5. **Geographic Distance Calculator** - Consumes: technician locations, service addresses → Produces: travel distances/times
+  6. **Certification Validator** - Consumes: technician certifications, required certifications → Produces: compliance status
+  7. **Workload Balance Analyzer** - Consumes: technician schedules, new assignments → Produces: workload metrics
+  8. **Priority Assignment Engine** - Consumes: service requests, SLA requirements → Produces: priority scores
+  9. **Route Optimizer** - Consumes: technician locations, multiple service addresses → Produces: optimized routes
+  10. **Schedule Conflict Detector** - Consumes: existing schedules, proposed assignments → Produces: conflict analysis
+  11. **Technician Recommender** - Consumes: all matching criteria → Produces: ranked technician recommendations
+  12. **Assignment Finalizer** - Consumes: selected assignments → Produces: confirmed dispatch records
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Skill Match**: Service Request Parser → Skill Requirement Analyzer → Technician Skills Matcher (matches technicians based on required skills only)
+  2. **Availability Check**: Service Request Parser → Technician Availability Checker → Schedule Conflict Detector (verifies technician availability for specific time slots)
+
+  **Medium Plans:**
+  1. **Geographic Assignment**: Service Request Parser → Skill Requirement Analyzer → Technician Skills Matcher → Geographic Distance Calculator → Technician Recommender (matches based on skills and proximity)
+  2. **Compliance Scheduling**: Service Request Parser → Skill Requirement Analyzer → Certification Validator → Technician Availability Checker → Assignment Finalizer (ensures certified technicians are assigned)
+
+  **Complex Plans:**
+  1. **Full Optimization**: Service Request Parser → Priority Assignment Engine → Skill Requirement Analyzer → Technician Skills Matcher → Certification Validator → Technician Availability Checker → Geographic Distance Calculator → Workload Balance Analyzer → Technician Recommender → Assignment Finalizer (comprehensive matching with all criteria)
+  2. **Multi-Stop Route Planning**: Service Request Parser → Technician Skills Matcher → Technician Availability Checker → Route Optimizer → Schedule Conflict Detector → Workload Balance Analyzer → Assignment Finalizer (optimizes multiple service calls for technicians)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Service Request Parser",
+    "tool_description": "Parses raw service request data and extracts structured information including service type, location, priority, and equipment details.",
+    "parameters": {
+      "request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the service request"
+      },
+      "raw_request_data": {
+        "type": "string",
+        "required": true,
+        "description": "Raw service request text or description"
+      },
+      "customer_location": {
+        "type": "string",
+        "required": true,
+        "description": "Customer address or location coordinates"
+      }
+    },
+    "error_messages": [
+      "Invalid request format: Raw request data must contain recognizable service information. Ensure the request includes service type and location details.",
+      "Missing request ID: Provide a unique identifier for tracking the service request.",
+      "Location parsing failed: Customer location must be a valid address or coordinate format (lat,lng)."
+    ],
+    "usage": "Provide request_id, raw_request_data, and customer_location. The tool will extract and structure the service requirements for further processing.",
+    "output_details": {
+      "parsed_service_type": {
+        "type": "string",
+        "description": "Categorized type of service required"
+      },
+      "equipment_model": {
+        "type": "string",
+        "description": "Equipment model or type to be serviced"
+      },
+      "urgency_level": {
+        "type": "string",
+        "description": "Parsed urgency level from request"
+      },
+      "estimated_duration": {
+        "type": "number",
+        "description": "Estimated service duration in hours"
+      },
+      "special_requirements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Special requirements or constraints mentioned in request"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Technician Availability Checker",
+    "tool_description": "Checks the real-time availability of technicians within specified time windows and returns their schedule status.",
+    "parameters": {
+      "technician_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of technician IDs to check availability for",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Start of availability window",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "End of availability window",
+        "format": "date-time"
+      },
+      "minimum_duration": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum required duration in hours",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Invalid time range: Start time must be before end time and both must be in valid ISO 8601 format.",
+      "Invalid technician ID: One or more technician IDs are not found in the system database.",
+      "Duration constraint error: Minimum duration must be a positive number and not exceed the time window.",
+      "Too many technicians: Maximum 50 technician IDs allowed per query to ensure reasonable response time."
+    ],
+    "usage": "Provide technician_ids array, start_time, end_time, and optionally minimum_duration. Returns availability status and free time slots for each technician.",
+    "output_details": {
+      "availability_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Availability status for each technician (available/busy/partial)"
+      },
+      "free_slots": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Available time slots in ISO 8601 format"
+      },
+      "next_available": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Next available time for each technician if not currently available"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Skill Requirement Analyzer",
+    "tool_description": "Analyzes service requests and equipment types to determine the specific skills, certifications, and expertise levels required for successful completion.",
+    "parameters": {
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of service to be performed"
+      },
+      "equipment_model": {
+        "type": "string",
+        "required": true,
+        "description": "Equipment model or type requiring service"
+      },
+      "complexity_level": {
+        "type": "string",
+        "required": false,
+        "description": "Service complexity: basic, intermediate, advanced",
+        "default": "intermediate"
+      },
+      "special_requirements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Additional special requirements or constraints",
+        "default": null
+      },
+      "safety_critical": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether the service involves safety-critical systems",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Unknown service type: Service type not recognized in the system database. Verify the service type exists.",
+      "Equipment model not found: Equipment model is not in the system database. Check equipment model spelling and availability.",
+      "Invalid complexity level: Use one of [basic, intermediate, advanced].",
+      "Special requirements format error: Special requirements must be an array of strings describing specific needs."
+    ],
+    "usage": "Provide service_type and equipment_model as minimum required parameters. Optionally specify complexity_level, special_requirements, and safety_critical flag for more precise skill matching.",
+    "output_details": {
+      "required_skills": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of technical skills required for the service"
+      },
+      "required_certifications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of certifications or licenses required"
+      },
+      "minimum_experience_years": {
+        "type": "number",
+        "description": "Minimum years of experience required"
+      },
+      "skill_priority_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Priority scores for each required skill (1-10 scale)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Technician Skills Matcher",
+    "tool_description": "Matches technician profiles against skill requirements and provides compatibility scores based on skills, experience, and specializations.",
+    "parameters": {
+      "technician_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of technician IDs to evaluate",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "required_skills": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of required technical skills",
+        "minItems": 1
+      },
+      "skill_priorities": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Priority weights for each skill (1-10 scale)",
+        "default": null
+      },
+      "minimum_match_score": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum acceptable match score (0-100)",
+        "default": 60
+      },
+      "experience_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for experience factor (0-1)",
+        "default": 0.3
+      },
+      "specialization_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for specialization factor (0-1)",
+        "default": 0.2
+      }
+    },
+    "error_messages": [
+      "Invalid technician ID: One or more technician IDs not found in the system database.",
+      "Skills array mismatch: If skill_priorities is provided, it must have the same length as required_skills array.",
+      "Invalid score threshold: Minimum match score must be between 0 and 100.",
+      "Invalid weight values: experience_weight and specialization_weight must be between 0 and 1.",
+      "Empty skills list: At least one required skill must be specified for matching."
+    ],
+    "usage": "Provide technician_ids and required_skills arrays. Optionally specify skill_priorities, minimum_match_score, and weighting factors for experience and specialization to customize the matching algorithm.",
+    "output_details": {
+      "match_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Overall match scores for each technician (0-100 scale)"
+      },
+      "skill_coverage": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Percentage of required skills covered by each technician"
+      },
+      "qualified_technicians": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "IDs of technicians meeting minimum match score"
+      },
+      "skill_gaps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Missing skills for each technician"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Geographic Distance Calculator",
+    "tool_description": "Calculates travel distances and estimated travel times between technician locations and service request locations using road network routing.",
+    "parameters": {
+      "technician_locations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Technician locations as addresses or coordinates",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "service_location": {
+        "type": "string",
+        "required": true,
+        "description": "Service request location as address or coordinates"
+      },
+      "travel_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Transportation mode: driving, walking, cycling",
+        "default": "driving"
+      },
+      "include_traffic": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include current traffic conditions",
+        "default": true
+      },
+      "departure_time": {
+        "type": "string",
+        "required": false,
+        "description": "Planned departure time for traffic calculation",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid location format: Locations must be valid addresses or coordinate pairs (latitude,longitude).",
+      "Geocoding failed: Unable to resolve one or more location addresses. Verify address accuracy.",
+      "Invalid travel mode: Use one of [driving, walking, cycling].",
+      "Routing service unavailable: Unable to calculate routes. Check network connectivity and try again.",
+      "Too many locations: Maximum 50 technician locations allowed per calculation."
+    ],
+    "usage": "Provide technician_locations array and service_location. Optionally specify travel_mode, include_traffic flag, and departure_time for more accurate routing calculations.",
+    "output_details": {
+      "distances_km": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Travel distances in kilometers for each technician"
+      },
+      "travel_times_minutes": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Estimated travel times in minutes for each technician"
+      },
+      "closest_technician_index": {
+        "type": "integer",
+        "description": "Array index of the closest technician"
+      },
+      "traffic_delays_minutes": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Additional delay due to traffic conditions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Certification Validator",
+    "tool_description": "Validates that technicians possess the required certifications and licenses for specific service types, checking expiration dates and compliance status.",
+    "parameters": {
+      "technician_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the technician"
+      },
+      "required_certifications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of required certification types",
+        "minItems": 1
+      },
+      "service_date": {
+        "type": "string",
+        "required": true,
+        "description": "Planned service date for expiration checking",
+        "format": "date-time"
+      },
+      "grace_period_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Grace period in days before expiration warning",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Technician not found: Technician ID does not exist in the system database.",
+      "Invalid certification type: One or more required certification types are not recognized.",
+      "Invalid service date: Service date must be in valid ISO 8601 format and not in the past.",
+      "Grace period out of range: Grace period must be between 0 and 365 days."
+    ],
+    "usage": "Provide technician_id, required_certifications array, and service_date. Optionally set grace_period_days to customize expiration warnings.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance status: compliant, non-compliant, expiring-soon"
+      },
+      "valid_certifications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of possessed valid certifications"
+      },
+      "missing_certifications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required but missing certifications"
+      },
+      "expiring_certifications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of certifications expiring within grace period"
+      },
+      "expiration_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Expiration dates for each relevant certification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Workload Balance Analyzer",
+    "tool_description": "Analyzes current workload distribution across technicians and evaluates the impact of new assignments on work balance and capacity utilization.",
+    "parameters": {
+      "technician_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of technician IDs to analyze",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "analysis_period_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days to analyze for workload patterns"
+      },
+      "new_assignment_duration": {
+        "type": "number",
+        "required": false,
+        "description": "Duration of potential new assignment in hours",
+        "default": null
+      },
+      "target_utilization": {
+        "type": "number",
+        "required": false,
+        "description": "Target capacity utilization percentage (50-95)",
+        "default": 80
+      },
+      "include_travel_time": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include travel time in workload calculations",
+        "default": true
+      },
+      "workload_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Categories of work to include in analysis",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid technician ID: One or more technician IDs not found in the system.",
+      "Invalid analysis period: Analysis period must be between 1 and 90 days.",
+      "Invalid utilization target: Target utilization must be between 50 and 95 percent.",
+      "Negative assignment duration: New assignment duration must be a positive number.",
+      "Unknown workload category: One or more workload categories are not recognized in the system."
+    ],
+    "usage": "Provide technician_ids and analysis_period_days. Optionally specify new_assignment_duration and other parameters to evaluate workload impact and balance.",
+    "output_details": {
+      "current_utilization": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Current capacity utilization percentage for each technician"
+      },
+      "workload_balance_score": {
+        "type": "number",
+        "description": "Overall workload balance score (0-100, higher is better)"
+      },
+      "overloaded_technicians": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "IDs of technicians exceeding target utilization"
+      },
+      "underutilized_technicians": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "IDs of technicians below optimal utilization"
+      },
+      "projected_utilization": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Projected utilization after new assignment (if specified)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Priority Assignment Engine",
+    "tool_description": "Calculates priority scores for service requests based on SLA requirements, customer tier, urgency, and business impact factors.",
+    "parameters": {
+      "request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the service request"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service tier: premium, standard, basic"
+      },
+      "sla_response_hours": {
+        "type": "number",
+        "required": true,
+        "description": "SLA required response time in hours"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Request urgency: critical, high, medium, low",
+        "default": "medium"
+      },
+      "business_impact": {
+        "type": "string",
+        "required": false,
+        "description": "Business impact level: severe, moderate, minor",
+        "default": "moderate"
+      },
+      "equipment_criticality": {
+        "type": "string",
+        "required": false,
+        "description": "Equipment criticality: mission-critical, important, routine",
+        "default": "routine"
+      },
+      "request_age_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Hours since request was submitted",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid customer tier: Use one of [premium, standard, basic].",
+      "Invalid SLA hours: SLA response hours must be a positive number.",
+      "Invalid urgency level: Use one of [critical, high, medium, low].",
+      "Invalid business impact: Use one of [severe, moderate, minor].",
+      "Invalid equipment criticality: Use one of [mission-critical, important, routine].",
+      "Negative request age: Request age must be a non-negative number of hours."
+    ],
+    "usage": "Provide request_id, customer_tier, and sla_response_hours as minimum parameters. Optionally specify urgency_level, business_impact, equipment_criticality, and request_age_hours for more accurate priority calculation.",
+    "output_details": {
+      "priority_score": {
+        "type": "number",
+        "description": "Calculated priority score (0-100, higher is more urgent)"
+      },
+      "priority_category": {
+        "type": "string",
+        "description": "Priority category: emergency, urgent, normal, deferred"
+      },
+      "sla_risk_level": {
+        "type": "string",
+        "description": "SLA breach risk: high, medium, low"
+      },
+      "recommended_response_time": {
+        "type": "number",
+        "description": "Recommended response time in hours based on priority"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Route Optimizer",
+    "tool_description": "Optimizes multi-stop routes for technicians visiting multiple service locations, minimizing total travel time and distance while respecting time windows.",
+    "parameters": {
+      "technician_start_location": {
+        "type": "string",
+        "required": true,
+        "description": "Starting location for the technician"
+      },
+      "service_locations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of service locations to visit",
+        "minItems": 2,
+        "maxItems": 20
+      },
+      "service_durations": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Service duration in hours for each location",
+        "minItems": 2,
+        "maxItems": 20
+      },
+      "time_windows": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Time windows for each service location (start-end)",
+        "default": null
+      },
+      "optimization_goal": {
+        "type": "string",
+        "required": false,
+        "description": "Optimization objective: minimize_time, minimize_distance, balanced",
+        "default": "minimize_time"
+      },
+      "return_to_start": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether technician should return to starting location",
+        "default": false
+      },
+      "max_working_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum working hours for the day",
+        "default": 8
+      }
+    },
+    "error_messages": [
+      "Location count mismatch: service_locations and service_durations arrays must have the same length.",
+      "Invalid time window format: Time windows must be in 'HH:MM-HH:MM' format.",
+      "Too many locations: Maximum 20 service locations allowed for route optimization.",
+      "Invalid optimization goal: Use one of [minimize_time, minimize_distance, balanced].",
+      "Infeasible route: Cannot create valid route within time constraints and working hours limit.",
+      "Invalid working hours: Maximum working hours must be between 4 and 16 hours."
+    ],
+    "usage": "Provide technician_start_location, service_locations, and service_durations arrays. Optionally specify time_windows, optimization_goal, return_to_start flag, and max_working_hours to customize the optimization.",
+    "output_details": {
+      "optimized_route": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Optimized sequence of service location indices"
+      },
+      "total_travel_time": {
+        "type": "number",
+        "description": "Total travel time in hours for optimized route"
+      },
+      "total_distance": {
+        "type": "number",
+        "description": "Total travel distance in kilometers"
+      },
+      "estimated_completion_time": {
+        "type": "string",
+        "description": "Estimated completion time for all services",
+        "format": "date-time"
+      },
+      "route_efficiency_score": {
+        "type": "number",
+        "description": "Route efficiency score compared to unoptimized route (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Conflict Detector",
+    "tool_description": "Detects scheduling conflicts when assigning new service requests to technicians, identifying overlaps and constraint violations.",
+    "parameters": {
+      "technician_id": {
+        "type": "string",
+        "required": true,
+        "description": "Technician ID to check for conflicts"
+      },
+      "proposed_start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Proposed start time for new assignment",
+        "format": "date-time"
+      },
+      "proposed_duration": {
+        "type": "number",
+        "required": true,
+        "description": "Proposed service duration in hours"
+      },
+      "include_travel_time": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include travel time in conflict detection",
+        "default": true
+      },
+      "buffer_time_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Buffer time between appointments in minutes",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Technician not found: Specified technician ID does not exist in the system.",
+      "Invalid time format: Proposed start time must be in valid ISO 8601 format.",
+      "Invalid duration: Proposed duration must be a positive number.",
+      "Past scheduling attempt: Cannot schedule assignments in the past.",
+      "Buffer time out of range: Buffer time must be between 0 and 120 minutes."
+    ],
+    "usage": "Provide technician_id, proposed_start_time, and proposed_duration. Optionally specify include_travel_time and buffer_time_minutes for more comprehensive conflict detection.",
+    "output_details": {
+      "has_conflict": {
+        "type": "boolean",
+        "description": "Whether a scheduling conflict exists"
+      },
+      "conflict_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Details of any detected conflicts"
+      },
+      "conflicting_appointments": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "IDs of conflicting appointments"
+      },
+      "alternative_slots": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggested alternative time slots"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Technician Recommender",
+    "tool_description": "Provides ranked recommendations of technicians for service assignments based on multiple weighted criteria including skills, availability, location, and workload.",
+    "parameters": {
+      "service_request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Service request identifier"
+      },
+      "candidate_technicians": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of candidate technician IDs",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "skill_match_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },

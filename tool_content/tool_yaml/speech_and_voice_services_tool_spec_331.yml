@@ -1,0 +1,800 @@
+field_name: speech_and_voice_services
+subfield: Speech-to-Text Transcription
+task: Convert audio recordings to text with timestamps and speaker identification
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to its scope requiring multiple complex subproblems (audio preprocessing, speech recognition, speaker diarization, timestamp alignment), coordination dependencies between components, high accuracy requirements for production use, and significant computational infrastructure needs for processing various audio formats and qualities.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'll target **17 tools** within the 15-20 range to comprehensively cover audio processing, transcription, speaker identification, and output formatting workflows.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Audio Format Validator** - Consumes: audio file path → Produces: format validation status
+  2. **Audio Quality Analyzer** - Consumes: audio file → Produces: quality metrics
+  3. **Audio Preprocessor** - Consumes: raw audio → Produces: cleaned audio data
+  4. **Silence Detector** - Consumes: audio data → Produces: speech/silence segments
+  5. **Speaker Counter** - Consumes: audio data → Produces: estimated speaker count
+  6. **Audio Segmenter** - Consumes: audio + silence info → Produces: audio chunks
+  7. **Speech Recognizer** - Consumes: audio chunks → Produces: raw transcription text
+  8. **Speaker Diarizer** - Consumes: audio segments → Produces: speaker labels per segment
+  9. **Timestamp Generator** - Consumes: audio segments → Produces: precise timestamps
+  10. **Confidence Scorer** - Consumes: transcription results → Produces: confidence scores
+  11. **Text Postprocessor** - Consumes: raw text → Produces: cleaned, formatted text
+  12. **Speaker Merger** - Consumes: speaker labels + transcriptions → Produces: speaker-aligned text
+  13. **Timestamp Aligner** - Consumes: timestamps + text → Produces: word-level timing
+  14. **Quality Validator** - Consumes: final results → Produces: quality assessment
+  15. **Output Formatter** - Consumes: all results → Produces: structured output
+  16. **Batch Processor** - Consumes: multiple audio files → Produces: batch results
+  17. **Export Manager** - Consumes: formatted results → Produces: exported files
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  1. Single speaker, clean audio: Audio Format Validator → Speech Recognizer → Timestamp Generator → Output Formatter
+  2. Quality check only: Audio Format Validator → Audio Quality Analyzer → Quality Validator
+
+  **Medium plans:**
+  1. Basic multi-speaker: Audio Preprocessor → Speaker Counter → Audio Segmenter → Speech Recognizer → Speaker Diarizer → Speaker Merger → Output Formatter
+  2. Timestamp-focused: Silence Detector → Audio Segmenter → Speech Recognizer → Timestamp Generator → Timestamp Aligner → Output Formatter
+
+  **Complex plans:**
+  1. Full production pipeline: Audio Format Validator → Audio Quality Analyzer → Audio Preprocessor → Silence Detector → Speaker Counter → Audio Segmenter → Speech Recognizer → Speaker Diarizer → Timestamp Generator → Confidence Scorer → Text Postprocessor → Speaker Merger → Timestamp Aligner → Quality Validator → Output Formatter → Export Manager
+  2. Batch processing: Batch Processor → (internal use of most above tools) → Export Manager
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Audio Format Validator",
+    "tool_description": "Validates audio file format, codec, and basic properties to ensure compatibility with transcription pipeline.",
+    "parameters": {
+      "audio_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the audio file to validate"
+      },
+      "supported_formats": {
+        "type": "array",
+        "required": false,
+        "description": "List of supported audio formats",
+        "items": {"type": "string"},
+        "default": ["wav", "mp3", "flac", "m4a"]
+      }
+    },
+    "error_messages": [
+      "File not found: The specified audio file path does not exist. Verify the file path is correct.",
+      "Unsupported format: Audio format is not supported. Convert to wav, mp3, flac, or m4a format.",
+      "Corrupted file: Audio file is corrupted or unreadable. Use a different file or repair the audio.",
+      "Access denied: Cannot read the audio file due to permission restrictions. Check file permissions."
+    ],
+    "usage": "Provide the path to an audio file to validate its format and basic properties before processing.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the audio file is valid and supported"
+      },
+      "format": {
+        "type": "string",
+        "description": "Detected audio format"
+      },
+      "duration_seconds": {
+        "type": "number",
+        "description": "Duration of the audio file in seconds"
+      },
+      "sample_rate": {
+        "type": "integer",
+        "description": "Audio sample rate in Hz"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audio Quality Analyzer",
+    "tool_description": "Analyzes audio quality metrics including signal-to-noise ratio, frequency response, and clarity to assess transcription feasibility.",
+    "parameters": {
+      "audio_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the audio file to analyze"
+      },
+      "analysis_window_seconds": {
+        "type": "number",
+        "required": false,
+        "description": "Duration of analysis window in seconds",
+        "default": 10.0
+      },
+      "min_snr_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum acceptable signal-to-noise ratio in dB",
+        "default": 10.0
+      }
+    },
+    "error_messages": [
+      "Invalid audio file: Cannot read or process the audio file. Ensure file is valid and accessible.",
+      "Analysis window too large: Analysis window exceeds audio duration. Use a smaller window size.",
+      "Processing error: Failed to analyze audio quality. Check file integrity and format compatibility."
+    ],
+    "usage": "Provide audio file path to get quality metrics. Optionally specify analysis window and SNR threshold for assessment.",
+    "output_details": {
+      "snr_db": {
+        "type": "number",
+        "description": "Signal-to-noise ratio in decibels"
+      },
+      "clarity_score": {
+        "type": "number",
+        "description": "Audio clarity score from 0 to 1"
+      },
+      "background_noise_level": {
+        "type": "number",
+        "description": "Background noise level in dB"
+      },
+      "quality_rating": {
+        "type": "string",
+        "description": "Overall quality rating: excellent, good, fair, or poor"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of recommended preprocessing steps"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audio Preprocessor",
+    "tool_description": "Applies noise reduction, normalization, and filtering to improve audio quality for better transcription accuracy.",
+    "parameters": {
+      "audio_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the input audio file"
+      },
+      "noise_reduction": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable noise reduction processing",
+        "default": true
+      },
+      "normalize_volume": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable volume normalization",
+        "default": true
+      },
+      "target_sample_rate": {
+        "type": "integer",
+        "required": false,
+        "description": "Target sample rate in Hz",
+        "default": 16000
+      },
+      "high_pass_filter_hz": {
+        "type": "integer",
+        "required": false,
+        "description": "High-pass filter frequency in Hz",
+        "default": 80
+      },
+      "low_pass_filter_hz": {
+        "type": "integer",
+        "required": false,
+        "description": "Low-pass filter frequency in Hz",
+        "default": 8000
+      }
+    },
+    "error_messages": [
+      "Invalid sample rate: Target sample rate must be between 8000 and 48000 Hz.",
+      "Filter frequency error: High-pass filter must be lower than low-pass filter frequency.",
+      "Processing failed: Audio preprocessing encountered an error. Check input file quality.",
+      "Insufficient audio data: Audio file too short for effective preprocessing. Minimum 1 second required."
+    ],
+    "usage": "Provide audio file path and configure preprocessing options to enhance audio quality for transcription.",
+    "output_details": {
+      "processed_audio_path": {
+        "type": "string",
+        "description": "Path to the processed audio file"
+      },
+      "processing_applied": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of preprocessing steps applied"
+      },
+      "quality_improvement": {
+        "type": "number",
+        "description": "Quality improvement score from 0 to 1"
+      },
+      "final_sample_rate": {
+        "type": "integer",
+        "description": "Sample rate of processed audio in Hz"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Silence Detector",
+    "tool_description": "Identifies speech and silence segments in audio to optimize transcription processing and improve accuracy.",
+    "parameters": {
+      "audio_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the audio file to analyze"
+      },
+      "silence_threshold_db": {
+        "type": "number",
+        "required": false,
+        "description": "Silence detection threshold in dB below peak",
+        "default": -40.0
+      },
+      "min_silence_duration_ms": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum silence duration in milliseconds",
+        "default": 500
+      },
+      "min_speech_duration_ms": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum speech segment duration in milliseconds",
+        "default": 250
+      }
+    },
+    "error_messages": [
+      "Invalid threshold: Silence threshold must be between -60 and -10 dB.",
+      "Duration parameters invalid: Minimum durations must be positive integers between 50 and 5000 ms.",
+      "Audio file error: Cannot process audio file. Verify file exists and is readable.",
+      "Detection failed: Silence detection algorithm failed. Check audio quality and parameters."
+    ],
+    "usage": "Provide audio file path and configure detection thresholds to identify speech and silence segments.",
+    "output_details": {
+      "speech_segments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of speech segment timestamps in format 'start_ms-end_ms'"
+      },
+      "silence_segments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of silence segment timestamps in format 'start_ms-end_ms'"
+      },
+      "speech_percentage": {
+        "type": "number",
+        "description": "Percentage of audio containing speech"
+      },
+      "total_speech_duration_ms": {
+        "type": "integer",
+        "description": "Total duration of speech segments in milliseconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Speaker Counter",
+    "tool_description": "Estimates the number of unique speakers in an audio recording using voice characteristics analysis.",
+    "parameters": {
+      "audio_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the audio file to analyze"
+      },
+      "min_speaker_duration_seconds": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum duration for speaker detection in seconds",
+        "default": 2.0
+      },
+      "clustering_sensitivity": {
+        "type": "number",
+        "required": false,
+        "description": "Clustering sensitivity from 0.1 to 2.0, higher values detect more speakers",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Audio too short: Audio duration must be at least 10 seconds for reliable speaker counting.",
+      "Invalid sensitivity: Clustering sensitivity must be between 0.1 and 2.0.",
+      "Speaker duration invalid: Minimum speaker duration must be between 0.5 and 10 seconds.",
+      "Analysis failed: Speaker counting failed due to poor audio quality or processing error."
+    ],
+    "usage": "Provide audio file path to estimate number of speakers. Adjust sensitivity and minimum duration for better accuracy.",
+    "output_details": {
+      "estimated_speaker_count": {
+        "type": "integer",
+        "description": "Estimated number of unique speakers"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence in speaker count estimation from 0 to 1"
+      },
+      "speaker_activity_distribution": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of speaking time percentages for each detected speaker"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audio Segmenter",
+    "tool_description": "Splits audio into manageable chunks based on silence detection and speaker changes for optimized transcription processing.",
+    "parameters": {
+      "audio_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the audio file to segment"
+      },
+      "speech_segments": {
+        "type": "array",
+        "required": true,
+        "description": "Array of speech segment timestamps from silence detection",
+        "items": {"type": "string"}
+      },
+      "max_segment_duration_seconds": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum duration for each segment in seconds",
+        "default": 30.0
+      },
+      "segment_overlap_seconds": {
+        "type": "number",
+        "required": false,
+        "description": "Overlap between segments in seconds",
+        "default": 1.0
+      },
+      "preserve_word_boundaries": {
+        "type": "boolean",
+        "required": false,
+        "description": "Attempt to preserve word boundaries when segmenting",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid speech segments: Speech segments array is empty or contains invalid timestamp formats.",
+      "Segment duration invalid: Maximum segment duration must be between 5 and 300 seconds.",
+      "Overlap too large: Segment overlap cannot exceed half of maximum segment duration.",
+      "Segmentation failed: Unable to create segments from provided speech data."
+    ],
+    "usage": "Provide audio file path and speech segments from silence detection to create optimized audio chunks for transcription.",
+    "output_details": {
+      "segment_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of paths to generated audio segment files"
+      },
+      "segment_timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of segment timestamps in format 'start_ms-end_ms'"
+      },
+      "segment_count": {
+        "type": "integer",
+        "description": "Total number of segments created"
+      },
+      "average_segment_duration": {
+        "type": "number",
+        "description": "Average segment duration in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Speech Recognizer",
+    "tool_description": "Converts speech audio segments to text using advanced automatic speech recognition with language and model selection.",
+    "parameters": {
+      "audio_segments": {
+        "type": "array",
+        "required": true,
+        "description": "Array of audio segment file paths to transcribe",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "language_code": {
+        "type": "string",
+        "required": false,
+        "description": "Language code for transcription (e.g., en-US, es-ES)",
+        "default": "en-US"
+      },
+      "model_type": {
+        "type": "string",
+        "required": false,
+        "description": "ASR model type: general, conversational, phone_call, meeting",
+        "default": "general"
+      },
+      "enable_punctuation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable automatic punctuation insertion",
+        "default": true
+      },
+      "enable_profanity_filter": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable profanity filtering",
+        "default": false
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence threshold for word acceptance (0.0-1.0)",
+        "default": 0.3
+      },
+      "alternative_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of transcription alternatives to generate",
+        "default": 1
+      },
+      "enable_word_timestamps": {
+        "type": "boolean",
+        "required": false,
+        "description": "Generate word-level timestamps",
+        "default": true
+      },
+      "custom_vocabulary": {
+        "type": "array",
+        "required": false,
+        "description": "Custom vocabulary words for improved recognition",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "speaker_adaptation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable speaker adaptation for improved accuracy",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Empty segments array: At least one audio segment must be provided for transcription.",
+      "Invalid language code: Language code must be in format 'xx-XX' (e.g., en-US, es-ES).",
+      "Unsupported model type: Model type must be one of: general, conversational, phone_call, meeting.",
+      "Confidence threshold invalid: Confidence threshold must be between 0.0 and 1.0.",
+      "Alternative count invalid: Alternative count must be between 1 and 5.",
+      "Audio segment error: One or more audio segments are corrupted or unreadable.",
+      "Transcription failed: ASR processing failed. Check audio quality and format compatibility.",
+      "Custom vocabulary too large: Custom vocabulary cannot exceed 1000 words."
+    ],
+    "usage": "Provide array of audio segment paths and configure ASR parameters for optimal transcription accuracy. Set language, model type, and enable features like punctuation and word timestamps as needed.",
+    "output_details": {
+      "transcriptions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of transcribed text for each audio segment"
+      },
+      "word_timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of word-level timestamps in format 'word:start_ms-end_ms'"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of confidence scores for each transcription segment"
+      },
+      "alternatives": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of alternative transcription options when requested"
+      },
+      "processing_time_seconds": {
+        "type": "number",
+        "description": "Total time taken for transcription processing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Speaker Diarizer",
+    "tool_description": "Identifies and labels different speakers in audio segments using voice biometric analysis and clustering techniques.",
+    "parameters": {
+      "audio_segments": {
+        "type": "array",
+        "required": true,
+        "description": "Array of audio segment file paths for speaker identification",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "expected_speakers": {
+        "type": "integer",
+        "required": false,
+        "description": "Expected number of speakers (0 for automatic detection)",
+        "default": 0
+      },
+      "clustering_method": {
+        "type": "string",
+        "required": false,
+        "description": "Clustering algorithm: spectral, kmeans, agglomerative",
+        "default": "spectral"
+      },
+      "min_segment_duration": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum segment duration for speaker analysis in seconds",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Empty segments: Audio segments array cannot be empty for speaker diarization.",
+      "Invalid expected speakers: Expected speakers must be 0 (auto-detect) or between 2 and 20.",
+      "Unsupported clustering method: Use spectral, kmeans, or agglomerative clustering.",
+      "Segment too short: Minimum segment duration must be between 0.5 and 5.0 seconds.",
+      "Diarization failed: Speaker identification failed due to insufficient voice data or poor audio quality."
+    ],
+    "usage": "Provide audio segments to identify and label speakers. Set expected speaker count or use automatic detection with preferred clustering method.",
+    "output_details": {
+      "speaker_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of speaker labels for each audio segment (e.g., 'Speaker_1', 'Speaker_2')"
+      },
+      "speaker_count": {
+        "type": "integer",
+        "description": "Total number of unique speakers identified"
+      },
+      "speaker_segments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of speaker assignments with timestamps in format 'Speaker_X:start_ms-end_ms'"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of confidence scores for speaker assignments"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Timestamp Generator",
+    "tool_description": "Generates precise timestamps for audio segments and spoken content to enable time-aligned transcription output.",
+    "parameters": {
+      "segment_paths": {
+        "type": "array",
+        "required": true,
+        "description": "Array of audio segment file paths",
+        "items": {"type": "string"}
+      },
+      "segment_start_times": {
+        "type": "array",
+        "required": true,
+        "description": "Array of segment start times in milliseconds relative to original audio",
+        "items": {"type": "integer"}
+      },
+      "timestamp_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output timestamp format: iso8601, milliseconds, seconds, srt",
+        "default": "iso8601"
+      },
+      "precision_level": {
+        "type": "string",
+        "required": false,
+        "description": "Timestamp precision: word, sentence, segment",
+        "default": "word"
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: Segment paths and start times arrays must have the same length.",
+      "Invalid start times: Start times must be non-negative integers in ascending order.",
+      "Unsupported timestamp format: Use iso8601, milliseconds, seconds, or srt format.",
+      "Invalid precision level: Precision must be word, sentence, or segment level.",
+      "Timestamp generation failed: Unable to generate timestamps due to processing error."
+    ],
+    "usage": "Provide segment paths and their start times to generate precise timestamps. Choose format and precision level based on output requirements.",
+    "output_details": {
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of formatted timestamps for each segment or element"
+      },
+      "duration_mapping": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of duration information in format 'start-end'"
+      },
+      "total_duration": {
+        "type": "string",
+        "description": "Total duration of all processed segments"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Confidence Scorer",
+    "tool_description": "Evaluates and scores the confidence level of transcription results based on acoustic and linguistic features.",
+    "parameters": {
+      "transcriptions": {
+        "type": "array",
+        "required": true,
+        "description": "Array of transcribed text segments to evaluate",
+        "items": {"type": "string"}
+      },
+      "audio_quality_scores": {
+        "type": "array",
+        "required": true,
+        "description": "Array of audio quality scores for corresponding segments",
+        "items": {"type": "number"}
+      },
+      "asr_confidence_scores": {
+        "type": "array",
+        "required": false,
+        "description": "Array of ASR-generated confidence scores",
+        "items": {"type": "number"},
+        "default": null
+      },
+      "scoring_method": {
+        "type": "string",
+        "required": false,
+        "description": "Confidence scoring method: combined, acoustic_only, linguistic_only",
+        "default": "combined"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: Transcriptions and audio quality scores arrays must have the same length.",
+      "Invalid quality scores: Audio quality scores must be between 0.0 and 1.0.",
+      "Invalid ASR confidence scores: ASR confidence scores must be between 0.0 and 1.0.",
+      "Unsupported scoring method: Use combined, acoustic_only, or linguistic_only.",
+      "Scoring failed: Confidence scoring process encountered an error during analysis."
+    ],
+    "usage": "Provide transcription segments and corresponding audio quality scores to generate confidence assessments. Include ASR confidence scores if available for more accurate evaluation.",
+    "output_details": {
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of overall confidence scores from 0.0 to 1.0 for each segment"
+      },
+      "quality_flags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of quality flags: high, medium, low, review_needed"
+      },
+      "average_confidence": {
+        "type": "number",
+        "description": "Average confidence score across all segments"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Text Postprocessor",
+    "tool_description": "Cleans and formats raw transcribed text by correcting common ASR errors, normalizing punctuation, and improving readability.",
+    "parameters": {
+      "raw_text_segments": {
+        "type": "array",
+        "required": true,
+        "description": "Array of raw transcribed text segments to process",
+        "items": {"type": "string"}
+      },
+      "enable_spell_check": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable automatic spell checking and correction",
+        "default": true
+      },
+      "normalize_punctuation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Normalize and improve punctuation",
+        "default": true
+      },
+      "remove_filler_words": {
+        "type": "boolean",
+        "required": false,
+        "description": "Remove common filler words like 'um', 'uh', 'like'",
+        "default": false
+      },
+      "capitalize_sentences": {
+        "type": "boolean",
+        "required": false,
+        "description": "Ensure proper sentence capitalization",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Empty text array: At least one text segment must be provided for processing.",
+      "Processing failed: Text postprocessing encountered an error. Check input text validity.",
+      "Invalid text format: One or more text segments contain non-readable characters or format issues."
+    ],
+    "usage": "Provide raw transcribed text segments and configure postprocessing options to improve text quality and readability.",
+    "output_details": {
+      "processed_text_segments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of cleaned and formatted text segments"
+      },
+      "corrections_made": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array describing corrections applied to each segment"
+      },
+      "improvement_score": {
+        "type": "number",
+        "description": "Text improvement score from 0 to 1 indicating processing effectiveness"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Speaker Merger",
+    "tool_description": "Combines speaker identification results with transcribed text to create speaker-attributed transcription segments.",
+    "parameters": {
+      "transcription_segments": {
+        "type": "array",
+        "required": true,
+        "description": "Array of transcribed text segments",
+        "items": {"type": "string"}
+      },
+      "speaker_labels": {
+        "type": "array",
+        "required": true,
+        "description": "Array of speaker labels corresponding to each transcription segment",
+        "items": {"type": "string"}
+      },
+      "merge_consecutive_speakers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Merge consecutive segments from the same speaker",
+        "default": true
+      },
+      "min_speaker_change_gap_ms": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum gap in milliseconds to consider a speaker change",
+        "default": 500
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: Transcription segments and speaker labels must have the same length.",
+      "Empty arrays: Both transcription segments and speaker labels arrays cannot be empty.",
+      "Invalid gap duration: Minimum speaker change gap must be between 100 and 5000 milliseconds.",
+      "Merge failed: Unable to merge speaker data with transcription segments."
+    ],
+    "usage": "Provide transcription segments and corresponding speaker labels to create speaker-attributed text. Enable consecutive speaker merging for cleaner output.",
+    "output_details": {
+      "speaker_attributed_segments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of text segments with speaker attribution in format 'Speaker_X: text'"
+      },
+      "speaker_turns": {
+        "type": "integer",
+        "description": "Total number of speaker turn changes"
+      },
+      "speakers_active": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of unique speakers found in the transcription"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Timestamp Aligner",
+    "tool_description": "Aligns timestamps with transcribed text at word, phrase, or sentence level for precise time-synchronized output.",

@@ -1,0 +1,908 @@
+field_name: ecommerce_and_retail
+subfield: Customer Account Management
+task: Customer support ticket creation and case management
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium difficulty. It involves multiple coordinated workflows (ticket creation, routing, tracking, escalation), requires integration across different systems and stakeholders, and has moderate risk since poor customer support directly impacts business reputation and customer retention.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools to cover the various aspects of ticket creation, case management, customer communication, and workflow coordination.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  - **Customer Lookup Tool** → produces customer profile data
+  - **Ticket Creator** → consumes customer data, produces ticket records
+  - **Category Classifier** → consumes ticket content, produces classification tags
+  - **Priority Assessor** → consumes ticket data, produces priority levels
+  - **Agent Assignment Router** → consumes priority/category data, produces agent assignments
+  - **SLA Calculator** → consumes priority/category data, produces time targets
+  - **Case Status Tracker** → consumes ticket updates, produces status reports
+  - **Escalation Manager** → consumes SLA/status data, produces escalation actions
+  - **Customer Communication Sender** → consumes ticket data, produces sent messages
+  - **Internal Notes Manager** → consumes agent input, produces internal documentation
+  - **Resolution Validator** → consumes solution data, produces validation results
+  - **Ticket Analytics Reporter** → consumes all ticket data, produces metrics and insights
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple workflows:**
+  1. Basic ticket creation: Customer Lookup → Ticket Creator → Customer Communication Sender
+  2. Status update: Case Status Tracker → Customer Communication Sender
+
+  **Medium workflows:**
+  1. Full ticket processing: Customer Lookup → Ticket Creator → Category Classifier → Priority Assessor → Agent Assignment Router → SLA Calculator
+  2. Escalation handling: Case Status Tracker → Escalation Manager → Agent Assignment Router → Customer Communication Sender
+
+  **Complex workflows:**
+  1. End-to-end case management: Customer Lookup → Ticket Creator → Category Classifier → Priority Assessor → SLA Calculator → Agent Assignment Router → Internal Notes Manager → Case Status Tracker → Resolution Validator → Customer Communication Sender
+  2. Analytics and improvement: Ticket Analytics Reporter analyzing data from all previous tools to identify patterns and optimization opportunities
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Customer Lookup Tool",
+    "tool_description": "Retrieves comprehensive customer information and account history to provide context for support interactions.",
+    "parameters": {
+      "customer_identifier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer email, phone number, or account ID"
+      },
+      "include_order_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include recent order history",
+        "default": true
+      },
+      "include_previous_tickets": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include previous support tickets",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided identifier does not match any customer records. Verify the email, phone, or account ID.",
+      "Invalid identifier format: Provide a valid email address, phone number, or account ID.",
+      "Database connection error: Unable to retrieve customer data. Try again in a few moments."
+    ],
+    "usage": "Provide customer_identifier and optionally set include_order_history and include_previous_tickets to gather relevant customer context before creating or updating support tickets.",
+    "output_details": {
+      "customer_id": {
+        "type": "string",
+        "description": "Unique customer identifier"
+      },
+      "customer_name": {
+        "type": "string",
+        "description": "Customer's full name"
+      },
+      "account_status": {
+        "type": "string",
+        "description": "Current account status (active, suspended, closed)"
+      },
+      "tier_level": {
+        "type": "string",
+        "description": "Customer tier (bronze, silver, gold, platinum)"
+      },
+      "recent_orders": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of recent order IDs and statuses"
+      },
+      "previous_ticket_count": {
+        "type": "integer",
+        "description": "Number of previous support tickets"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ticket Creator",
+    "tool_description": "Creates new support tickets with all required information and generates unique tracking numbers.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "subject": {
+        "type": "string",
+        "required": true,
+        "description": "Brief description of the issue"
+      },
+      "description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the customer's issue or request"
+      },
+      "contact_method": {
+        "type": "string",
+        "required": true,
+        "description": "How customer contacted support (email, phone, chat, web_form)"
+      },
+      "order_id": {
+        "type": "string",
+        "required": false,
+        "description": "Related order ID if applicable",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Missing required information: Provide customer_id, subject, description, and contact_method.",
+      "Invalid contact method: Use one of [email, phone, chat, web_form].",
+      "Subject too long: Subject must be 200 characters or less.",
+      "Description too short: Description must be at least 10 characters.",
+      "Customer ID not found: The provided customer_id does not exist in the system."
+    ],
+    "usage": "Provide all required customer and issue information to create a new support ticket. The system will generate a unique ticket number and timestamp.",
+    "output_details": {
+      "ticket_id": {
+        "type": "string",
+        "description": "Unique ticket identifier"
+      },
+      "ticket_number": {
+        "type": "string",
+        "description": "Human-readable ticket number"
+      },
+      "created_timestamp": {
+        "type": "string",
+        "description": "When the ticket was created"
+      },
+      "status": {
+        "type": "string",
+        "description": "Initial ticket status (new, open, pending, resolved, closed)"
+      },
+      "confirmation_message": {
+        "type": "string",
+        "description": "Success message with ticket details"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Category Classifier",
+    "tool_description": "Automatically categorizes support tickets based on content analysis to enable proper routing and handling.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier"
+      },
+      "subject": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket subject line"
+      },
+      "description": {
+        "type": "string",
+        "required": true,
+        "description": "Full ticket description"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence score for classification (0.1-1.0)",
+        "default": 0.7
+      }
+    },
+    "error_messages": [
+      "Ticket not found: The provided ticket_id does not exist.",
+      "Classification failed: Unable to determine category with sufficient confidence. Manual review required.",
+      "Invalid confidence threshold: Value must be between 0.1 and 1.0.",
+      "Empty content: Subject and description cannot be empty for classification."
+    ],
+    "usage": "Provide ticket_id, subject, and description to automatically classify the ticket into appropriate categories for routing and handling.",
+    "output_details": {
+      "primary_category": {
+        "type": "string",
+        "description": "Main category (billing, technical, product, shipping, account)"
+      },
+      "subcategory": {
+        "type": "string",
+        "description": "Specific subcategory within primary category"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Classification confidence score (0-1)"
+      },
+      "suggested_tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Additional relevant tags for the ticket"
+      },
+      "requires_specialist": {
+        "type": "boolean",
+        "description": "Whether ticket needs specialist handling"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Priority Assessor",
+    "tool_description": "Evaluates ticket urgency and impact to assign appropriate priority levels for SLA management.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer tier level (bronze, silver, gold, platinum)"
+      },
+      "category": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket category"
+      },
+      "business_impact": {
+        "type": "string",
+        "required": true,
+        "description": "Impact level (low, medium, high, critical)"
+      },
+      "urgency": {
+        "type": "string",
+        "required": true,
+        "description": "Urgency level (low, medium, high, critical)"
+      },
+      "order_value": {
+        "type": "number",
+        "required": false,
+        "description": "Monetary value of related order",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Ticket not found: The provided ticket_id does not exist.",
+      "Invalid customer tier: Use one of [bronze, silver, gold, platinum].",
+      "Invalid impact level: Use one of [low, medium, high, critical].",
+      "Invalid urgency level: Use one of [low, medium, high, critical].",
+      "Negative order value: Order value must be zero or positive."
+    ],
+    "usage": "Provide ticket details including customer tier, category, impact, and urgency to calculate appropriate priority level and response targets.",
+    "output_details": {
+      "priority_level": {
+        "type": "string",
+        "description": "Calculated priority (P1, P2, P3, P4)"
+      },
+      "priority_score": {
+        "type": "integer",
+        "description": "Numerical priority score (1-100)"
+      },
+      "escalation_required": {
+        "type": "boolean",
+        "description": "Whether immediate escalation is needed"
+      },
+      "reasoning": {
+        "type": "string",
+        "description": "Explanation of priority assignment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Agent Assignment Router",
+    "tool_description": "Routes tickets to appropriate agents based on skills, workload, availability, and specialization requirements.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier"
+      },
+      "category": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket category"
+      },
+      "priority": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket priority level"
+      },
+      "required_skills": {
+        "type": "array",
+        "required": false,
+        "description": "Specific skills needed for this ticket",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "language_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Customer's preferred language",
+        "default": "english"
+      },
+      "exclude_agents": {
+        "type": "array",
+        "required": false,
+        "description": "Agent IDs to exclude from assignment",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Ticket not found: The provided ticket_id does not exist.",
+      "No available agents: All qualified agents are currently unavailable or at capacity.",
+      "Invalid priority level: Use one of [P1, P2, P3, P4].",
+      "Skill matching failed: No agents found with required skills for this ticket.",
+      "Assignment conflict: Cannot exclude all qualified agents from assignment."
+    ],
+    "usage": "Provide ticket information and requirements to automatically assign the most suitable available agent based on skills, workload, and priority.",
+    "output_details": {
+      "assigned_agent_id": {
+        "type": "string",
+        "description": "ID of the assigned agent"
+      },
+      "agent_name": {
+        "type": "string",
+        "description": "Name of the assigned agent"
+      },
+      "assignment_timestamp": {
+        "type": "string",
+        "description": "When the assignment was made"
+      },
+      "estimated_response_time": {
+        "type": "string",
+        "description": "Expected time for agent to respond"
+      },
+      "match_score": {
+        "type": "number",
+        "description": "How well the agent matches ticket requirements (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SLA Calculator",
+    "tool_description": "Calculates service level agreement targets and deadlines based on priority, customer tier, and business rules.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier"
+      },
+      "priority": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket priority level (P1, P2, P3, P4)"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer tier (bronze, silver, gold, platinum)"
+      },
+      "category": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket category"
+      },
+      "created_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "When the ticket was created",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid priority: Use one of [P1, P2, P3, P4].",
+      "Invalid customer tier: Use one of [bronze, silver, gold, platinum].",
+      "Invalid timestamp: Provide a valid ISO 8601 datetime string.",
+      "Future timestamp: Created timestamp cannot be in the future.",
+      "SLA rules not found: No SLA rules defined for this priority/tier combination."
+    ],
+    "usage": "Provide ticket details to calculate appropriate SLA targets including first response time, resolution time, and escalation thresholds.",
+    "output_details": {
+      "first_response_deadline": {
+        "type": "string",
+        "description": "Deadline for first agent response"
+      },
+      "resolution_deadline": {
+        "type": "string",
+        "description": "Deadline for ticket resolution"
+      },
+      "escalation_threshold": {
+        "type": "string",
+        "description": "When to escalate if not progressing"
+      },
+      "business_hours_only": {
+        "type": "boolean",
+        "description": "Whether SLA counts only business hours"
+      },
+      "sla_buffer_minutes": {
+        "type": "integer",
+        "description": "Buffer time before SLA breach warnings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Case Status Tracker",
+    "tool_description": "Updates and monitors ticket status throughout the support lifecycle with timestamp tracking and audit trail.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier"
+      },
+      "new_status": {
+        "type": "string",
+        "required": true,
+        "description": "New status to set (new, open, pending, resolved, closed)"
+      },
+      "agent_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of agent making the status change"
+      },
+      "status_reason": {
+        "type": "string",
+        "required": false,
+        "description": "Reason for status change",
+        "default": null
+      },
+      "customer_notified": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether customer should be notified of status change",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Ticket not found: The provided ticket_id does not exist.",
+      "Invalid status: Use one of [new, open, pending, resolved, closed].",
+      "Invalid status transition: Cannot change from current status to requested status.",
+      "Agent not found: The provided agent_id does not exist.",
+      "Permission denied: Agent does not have permission to change ticket status."
+    ],
+    "usage": "Update ticket status with proper validation and audit trail. Optionally notify customer of status changes.",
+    "output_details": {
+      "previous_status": {
+        "type": "string",
+        "description": "Previous ticket status"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "Current ticket status after update"
+      },
+      "status_changed_timestamp": {
+        "type": "string",
+        "description": "When the status was changed"
+      },
+      "time_in_previous_status": {
+        "type": "integer",
+        "description": "Minutes spent in previous status"
+      },
+      "workflow_stage": {
+        "type": "string",
+        "description": "Current workflow stage"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Escalation Manager",
+    "tool_description": "Monitors SLA compliance and automatically escalates tickets based on priority, elapsed time, and escalation rules.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier"
+      },
+      "escalation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of escalation (sla_breach, customer_request, complexity, priority_change)"
+      },
+      "escalation_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed reason for escalation"
+      },
+      "target_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Target escalation tier (supervisor, manager, director)",
+        "default": "supervisor"
+      },
+      "urgency_override": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to override normal escalation timelines",
+        "default": false
+      },
+      "notify_customer": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to notify customer of escalation",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Ticket not found: The provided ticket_id does not exist.",
+      "Invalid escalation type: Use one of [sla_breach, customer_request, complexity, priority_change].",
+      "Invalid target tier: Use one of [supervisor, manager, director].",
+      "Escalation not allowed: Current ticket status does not allow escalation.",
+      "No escalation path: No qualified escalation target available for this tier."
+    ],
+    "usage": "Escalate tickets based on SLA breaches, customer requests, or complexity. System will route to appropriate management tier and update all stakeholders.",
+    "output_details": {
+      "escalation_id": {
+        "type": "string",
+        "description": "Unique escalation identifier"
+      },
+      "escalated_to": {
+        "type": "string",
+        "description": "Name/ID of person ticket was escalated to"
+      },
+      "escalation_timestamp": {
+        "type": "string",
+        "description": "When the escalation occurred"
+      },
+      "new_sla_targets": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Updated SLA deadlines after escalation"
+      },
+      "escalation_status": {
+        "type": "string",
+        "description": "Current escalation status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Communication Sender",
+    "tool_description": "Sends automated and manual communications to customers via their preferred channels with template support.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier"
+      },
+      "communication_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of communication (confirmation, update, resolution, escalation, survey)"
+      },
+      "channel": {
+        "type": "string",
+        "required": true,
+        "description": "Communication channel (email, sms, phone, in_app)"
+      },
+      "message_content": {
+        "type": "string",
+        "required": true,
+        "description": "Message content or template name"
+      },
+      "agent_id": {
+        "type": "string",
+        "required": false,
+        "description": "Agent sending the communication",
+        "default": null
+      },
+      "scheduled_time": {
+        "type": "string",
+        "required": false,
+        "description": "When to send the message (ISO 8601 format)",
+        "format": "date-time",
+        "default": null
+      },
+      "include_attachments": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include relevant attachments",
+        "default": false
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Message priority (normal, high, urgent)",
+        "default": "normal"
+      },
+      "require_response": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether customer response is required",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Ticket not found: The provided ticket_id does not exist.",
+      "Customer not found: The provided customer_id does not exist.",
+      "Invalid communication type: Use one of [confirmation, update, resolution, escalation, survey].",
+      "Invalid channel: Use one of [email, sms, phone, in_app].",
+      "Empty message: Message content cannot be empty.",
+      "Invalid schedule time: Scheduled time must be in the future.",
+      "Channel unavailable: Selected communication channel is not available for this customer.",
+      "Template not found: The specified message template does not exist."
+    ],
+    "usage": "Send communications to customers through their preferred channels. Use templates for common message types or provide custom content. Can schedule messages for future delivery.",
+    "output_details": {
+      "message_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent message"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Current delivery status (sent, delivered, failed, pending)"
+      },
+      "sent_timestamp": {
+        "type": "string",
+        "description": "When the message was sent"
+      },
+      "delivery_confirmation": {
+        "type": "boolean",
+        "description": "Whether delivery was confirmed"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery time for scheduled messages"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Internal Notes Manager",
+    "tool_description": "Manages internal agent notes, collaboration comments, and private documentation throughout the ticket lifecycle.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier"
+      },
+      "agent_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of agent adding the note"
+      },
+      "note_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of note (progress, research, collaboration, escalation, resolution)"
+      },
+      "note_content": {
+        "type": "string",
+        "required": true,
+        "description": "Content of the internal note"
+      },
+      "visibility": {
+        "type": "string",
+        "required": false,
+        "description": "Who can see this note (agent, team, department, all)",
+        "default": "team"
+      },
+      "action_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this note requires action from others",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Ticket not found: The provided ticket_id does not exist.",
+      "Agent not found: The provided agent_id does not exist.",
+      "Invalid note type: Use one of [progress, research, collaboration, escalation, resolution].",
+      "Empty note: Note content cannot be empty.",
+      "Invalid visibility: Use one of [agent, team, department, all].",
+      "Permission denied: Agent does not have permission to add notes to this ticket."
+    ],
+    "usage": "Add internal notes to tickets for documentation, collaboration, and knowledge sharing. Set appropriate visibility levels and action flags.",
+    "output_details": {
+      "note_id": {
+        "type": "string",
+        "description": "Unique identifier for the note"
+      },
+      "created_timestamp": {
+        "type": "string",
+        "description": "When the note was created"
+      },
+      "note_sequence": {
+        "type": "integer",
+        "description": "Sequential number of this note for the ticket"
+      },
+      "visibility_level": {
+        "type": "string",
+        "description": "Confirmed visibility level for the note"
+      },
+      "action_flag": {
+        "type": "boolean",
+        "description": "Whether action is required from other team members"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Resolution Validator",
+    "tool_description": "Validates ticket resolutions to ensure completeness, customer satisfaction, and quality standards before closing cases.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier"
+      },
+      "resolution_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of how the issue was resolved"
+      },
+      "agent_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of agent providing the resolution"
+      },
+      "resolution_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of resolution (solved, workaround, duplicate, no_action_needed)"
+      },
+      "customer_confirmation": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether customer confirmed the resolution works"
+      },
+      "root_cause": {
+        "type": "string",
+        "required": false,
+        "description": "Root cause of the issue",
+        "default": null
+      },
+      "preventive_measures": {
+        "type": "string",
+        "required": false,
+        "description": "Measures taken to prevent recurrence",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Ticket not found: The provided ticket_id does not exist.",
+      "Agent not found: The provided agent_id does not exist.",
+      "Invalid resolution type: Use one of [solved, workaround, duplicate, no_action_needed].",
+      "Empty resolution: Resolution description cannot be empty.",
+      "Validation failed: Resolution does not meet quality standards. Provide more detail.",
+      "Customer confirmation missing: Customer confirmation is required before closing high-priority tickets."
+    ],
+    "usage": "Validate ticket resolutions before closing to ensure quality and completeness. System checks resolution against standards and customer satisfaction requirements.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Validation result (approved, rejected, needs_review)"
+      },
+      "quality_score": {
+        "type": "integer",
+        "description": "Resolution quality score (1-100)"
+      },
+      "validation_timestamp": {
+        "type": "string",
+        "description": "When validation was completed"
+      },
+      "validation_notes": {
+        "type": "string",
+        "description": "Additional notes from validation process"
+      },
+      "ready_to_close": {
+        "type": "boolean",
+        "description": "Whether ticket is ready for closure"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ticket Analytics Reporter",
+    "tool_description": "Generates comprehensive analytics and insights on ticket data including performance metrics, trends, and improvement opportunities.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report (performance, trends, agent_metrics, sla_compliance, customer_satisfaction)"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period",
+        "format": "date-time"
+      },
+      "filter_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Categories to include in analysis",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "filter_priorities": {
+        "type": "array",
+        "required": false,
+        "description": "Priorities to include in analysis",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "filter_agents": {
+        "type": "array",
+        "required": false,
+        "description": "Specific agents to analyze",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "customer_tiers": {
+        "type": "array",
+        "required": false,
+        "description": "Customer tiers to include",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "include_trends": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include trend analysis",
+        "default": true
+      },
+      "include_predictions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include predictive insights",
+        "default": false
+      },
+      "granularity": {
+        "type": "string",
+        "required": false,
+        "description": "Data granularity (daily, weekly, monthly)",
+        "default": "daily"
+      }
+    },
+    "error_messages": [
+      "Invalid report type: Use one of [

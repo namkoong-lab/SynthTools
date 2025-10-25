@@ -1,0 +1,860 @@
+field_name: real_estate_property
+subfield: property_valuation_and_appraisal
+task: Property condition assessment and inspection report generation
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves medium complexity due to the need to coordinate multiple inspection domains (structural, electrical, plumbing, HVAC), standardize condition assessments across different property types, handle regulatory compliance requirements, and generate comprehensive reports that impact significant financial decisions. The task requires structured data collection, risk assessment, and quality assurance processes.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'm targeting 12 tools to cover the various inspection workflows, condition assessment protocols, report generation, and compliance verification processes.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Property Detail Extractor** - Consumes: property address/ID → Produces: basic property information
+  2. **Inspection Checklist Generator** - Consumes: property type, inspection scope → Produces: standardized checklists
+  3. **Condition Assessment Tool** - Consumes: inspection observations → Produces: condition ratings and scores
+  4. **Photo Documentation Manager** - Consumes: image files, descriptions → Produces: organized photo documentation
+  5. **Defect Categorizer** - Consumes: identified issues → Produces: categorized defects with severity levels
+  6. **Safety Hazard Detector** - Consumes: inspection data → Produces: safety risk assessments
+  7. **Repair Cost Estimator** - Consumes: defect list → Produces: estimated repair costs
+  8. **Code Compliance Checker** - Consumes: property details, findings → Produces: compliance status
+  9. **Report Template Selector** - Consumes: property type, client requirements → Produces: appropriate report format
+  10. **Inspection Report Generator** - Consumes: all assessment data → Produces: comprehensive inspection report
+  11. **Quality Assurance Validator** - Consumes: completed report → Produces: validation results
+  12. **Report Distribution Manager** - Consumes: finalized report → Produces: delivery confirmations
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  - Basic residential inspection: Property Detail Extractor → Inspection Checklist Generator → Condition Assessment Tool → Inspection Report Generator
+  - Photo documentation workflow: Photo Documentation Manager → Defect Categorizer → Report Template Selector → Inspection Report Generator
+
+  **Medium plans:**
+  - Standard property assessment: Property Detail Extractor → Inspection Checklist Generator → Condition Assessment Tool → Safety Hazard Detector → Defect Categorizer → Repair Cost Estimator → Inspection Report Generator → Quality Assurance Validator
+  - Commercial property inspection: Property Detail Extractor → Inspection Checklist Generator → Code Compliance Checker → Condition Assessment Tool → Safety Hazard Detector → Report Template Selector → Inspection Report Generator → Report Distribution Manager
+
+  **Complex plans:**
+  - Full comprehensive assessment: Property Detail Extractor → Inspection Checklist Generator → Condition Assessment Tool → Photo Documentation Manager → Safety Hazard Detector → Defect Categorizer → Repair Cost Estimator → Code Compliance Checker → Report Template Selector → Inspection Report Generator → Quality Assurance Validator → Report Distribution Manager
+  - Multi-property portfolio inspection: All tools used in sequence with batch processing capabilities for multiple properties
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Property Detail Extractor",
+    "tool_description": "Extracts and validates basic property information including location, type, size, age, and ownership details from various data sources.",
+    "parameters": {
+      "property_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete street address of the property to be inspected"
+      },
+      "property_id": {
+        "type": "string",
+        "required": false,
+        "description": "Unique identifier such as parcel number or MLS ID",
+        "default": "None"
+      },
+      "data_sources": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Preferred data sources: public records, MLS, tax assessor",
+        "default": ["public records"]
+      }
+    },
+    "error_messages": [
+      "Invalid address format: Provide a complete street address with city and state.",
+      "Property not found: The specified address or ID does not exist in available databases.",
+      "Data source unavailable: One or more requested data sources are currently inaccessible."
+    ],
+    "usage": "Provide property_address as primary identifier; optionally include property_id for additional verification and specify preferred data_sources for information retrieval.",
+    "output_details": {
+      "property_type": {
+        "type": "string",
+        "description": "Classification such as single-family, condo, commercial, industrial"
+      },
+      "square_footage": {
+        "type": "integer",
+        "description": "Total building square footage"
+      },
+      "year_built": {
+        "type": "integer",
+        "description": "Year the property was constructed"
+      },
+      "lot_size": {
+        "type": "number",
+        "description": "Lot size in acres"
+      },
+      "bedrooms": {
+        "type": "integer",
+        "description": "Number of bedrooms (residential properties)"
+      },
+      "bathrooms": {
+        "type": "number",
+        "description": "Number of bathrooms including half baths"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inspection Checklist Generator",
+    "tool_description": "Creates standardized inspection checklists tailored to specific property types and inspection scopes, ensuring comprehensive coverage of all relevant systems and components.",
+    "parameters": {
+      "property_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of property: residential, commercial, industrial, multi-family"
+      },
+      "inspection_scope": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Inspection areas: structural, electrical, plumbing, HVAC, roofing, exterior, interior",
+        "minItems": 1
+      },
+      "property_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Age of the property in years"
+      },
+      "square_footage": {
+        "type": "integer",
+        "required": true,
+        "description": "Total square footage of the property"
+      },
+      "special_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Special features requiring additional inspection: pool, fireplace, basement, attic",
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid property type: Use one of [residential, commercial, industrial, multi-family].",
+      "Invalid inspection scope: Include at least one valid area from [structural, electrical, plumbing, HVAC, roofing, exterior, interior].",
+      "Invalid property age: Property age must be a positive integer.",
+      "Invalid square footage: Square footage must be greater than 0."
+    ],
+    "usage": "Specify property_type, inspection_scope areas, property_age, and square_footage; optionally add special_features that require additional inspection items.",
+    "output_details": {
+      "checklist_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated checklist"
+      },
+      "total_items": {
+        "type": "integer",
+        "description": "Total number of inspection items in the checklist"
+      },
+      "inspection_areas": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of inspection areas covered"
+      },
+      "estimated_duration": {
+        "type": "integer",
+        "description": "Estimated inspection time in minutes"
+      },
+      "checklist_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed list of specific items to inspect"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Condition Assessment Tool",
+    "tool_description": "Evaluates and scores the condition of property components based on standardized criteria, providing consistent ratings across different inspectors and properties.",
+    "parameters": {
+      "component_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of component being assessed: roof, foundation, electrical, plumbing, HVAC, windows, doors"
+      },
+      "observations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Detailed observations from the inspection",
+        "minItems": 1
+      },
+      "component_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Estimated age of the component in years"
+      },
+      "maintenance_history": {
+        "type": "string",
+        "required": false,
+        "description": "Known maintenance history: excellent, good, fair, poor, unknown",
+        "default": "unknown"
+      }
+    },
+    "error_messages": [
+      "Invalid component type: Use one of [roof, foundation, electrical, plumbing, HVAC, windows, doors].",
+      "Empty observations: Provide at least one observation for assessment.",
+      "Invalid component age: Age must be a non-negative integer.",
+      "Invalid maintenance history: Use one of [excellent, good, fair, poor, unknown]."
+    ],
+    "usage": "Specify the component_type being assessed, provide detailed observations array, input component_age, and optionally include maintenance_history for more accurate scoring.",
+    "output_details": {
+      "condition_score": {
+        "type": "integer",
+        "description": "Numerical condition score from 1-10 (10 being excellent)"
+      },
+      "condition_rating": {
+        "type": "string",
+        "description": "Categorical rating: excellent, good, fair, poor, critical"
+      },
+      "remaining_useful_life": {
+        "type": "integer",
+        "description": "Estimated remaining useful life in years"
+      },
+      "priority_level": {
+        "type": "string",
+        "description": "Maintenance priority: immediate, short-term, medium-term, long-term"
+      },
+      "assessment_summary": {
+        "type": "string",
+        "description": "Brief summary of the condition assessment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Photo Documentation Manager",
+    "tool_description": "Organizes, catalogs, and manages photographic documentation of property conditions, defects, and notable features with metadata and categorization.",
+    "parameters": {
+      "photo_files": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "File paths or identifiers for inspection photos",
+        "minItems": 1
+      },
+      "photo_descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Descriptive captions for each photo",
+        "minItems": 1
+      },
+      "photo_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Categories for each photo: defect, safety, general, before, after",
+        "minItems": 1
+      },
+      "location_tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Location within property for each photo",
+        "minItems": 1
+      },
+      "timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Photo capture timestamp",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: All photo-related arrays must have the same number of elements.",
+      "Invalid photo category: Use one of [defect, safety, general, before, after] for each photo.",
+      "Missing photo files: Ensure all specified photo files are accessible.",
+      "Invalid timestamp format: Use ISO 8601 date-time format."
+    ],
+    "usage": "Provide photo_files array with corresponding photo_descriptions, photo_categories, and location_tags arrays of equal length, plus timestamp for the photo session.",
+    "output_details": {
+      "total_photos": {
+        "type": "integer",
+        "description": "Total number of photos processed"
+      },
+      "photo_catalog": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Organized catalog of photo references with metadata"
+      },
+      "defect_photos": {
+        "type": "integer",
+        "description": "Number of photos documenting defects"
+      },
+      "safety_photos": {
+        "type": "integer",
+        "description": "Number of photos documenting safety issues"
+      },
+      "documentation_status": {
+        "type": "string",
+        "description": "Overall photo documentation completeness status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Defect Categorizer",
+    "tool_description": "Categorizes and prioritizes identified property defects by severity, type, and required action, helping to organize findings for reporting and repair planning.",
+    "parameters": {
+      "defect_descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Detailed descriptions of identified defects",
+        "minItems": 1
+      },
+      "defect_locations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Specific locations where defects were found",
+        "minItems": 1
+      },
+      "system_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "System or component types: structural, electrical, plumbing, HVAC, roofing, exterior, interior",
+        "minItems": 1
+      },
+      "safety_impact": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "required": true,
+        "description": "Whether each defect poses a safety risk (true/false)",
+        "minItems": 1
+      },
+      "property_type": {
+        "type": "string",
+        "required": true,
+        "description": "Property type for context: residential, commercial, industrial"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: All defect-related arrays must have the same number of elements.",
+      "Invalid system type: Use one of [structural, electrical, plumbing, HVAC, roofing, exterior, interior].",
+      "Invalid property type: Use one of [residential, commercial, industrial].",
+      "Empty defect descriptions: Each defect must have a non-empty description."
+    ],
+    "usage": "Provide equal-length arrays for defect_descriptions, defect_locations, system_types, and safety_impact, along with property_type for proper categorization context.",
+    "output_details": {
+      "total_defects": {
+        "type": "integer",
+        "description": "Total number of defects categorized"
+      },
+      "critical_defects": {
+        "type": "integer",
+        "description": "Number of critical priority defects"
+      },
+      "safety_defects": {
+        "type": "integer",
+        "description": "Number of defects with safety implications"
+      },
+      "defect_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of defect categories found"
+      },
+      "priority_summary": {
+        "type": "string",
+        "description": "Summary of defect priorities and recommended actions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Safety Hazard Detector",
+    "tool_description": "Identifies and evaluates potential safety hazards throughout the property, assessing risk levels and recommending immediate actions for occupant protection.",
+    "parameters": {
+      "inspection_findings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Raw inspection findings and observations",
+        "minItems": 1
+      },
+      "property_occupancy": {
+        "type": "string",
+        "required": true,
+        "description": "Current occupancy status: occupied, vacant, partially_occupied"
+      }
+    },
+    "error_messages": [
+      "Empty inspection findings: Provide at least one inspection finding for safety analysis.",
+      "Invalid occupancy status: Use one of [occupied, vacant, partially_occupied]."
+    ],
+    "usage": "Input comprehensive inspection_findings array and specify current property_occupancy status to identify and prioritize safety hazards appropriately.",
+    "output_details": {
+      "total_hazards": {
+        "type": "integer",
+        "description": "Total number of safety hazards identified"
+      },
+      "immediate_hazards": {
+        "type": "integer",
+        "description": "Number of hazards requiring immediate attention"
+      },
+      "hazard_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Categories of safety hazards found"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Overall property safety risk level: low, moderate, high, critical"
+      },
+      "immediate_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of immediate actions recommended for safety"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Repair Cost Estimator",
+    "tool_description": "Calculates estimated costs for repairing identified defects and improvements, providing budget ranges for different quality levels and repair approaches.",
+    "parameters": {
+      "defect_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of defects requiring repair cost estimation",
+        "minItems": 1
+      },
+      "property_location": {
+        "type": "string",
+        "required": true,
+        "description": "City and state for regional cost adjustments"
+      },
+      "repair_quality": {
+        "type": "string",
+        "required": true,
+        "description": "Desired repair quality level: basic, standard, premium"
+      },
+      "property_size": {
+        "type": "integer",
+        "required": true,
+        "description": "Property square footage for scaling estimates"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Repair urgency affecting labor costs: normal, expedited, emergency",
+        "default": "normal"
+      },
+      "include_permits": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include permit costs in estimates",
+        "default": true
+      },
+      "contractor_markup": {
+        "type": "number",
+        "required": false,
+        "description": "Contractor markup percentage (10-50)",
+        "default": 20
+      },
+      "material_quality": {
+        "type": "string",
+        "required": false,
+        "description": "Material quality preference: economy, standard, premium",
+        "default": "standard"
+      },
+      "seasonal_adjustment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply seasonal cost adjustments",
+        "default": false
+      },
+      "bulk_discount": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply bulk repair discounts for multiple items",
+        "default": false
+      },
+      "warranty_inclusion": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include warranty costs in estimates",
+        "default": true
+      },
+      "inspection_followup": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include post-repair inspection costs",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Empty defect list: Provide at least one defect for cost estimation.",
+      "Invalid repair quality: Use one of [basic, standard, premium].",
+      "Invalid property size: Property size must be greater than 0.",
+      "Invalid urgency level: Use one of [normal, expedited, emergency].",
+      "Invalid contractor markup: Markup must be between 10 and 50 percent.",
+      "Invalid material quality: Use one of [economy, standard, premium]."
+    ],
+    "usage": "Provide defect_list, property_location, repair_quality, and property_size as minimum requirements; adjust optional parameters for more precise cost estimates based on specific project needs.",
+    "output_details": {
+      "total_estimate": {
+        "type": "number",
+        "description": "Total estimated repair cost"
+      },
+      "cost_breakdown": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed cost breakdown by defect category"
+      },
+      "labor_cost": {
+        "type": "number",
+        "description": "Total estimated labor cost"
+      },
+      "material_cost": {
+        "type": "number",
+        "description": "Total estimated material cost"
+      },
+      "permit_cost": {
+        "type": "number",
+        "description": "Total estimated permit and fee costs"
+      },
+      "cost_confidence": {
+        "type": "string",
+        "description": "Confidence level of estimates: high, medium, low"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Code Compliance Checker",
+    "tool_description": "Verifies property compliance with local building codes, safety regulations, and zoning requirements, identifying violations and required corrections.",
+    "parameters": {
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "City and state for applicable code requirements"
+      },
+      "property_type": {
+        "type": "string",
+        "required": true,
+        "description": "Property classification: residential, commercial, industrial, multi-family"
+      },
+      "building_systems": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Systems to check: electrical, plumbing, HVAC, structural, fire_safety, accessibility",
+        "minItems": 1
+      },
+      "construction_year": {
+        "type": "integer",
+        "required": true,
+        "description": "Year property was built or last major renovation"
+      },
+      "occupancy_type": {
+        "type": "string",
+        "required": true,
+        "description": "Intended use: single_family, multi_family, office, retail, industrial, mixed_use"
+      },
+      "recent_modifications": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether recent modifications were made without permits",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid property type: Use one of [residential, commercial, industrial, multi-family].",
+      "Invalid building system: Use valid systems [electrical, plumbing, HVAC, structural, fire_safety, accessibility].",
+      "Invalid construction year: Year must be between 1800 and current year.",
+      "Invalid occupancy type: Use one of [single_family, multi_family, office, retail, industrial, mixed_use].",
+      "Jurisdiction not found: Specified location codes are not available in the database."
+    ],
+    "usage": "Specify jurisdiction, property_type, building_systems to check, construction_year, and occupancy_type; optionally indicate recent_modifications for comprehensive compliance analysis.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance status: compliant, minor_violations, major_violations, non_compliant"
+      },
+      "violations_found": {
+        "type": "integer",
+        "description": "Total number of code violations identified"
+      },
+      "critical_violations": {
+        "type": "integer",
+        "description": "Number of critical safety violations"
+      },
+      "violation_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed list of specific violations and code references"
+      },
+      "required_permits": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of permits required for compliance"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Report Template Selector",
+    "tool_description": "Selects the appropriate inspection report template and format based on property type, client requirements, and regulatory standards.",
+    "parameters": {
+      "property_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of property inspected: residential, commercial, industrial, multi-family"
+      },
+      "client_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of client: buyer, seller, lender, insurance, legal"
+      },
+      "report_purpose": {
+        "type": "string",
+        "required": true,
+        "description": "Primary purpose: purchase, refinance, insurance, legal, maintenance"
+      },
+      "detail_level": {
+        "type": "string",
+        "required": false,
+        "description": "Level of detail required: summary, standard, comprehensive",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid property type: Use one of [residential, commercial, industrial, multi-family].",
+      "Invalid client type: Use one of [buyer, seller, lender, insurance, legal].",
+      "Invalid report purpose: Use one of [purchase, refinance, insurance, legal, maintenance].",
+      "Invalid detail level: Use one of [summary, standard, comprehensive]."
+    ],
+    "usage": "Specify property_type, client_type, and report_purpose to get the most appropriate template; optionally set detail_level for customized report depth.",
+    "output_details": {
+      "template_id": {
+        "type": "string",
+        "description": "Unique identifier for selected report template"
+      },
+      "template_name": {
+        "type": "string",
+        "description": "Descriptive name of the selected template"
+      },
+      "required_sections": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required sections for this template"
+      },
+      "optional_sections": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of optional sections that can be included"
+      },
+      "compliance_standards": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Industry standards this template complies with"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inspection Report Generator",
+    "tool_description": "Compiles all inspection data, assessments, and documentation into a comprehensive, professional inspection report with standardized formatting and required disclosures.",
+    "parameters": {
+      "property_details": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing basic property information"
+      },
+      "assessment_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing all condition assessments"
+      },
+      "defect_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing categorized defects and safety issues"
+      },
+      "photo_documentation": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing organized photo catalog"
+      },
+      "cost_estimates": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing repair cost estimates"
+      },
+      "compliance_results": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing code compliance check results"
+      },
+      "template_id": {
+        "type": "string",
+        "required": true,
+        "description": "Template identifier from Report Template Selector"
+      },
+      "inspector_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of certified inspector conducting the inspection"
+      },
+      "inspection_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date inspection was performed",
+        "format": "date-time"
+      },
+      "client_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of client receiving the report"
+      },
+      "report_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output format: PDF, HTML, both",
+        "default": "PDF"
+      },
+      "include_photos": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include photos in the main report",
+        "default": true
+      },
+      "executive_summary": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include executive summary section",
+        "default": true
+      },
+      "recommendations_section": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include detailed recommendations section",
+        "default": true
+      },
+      "warranty_disclaimers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include standard warranty and liability disclaimers",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid JSON data: One or more data parameters contain invalid JSON strings.",
+      "Missing required data: Essential inspection data is missing or incomplete.",
+      "Invalid template ID: Specified template identifier is not recognized.",
+      "Invalid report format: Use one of [PDF, HTML, both].",
+      "Invalid inspection date: Use ISO 8601 date-time format.",
+      "Empty inspector name: Inspector name is required for report certification."
+    ],
+    "usage": "Provide all required JSON data strings from previous inspection tools, specify template_id, inspector_name, inspection_date, and client_name; customize optional formatting parameters as needed for final report generation.",
+    "output_details": {
+      "report_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated report"
+      },
+      "report_status": {
+        "type": "string",
+        "description": "Generation status: completed, partial, failed"
+      },
+      "page_count": {
+        "type": "integer",
+        "description": "Total number of pages in the report"
+      },
+      "file_paths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "File paths for generated report documents"
+      },
+      "generation_timestamp": {
+        "type": "string",
+        "description": "Timestamp when report was generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quality Assurance Validator",
+    "tool_description": "

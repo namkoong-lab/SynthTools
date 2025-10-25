@@ -1,0 +1,763 @@
+field_name: credit_and_lending_services
+subfield: credit_scoring_and_risk_assessment
+task: Collect and aggregate customer financial data from multiple sources
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task involves collecting and aggregating customer financial data from multiple sources, which is a medium difficulty task. It requires coordination across various data sources (banks, credit bureaus, employment records), handling data format inconsistencies, ensuring data quality and completeness, and managing security/privacy requirements. The scope is broad with multiple integration points and moderate complexity in data validation and normalization.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium difficulty, I'll target 12 tools within the 10-15 range. This allows for comprehensive coverage of data collection, validation, transformation, and aggregation workflows while maintaining tool granularity and composability.
+
+  **STEP 3 — List all tool names and dependencies**
+  1. **Bank Account Connector** - Consumes: credentials, account identifiers → Produces: raw banking transaction data
+  2. **Credit Bureau Fetcher** - Consumes: customer identifiers, bureau selection → Produces: credit report data
+  3. **Employment Data Collector** - Consumes: employer info, verification details → Produces: employment history and income data
+  4. **Tax Record Retriever** - Consumes: tax credentials, date ranges → Produces: tax filing information
+  5. **Asset Valuation Fetcher** - Consumes: asset identifiers, types → Produces: current asset valuations
+  6. **Debt Information Aggregator** - Consumes: various debt source credentials → Produces: consolidated debt data
+  7. **Data Format Validator** - Consumes: raw financial data → Produces: validation status and error reports
+  8. **Data Standardizer** - Consumes: validated raw data → Produces: standardized formatted data
+  9. **Income Calculator** - Consumes: employment, tax, other income data → Produces: calculated income metrics
+  10. **Expense Analyzer** - Consumes: transaction data → Produces: categorized expense summaries
+  11. **Financial Profile Merger** - Consumes: standardized data from multiple sources → Produces: unified customer profile
+  12. **Data Quality Scorer** - Consumes: aggregated profile data → Produces: completeness and reliability scores
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic Credit Check: Credit Bureau Fetcher → Data Format Validator → Data Standardizer (outputs standardized credit report)
+  2. Income Verification: Employment Data Collector → Tax Record Retriever → Income Calculator (outputs verified income data)
+
+  **Medium Plans:**
+  1. Banking Analysis: Bank Account Connector → Data Format Validator → Data Standardizer → Expense Analyzer (outputs detailed spending analysis)
+  2. Asset Assessment: Asset Valuation Fetcher → Debt Information Aggregator → Data Format Validator → Data Standardizer (outputs net worth components)
+
+  **Complex Plans:**
+  1. Complete Financial Profile: All data collection tools → Data Format Validator → Data Standardizer → Income Calculator + Expense Analyzer → Financial Profile Merger → Data Quality Scorer (outputs comprehensive customer financial profile)
+  2. Multi-Source Risk Assessment: Bank Account Connector + Credit Bureau Fetcher + Employment Data Collector → Data Format Validator → Data Standardizer → Income Calculator + Expense Analyzer + Financial Profile Merger → Data Quality Scorer (outputs risk-ready financial profile)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Bank Account Connector",
+    "tool_description": "Connects to banking APIs and retrieves transaction history, account balances, and banking relationship data for specified accounts and time periods.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer"
+      },
+      "bank_credentials": {
+        "type": "array",
+        "required": true,
+        "description": "Array of encrypted credential strings for bank access",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for transaction history retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for transaction history retrieval",
+        "format": "date-time"
+      },
+      "include_pending": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include pending transactions",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid credentials: One or more bank credentials are invalid or expired. Verify customer authorization and credential validity.",
+      "Date range error: Start date must be before end date and within the last 24 months. Adjust date parameters.",
+      "Bank API unavailable: Unable to connect to one or more banking services. Retry after some time or exclude unavailable banks.",
+      "Insufficient permissions: Customer has not granted access to requested account data. Obtain proper authorization.",
+      "Rate limit exceeded: Too many API calls made. Wait before retrying or reduce request frequency."
+    ],
+    "usage": "Provide customer_id, valid bank_credentials array, start_date, and end_date. Optionally set include_pending to true. The tool retrieves banking data from all connected accounts for the specified period.",
+    "output_details": {
+      "accounts_retrieved": {
+        "type": "integer",
+        "description": "Number of bank accounts successfully accessed"
+      },
+      "transaction_count": {
+        "type": "integer",
+        "description": "Total number of transactions retrieved"
+      },
+      "raw_banking_data": {
+        "type": "string",
+        "description": "JSON string containing raw banking transaction and account data"
+      },
+      "retrieval_timestamp": {
+        "type": "string",
+        "description": "When the data was retrieved",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Credit Bureau Fetcher",
+    "tool_description": "Retrieves credit reports and scores from major credit bureaus including detailed credit history, payment patterns, and credit utilization data.",
+    "parameters": {
+      "ssn": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's Social Security Number (encrypted)"
+      },
+      "full_name": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's full legal name"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's date of birth",
+        "format": "date-time"
+      },
+      "current_address": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's current address"
+      },
+      "bureaus": {
+        "type": "array",
+        "required": false,
+        "description": "Credit bureaus to query",
+        "items": {"type": "string"},
+        "default": ["Experian", "Equifax", "TransUnion"]
+      },
+      "report_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of credit report: standard, detailed, or summary",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Identity verification failed: Provided personal information does not match credit bureau records. Verify SSN, name, DOB, and address accuracy.",
+      "Insufficient credit history: Customer has thin or no credit file. Consider alternative data sources for assessment.",
+      "Bureau service unavailable: One or more credit bureaus are temporarily unavailable. Retry later or proceed with available bureaus.",
+      "Invalid report type: Report type must be 'standard', 'detailed', or 'summary'. Correct the report_type parameter.",
+      "Credit freeze detected: Customer has a credit freeze in place. Obtain proper authorization to lift freeze temporarily."
+    ],
+    "usage": "Provide customer's SSN, full_name, date_of_birth, and current_address. Optionally specify bureaus array and report_type. The tool fetches credit data from selected bureaus and returns consolidated credit information.",
+    "output_details": {
+      "credit_score": {
+        "type": "integer",
+        "description": "Primary credit score (typically FICO)"
+      },
+      "bureaus_accessed": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of credit bureaus successfully accessed"
+      },
+      "credit_report_data": {
+        "type": "string",
+        "description": "Raw credit report data in JSON string format"
+      },
+      "report_date": {
+        "type": "string",
+        "description": "Date when credit report was generated",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Employment Data Collector",
+    "tool_description": "Gathers employment history, current job details, salary information, and employment verification data from HR systems and payroll providers.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "employer_details": {
+        "type": "array",
+        "required": true,
+        "description": "Array of current and previous employer information strings",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "verification_method": {
+        "type": "string",
+        "required": true,
+        "description": "Method for employment verification: api, paystub, or hr_contact"
+      },
+      "employment_credentials": {
+        "type": "array",
+        "required": false,
+        "description": "Credentials for accessing employment data",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "include_benefits": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include benefits information",
+        "default": false
+      },
+      "years_back": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of years of employment history to retrieve",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Employment verification failed: Unable to verify employment with provided details. Check employer information and verification method.",
+      "Invalid verification method: Method must be 'api', 'paystub', or 'hr_contact'. Update verification_method parameter.",
+      "Insufficient credentials: Employment data access requires valid credentials. Provide proper authentication details.",
+      "Employer system unavailable: Unable to connect to employer's HR or payroll system. Try alternative verification method.",
+      "Years back limit exceeded: Employment history can only go back maximum 10 years. Reduce years_back parameter."
+    ],
+    "usage": "Provide customer_id, employer_details array, and verification_method. Optionally include employment_credentials, set include_benefits to true, and specify years_back. The tool retrieves and returns employment data using the specified verification method.",
+    "output_details": {
+      "employment_status": {
+        "type": "string",
+        "description": "Current employment status (employed, unemployed, self-employed, retired)"
+      },
+      "current_income": {
+        "type": "number",
+        "description": "Current annual income amount"
+      },
+      "employment_history": {
+        "type": "string",
+        "description": "JSON string containing detailed employment history data"
+      },
+      "verification_date": {
+        "type": "string",
+        "description": "When employment data was verified",
+        "format": "date-time"
+      },
+      "data_completeness": {
+        "type": "number",
+        "description": "Percentage completeness of employment data collected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tax Record Retriever",
+    "tool_description": "Accesses tax filing records from IRS and state tax authorities to retrieve income, deduction, and tax payment history for specified years.",
+    "parameters": {
+      "ssn": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's Social Security Number (encrypted)"
+      },
+      "tax_years": {
+        "type": "array",
+        "required": true,
+        "description": "Array of tax years to retrieve",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "authorization_code": {
+        "type": "string",
+        "required": true,
+        "description": "IRS authorization code for tax record access"
+      },
+      "include_state_returns": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include state tax returns",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid authorization: IRS authorization code is invalid or expired. Obtain valid Form 4506-T authorization.",
+      "Tax records not found: No tax filings found for specified years. Verify customer filed taxes in requested years.",
+      "IRS system unavailable: Tax record service is temporarily unavailable. Retry request later.",
+      "Invalid tax year: Tax years must be within the last 7 years and cannot be future years. Adjust tax_years array.",
+      "Processing backlog: Tax records are being processed and not yet available. Wait for processing completion."
+    ],
+    "usage": "Provide customer's SSN, tax_years array with years to retrieve, and valid authorization_code. Optionally set include_state_returns. The tool retrieves tax filing data for specified years from federal and optionally state tax authorities.",
+    "output_details": {
+      "years_retrieved": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Tax years successfully retrieved"
+      },
+      "tax_data": {
+        "type": "string",
+        "description": "Raw tax return data in JSON string format"
+      },
+      "adjusted_gross_income": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "AGI for each successfully retrieved year"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Asset Valuation Fetcher",
+    "tool_description": "Retrieves current market valuations for various customer assets including real estate, vehicles, investments, and personal property.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "asset_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of assets to value",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "asset_identifiers": {
+        "type": "array",
+        "required": true,
+        "description": "Asset identification details (addresses, VINs, account numbers, etc.)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "valuation_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date for asset valuation",
+        "format": "date-time",
+        "default": "current_date"
+      },
+      "include_depreciation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply depreciation calculations",
+        "default": true
+      },
+      "market_conditions": {
+        "type": "string",
+        "required": false,
+        "description": "Market condition adjustment: normal, hot, or cold",
+        "default": "normal"
+      },
+      "precision_level": {
+        "type": "string",
+        "required": false,
+        "description": "Valuation precision: estimate, standard, or detailed",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Asset not found: Unable to locate one or more assets with provided identifiers. Verify asset identification details.",
+      "Invalid asset type: Unsupported asset type specified. Use supported types: real_estate, vehicle, investment, personal_property.",
+      "Valuation service unavailable: Asset valuation service is temporarily down. Retry request later.",
+      "Insufficient asset details: More specific asset identification required for accurate valuation. Provide additional details.",
+      "Invalid market condition: Market condition must be 'normal', 'hot', or 'cold'. Correct market_conditions parameter.",
+      "Future date error: Valuation date cannot be in the future. Use current or past date only."
+    ],
+    "usage": "Provide customer_id, asset_types array, and corresponding asset_identifiers array. Optionally specify valuation_date, include_depreciation, market_conditions, and precision_level. The tool returns current market valuations for specified assets.",
+    "output_details": {
+      "total_asset_value": {
+        "type": "number",
+        "description": "Combined value of all appraised assets"
+      },
+      "asset_count": {
+        "type": "integer",
+        "description": "Number of assets successfully valued"
+      },
+      "asset_valuations": {
+        "type": "string",
+        "description": "Detailed valuation data for each asset in JSON string format"
+      },
+      "valuation_confidence": {
+        "type": "number",
+        "description": "Confidence score for asset valuations (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Debt Information Aggregator",
+    "tool_description": "Collects and consolidates debt information from multiple sources including credit cards, loans, mortgages, and other outstanding obligations.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "debt_sources": {
+        "type": "array",
+        "required": true,
+        "description": "Array of debt source types to query",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 8
+      },
+      "creditor_list": {
+        "type": "array",
+        "required": false,
+        "description": "Specific creditors to include in search",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "include_closed_accounts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include recently closed debt accounts",
+        "default": false
+      },
+      "debt_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum debt amount to include in aggregation",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid debt source: One or more debt sources are not supported. Use: credit_card, mortgage, auto_loan, student_loan, personal_loan, business_debt, medical_debt, other.",
+      "Creditor access denied: Unable to access data from one or more creditors. Verify customer authorization and creditor connectivity.",
+      "Debt threshold invalid: Debt threshold must be a non-negative number. Correct debt_threshold parameter.",
+      "No debt data found: No debt information found for customer with specified criteria. Verify customer has outstanding debts.",
+      "Data aggregation timeout: Request timed out while collecting debt information. Reduce scope or retry request."
+    ],
+    "usage": "Provide customer_id and debt_sources array specifying types of debt to aggregate. Optionally specify creditor_list, set include_closed_accounts, and debt_threshold. The tool collects debt data from various sources and returns consolidated debt information.",
+    "output_details": {
+      "total_debt": {
+        "type": "number",
+        "description": "Total outstanding debt amount across all sources"
+      },
+      "debt_accounts": {
+        "type": "integer",
+        "description": "Number of active debt accounts found"
+      },
+      "debt_breakdown": {
+        "type": "string",
+        "description": "Detailed debt information by source and account in JSON string format"
+      },
+      "monthly_payments": {
+        "type": "number",
+        "description": "Total required monthly debt payments"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Format Validator",
+    "tool_description": "Validates the format, structure, and basic integrity of financial data collected from various sources, identifying missing fields and format inconsistencies.",
+    "parameters": {
+      "input_data": {
+        "type": "string",
+        "required": true,
+        "description": "Raw financial data in JSON string format to validate"
+      },
+      "data_source_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of data source: banking, credit, employment, tax, asset, or debt"
+      },
+      "validation_rules": {
+        "type": "array",
+        "required": false,
+        "description": "Specific validation rules to apply",
+        "items": {"type": "string"},
+        "default": ["format", "completeness", "consistency"]
+      },
+      "strict_mode": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply strict validation rules",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid data format: Input data is not valid JSON or contains structural errors. Correct data format before validation.",
+      "Unsupported data source: Data source type must be 'banking', 'credit', 'employment', 'tax', 'asset', or 'debt'. Update data_source_type parameter.",
+      "Empty input data: No data provided for validation. Ensure input_data contains valid financial data.",
+      "Validation rule error: One or more validation rules are invalid. Use supported rules: format, completeness, consistency, range, integrity."
+    ],
+    "usage": "Provide input_data as JSON string and specify data_source_type. Optionally configure validation_rules array and strict_mode. The tool validates data structure and content, returning validation results and identified issues.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: passed, passed_with_warnings, or failed"
+      },
+      "error_count": {
+        "type": "integer",
+        "description": "Number of validation errors found"
+      },
+      "warning_count": {
+        "type": "integer",
+        "description": "Number of validation warnings found"
+      },
+      "validation_report": {
+        "type": "string",
+        "description": "Detailed validation results in JSON string format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Standardizer",
+    "tool_description": "Transforms validated financial data into standardized formats with consistent field names, data types, and value representations across different source systems.",
+    "parameters": {
+      "validated_data": {
+        "type": "string",
+        "required": true,
+        "description": "Validated financial data in JSON string format"
+      },
+      "source_format": {
+        "type": "string",
+        "required": true,
+        "description": "Original data format identifier"
+      },
+      "target_schema": {
+        "type": "string",
+        "required": true,
+        "description": "Target standardization schema to apply"
+      },
+      "preserve_original": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve original field values alongside standardized ones",
+        "default": true
+      },
+      "date_format": {
+        "type": "string",
+        "required": false,
+        "description": "Target date format for standardization",
+        "default": "ISO8601"
+      },
+      "currency_normalization": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to normalize all monetary values to USD",
+        "default": true
+      },
+      "field_mapping_overrides": {
+        "type": "array",
+        "required": false,
+        "description": "Custom field mapping rules to apply",
+        "items": {"type": "string"},
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid input data: Validated data is not in expected JSON format. Ensure data passed validation before standardization.",
+      "Unknown source format: Source format identifier not recognized. Use supported format identifiers or register custom format.",
+      "Invalid target schema: Target schema is not available or malformed. Verify schema name and availability.",
+      "Standardization failed: Unable to transform data to target schema due to incompatible data types. Review data compatibility.",
+      "Field mapping error: One or more field mapping overrides contain errors. Correct field_mapping_overrides syntax."
+    ],
+    "usage": "Provide validated_data, source_format, and target_schema. Optionally configure preserve_original, date_format, currency_normalization, and field_mapping_overrides. The tool transforms data into standardized format with consistent structure and values.",
+    "output_details": {
+      "standardized_data": {
+        "type": "string",
+        "description": "Transformed data in standardized format as JSON string"
+      },
+      "transformation_summary": {
+        "type": "string",
+        "description": "Summary of transformations applied during standardization"
+      },
+      "fields_mapped": {
+        "type": "integer",
+        "description": "Number of fields successfully mapped and standardized"
+      },
+      "schema_version": {
+        "type": "string",
+        "description": "Version of the target schema used for standardization"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Income Calculator",
+    "tool_description": "Calculates comprehensive income metrics from employment, tax, and other income sources, providing annualized, monthly, and variable income estimates.",
+    "parameters": {
+      "employment_data": {
+        "type": "string",
+        "required": true,
+        "description": "Standardized employment data in JSON string format"
+      },
+      "tax_data": {
+        "type": "string",
+        "required": false,
+        "description": "Standardized tax return data in JSON string format",
+        "default": ""
+      },
+      "other_income_sources": {
+        "type": "array",
+        "required": false,
+        "description": "Additional income source data",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "calculation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Income calculation approach: conservative, standard, or aggressive",
+        "default": "standard"
+      },
+      "income_period": {
+        "type": "string",
+        "required": false,
+        "description": "Income calculation period: monthly, quarterly, or annual",
+        "default": "annual"
+      }
+    },
+    "error_messages": [
+      "Invalid employment data: Employment data is not in expected standardized format. Ensure data is properly standardized.",
+      "Insufficient income data: Not enough income information available for reliable calculation. Provide additional income sources.",
+      "Invalid calculation method: Method must be 'conservative', 'standard', or 'aggressive'. Correct calculation_method parameter.",
+      "Tax data format error: Tax data is not in expected standardized format. Verify tax data standardization.",
+      "Income period invalid: Income period must be 'monthly', 'quarterly', or 'annual'. Update income_period parameter."
+    ],
+    "usage": "Provide employment_data in standardized format. Optionally include tax_data, other_income_sources, and configure calculation_method and income_period. The tool calculates comprehensive income metrics based on available data sources.",
+    "output_details": {
+      "primary_income": {
+        "type": "number",
+        "description": "Primary employment income for specified period"
+      },
+      "total_income": {
+        "type": "number",
+        "description": "Combined income from all sources for specified period"
+      },
+      "income_stability": {
+        "type": "number",
+        "description": "Income stability score (0-100) based on variability analysis"
+      },
+      "income_sources_count": {
+        "type": "integer",
+        "description": "Number of distinct income sources identified"
+      },
+      "calculation_confidence": {
+        "type": "number",
+        "description": "Confidence level in income calculations (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expense Analyzer",
+    "tool_description": "Analyzes banking transaction data to categorize expenses, identify spending patterns, and calculate expense ratios for financial assessment.",
+    "parameters": {
+      "transaction_data": {
+        "type": "string",
+        "required": true,
+        "description": "Standardized banking transaction data in JSON string format"
+      },
+      "analysis_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of months to analyze for expense patterns",
+        "default": 6
+      },
+      "categorization_level": {
+        "type": "string",
+        "required": false,
+        "description": "Expense categorization detail: basic, standard, or detailed",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid transaction data: Transaction data is not in expected standardized format. Ensure proper data standardization.",
+      "Insufficient transaction history: Not enough transaction data for meaningful expense analysis. Minimum 3 months required.",
+      "Analysis period too long: Maximum analysis period is 24 months. Reduce analysis_period parameter.",
+      "Invalid categorization level: Level must be 'basic', 'standard', or 'detailed'. Correct categorization_level parameter."
+    ],
+    "usage": "Provide transaction_data in standardized format. Optionally specify analysis_period in months and categorization_level. The tool analyzes spending patterns and returns categorized expense information.",
+    "output_details": {
+      "monthly_expenses": {
+        "type": "number",
+        "description": "Average monthly expense amount"
+      },
+      "expense_categories": {
+        "type": "string",
+        "description": "Detailed expense breakdown by category in JSON string format"
+      },
+      "spending_trend": {
+        "type": "string",
+        "description": "Spending trend analysis: increasing, stable, or decreasing"
+      },
+      "expense_volatility": {
+        "type": "number",
+        "description": "Expense volatility score (0-100) indicating spending consistency"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Financial Profile Merger",
+    "tool_description": "Merges standardized financial data from multiple sources into a unified, comprehensive customer financial profile with resolved duplicates and data conflicts.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier for profile creation"
+      },
+      "income_data": {
+        "type": "string",
+        "required": true,
+        "description": "Processed income calculation results in JSON string format"
+      },
+      "expense_data": {
+        "type": "string",
+        "required": true,
+        "description": "Processed expense analysis results in JSON string format"
+      },
+      "credit_data": {
+        "type": "string",
+        "required": false,
+        "description": "Standardized credit report data in JSON string format",
+        "default": ""
+      },
+      "asset_data": {
+        "type": "string",
+        "required": false,
+        "description": "Standardized asset valuation data in JSON string format",
+        "default": ""
+      },
+      "debt_data": {
+        "type": "string",
+        "required": false,
+        "description": "Standardized debt information in JSON string format",
+        "default": ""
+      },
+      "employment_data": {
+        "type": "string",
+        "required": false,
+        "description": "Standardized employment data in JSON string format",
+        "default": ""
+      },
+      "merge_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Data conflict resolution strategy: latest, comprehensive, or conservative",
+        "default": "comprehensive"
+      },

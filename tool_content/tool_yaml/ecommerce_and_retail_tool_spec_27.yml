@@ -1,0 +1,806 @@
+field_name: ecommerce_and_retail
+subfield: Inventory Management and Tracking
+task: Automated reorder point calculation and purchase order generation
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium complexity due to multiple interdependent calculations (demand forecasting, lead time analysis, safety stock optimization), coordination between inventory tracking and supplier management systems, and moderate risk from stockouts or overstock situations that can significantly impact business operations.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover the workflow from data collection through purchase order generation and monitoring.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Inventory Data Collector** - Consumes: product IDs, date ranges → Produces: current stock levels, historical inventory data
+  2. **Sales History Analyzer** - Consumes: product IDs, time periods → Produces: sales patterns, seasonal trends
+  3. **Demand Forecaster** - Consumes: historical sales data, seasonality factors → Produces: predicted demand quantities
+  4. **Lead Time Calculator** - Consumes: supplier data, product categories → Produces: average lead times, variability metrics
+  5. **Safety Stock Optimizer** - Consumes: demand forecasts, lead times, service levels → Produces: optimal safety stock levels
+  6. **Reorder Point Calculator** - Consumes: demand forecasts, lead times, safety stock → Produces: reorder trigger points
+  7. **Supplier Evaluator** - Consumes: supplier performance data → Produces: supplier rankings, reliability scores
+  8. **Order Quantity Optimizer** - Consumes: demand data, carrying costs, ordering costs → Produces: economic order quantities
+  9. **Purchase Order Generator** - Consumes: reorder triggers, supplier info, quantities → Produces: formatted purchase orders
+  10. **Cost Analyzer** - Consumes: product costs, supplier pricing → Produces: cost comparisons, budget impacts
+  11. **Stock Level Monitor** - Consumes: current inventory, reorder points → Produces: reorder alerts, status reports
+  12. **Performance Tracker** - Consumes: order history, fulfillment data → Produces: KPI metrics, performance reports
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Stock Check**: Stock Level Monitor → Reorder Point Calculator → Purchase Order Generator (monitors current levels and generates orders when needed)
+  2. **Supplier Comparison**: Supplier Evaluator → Cost Analyzer (evaluates and compares supplier options for procurement decisions)
+
+  **Medium Plans:**
+  1. **Seasonal Reorder Planning**: Sales History Analyzer → Demand Forecaster → Safety Stock Optimizer → Reorder Point Calculator (accounts for seasonal demand in reorder calculations)
+  2. **Complete Order Optimization**: Lead Time Calculator → Order Quantity Optimizer → Cost Analyzer → Purchase Order Generator (optimizes order timing and quantities while considering costs)
+
+  **Complex Plans:**
+  1. **Full Automated Reordering**: Inventory Data Collector → Sales History Analyzer → Demand Forecaster → Lead Time Calculator → Safety Stock Optimizer → Reorder Point Calculator → Stock Level Monitor → Purchase Order Generator (end-to-end automated reordering system)
+  2. **Performance-Driven Procurement**: Supplier Evaluator → Lead Time Calculator → Cost Analyzer → Order Quantity Optimizer → Purchase Order Generator → Performance Tracker (optimizes procurement based on supplier performance and tracks results)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Inventory Data Collector",
+    "tool_description": "Retrieves current stock levels and historical inventory data for specified products within a date range from inventory management systems.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of product SKUs or IDs to collect data for",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "start_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Start date for historical data collection"
+      },
+      "end_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "End date for historical data collection"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be earlier than end_date and both must be valid ISO 8601 datetime strings.",
+      "Product not found: One or more product IDs do not exist in the inventory system.",
+      "Date range too large: Historical data requests cannot exceed 2 years.",
+      "Empty product list: At least one product ID must be provided."
+    ],
+    "usage": "Provide an array of product IDs and a date range to retrieve current stock levels and historical inventory movements. Use this data as input for demand forecasting and reorder calculations.",
+    "output_details": {
+      "current_stock_levels": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Current stock quantities for each requested product"
+      },
+      "historical_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Historical inventory movement records as formatted strings"
+      },
+      "data_quality_score": {
+        "type": "number",
+        "description": "Quality score of retrieved data from 0-100"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sales History Analyzer",
+    "tool_description": "Analyzes historical sales data to identify patterns, trends, and seasonality factors for demand forecasting.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Product IDs to analyze sales history for",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "analysis_period_months": {
+        "type": "integer",
+        "required": false,
+        "default": 12,
+        "description": "Number of months of sales history to analyze (1-36)"
+      },
+      "include_seasonality": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include seasonal pattern analysis"
+      }
+    },
+    "error_messages": [
+      "Insufficient sales data: Product must have at least 3 months of sales history for meaningful analysis.",
+      "Invalid analysis period: analysis_period_months must be between 1 and 36.",
+      "Product sales data unavailable: One or more products have no sales records in the specified period."
+    ],
+    "usage": "Specify product IDs and analysis period to generate sales patterns and trends. Use include_seasonality to enable seasonal analysis for products with sufficient historical data.",
+    "output_details": {
+      "sales_trends": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Identified sales trend descriptions for each product"
+      },
+      "seasonal_factors": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Seasonal adjustment factors for each month (12 values)"
+      },
+      "average_monthly_sales": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Average monthly sales quantities for each product"
+      },
+      "volatility_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Sales volatility scores from 0-100 for each product"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Demand Forecaster",
+    "tool_description": "Generates demand forecasts using historical sales data, seasonal patterns, and market factors to predict future product demand.",
+    "parameters": {
+      "historical_sales": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Historical sales quantities for forecasting",
+        "minItems": 3,
+        "maxItems": 1000
+      },
+      "seasonal_factors": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "default": null,
+        "description": "Monthly seasonal adjustment factors (12 values)"
+      },
+      "forecast_horizon_days": {
+        "type": "integer",
+        "required": false,
+        "default": 90,
+        "description": "Number of days to forecast ahead (7-365)"
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "default": 0.95,
+        "description": "Statistical confidence level for forecast intervals (0.8-0.99)"
+      }
+    },
+    "error_messages": [
+      "Insufficient historical data: At least 3 data points required for forecasting.",
+      "Invalid forecast horizon: forecast_horizon_days must be between 7 and 365.",
+      "Invalid confidence level: confidence_level must be between 0.8 and 0.99.",
+      "Seasonal factors mismatch: If provided, seasonal_factors must contain exactly 12 values."
+    ],
+    "usage": "Input historical sales data and optional seasonal factors to generate demand forecasts. Adjust forecast_horizon_days and confidence_level based on planning needs and data reliability.",
+    "output_details": {
+      "forecasted_demand": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Predicted daily demand quantities for forecast period"
+      },
+      "forecast_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Dates corresponding to each forecast value"
+      },
+      "confidence_intervals": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Upper and lower confidence bounds for forecasts"
+      },
+      "forecast_accuracy_score": {
+        "type": "number",
+        "description": "Expected accuracy score of forecast from 0-100"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Lead Time Calculator",
+    "tool_description": "Calculates average lead times and variability metrics for products from different suppliers based on historical delivery performance.",
+    "parameters": {
+      "supplier_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Supplier identifiers to analyze lead times for",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "product_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Product categories to include in analysis",
+        "minItems": 1,
+        "maxItems": 50
+      }
+    },
+    "error_messages": [
+      "Insufficient delivery data: Supplier must have at least 5 completed deliveries for reliable lead time calculation.",
+      "Invalid supplier ID: One or more supplier IDs not found in system.",
+      "No matching product categories: Specified categories have no delivery history with given suppliers."
+    ],
+    "usage": "Provide supplier IDs and product categories to calculate lead time statistics. Results include average lead times and variability measures for safety stock calculations.",
+    "output_details": {
+      "average_lead_times": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Average lead times in days for each supplier-category combination"
+      },
+      "lead_time_variability": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Standard deviation of lead times for each combination"
+      },
+      "reliability_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Delivery reliability scores from 0-100 for each supplier"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Safety Stock Optimizer",
+    "tool_description": "Calculates optimal safety stock levels based on demand variability, lead time uncertainty, and desired service levels to minimize stockout risk.",
+    "parameters": {
+      "demand_forecasts": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Forecasted demand quantities",
+        "minItems": 1,
+        "maxItems": 365
+      },
+      "demand_variability": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Standard deviation of demand for each period",
+        "minItems": 1,
+        "maxItems": 365
+      },
+      "average_lead_time": {
+        "type": "number",
+        "required": true,
+        "description": "Average supplier lead time in days"
+      },
+      "lead_time_variability": {
+        "type": "number",
+        "required": true,
+        "description": "Standard deviation of lead time in days"
+      },
+      "service_level": {
+        "type": "number",
+        "required": false,
+        "default": 0.95,
+        "description": "Desired service level (0.80-0.99)"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: demand_forecasts and demand_variability must have the same length.",
+      "Invalid service level: service_level must be between 0.80 and 0.99.",
+      "Negative values: Lead times and variability values must be non-negative.",
+      "Zero lead time: average_lead_time must be greater than 0."
+    ],
+    "usage": "Input demand forecasts with variability measures and lead time statistics to calculate optimal safety stock. Higher service levels result in higher safety stock requirements.",
+    "output_details": {
+      "optimal_safety_stock": {
+        "type": "number",
+        "description": "Calculated optimal safety stock quantity"
+      },
+      "stockout_probability": {
+        "type": "number",
+        "description": "Probability of stockout with calculated safety stock"
+      },
+      "carrying_cost_impact": {
+        "type": "number",
+        "description": "Estimated additional carrying cost from safety stock"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reorder Point Calculator",
+    "tool_description": "Determines optimal reorder points for products by combining demand forecasts, lead times, and safety stock requirements.",
+    "parameters": {
+      "daily_demand": {
+        "type": "number",
+        "required": true,
+        "description": "Average daily demand quantity"
+      },
+      "lead_time_days": {
+        "type": "number",
+        "required": true,
+        "description": "Expected lead time in days"
+      },
+      "safety_stock": {
+        "type": "number",
+        "required": true,
+        "description": "Required safety stock quantity"
+      },
+      "demand_during_lead_time_variability": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Variability of demand during lead time period"
+      }
+    },
+    "error_messages": [
+      "Invalid demand value: daily_demand must be greater than 0.",
+      "Invalid lead time: lead_time_days must be greater than 0.",
+      "Negative safety stock: safety_stock must be non-negative.",
+      "Invalid variability: demand_during_lead_time_variability must be non-negative."
+    ],
+    "usage": "Provide daily demand, lead time, and safety stock to calculate when to reorder. The tool accounts for demand variability during lead time for more accurate reorder points.",
+    "output_details": {
+      "reorder_point": {
+        "type": "number",
+        "description": "Calculated reorder point quantity"
+      },
+      "lead_time_demand": {
+        "type": "number",
+        "description": "Expected demand during lead time period"
+      },
+      "buffer_adequacy": {
+        "type": "string",
+        "description": "Assessment of safety stock adequacy level"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Supplier Evaluator",
+    "tool_description": "Evaluates and ranks suppliers based on delivery performance, quality metrics, pricing, and reliability factors to support procurement decisions.",
+    "parameters": {
+      "supplier_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of supplier IDs to evaluate",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "evaluation_period_months": {
+        "type": "integer",
+        "required": false,
+        "default": 12,
+        "description": "Period for performance evaluation in months (3-24)"
+      },
+      "weight_delivery": {
+        "type": "number",
+        "required": false,
+        "default": 0.3,
+        "description": "Weight for delivery performance in evaluation (0.1-0.5)"
+      },
+      "weight_quality": {
+        "type": "number",
+        "required": false,
+        "default": 0.3,
+        "description": "Weight for quality metrics in evaluation (0.1-0.5)"
+      },
+      "weight_pricing": {
+        "type": "number",
+        "required": false,
+        "default": 0.25,
+        "description": "Weight for pricing competitiveness in evaluation (0.1-0.4)"
+      },
+      "weight_reliability": {
+        "type": "number",
+        "required": false,
+        "default": 0.15,
+        "description": "Weight for overall reliability in evaluation (0.1-0.3)"
+      }
+    },
+    "error_messages": [
+      "Invalid evaluation period: evaluation_period_months must be between 3 and 24.",
+      "Weight sum error: All weights must sum to 1.0 (±0.01 tolerance).",
+      "Invalid weight values: All weight parameters must be within their specified ranges.",
+      "Insufficient supplier data: Suppliers must have at least 3 transactions in evaluation period."
+    ],
+    "usage": "Input supplier IDs and adjust weight parameters to customize evaluation criteria. Higher weights emphasize specific performance aspects in the final ranking.",
+    "output_details": {
+      "supplier_rankings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Suppliers ranked from best to worst performance"
+      },
+      "overall_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Overall performance scores (0-100) for each supplier"
+      },
+      "performance_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Performance category ratings for each supplier"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Procurement recommendation based on evaluation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order Quantity Optimizer",
+    "tool_description": "Calculates optimal order quantities using Economic Order Quantity (EOQ) principles, considering demand, carrying costs, ordering costs, and supplier constraints.",
+    "parameters": {
+      "annual_demand": {
+        "type": "number",
+        "required": true,
+        "description": "Expected annual demand quantity"
+      },
+      "ordering_cost": {
+        "type": "number",
+        "required": true,
+        "description": "Cost per order placement"
+      },
+      "carrying_cost_rate": {
+        "type": "number",
+        "required": true,
+        "description": "Annual carrying cost rate as decimal (e.g., 0.25 for 25%)"
+      },
+      "unit_cost": {
+        "type": "number",
+        "required": true,
+        "description": "Cost per unit of product"
+      },
+      "minimum_order_quantity": {
+        "type": "number",
+        "required": false,
+        "default": 1,
+        "description": "Supplier minimum order quantity constraint"
+      },
+      "maximum_order_quantity": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Maximum order quantity constraint"
+      },
+      "quantity_discount_breakpoints": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "default": null,
+        "description": "Order quantities where volume discounts apply"
+      },
+      "discount_rates": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "default": null,
+        "description": "Discount rates corresponding to breakpoints"
+      }
+    },
+    "error_messages": [
+      "Invalid demand value: annual_demand must be greater than 0.",
+      "Invalid cost parameters: ordering_cost, carrying_cost_rate, and unit_cost must be greater than 0.",
+      "Constraint conflict: minimum_order_quantity cannot exceed maximum_order_quantity.",
+      "Discount mismatch: quantity_discount_breakpoints and discount_rates arrays must have same length.",
+      "Invalid carrying cost rate: carrying_cost_rate must be between 0.01 and 1.0."
+    ],
+    "usage": "Input demand and cost parameters to calculate EOQ. Include supplier constraints and volume discounts for more accurate optimization. The tool considers both EOQ theory and practical constraints.",
+    "output_details": {
+      "optimal_order_quantity": {
+        "type": "number",
+        "description": "Calculated optimal order quantity"
+      },
+      "total_annual_cost": {
+        "type": "number",
+        "description": "Total annual inventory cost with optimal quantity"
+      },
+      "order_frequency": {
+        "type": "number",
+        "description": "Recommended orders per year"
+      },
+      "cost_savings": {
+        "type": "number",
+        "description": "Annual cost savings compared to current ordering"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Purchase Order Generator",
+    "tool_description": "Creates formatted purchase orders with all required details including supplier information, quantities, pricing, delivery terms, and approval workflows.",
+    "parameters": {
+      "supplier_id": {
+        "type": "string",
+        "required": true,
+        "description": "Supplier identifier for the purchase order"
+      },
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Products to include in purchase order",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "quantities": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Order quantities for each product",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "unit_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Unit prices for each product",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "requested_delivery_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Requested delivery date for the order"
+      },
+      "payment_terms": {
+        "type": "string",
+        "required": false,
+        "default": "Net 30",
+        "description": "Payment terms for the purchase order"
+      },
+      "shipping_method": {
+        "type": "string",
+        "required": false,
+        "default": "Standard",
+        "description": "Preferred shipping method"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "default": "Normal",
+        "description": "Order priority: Low, Normal, High, Urgent"
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Special delivery or handling instructions"
+      },
+      "budget_code": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Budget or cost center code for accounting"
+      },
+      "requester_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of person requesting the purchase order"
+      },
+      "approval_required": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether order requires approval before sending"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: product_ids, quantities, and unit_prices must have the same length.",
+      "Invalid supplier: supplier_id not found in approved supplier list.",
+      "Invalid delivery date: requested_delivery_date must be in the future.",
+      "Invalid priority level: priority_level must be one of [Low, Normal, High, Urgent].",
+      "Invalid quantities: All quantities must be greater than 0.",
+      "Invalid prices: All unit_prices must be greater than 0."
+    ],
+    "usage": "Provide supplier, products, quantities, and prices to generate a purchase order. Include delivery requirements and approval settings. Arrays for products, quantities, and prices must have matching lengths.",
+    "output_details": {
+      "purchase_order_number": {
+        "type": "string",
+        "description": "Generated unique purchase order number"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Total monetary value of the purchase order"
+      },
+      "order_status": {
+        "type": "string",
+        "description": "Current status of the purchase order"
+      },
+      "approval_status": {
+        "type": "string",
+        "description": "Approval status if approval is required"
+      },
+      "estimated_delivery_date": {
+        "type": "string",
+        "description": "Estimated delivery date based on supplier lead time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cost Analyzer",
+    "tool_description": "Analyzes and compares costs across suppliers, products, and time periods to support procurement decisions and budget planning.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Products to analyze costs for",
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "supplier_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Suppliers to include in cost comparison"
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of cost analysis: total_cost, unit_cost, trend_analysis, supplier_comparison"
+      },
+      "time_period_months": {
+        "type": "integer",
+        "required": false,
+        "default": 6,
+        "description": "Time period for cost analysis in months (1-24)"
+      }
+    },
+    "error_messages": [
+      "Invalid analysis type: analysis_type must be one of [total_cost, unit_cost, trend_analysis, supplier_comparison].",
+      "Invalid time period: time_period_months must be between 1 and 24.",
+      "Insufficient cost data: Products must have pricing history for meaningful analysis.",
+      "Missing supplier data: supplier_comparison analysis requires supplier_ids parameter."
+    ],
+    "usage": "Select products and analysis type to generate cost insights. Use supplier_ids for comparative analysis and adjust time_period_months for trend analysis depth.",
+    "output_details": {
+      "cost_summary": {
+        "type": "string",
+        "description": "Summary of cost analysis results"
+      },
+      "average_costs": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Average costs for each analyzed product"
+      },
+      "cost_trends": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Cost trend descriptions for each product"
+      },
+      "savings_opportunities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Identified cost savings opportunities"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Level Monitor",
+    "tool_description": "Monitors current inventory levels against reorder points and generates alerts for products requiring replenishment or experiencing unusual stock movements.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Products to monitor stock levels for",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "reorder_points": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Reorder point quantities for each product",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "alert_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 1.1,
+        "description": "Alert when stock falls below this multiple of reorder point"
+      },
+      "include_forecasted_depletion": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Include projected stock depletion dates in monitoring"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: product_ids and reorder_points must have the same length.",
+      "Invalid alert threshold: alert_threshold must be greater than 0.",
+      "Product not found: One or more product IDs do not exist in inventory system.",
+      "Invalid reorder points: All reorder_points must be non-negative."
+    ],
+    "usage": "Provide products with their reorder points to monitor stock levels. Adjust alert_threshold to get earlier warnings, and enable include_forecasted_depletion for predictive alerts.",
+    "output_details": {
+      "reorder_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Products requiring immediate reordering"
+      },
+      "warning_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Products approaching reorder points"
+      },
+      "current_stock_levels": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Current stock quantities for monitored products"
+      },
+      "days_until_stockout": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Estimated days until stockout for each product"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Tracker",
+    "tool_description": "Tracks and reports key performance indicators for inventory management including stockout rates, order accuracy, supplier performance, and cost metrics.",
+    "parameters": {
+      "tracking_period_months": {
+        "type": "integer",
+        "required": true,
+        "description": "Period for performance tracking in months (1-12)"
+      },
+      "include_supplier_metrics": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Include supplier performance in tracking"
+      }
+    },
+    "error_messages": [
+      "Invalid tracking period: tracking_period_months must be between 1 and 12.",
+      "Insufficient data: Not enough historical data available for the specified tracking period."
+    ],
+    "usage": "Specify the tracking period to generate performance reports. Enable include_supplier_metrics to get comprehensive supplier performance data along with inventory KPIs.",
+    "output_details": {
+      "stockout_rate": {
+        "type": "number",
+        "description": "Percentage of time products were out of stock"
+      },
+      "order_accuracy_rate":

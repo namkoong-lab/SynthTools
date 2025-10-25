@@ -1,0 +1,870 @@
+field_name: ecommerce_and_retail
+subfield: Shipping and Logistics Coordination
+task: Integrate shipping data with order management and customer communication systems
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. It involves coordinating multiple systems (shipping, order management, customer communication), handling real-time data synchronization, managing various shipping carrier APIs, and ensuring accurate status updates across platforms. The complexity comes from data integration challenges, API reliability dependencies, and the critical need for accurate customer communications.
+
+  **STEP 2 — Set a tool budget**
+
+  For this medium complexity task, I'm targeting **12 tools** to cover the various integration points, data transformation needs, communication workflows, and monitoring requirements.
+
+  **STEP 3 — Tool names with dependencies and affordances**
+
+  1. **Shipping Carrier API Client** - Consumes: carrier credentials, tracking requests → Produces: raw shipping data, tracking statuses
+  2. **Order Status Synchronizer** - Consumes: order IDs, shipping statuses → Produces: synchronized order records
+  3. **Tracking Data Parser** - Consumes: raw carrier responses → Produces: normalized tracking events
+  4. **Customer Notification Generator** - Consumes: order data, templates → Produces: formatted notifications
+  5. **Delivery Exception Handler** - Consumes: exception events, policies → Produces: resolution actions, escalations
+  6. **Shipping Cost Calculator** - Consumes: package details, destinations → Produces: rate quotes, service options
+  7. **Order Fulfillment Validator** - Consumes: order data, inventory → Produces: validation results, shipping readiness
+  8. **Communication Channel Router** - Consumes: customer preferences, message types → Produces: channel-specific communications
+  9. **Shipping Label Generator** - Consumes: order details, carrier selection → Produces: shipping labels, documentation
+  10. **Delivery Performance Analyzer** - Consumes: historical shipping data → Produces: performance metrics, insights
+  11. **Integration Health Monitor** - Consumes: system statuses, error logs → Produces: health reports, alerts
+  12. **Shipment Consolidator** - Consumes: multiple orders, consolidation rules → Produces: optimized shipment groups
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Order Shipping**: Order Fulfillment Validator → Shipping Cost Calculator → Shipping Label Generator
+  2. **Customer Notification**: Tracking Data Parser → Customer Notification Generator → Communication Channel Router
+
+  **Medium Plans:**
+  1. **Exception Management**: Shipping Carrier API Client → Tracking Data Parser → Delivery Exception Handler → Customer Notification Generator → Communication Channel Router
+  2. **Order Processing Workflow**: Order Fulfillment Validator → Shipping Cost Calculator → Shipment Consolidator → Shipping Label Generator → Order Status Synchronizer
+
+  **Complex Plans:**
+  1. **Full Integration Pipeline**: Order Fulfillment Validator → Shipment Consolidator → Shipping Cost Calculator → Shipping Label Generator → Shipping Carrier API Client → Order Status Synchronizer → Tracking Data Parser → Customer Notification Generator → Communication Channel Router
+  2. **Monitoring & Optimization**: Integration Health Monitor → Delivery Performance Analyzer → Shipping Carrier API Client → Tracking Data Parser → Delivery Exception Handler → Order Status Synchronizer
+
+  **STEP 5 — Tool Specifications**
+
+  ```json
+  {
+    "tool_name": "Shipping Carrier API Client",
+    "tool_description": "Connects to various shipping carrier APIs to retrieve tracking information, create shipments, and manage carrier services. Handles authentication and rate limiting for multiple carriers.",
+    "parameters": {
+      "carrier_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the shipping carrier (UPS, FedEx, USPS, DHL, etc.)"
+      },
+      "api_key": {
+        "type": "string",
+        "required": true,
+        "description": "API authentication key for the carrier"
+      },
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "API operation to perform: track, create_shipment, get_rates, cancel_shipment"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": false,
+        "description": "Tracking number for track operations",
+        "default": "None"
+      },
+      "shipment_data": {
+        "type": "string",
+        "required": false,
+        "description": "JSON string containing shipment details for create operations",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid carrier name: Supported carriers are UPS, FedEx, USPS, DHL, OnTrac, LaserShip.",
+      "Authentication failed: Verify API key is valid and has necessary permissions.",
+      "Invalid operation: Use one of [track, create_shipment, get_rates, cancel_shipment].",
+      "Missing tracking number: tracking_number is required for track operations.",
+      "Invalid shipment data: shipment_data must be valid JSON for create_shipment operations.",
+      "Rate limit exceeded: Too many requests to carrier API, implement exponential backoff."
+    ],
+    "usage": "Specify carrier_name, api_key, and operation. For tracking, include tracking_number. For shipment creation, include shipment_data as JSON string.",
+    "output_details": {
+      "status": {
+        "type": "string",
+        "description": "API call status: success or error"
+      },
+      "response_data": {
+        "type": "string",
+        "description": "Raw JSON response from carrier API"
+      },
+      "tracking_events": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of tracking event descriptions"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Current delivery status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order Status Synchronizer",
+    "tool_description": "Synchronizes shipping status updates with order management system, ensuring consistent order states across all platforms.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the order"
+      },
+      "new_status": {
+        "type": "string",
+        "required": true,
+        "description": "New shipping status to update"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": false,
+        "description": "Tracking number associated with the shipment",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Order not found: The specified order_id does not exist in the system.",
+      "Invalid status: Status must be one of [pending, processing, shipped, in_transit, delivered, returned, cancelled].",
+      "Status transition not allowed: Cannot change from current status to specified new_status.",
+      "Database connection failed: Unable to connect to order management system."
+    ],
+    "usage": "Provide order_id and new_status. Optionally include tracking_number when updating to shipped or in_transit status.",
+    "output_details": {
+      "sync_status": {
+        "type": "string",
+        "description": "Synchronization result: success or failed"
+      },
+      "previous_status": {
+        "type": "string",
+        "description": "Previous order status before update"
+      },
+      "updated_timestamp": {
+        "type": "string",
+        "description": "Timestamp of status update"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tracking Data Parser",
+    "tool_description": "Parses and normalizes tracking data from different carriers into a standardized format for internal systems.",
+    "parameters": {
+      "raw_tracking_data": {
+        "type": "string",
+        "required": true,
+        "description": "Raw JSON tracking response from carrier API"
+      },
+      "carrier_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the carrier that provided the data"
+      },
+      "normalize_timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Target timezone for normalizing timestamps (e.g., UTC, EST)",
+        "default": "UTC"
+      }
+    },
+    "error_messages": [
+      "Invalid JSON format: raw_tracking_data must be valid JSON string.",
+      "Unsupported carrier: Parser not available for specified carrier_name.",
+      "Missing required fields: Tracking data lacks essential fields for parsing.",
+      "Invalid timezone: normalize_timezone must be a valid timezone identifier."
+    ],
+    "usage": "Pass raw_tracking_data from carrier API along with carrier_name. Optionally specify normalize_timezone for timestamp standardization.",
+    "output_details": {
+      "tracking_number": {
+        "type": "string",
+        "description": "Extracted tracking number"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "Current standardized delivery status"
+      },
+      "events": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of normalized tracking events with timestamps"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery date-time"
+      },
+      "last_update": {
+        "type": "string",
+        "description": "Timestamp of last tracking update"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Notification Generator",
+    "tool_description": "Generates personalized customer notifications for shipping updates, delivery confirmations, and exceptions based on templates and customer preferences.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer"
+      },
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order identifier for the notification"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification: shipped, in_transit, delivered, delayed, exception"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": false,
+        "description": "Tracking number to include in notification",
+        "default": "None"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "required": false,
+        "description": "Estimated delivery date-time",
+        "default": "None"
+      },
+      "exception_details": {
+        "type": "string",
+        "required": false,
+        "description": "Details about delivery exceptions or delays",
+        "default": "None"
+      },
+      "template_id": {
+        "type": "string",
+        "required": false,
+        "description": "Specific template ID to use for notification",
+        "default": "default"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Notification urgency: low, medium, high",
+        "default": "medium"
+      },
+      "include_tracking_link": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include carrier tracking link",
+        "default": true
+      },
+      "customer_name": {
+        "type": "string",
+        "required": false,
+        "description": "Customer name for personalization",
+        "default": "None"
+      },
+      "delivery_address": {
+        "type": "string",
+        "required": false,
+        "description": "Delivery address summary for confirmation",
+        "default": "None"
+      },
+      "support_contact": {
+        "type": "string",
+        "required": false,
+        "description": "Support contact information to include",
+        "default": "None"
+      },
+      "language_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Customer language preference (en, es, fr, etc.)",
+        "default": "en"
+      }
+    },
+    "error_messages": [
+      "Customer not found: The specified customer_id does not exist in the system.",
+      "Order not found: The specified order_id does not exist for this customer.",
+      "Invalid notification type: Must be one of [shipped, in_transit, delivered, delayed, exception].",
+      "Template not found: The specified template_id does not exist.",
+      "Invalid urgency level: Must be one of [low, medium, high].",
+      "Missing required data: exception_details required for exception notification type.",
+      "Invalid language: Language preference not supported."
+    ],
+    "usage": "Provide customer_id, order_id, and notification_type. Include relevant optional parameters based on notification type and desired personalization level.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for generated notification"
+      },
+      "message_subject": {
+        "type": "string",
+        "description": "Generated subject line for the notification"
+      },
+      "message_body": {
+        "type": "string",
+        "description": "Complete notification message content"
+      },
+      "recommended_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended delivery channels based on urgency and preferences"
+      },
+      "generated_timestamp": {
+        "type": "string",
+        "description": "When the notification was generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Exception Handler",
+    "tool_description": "Processes delivery exceptions and delays, determining appropriate resolution actions and escalation procedures.",
+    "parameters": {
+      "exception_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of exception: delayed, damaged, lost, refused, address_invalid, weather, customs"
+      },
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order identifier affected by exception"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Tracking number for the affected shipment"
+      },
+      "exception_details": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the exception"
+      },
+      "carrier_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the shipping carrier reporting the exception"
+      }
+    },
+    "error_messages": [
+      "Invalid exception type: Must be one of [delayed, damaged, lost, refused, address_invalid, weather, customs].",
+      "Order not found: The specified order_id does not exist in the system.",
+      "Invalid tracking number: Tracking number format is invalid for the specified carrier.",
+      "Missing exception details: exception_details cannot be empty.",
+      "Unsupported carrier: Exception handling not configured for this carrier."
+    ],
+    "usage": "Provide exception_type, order_id, tracking_number, exception_details, and carrier_name to process delivery exceptions and generate resolution actions.",
+    "output_details": {
+      "resolution_action": {
+        "type": "string",
+        "description": "Recommended action to resolve the exception"
+      },
+      "escalation_required": {
+        "type": "boolean",
+        "description": "Whether the exception requires human escalation"
+      },
+      "customer_notification_needed": {
+        "type": "boolean",
+        "description": "Whether customer should be notified of the exception"
+      },
+      "estimated_resolution_time": {
+        "type": "string",
+        "description": "Estimated time to resolve the exception"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Cost Calculator",
+    "tool_description": "Calculates shipping costs and delivery options for orders based on package dimensions, weight, destination, and carrier services.",
+    "parameters": {
+      "origin_address": {
+        "type": "string",
+        "required": true,
+        "description": "Origin address or postal code"
+      },
+      "destination_address": {
+        "type": "string",
+        "required": true,
+        "description": "Destination address or postal code"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Package weight in pounds"
+      },
+      "package_length": {
+        "type": "number",
+        "required": true,
+        "description": "Package length in inches"
+      },
+      "package_width": {
+        "type": "number",
+        "required": true,
+        "description": "Package width in inches"
+      },
+      "package_height": {
+        "type": "number",
+        "required": true,
+        "description": "Package height in inches"
+      },
+      "carriers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of carriers to get quotes from",
+        "default": ["UPS", "FedEx", "USPS"]
+      }
+    },
+    "error_messages": [
+      "Invalid address: Origin or destination address cannot be validated.",
+      "Package dimensions exceed limits: Package too large for standard shipping.",
+      "Weight exceeds limits: Package weight exceeds carrier maximum.",
+      "No carriers specified: At least one carrier must be included in carriers array.",
+      "Unsupported carrier: One or more carriers in the list are not supported."
+    ],
+    "usage": "Provide package dimensions, weight, origin and destination addresses. Optionally specify which carriers to get quotes from.",
+    "output_details": {
+      "shipping_options": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of available shipping options with costs and transit times"
+      },
+      "lowest_cost_option": {
+        "type": "string",
+        "description": "Cheapest shipping option available"
+      },
+      "fastest_option": {
+        "type": "string",
+        "description": "Fastest shipping option available"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order Fulfillment Validator",
+    "tool_description": "Validates orders for shipping readiness by checking inventory availability, address validity, and payment status.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the order to validate"
+      },
+      "check_inventory": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to verify inventory availability",
+        "default": true
+      },
+      "validate_address": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate shipping address",
+        "default": true
+      },
+      "check_payment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to verify payment status",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Order not found: The specified order_id does not exist in the system.",
+      "Invalid order status: Order is not in a state that allows fulfillment validation.",
+      "Validation service unavailable: One or more validation services are temporarily unavailable."
+    ],
+    "usage": "Provide order_id and optionally specify which validation checks to perform using the boolean parameters.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: passed, failed, or warning"
+      },
+      "inventory_status": {
+        "type": "string",
+        "description": "Inventory availability status"
+      },
+      "address_status": {
+        "type": "string",
+        "description": "Address validation result"
+      },
+      "payment_status": {
+        "type": "string",
+        "description": "Payment verification status"
+      },
+      "issues_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation issues that need resolution"
+      },
+      "ready_to_ship": {
+        "type": "boolean",
+        "description": "Whether the order is ready for shipping"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Communication Channel Router",
+    "tool_description": "Routes customer notifications to appropriate communication channels based on customer preferences and message urgency.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer"
+      },
+      "message_content": {
+        "type": "string",
+        "required": true,
+        "description": "The notification message to be sent"
+      },
+      "message_subject": {
+        "type": "string",
+        "required": true,
+        "description": "Subject line for the notification"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": true,
+        "description": "Message urgency: low, medium, high"
+      },
+      "preferred_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Override customer's default channel preferences",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Customer not found: The specified customer_id does not exist in the system.",
+      "Invalid urgency level: Must be one of [low, medium, high].",
+      "No available channels: Customer has no configured communication channels.",
+      "Channel service unavailable: One or more communication services are down.",
+      "Invalid channel: One or more channels in preferred_channels are not supported."
+    ],
+    "usage": "Provide customer_id, message_content, message_subject, and urgency_level. Optionally override channel preferences with preferred_channels array.",
+    "output_details": {
+      "delivery_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Channels where the message will be delivered"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Overall delivery status: sent, failed, or partial"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "When the message was sent"
+      },
+      "channel_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Individual delivery results for each channel"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Label Generator",
+    "tool_description": "Generates shipping labels and related documentation for packages using carrier APIs and order information.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the order"
+      },
+      "carrier_name": {
+        "type": "string",
+        "required": true,
+        "description": "Selected shipping carrier"
+      },
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping service type (ground, express, overnight, etc.)"
+      },
+      "label_format": {
+        "type": "string",
+        "required": false,
+        "description": "Label format: PDF, PNG, ZPL",
+        "default": "PDF"
+      },
+      "include_return_label": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to generate a return label",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Order not found: The specified order_id does not exist in the system.",
+      "Invalid carrier: Carrier not supported or not configured for label generation.",
+      "Invalid service type: Service type not available for the selected carrier.",
+      "Label generation failed: Carrier API error during label creation.",
+      "Unsupported label format: Format must be one of [PDF, PNG, ZPL]."
+    ],
+    "usage": "Provide order_id, carrier_name, and service_type. Optionally specify label_format and whether to include_return_label.",
+    "output_details": {
+      "tracking_number": {
+        "type": "string",
+        "description": "Generated tracking number for the shipment"
+      },
+      "label_url": {
+        "type": "string",
+        "description": "URL to download the shipping label"
+      },
+      "return_label_url": {
+        "type": "string",
+        "description": "URL to download return label if requested"
+      },
+      "shipment_cost": {
+        "type": "number",
+        "description": "Total cost of the shipment"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Performance Analyzer",
+    "tool_description": "Analyzes historical shipping and delivery data to provide insights on carrier performance, delivery times, and service quality metrics.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period",
+        "format": "date-time"
+      },
+      "carriers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of carriers to analyze",
+        "default": ["UPS", "FedEx", "USPS"]
+      },
+      "metrics": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Metrics to calculate",
+        "default": ["delivery_time", "on_time_rate", "exception_rate", "cost_efficiency"]
+      }
+    },
+    "error_messages": [
+      "Invalid date range: end_date must be after start_date.",
+      "Date range too large: Analysis period cannot exceed 1 year.",
+      "No data available: No shipping data found for the specified period and carriers.",
+      "Invalid metric: Supported metrics are [delivery_time, on_time_rate, exception_rate, cost_efficiency, customer_satisfaction]."
+    ],
+    "usage": "Specify start_date and end_date for analysis. Optionally filter by carriers and specify which metrics to calculate.",
+    "output_details": {
+      "analysis_summary": {
+        "type": "string",
+        "description": "Executive summary of performance analysis"
+      },
+      "carrier_rankings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Carriers ranked by overall performance"
+      },
+      "performance_metrics": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed performance metrics for each carrier"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommendations for improving shipping performance"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Integration Health Monitor",
+    "tool_description": "Monitors the health and performance of shipping integrations, tracking API response times, error rates, and system connectivity.",
+    "parameters": {
+      "check_carriers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check carrier API health",
+        "default": true
+      },
+      "check_databases": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check database connectivity",
+        "default": true
+      },
+      "alert_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Error rate percentage that triggers alerts",
+        "default": 5.0
+      }
+    },
+    "error_messages": [
+      "Invalid alert threshold: Must be between 0 and 100.",
+      "Monitoring service unavailable: Unable to connect to monitoring infrastructure.",
+      "Insufficient permissions: Monitor does not have access to check all requested systems."
+    ],
+    "usage": "Optionally specify which systems to check and set alert_threshold for error rate monitoring.",
+    "output_details": {
+      "overall_health": {
+        "type": "string",
+        "description": "Overall system health status: healthy, degraded, or critical"
+      },
+      "carrier_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Health status for each carrier integration"
+      },
+      "database_status": {
+        "type": "string",
+        "description": "Database connectivity and performance status"
+      },
+      "alerts_triggered": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of active alerts and issues"
+      },
+      "response_times": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Average response times for each integrated service"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipment Consolidator",
+    "tool_description": "Analyzes multiple orders to determine optimal shipment consolidation opportunities based on destination, timing, and cost efficiency.",
+    "parameters": {
+      "order_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of order IDs to consider for consolidation"
+      },
+      "consolidation_rules": {
+        "type": "string",
+        "required": true,
+        "description": "Consolidation strategy: same_customer, same_address, geographic_proximity, cost_optimization"
+      },
+      "max_delay_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum hours an order can be delayed for consolidation",
+        "default": 24
+      },
+      "proximity_radius": {
+        "type": "number",
+        "required": false,
+        "description": "Radius in miles for geographic proximity consolidation",
+        "default": 10.0
+      },
+      "min_savings_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum cost savings percentage required for consolidation",
+        "default": 15.0
+      }
+    },
+    "error_messages": [
+      "No orders provided: order_ids array cannot be empty.",
+      "Invalid consolidation rule: Must be one of [same_customer, same_address, geographic_proximity, cost_optimization].",
+      "Orders not found: One or more order_ids do not exist in the system.",
+      "Invalid parameter values: max_delay_hours must be positive, proximity_radius and min_savings_percent must be greater than 0."
+    ],
+    "usage": "Provide array of order_ids and consolidation_rules. Adjust optional parameters to fine-tune consolidation criteria.",
+    "output_details": {
+      "consolidation_groups": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Groups of orders recommended for consolidation"
+      },
+      "estimated_savings": {
+        "type": "number",
+        "description": "Total estimated cost savings from consolidation"
+      },
+      "processing_delays": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Expected delays for each consolidated group"
+      },
+      "individual_orders": {
+        "type": "array",
+        "items": {

@@ -1,0 +1,733 @@
+field_name: databases
+subfield: Database Schema Design and Modeling
+task: Generate database migration scripts and version control schema changes
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. It involves coordinating schema changes across multiple database objects with complex dependencies, requires understanding of database-specific syntax and constraints, and has high risk of data loss or corruption if migrations are improperly generated or applied.
+
+  **STEP 2 — Set a tool budget**
+
+  For a medium difficulty task, I'll target **12 tools** to cover the various aspects of schema migration generation, validation, and version control.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Schema Extractor** - Consumes: database connection info → Produces: current schema metadata
+  2. **Schema Differ** - Consumes: two schema definitions → Produces: change detection results
+  3. **Migration Script Generator** - Consumes: schema changes, target database type → Produces: SQL migration scripts
+  4. **Dependency Analyzer** - Consumes: schema objects → Produces: dependency graph and order
+  5. **Migration Validator** - Consumes: migration scripts, schema metadata → Produces: validation results
+  6. **Rollback Script Generator** - Consumes: migration scripts, current schema → Produces: rollback scripts
+  7. **Version Control Integration** - Consumes: migration files, version info → Produces: versioned migration files
+  8. **Data Impact Analyzer** - Consumes: migration scripts, table metadata → Produces: data impact assessment
+  9. **Database Compatibility Checker** - Consumes: migration scripts, database versions → Produces: compatibility report
+  10. **Migration Batch Organizer** - Consumes: multiple migrations, dependencies → Produces: organized migration batches
+  11. **Schema Backup Generator** - Consumes: database connection, schema objects → Produces: backup scripts
+  12. **Migration Documentation Generator** - Consumes: migration scripts, change descriptions → Produces: documentation
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - **Basic Schema Change**: Schema Extractor → Schema Differ → Migration Script Generator
+  - **Migration Validation**: Migration Validator → Database Compatibility Checker
+
+  **Medium Plans:**
+  - **Safe Migration Workflow**: Schema Extractor → Schema Differ → Dependency Analyzer → Migration Script Generator → Rollback Script Generator → Migration Validator
+  - **Version Control Integration**: Migration Script Generator → Version Control Integration → Migration Documentation Generator
+
+  **Complex Plans:**
+  - **Enterprise Migration Pipeline**: Schema Extractor → Schema Differ → Dependency Analyzer → Data Impact Analyzer → Migration Script Generator → Rollback Script Generator → Migration Validator → Database Compatibility Checker → Migration Batch Organizer → Schema Backup Generator → Version Control Integration → Migration Documentation Generator
+  - **Multi-Database Migration**: Schema Extractor → Schema Differ → Database Compatibility Checker → Migration Script Generator (multiple calls) → Migration Batch Organizer → Version Control Integration
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Schema Extractor",
+    "tool_description": "Extracts current database schema metadata including tables, columns, indexes, constraints, and relationships from a database connection.",
+    "parameters": {
+      "connection_string": {
+        "type": "string",
+        "required": true,
+        "description": "Database connection string with credentials and endpoint information"
+      },
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of database system (postgresql, mysql, oracle, sqlserver, sqlite)"
+      },
+      "schema_name": {
+        "type": "string",
+        "required": false,
+        "description": "Specific schema/database name to extract (if applicable)",
+        "default": "None"
+      },
+      "include_data_types": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include detailed column data type information",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Connection failed: Unable to connect to database. Verify connection string format and network accessibility.",
+      "Invalid database type: Supported types are postgresql, mysql, oracle, sqlserver, sqlite.",
+      "Schema not found: The specified schema_name does not exist in the database.",
+      "Insufficient permissions: Database user lacks required permissions to read schema metadata."
+    ],
+    "usage": "Provide connection_string and database_type to extract schema metadata. Optionally specify schema_name for multi-schema databases and set include_data_types to control detail level.",
+    "output_details": {
+      "schema_metadata": {
+        "type": "string",
+        "description": "JSON-formatted string containing complete schema structure"
+      },
+      "table_count": {
+        "type": "integer",
+        "description": "Total number of tables extracted"
+      },
+      "extraction_timestamp": {
+        "type": "string",
+        "description": "Timestamp when extraction was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schema Differ",
+    "tool_description": "Compares two database schemas and identifies differences in tables, columns, indexes, constraints, and other database objects.",
+    "parameters": {
+      "source_schema": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string representing the source/current schema metadata"
+      },
+      "target_schema": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string representing the target/desired schema metadata"
+      },
+      "ignore_case": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to ignore case differences in object names",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid schema format: Source or target schema is not valid JSON or missing required fields.",
+      "Schema parsing error: Unable to parse schema metadata structure.",
+      "Empty schema provided: Both source and target schemas must contain valid metadata."
+    ],
+    "usage": "Provide source_schema and target_schema as JSON strings from Schema Extractor. Set ignore_case to true for case-insensitive comparison.",
+    "output_details": {
+      "added_tables": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of table names that need to be created"
+      },
+      "dropped_tables": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of table names that need to be dropped"
+      },
+      "modified_tables": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of table names that have structural changes"
+      },
+      "change_summary": {
+        "type": "string",
+        "description": "Human-readable summary of all detected changes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Migration Script Generator",
+    "tool_description": "Generates SQL migration scripts based on schema differences and target database type with support for various database systems and migration patterns.",
+    "parameters": {
+      "schema_changes": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing schema differences from Schema Differ"
+      },
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Target database system (postgresql, mysql, oracle, sqlserver, sqlite)"
+      },
+      "migration_strategy": {
+        "type": "string",
+        "required": true,
+        "description": "Migration approach (safe, fast, minimal_downtime)"
+      },
+      "include_transactions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to wrap migration in database transactions",
+        "default": true
+      },
+      "add_comments": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include explanatory comments in generated SQL",
+        "default": true
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of operations per migration batch (1-1000)",
+        "default": 100
+      },
+      "preserve_data": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to generate data preservation logic for destructive changes",
+        "default": true
+      },
+      "custom_naming_pattern": {
+        "type": "string",
+        "required": false,
+        "description": "Custom naming pattern for generated objects (e.g., temp tables)",
+        "default": "None"
+      },
+      "compatibility_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Database version compatibility mode (latest, legacy, strict)",
+        "default": "latest"
+      },
+      "include_indexes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include index creation/modification in migration",
+        "default": true
+      },
+      "foreign_key_checks": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to temporarily disable foreign key checks during migration",
+        "default": false
+      },
+      "collation_handling": {
+        "type": "string",
+        "required": false,
+        "description": "How to handle collation differences (preserve, convert, ignore)",
+        "default": "preserve"
+      }
+    },
+    "error_messages": [
+      "Invalid schema changes format: Provide valid JSON from Schema Differ output.",
+      "Unsupported database type: Use postgresql, mysql, oracle, sqlserver, or sqlite.",
+      "Invalid migration strategy: Use safe, fast, or minimal_downtime.",
+      "Batch size out of range: batch_size must be between 1 and 1000.",
+      "Incompatible options: Some parameter combinations are not supported for the selected database type.",
+      "Invalid compatibility mode: Use latest, legacy, or strict.",
+      "Invalid collation handling: Use preserve, convert, or ignore."
+    ],
+    "usage": "Provide schema_changes from Schema Differ, specify database_type and migration_strategy. Customize behavior with optional parameters for transactions, comments, batching, and database-specific features.",
+    "output_details": {
+      "migration_sql": {
+        "type": "string",
+        "description": "Complete SQL migration script"
+      },
+      "operation_count": {
+        "type": "integer",
+        "description": "Total number of database operations in the migration"
+      },
+      "estimated_duration": {
+        "type": "string",
+        "description": "Estimated execution time for the migration"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of potential issues or warnings about the migration"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dependency Analyzer",
+    "tool_description": "Analyzes database object dependencies and determines the correct order for creating, modifying, or dropping schema objects.",
+    "parameters": {
+      "schema_metadata": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing database schema structure"
+      },
+      "operation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of operation being analyzed (create, drop, modify)"
+      },
+      "include_circular_detection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to detect and report circular dependencies",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid schema metadata: Provide valid JSON schema structure.",
+      "Invalid operation type: Use create, drop, or modify.",
+      "Circular dependency detected: Schema contains circular references that must be resolved.",
+      "Missing dependency information: Schema metadata lacks required relationship information."
+    ],
+    "usage": "Provide schema_metadata and specify operation_type to analyze dependencies. Enable include_circular_detection to identify problematic circular references.",
+    "output_details": {
+      "execution_order": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Ordered list of database objects for safe execution"
+      },
+      "dependency_graph": {
+        "type": "string",
+        "description": "JSON representation of the complete dependency graph"
+      },
+      "circular_dependencies": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of detected circular dependency chains"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Migration Validator",
+    "tool_description": "Validates migration scripts for syntax correctness, logical consistency, and potential issues before execution.",
+    "parameters": {
+      "migration_sql": {
+        "type": "string",
+        "required": true,
+        "description": "SQL migration script to validate"
+      },
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Target database system for syntax validation"
+      },
+      "check_syntax": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform SQL syntax validation",
+        "default": true
+      },
+      "check_logic": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform logical consistency checks",
+        "default": true
+      },
+      "strict_mode": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply strict validation rules",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Empty migration script: Provide a valid SQL migration script.",
+      "Invalid database type: Specify a supported database system.",
+      "Syntax error detected: Migration contains SQL syntax errors that must be fixed.",
+      "Logic error detected: Migration contains logical inconsistencies."
+    ],
+    "usage": "Provide migration_sql and database_type for validation. Enable check_syntax and check_logic as needed, use strict_mode for comprehensive validation.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the migration passed all validation checks"
+      },
+      "syntax_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of detected syntax errors"
+      },
+      "logic_warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of logical consistency warnings"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Overall validation result summary"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Rollback Script Generator",
+    "tool_description": "Generates rollback SQL scripts that can reverse the effects of migration scripts, ensuring safe recovery options.",
+    "parameters": {
+      "migration_sql": {
+        "type": "string",
+        "required": true,
+        "description": "Original migration script to create rollback for"
+      },
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Database system type for rollback script generation"
+      },
+      "preserve_data": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include data preservation logic in rollback",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid migration script: Provide a valid SQL migration script.",
+      "Unsupported database type: Specify a supported database system.",
+      "Non-reversible operation: Migration contains operations that cannot be automatically reversed.",
+      "Rollback generation failed: Unable to generate complete rollback script."
+    ],
+    "usage": "Provide migration_sql and database_type to generate corresponding rollback script. Set preserve_data to control data handling in rollback operations.",
+    "output_details": {
+      "rollback_sql": {
+        "type": "string",
+        "description": "Complete SQL rollback script"
+      },
+      "reversible_operations": {
+        "type": "integer",
+        "description": "Number of operations that can be automatically reversed"
+      },
+      "manual_steps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of operations requiring manual intervention for rollback"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Version Control Integration",
+    "tool_description": "Integrates migration scripts with version control systems, managing migration file naming, versioning, and metadata.",
+    "parameters": {
+      "migration_content": {
+        "type": "string",
+        "required": true,
+        "description": "Migration script content to version"
+      },
+      "version_number": {
+        "type": "string",
+        "required": true,
+        "description": "Version identifier for the migration"
+      },
+      "description": {
+        "type": "string",
+        "required": true,
+        "description": "Human-readable description of the migration"
+      },
+      "author": {
+        "type": "string",
+        "required": true,
+        "description": "Author of the migration"
+      },
+      "migration_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of migration (schema, data, index, constraint)",
+        "default": "schema"
+      },
+      "tags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Optional tags for categorizing the migration",
+        "default": "None"
+      },
+      "dependencies": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "List of migration versions this migration depends on",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty migration content: Provide valid migration script content.",
+      "Invalid version format: Version number must follow semantic versioning or timestamp format.",
+      "Missing description: Provide a meaningful description for the migration.",
+      "Invalid migration type: Use schema, data, index, or constraint.",
+      "Duplicate version: The specified version number already exists."
+    ],
+    "usage": "Provide migration_content, version_number, description, and author to create versioned migration file. Optionally specify migration_type, tags, and dependencies for better organization.",
+    "output_details": {
+      "filename": {
+        "type": "string",
+        "description": "Generated migration filename following naming conventions"
+      },
+      "file_content": {
+        "type": "string",
+        "description": "Complete migration file content with metadata headers"
+      },
+      "metadata": {
+        "type": "string",
+        "description": "JSON metadata about the migration"
+      },
+      "checksum": {
+        "type": "string",
+        "description": "Hash checksum for migration integrity verification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Impact Analyzer",
+    "tool_description": "Analyzes migration scripts to assess potential impact on existing data, including data loss risks and transformation requirements.",
+    "parameters": {
+      "migration_sql": {
+        "type": "string",
+        "required": true,
+        "description": "Migration script to analyze for data impact"
+      },
+      "table_metadata": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing current table structure and data statistics"
+      },
+      "check_data_loss": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check for potential data loss scenarios",
+        "default": true
+      },
+      "estimate_affected_rows": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to estimate number of affected rows",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid migration script: Provide valid SQL migration content.",
+      "Invalid table metadata: Provide valid JSON table structure information.",
+      "Analysis failed: Unable to complete data impact analysis.",
+      "Missing table information: Required table metadata is incomplete."
+    ],
+    "usage": "Provide migration_sql and table_metadata to analyze data impact. Enable check_data_loss and estimate_affected_rows for comprehensive analysis.",
+    "output_details": {
+      "risk_level": {
+        "type": "string",
+        "description": "Overall risk assessment (low, medium, high)"
+      },
+      "affected_tables": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of tables that will be affected by the migration"
+      },
+      "data_loss_warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Specific warnings about potential data loss"
+      },
+      "estimated_affected_rows": {
+        "type": "integer",
+        "description": "Estimated number of rows that will be affected"
+      },
+      "backup_recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended backup strategies before migration"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Database Compatibility Checker",
+    "tool_description": "Verifies migration script compatibility across different database versions and identifies version-specific issues.",
+    "parameters": {
+      "migration_sql": {
+        "type": "string",
+        "required": true,
+        "description": "Migration script to check for compatibility"
+      },
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Database system type"
+      },
+      "target_versions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of database versions to check compatibility against"
+      }
+    },
+    "error_messages": [
+      "Empty migration script: Provide valid SQL migration content.",
+      "Unsupported database type: Specify a supported database system.",
+      "Invalid version format: Database versions must be in proper format (e.g., 13.2, 8.0.25).",
+      "Compatibility check failed: Unable to complete compatibility analysis."
+    ],
+    "usage": "Provide migration_sql, database_type, and target_versions array to check compatibility across different database versions.",
+    "output_details": {
+      "overall_compatible": {
+        "type": "boolean",
+        "description": "Whether migration is compatible with all target versions"
+      },
+      "compatible_versions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of versions where migration is fully compatible"
+      },
+      "incompatible_versions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of versions with compatibility issues"
+      },
+      "version_specific_issues": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed list of version-specific compatibility problems"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Migration Batch Organizer",
+    "tool_description": "Organizes multiple migration scripts into logical batches based on dependencies, risk levels, and execution strategies.",
+    "parameters": {
+      "migration_scripts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of migration script contents to organize into batches"
+      },
+      "dependency_graph": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing migration dependencies"
+      },
+      "batch_strategy": {
+        "type": "string",
+        "required": true,
+        "description": "Batching strategy (sequential, parallel, risk_based, size_based)"
+      },
+      "max_batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of migrations per batch (1-50)",
+        "default": 10
+      },
+      "risk_tolerance": {
+        "type": "string",
+        "required": false,
+        "description": "Risk tolerance level (conservative, moderate, aggressive)",
+        "default": "moderate"
+      }
+    },
+    "error_messages": [
+      "Empty migration list: Provide at least one migration script.",
+      "Invalid dependency graph: Provide valid JSON dependency information.",
+      "Invalid batch strategy: Use sequential, parallel, risk_based, or size_based.",
+      "Batch size out of range: max_batch_size must be between 1 and 50.",
+      "Invalid risk tolerance: Use conservative, moderate, or aggressive.",
+      "Dependency resolution failed: Unable to resolve migration dependencies."
+    ],
+    "usage": "Provide migration_scripts array, dependency_graph, and batch_strategy. Optionally set max_batch_size and risk_tolerance to control batching behavior.",
+    "output_details": {
+      "batch_count": {
+        "type": "integer",
+        "description": "Total number of migration batches created"
+      },
+      "batch_plan": {
+        "type": "string",
+        "description": "JSON representation of the complete batch execution plan"
+      },
+      "execution_order": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Ordered list of batch identifiers for execution"
+      },
+      "parallel_batches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Batches that can be executed in parallel"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schema Backup Generator",
+    "tool_description": "Generates comprehensive backup scripts for database schemas and optionally data before migration execution.",
+    "parameters": {
+      "connection_string": {
+        "type": "string",
+        "required": true,
+        "description": "Database connection string for backup source"
+      },
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Database system type for backup generation"
+      },
+      "backup_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of backup (schema_only, data_only, full)"
+      },
+      "schema_objects": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Specific schema objects to backup (empty for all)",
+        "default": "None"
+      },
+      "include_permissions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include user permissions in backup",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid connection string: Unable to parse or connect using provided connection string.",
+      "Unsupported database type: Specify a supported database system.",
+      "Invalid backup type: Use schema_only, data_only, or full.",
+      "Schema object not found: One or more specified schema objects do not exist.",
+      "Insufficient permissions: Database user lacks permissions for backup operations."
+    ],
+    "usage": "Provide connection_string, database_type, and backup_type. Optionally specify schema_objects for selective backup and set include_permissions as needed.",
+    "output_details": {
+      "backup_script": {
+        "type": "string",
+        "description": "Complete SQL backup script"
+      },
+      "backup_size_estimate": {
+        "type": "string",
+        "description": "Estimated size of the backup"
+      },
+      "backup_timestamp": {
+        "type": "string",
+        "description": "Timestamp when backup was generated"
+      },
+      "included_objects": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of database objects included in the backup"
+      }
+    }
+  }
+  ```

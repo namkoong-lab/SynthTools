@@ -1,0 +1,82 @@
+schema:
+  type: object
+  properties:
+    tool_set_yml:
+      type: string
+template: |
+  
+  I will provide you data containing:
+  (1) A field, subfield and task within subfield
+  (2) Task difficulty, tool budget (number of tools)
+  (3) list of all tool names and their dependencies
+  (4) some multi tool plans
+      - simple workflows (2 or more)
+      - medium workflows (2 or more)
+      - complex workflows (2 or more)
+  (5) tool details
+
+  These details are used to construct tool-use task environments:
+
+  - Agent needs to solve the task by calling some tools
+
+  - Tool simulator needs to respond to the tool calls made and meta-data provided to it. Basically tool-simulator when given with a tool-call looks into the meta-data, search and return relevant information. 
+
+
+  Your job is to:
+
+  1. **Generate meta-data** in JSON format that can support all levels of multi-tool plans (simple, medium, complex) that have been provided: 
+      
+      - The meta-data should be structured so that a tool-simulator can look into it and validate tool-calls:
+        - For example, multiple (products or records or user etc.), depedending on what the requirement of tools plans are.
+        - It is possible to execute same tool plan but with different specific data.
+        - Aim that tool-simulator when given with a tool-call needs to look into the meta-data, search and return relevant information.
+        - Any output of a correct tool-call should be included in the meta-data. The tool simulator should be able to only look into the metadata and output the right ones.
+      - Generate **complex**  meta-data 
+        - Add substantially more number of products or records or users etc. (depending on the above details given) than needed in tasks. This isto ensure that tool-simulator when called needs to look into the meta-data, search and return relevant information
+        - Strictly ensure that all necessary inputs and outputs for every listed tool are embedded in the meta-data itself.
+        - Strictly ensure that all the necessary information is there in the meta data and no external data (CSV files, Excel sheets, images, tables etc.) is needed for the tasks you will construct in the next step. 
+        - You can structure the meta data, whatever way you want - just ensure that all the data needed in the inputs and outputs for the tools (while solving the task) is given in the meta data. 
+      - Include:
+        - `field_name`, `subfield`, and `task`.
+        - `tool_budget` (max number of tools that can be called).
+        - `tool_sequences` for different workflow types (`easy`, `medium`, `complex`).
+      
+      
+  2. **Generate multiple specific tasks** for an agent to execute using this tools and associated meta-data (note that meta-data will only be available to the tool simulator and not the agent)
+    
+    - For each multi-tool plan within (simple, medium, complex) workflows generate:
+      - Two tasks that are **valid** (can be completed with the given tools).
+      - Two tasks that are **invalid** (require missing tools or break rules).
+    - Tool selection rules (schema-only, YAML-agnostic):
+      - Identify allowed tools by scanning the provided data for tools with complete JSON schemas (must include "tool_name" and a "parameters" object). Do not assume a fixed section name.
+      - Use ONLY these allowed tools in `tool_sequences` and in each task's `tools_required`.
+      - If any example workflow mentions a tool without a JSON schema, replace it with a semantically similar allowed tool or omit it.
+      - Before finalizing, verify every tool name in `tool_sequences` and `tools_required` belongs to the allowed set; if not, correct it.
+    - Agent visibility and grounding:
+      - The agent does not have access to the meta-data; only the tool-simulator does.
+      - Every required tool-call argument must be grounded in the task text or in outputs produced by earlier tool-calls in the same task.
+      - If a required argument cannot be derived from earlier tool outputs, include that value explicitly in the task text (e.g., customer_id, original_transaction_id, original_payment_method, tax_rate, shipping_cost, item_ids, quantities, prices, return_reason, carrier/service, warehouse_id).
+      - Do not assume hidden values from the meta-data.
+    - Mathematical consistency and data validation:
+      - Cross-reference all values mentioned in tasks with the actual meta-data.
+      - Ensure all mathematical calculations are correct.
+    - For each task mention the number of tools required, if a tool is required mutiple times, use the total number of unique tools required.
+    - Write tasks in natural language, as instructions for an agent.
+    - Mark whether the task can be solved or not.
+    - **Valid** tasks must be fully executable by an Agent and Tool simulator without requiring any extra files apart from the meta data.
+    - Tasks can required same tool multiple times, but the total number of unique tools required should be mentioned.
+    - Write each task as:
+      {{Task: "tasks in natural language, as instructions for an agent", Task-difficulty: "difficulty of the task", Number-tools-required: "number of tools required", Tools-required:"array of tools required to solve this task", Task-vaidity: "whether the taks is valid or not"}}
+
+
+  3. Output format:
+    - **Meta-data JSON** (for the tool-simulator).
+    - **Task List** (natural language tasks with difficulty labels) for the agent.
+
+  IMPORTANT: Keep total response under 15,000 tokens. Prioritize essential data over exhaustive examples.
+  
+  Now, generate the output:
+  
+  Data:
+  {Data}
+

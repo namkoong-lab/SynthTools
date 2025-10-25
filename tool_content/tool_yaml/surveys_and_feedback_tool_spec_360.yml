@@ -1,0 +1,842 @@
+field_name: surveys_and_feedback
+subfield: employee_engagement_assessment
+task: Distribute surveys through multiple channels and manage participant communication and reminders
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves medium complexity due to managing multiple communication channels simultaneously, coordinating participant tracking across different platforms, handling various response scenarios, and ensuring proper timing of reminders while maintaining engagement without over-communication.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools to cover channel management, participant tracking, communication scheduling, and response monitoring with adequate granularity for composability.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and Dependencies:**
+  1. **Survey Channel Creator** - Consumes: survey content, channel specs → Produces: channel-specific survey links
+  2. **Participant List Manager** - Consumes: participant data → Produces: organized participant records
+  3. **Channel Distribution Launcher** - Consumes: survey links, participant lists → Produces: distribution confirmations
+  4. **Response Tracker** - Consumes: channel responses → Produces: response status data
+  5. **Reminder Scheduler** - Consumes: participant status, timing rules → Produces: scheduled reminder tasks
+  6. **Email Reminder Sender** - Consumes: reminder tasks, email templates → Produces: email delivery status
+  7. **SMS Reminder Sender** - Consumes: reminder tasks, SMS templates → Produces: SMS delivery status
+  8. **Push Notification Sender** - Consumes: reminder tasks, notification content → Produces: push delivery status
+  9. **Response Rate Monitor** - Consumes: response data, targets → Produces: performance metrics
+  10. **Communication History Tracker** - Consumes: all communication events → Produces: participant communication logs
+  11. **Channel Performance Analyzer** - Consumes: response data by channel → Produces: channel effectiveness metrics
+  12. **Reminder Optimization Engine** - Consumes: response patterns, communication history → Produces: optimized reminder strategies
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - **Basic Survey Launch**: Survey Channel Creator → Participant List Manager → Channel Distribution Launcher
+  - **Response Monitoring**: Response Tracker → Response Rate Monitor → Channel Performance Analyzer
+
+  **Medium Plans:**
+  - **Automated Reminder Campaign**: Response Tracker → Reminder Scheduler → Email Reminder Sender → Communication History Tracker
+  - **Multi-channel Distribution**: Survey Channel Creator → Participant List Manager → Channel Distribution Launcher → Response Tracker → Channel Performance Analyzer
+
+  **Complex Plans:**
+  - **Full Campaign Management**: Survey Channel Creator → Participant List Manager → Channel Distribution Launcher → Response Tracker → Reminder Scheduler → (Email/SMS/Push Reminder Senders) → Communication History Tracker → Response Rate Monitor → Reminder Optimization Engine
+  - **Adaptive Communication Strategy**: Response Tracker → Communication History Tracker → Reminder Optimization Engine → Reminder Scheduler → (Multiple Reminder Senders) → Response Rate Monitor → Channel Performance Analyzer
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Survey Channel Creator",
+    "tool_description": "Creates channel-specific survey links and configurations for distribution across email, SMS, web portals, and mobile apps with customizable parameters for each channel.",
+    "parameters": {
+      "survey_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the survey"
+      },
+      "channels": {
+        "type": "array",
+        "required": true,
+        "description": "List of distribution channels to create",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "survey_title": {
+        "type": "string",
+        "required": true,
+        "description": "Title of the survey for channel customization"
+      },
+      "expiration_date": {
+        "type": "string",
+        "required": true,
+        "description": "Survey expiration date and time",
+        "format": "date-time"
+      },
+      "anonymous_mode": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether responses should be anonymous",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid survey_id: Survey ID must be a non-empty string with only alphanumeric characters and underscores.",
+      "Unsupported channel: Supported channels are [email, sms, web_portal, mobile_app, qr_code].",
+      "Invalid expiration_date: Must be a future date in ISO 8601 format.",
+      "Empty survey_title: Survey title cannot be empty.",
+      "Channel limit exceeded: Maximum 10 channels allowed per survey."
+    ],
+    "usage": "Provide survey_id, channels array, survey_title, and expiration_date. Optionally set anonymous_mode. Returns channel-specific URLs and configuration details.",
+    "output_details": {
+      "channel_links": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of channel-specific survey URLs"
+      },
+      "channel_configs": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of channel configuration details"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "When the channels were created",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Participant List Manager",
+    "tool_description": "Organizes and validates participant contact information across multiple communication channels, ensuring proper formatting and removing duplicates.",
+    "parameters": {
+      "participant_emails": {
+        "type": "array",
+        "required": false,
+        "description": "Array of participant email addresses",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "participant_phones": {
+        "type": "array",
+        "required": false,
+        "description": "Array of participant phone numbers",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "participant_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of unique participant identifiers",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10000
+      },
+      "remove_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to remove duplicate entries",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid email format: One or more email addresses are not in valid format.",
+      "Invalid phone format: Phone numbers must include country code and be 10-15 digits.",
+      "Empty participant_ids: At least one participant ID is required.",
+      "Duplicate participant_ids: Participant IDs must be unique.",
+      "Mismatched array lengths: If provided, emails and phones arrays must match participant_ids length."
+    ],
+    "usage": "Provide participant_ids and optionally participant_emails and participant_phones. Set remove_duplicates to clean data. Returns organized and validated participant records.",
+    "output_details": {
+      "total_participants": {
+        "type": "integer",
+        "description": "Total number of valid participants"
+      },
+      "email_count": {
+        "type": "integer",
+        "description": "Number of participants with email addresses"
+      },
+      "phone_count": {
+        "type": "integer",
+        "description": "Number of participants with phone numbers"
+      },
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation status of the participant list"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Channel Distribution Launcher",
+    "tool_description": "Launches survey distribution across specified channels to validated participant lists with customizable messaging and scheduling options.",
+    "parameters": {
+      "survey_links": {
+        "type": "array",
+        "required": true,
+        "description": "Array of channel-specific survey URLs",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "channels": {
+        "type": "array",
+        "required": true,
+        "description": "Distribution channels matching the survey links",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "participant_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of participants to receive the survey"
+      },
+      "launch_immediately": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to launch distribution immediately",
+        "default": true
+      },
+      "scheduled_time": {
+        "type": "string",
+        "required": false,
+        "description": "Scheduled launch time if not immediate",
+        "format": "date-time",
+        "default": "None"
+      },
+      "custom_message": {
+        "type": "string",
+        "required": false,
+        "description": "Custom message to include with survey invitation",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: survey_links and channels arrays must have the same length.",
+      "Invalid participant_count: Must be a positive integer.",
+      "Invalid scheduled_time: Must be a future datetime in ISO 8601 format when launch_immediately is false.",
+      "Empty survey_links: At least one survey link is required.",
+      "Unsupported channel: Use supported channels [email, sms, web_portal, mobile_app, qr_code]."
+    ],
+    "usage": "Provide survey_links, matching channels, and participant_count. Set launch_immediately or provide scheduled_time. Optionally include custom_message for personalized invitations.",
+    "output_details": {
+      "launch_status": {
+        "type": "string",
+        "description": "Overall status of the distribution launch"
+      },
+      "channels_launched": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Successfully launched distribution channels"
+      },
+      "launch_timestamp": {
+        "type": "string",
+        "description": "When the distribution was launched",
+        "format": "date-time"
+      },
+      "estimated_delivery_time": {
+        "type": "string",
+        "description": "Estimated completion time for all distributions",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Response Tracker",
+    "tool_description": "Monitors and tracks survey responses across all distribution channels in real-time, providing detailed response status and completion metrics.",
+    "parameters": {
+      "survey_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the survey to track"
+      },
+      "tracking_interval": {
+        "type": "integer",
+        "required": false,
+        "description": "Tracking interval in minutes",
+        "default": 15
+      },
+      "include_partial_responses": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include partially completed responses",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid survey_id: Survey ID must be a non-empty string.",
+      "Survey not found: The specified survey ID does not exist.",
+      "Invalid tracking_interval: Must be between 5 and 1440 minutes.",
+      "Tracking service unavailable: Response tracking service is currently unavailable."
+    ],
+    "usage": "Provide survey_id to track responses. Optionally set tracking_interval and include_partial_responses. Returns current response statistics and status updates.",
+    "output_details": {
+      "total_responses": {
+        "type": "integer",
+        "description": "Total number of responses received"
+      },
+      "complete_responses": {
+        "type": "integer",
+        "description": "Number of completed responses"
+      },
+      "partial_responses": {
+        "type": "integer",
+        "description": "Number of partially completed responses"
+      },
+      "response_rate": {
+        "type": "number",
+        "description": "Current response rate as a percentage"
+      },
+      "last_response_time": {
+        "type": "string",
+        "description": "Timestamp of the most recent response",
+        "format": "date-time"
+      },
+      "channel_breakdown": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Response counts by distribution channel"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reminder Scheduler",
+    "tool_description": "Creates automated reminder schedules for non-respondents with customizable timing, frequency, and escalation rules to optimize response rates without over-communication.",
+    "parameters": {
+      "survey_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the survey"
+      },
+      "reminder_intervals": {
+        "type": "array",
+        "required": true,
+        "description": "Reminder intervals in hours",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "channels": {
+        "type": "array",
+        "required": true,
+        "description": "Channels to use for reminders",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "max_reminders_per_participant": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of reminders per participant",
+        "default": 3
+      },
+      "escalation_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to escalate reminder urgency over time",
+        "default": false
+      },
+      "business_hours_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to send reminders only during business hours",
+        "default": true
+      },
+      "timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Timezone for scheduling (e.g., 'UTC', 'America/New_York')",
+        "default": "UTC"
+      },
+      "exclude_weekends": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to exclude weekends from reminder scheduling",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid survey_id: Survey ID must be a non-empty string.",
+      "Invalid reminder_intervals: Intervals must be positive integers between 1 and 720 hours.",
+      "Unsupported channel: Supported reminder channels are [email, sms, push_notification, phone_call].",
+      "Invalid max_reminders_per_participant: Must be between 1 and 10.",
+      "Invalid timezone: Use standard timezone identifiers (e.g., 'UTC', 'America/New_York')."
+    ],
+    "usage": "Provide survey_id, reminder_intervals, and channels. Configure timing preferences with max_reminders_per_participant, business_hours_only, timezone, and exclude_weekends. Returns scheduled reminder plan.",
+    "output_details": {
+      "schedule_id": {
+        "type": "string",
+        "description": "Unique identifier for the reminder schedule"
+      },
+      "total_scheduled_reminders": {
+        "type": "integer",
+        "description": "Total number of reminders scheduled"
+      },
+      "schedule_start_time": {
+        "type": "string",
+        "description": "When the reminder schedule begins",
+        "format": "date-time"
+      },
+      "schedule_end_time": {
+        "type": "string",
+        "description": "When the reminder schedule ends",
+        "format": "date-time"
+      },
+      "reminder_summary": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Summary of scheduled reminder batches"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Email Reminder Sender",
+    "tool_description": "Sends personalized email reminders to non-respondent participants with customizable templates, subject lines, and tracking capabilities.",
+    "parameters": {
+      "recipient_emails": {
+        "type": "array",
+        "required": true,
+        "description": "Array of recipient email addresses",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "survey_link": {
+        "type": "string",
+        "required": true,
+        "description": "Survey URL to include in the reminder"
+      },
+      "subject_line": {
+        "type": "string",
+        "required": true,
+        "description": "Email subject line"
+      },
+      "reminder_template": {
+        "type": "string",
+        "required": false,
+        "description": "Email template type",
+        "default": "standard"
+      },
+      "sender_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name of the email sender",
+        "default": "Survey Team"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Urgency level of the reminder",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Invalid email addresses: One or more email addresses are not in valid format.",
+      "Invalid survey_link: Survey link must be a valid URL.",
+      "Empty subject_line: Subject line cannot be empty.",
+      "Unsupported template: Supported templates are [standard, urgent, final, friendly].",
+      "Unsupported urgency_level: Supported levels are [low, normal, high, urgent].",
+      "Email service unavailable: Email delivery service is currently unavailable."
+    ],
+    "usage": "Provide recipient_emails, survey_link, and subject_line. Optionally customize with reminder_template, sender_name, and urgency_level. Returns delivery status for each email.",
+    "output_details": {
+      "emails_sent": {
+        "type": "integer",
+        "description": "Number of emails successfully sent"
+      },
+      "failed_deliveries": {
+        "type": "integer",
+        "description": "Number of failed email deliveries"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "When the email batch was sent",
+        "format": "date-time"
+      },
+      "batch_id": {
+        "type": "string",
+        "description": "Unique identifier for this email batch"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SMS Reminder Sender",
+    "tool_description": "Sends concise SMS reminders to participants with survey links, character optimization, and delivery confirmation tracking.",
+    "parameters": {
+      "phone_numbers": {
+        "type": "array",
+        "required": true,
+        "description": "Array of recipient phone numbers with country codes",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "survey_link": {
+        "type": "string",
+        "required": true,
+        "description": "Survey URL to include in SMS"
+      },
+      "message_template": {
+        "type": "string",
+        "required": false,
+        "description": "SMS template type",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid phone_numbers: Phone numbers must include country code and be 10-15 digits.",
+      "Invalid survey_link: Survey link must be a valid URL.",
+      "Message too long: SMS message exceeds 160 characters after including survey link.",
+      "Unsupported template: Supported templates are [standard, brief, urgent, final].",
+      "SMS service unavailable: SMS delivery service is currently unavailable.",
+      "Phone number limit exceeded: Maximum 500 phone numbers per batch."
+    ],
+    "usage": "Provide phone_numbers and survey_link. Optionally select message_template for different reminder tones. Returns delivery status and message details.",
+    "output_details": {
+      "messages_sent": {
+        "type": "integer",
+        "description": "Number of SMS messages successfully sent"
+      },
+      "failed_deliveries": {
+        "type": "integer",
+        "description": "Number of failed SMS deliveries"
+      },
+      "message_length": {
+        "type": "integer",
+        "description": "Length of the SMS message in characters"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "When the SMS batch was sent",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Push Notification Sender",
+    "tool_description": "Sends push notifications to mobile app users with survey reminders, supporting rich content and action buttons for immediate survey access.",
+    "parameters": {
+      "user_tokens": {
+        "type": "array",
+        "required": true,
+        "description": "Array of mobile device tokens",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "notification_title": {
+        "type": "string",
+        "required": true,
+        "description": "Push notification title"
+      },
+      "notification_body": {
+        "type": "string",
+        "required": true,
+        "description": "Push notification message body"
+      },
+      "survey_link": {
+        "type": "string",
+        "required": true,
+        "description": "Survey URL for the action button"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Notification priority level",
+        "default": "normal"
+      },
+      "include_action_button": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include 'Take Survey' action button",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid user_tokens: Device tokens must be non-empty strings.",
+      "Empty notification_title: Notification title cannot be empty.",
+      "Empty notification_body: Notification body cannot be empty.",
+      "Invalid survey_link: Survey link must be a valid URL.",
+      "Unsupported priority: Supported priorities are [low, normal, high].",
+      "Push service unavailable: Push notification service is currently unavailable."
+    ],
+    "usage": "Provide user_tokens, notification_title, notification_body, and survey_link. Set priority and include_action_button as needed. Returns delivery status and engagement metrics.",
+    "output_details": {
+      "notifications_sent": {
+        "type": "integer",
+        "description": "Number of push notifications successfully sent"
+      },
+      "failed_deliveries": {
+        "type": "integer",
+        "description": "Number of failed push notification deliveries"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "When the notification batch was sent",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Response Rate Monitor",
+    "tool_description": "Continuously monitors survey response rates against target goals, providing alerts and recommendations when rates fall below thresholds.",
+    "parameters": {
+      "survey_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the survey to monitor"
+      },
+      "target_response_rate": {
+        "type": "number",
+        "required": true,
+        "description": "Target response rate as a percentage (1-100)"
+      },
+      "monitoring_duration_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "How long to monitor in hours",
+        "default": 168
+      },
+      "alert_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Response rate threshold for alerts as percentage",
+        "default": 75
+      },
+      "check_interval_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "How often to check response rates in minutes",
+        "default": 60
+      }
+    },
+    "error_messages": [
+      "Invalid survey_id: Survey ID must be a non-empty string.",
+      "Invalid target_response_rate: Must be between 1 and 100.",
+      "Invalid monitoring_duration_hours: Must be between 1 and 720 hours.",
+      "Invalid alert_threshold: Must be between 1 and 100.",
+      "Invalid check_interval_minutes: Must be between 15 and 1440 minutes.",
+      "Survey not found: The specified survey ID does not exist."
+    ],
+    "usage": "Provide survey_id and target_response_rate. Configure monitoring_duration_hours, alert_threshold, and check_interval_minutes as needed. Returns monitoring status and recommendations.",
+    "output_details": {
+      "current_response_rate": {
+        "type": "number",
+        "description": "Current response rate as a percentage"
+      },
+      "target_met": {
+        "type": "boolean",
+        "description": "Whether target response rate has been met"
+      },
+      "monitoring_status": {
+        "type": "string",
+        "description": "Current monitoring status"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommendations to improve response rate"
+      },
+      "projected_final_rate": {
+        "type": "number",
+        "description": "Projected final response rate based on current trends"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Communication History Tracker",
+    "tool_description": "Maintains detailed logs of all participant communications across channels, preventing over-communication and providing communication analytics.",
+    "parameters": {
+      "participant_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the participant"
+      },
+      "communication_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of communication to log"
+      },
+      "channel": {
+        "type": "string",
+        "required": true,
+        "description": "Communication channel used"
+      },
+      "timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "When the communication occurred",
+        "format": "date-time"
+      },
+      "status": {
+        "type": "string",
+        "required": true,
+        "description": "Delivery status of the communication"
+      },
+      "survey_id": {
+        "type": "string",
+        "required": false,
+        "description": "Associated survey identifier",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid participant_id: Participant ID must be a non-empty string.",
+      "Unsupported communication_type: Supported types are [invitation, reminder, follow_up, thank_you].",
+      "Unsupported channel: Supported channels are [email, sms, push_notification, phone_call].",
+      "Invalid timestamp: Must be a valid datetime in ISO 8601 format.",
+      "Unsupported status: Supported statuses are [sent, delivered, failed, opened, clicked].",
+      "Database error: Unable to store communication record."
+    ],
+    "usage": "Provide participant_id, communication_type, channel, timestamp, and status for each communication event. Optionally include survey_id. Returns confirmation and communication summary.",
+    "output_details": {
+      "record_id": {
+        "type": "string",
+        "description": "Unique identifier for the communication record"
+      },
+      "total_communications": {
+        "type": "integer",
+        "description": "Total communications for this participant"
+      },
+      "last_communication_date": {
+        "type": "string",
+        "description": "Date of most recent communication",
+        "format": "date-time"
+      },
+      "communication_frequency": {
+        "type": "number",
+        "description": "Average communications per day for this participant"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Channel Performance Analyzer",
+    "tool_description": "Analyzes the effectiveness of different distribution channels by comparing response rates, engagement metrics, and completion times across channels.",
+    "parameters": {
+      "survey_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the survey to analyze"
+      },
+      "analysis_period_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Time period for analysis in hours",
+        "default": 72
+      },
+      "include_cost_analysis": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include cost-per-response analysis",
+        "default": false
+      },
+      "minimum_responses_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum responses needed for reliable analysis",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Invalid survey_id: Survey ID must be a non-empty string.",
+      "Survey not found: The specified survey ID does not exist.",
+      "Invalid analysis_period_hours: Must be between 1 and 720 hours.",
+      "Insufficient data: Not enough responses for reliable channel analysis.",
+      "Invalid minimum_responses_threshold: Must be between 5 and 1000."
+    ],
+    "usage": "Provide survey_id for channel analysis. Configure analysis_period_hours, include_cost_analysis, and minimum_responses_threshold as needed. Returns comprehensive channel performance metrics.",
+    "output_details": {
+      "best_performing_channel": {
+        "type": "string",
+        "description": "Channel with the highest response rate"
+      },
+      "channel_response_rates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Response rates for each channel"
+      },
+      "average_completion_time": {
+        "type": "number",
+        "description": "Average survey completion time in minutes"
+      },
+      "channel_rankings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Channels ranked by performance"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommendations for optimizing channel usage"
+      }
+    }
+  }
+  ```

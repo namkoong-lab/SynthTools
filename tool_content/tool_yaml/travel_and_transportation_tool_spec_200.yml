@@ -1,0 +1,836 @@
+field_name: travel_and_transportation
+subfield: flight_booking_and_management
+task: Search and compare flight options across multiple airlines and booking platforms
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is of medium difficulty. It involves coordinating searches across multiple data sources (airlines, booking platforms), handling complex filtering and comparison logic, managing rate limits and API variations, and processing large amounts of time-sensitive flight data with multiple interdependent parameters (dates, routes, preferences).
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the various aspects of flight search, comparison, filtering, and booking management workflows.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Flight Search Engine** - Consumes: search criteria → Produces: raw flight results
+  2. **Airline Data Fetcher** - Consumes: airline codes → Produces: airline-specific flight data
+  3. **Booking Platform Connector** - Consumes: platform credentials, search params → Produces: platform-specific results
+  4. **Flight Price Comparator** - Consumes: multiple flight results → Produces: price comparison analysis
+  5. **Route Optimizer** - Consumes: origin, destination, preferences → Produces: optimized route suggestions
+  6. **Schedule Analyzer** - Consumes: flight schedules → Produces: timing analysis and recommendations
+  7. **Fare Rules Extractor** - Consumes: fare details → Produces: structured rule information
+  8. **Availability Tracker** - Consumes: flight identifiers → Produces: real-time availability status
+  9. **Filter Engine** - Consumes: flight results, filter criteria → Produces: filtered results
+  10. **Booking Validator** - Consumes: booking details → Produces: validation status and warnings
+  11. **Trip Planner** - Consumes: trip requirements → Produces: structured itinerary options
+  12. **Price Alert Manager** - Consumes: monitoring criteria → Produces: price change notifications
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic flight search: Flight Search Engine → Filter Engine → Flight Price Comparator
+  2. Single airline search: Airline Data Fetcher → Fare Rules Extractor → Booking Validator
+
+  **Medium Plans:**
+  1. Multi-platform comparison: Flight Search Engine → Booking Platform Connector → Flight Price Comparator → Filter Engine → Schedule Analyzer
+  2. Route optimization: Route Optimizer → Flight Search Engine → Availability Tracker → Trip Planner
+
+  **Complex Plans:**
+  1. Comprehensive search and monitoring: Flight Search Engine → Airline Data Fetcher → Booking Platform Connector → Flight Price Comparator → Filter Engine → Schedule Analyzer → Route Optimizer → Price Alert Manager
+  2. Full booking workflow: Trip Planner → Flight Search Engine → Filter Engine → Flight Price Comparator → Fare Rules Extractor → Availability Tracker → Booking Validator → Price Alert Manager
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Flight Search Engine",
+    "tool_description": "Searches for flights across multiple sources based on travel criteria, returning comprehensive flight options with pricing and schedule information.",
+    "parameters": {
+      "origin_airport": {
+        "type": "string",
+        "required": true,
+        "description": "IATA code of departure airport (e.g., 'JFK', 'LAX')"
+      },
+      "destination_airport": {
+        "type": "string",
+        "required": true,
+        "description": "IATA code of arrival airport"
+      },
+      "departure_date": {
+        "type": "string",
+        "required": true,
+        "description": "Departure date in YYYY-MM-DD format",
+        "format": "date-time"
+      },
+      "return_date": {
+        "type": "string",
+        "required": false,
+        "description": "Return date for round-trip flights",
+        "format": "date-time",
+        "default": "None"
+      },
+      "passengers": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of passengers (1-9)",
+        "default": 1
+      },
+      "cabin_class": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred cabin class: economy, premium_economy, business, first",
+        "default": "economy"
+      }
+    },
+    "error_messages": [
+      "Invalid airport code: Provide valid 3-letter IATA airport codes for origin and destination.",
+      "Invalid date format: Use YYYY-MM-DD format and ensure departure date is not in the past.",
+      "Invalid passenger count: Number of passengers must be between 1 and 9.",
+      "Invalid cabin class: Use one of [economy, premium_economy, business, first].",
+      "No flights found: No flights available for the specified route and date combination."
+    ],
+    "usage": "Provide origin_airport, destination_airport, and departure_date as minimum requirements. Add return_date for round-trip searches. Specify passengers and cabin_class to refine results.",
+    "output_details": {
+      "total_results": {
+        "type": "integer",
+        "description": "Total number of flight options found"
+      },
+      "flight_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Unique identifiers for each flight option"
+      },
+      "airlines": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of airlines offering flights on this route"
+      },
+      "price_range": {
+        "type": "string",
+        "description": "Price range summary (e.g., '$299 - $1,245')"
+      },
+      "search_timestamp": {
+        "type": "string",
+        "description": "When the search was performed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Airline Data Fetcher",
+    "tool_description": "Retrieves airline-specific flight information, schedules, and policies directly from individual airline systems.",
+    "parameters": {
+      "airline_code": {
+        "type": "string",
+        "required": true,
+        "description": "2-letter IATA airline code (e.g., 'AA', 'DL', 'UA')"
+      },
+      "route": {
+        "type": "string",
+        "required": true,
+        "description": "Flight route in format 'ORIGIN-DESTINATION' (e.g., 'JFK-LAX')"
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for search range",
+        "format": "date-time"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for search range",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid airline code: Provide a valid 2-letter IATA airline code.",
+      "Invalid route format: Use 'ORIGIN-DESTINATION' format with valid IATA airport codes.",
+      "Invalid date range: Ensure start date is before end date and both are in the future.",
+      "Airline API unavailable: The airline's booking system is currently unavailable."
+    ],
+    "usage": "Specify the airline_code and route, then provide a date range to search within. The tool fetches direct airline data including exclusive fares and schedule details.",
+    "output_details": {
+      "airline_name": {
+        "type": "string",
+        "description": "Full name of the airline"
+      },
+      "available_flights": {
+        "type": "integer",
+        "description": "Number of flights found for the specified criteria"
+      },
+      "flight_numbers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of flight numbers available"
+      },
+      "exclusive_fares": {
+        "type": "boolean",
+        "description": "Whether airline offers exclusive fares not available elsewhere"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Booking Platform Connector",
+    "tool_description": "Connects to various booking platforms (Expedia, Kayak, Booking.com, etc.) to gather flight options and pricing from third-party aggregators.",
+    "parameters": {
+      "platform_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the booking platform: expedia, kayak, priceline, orbitz, travelocity"
+      },
+      "search_criteria": {
+        "type": "string",
+        "required": true,
+        "description": "JSON-formatted search parameters including route, dates, passengers"
+      },
+      "api_key": {
+        "type": "string",
+        "required": true,
+        "description": "API authentication key for the platform"
+      },
+      "sort_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Sort results by: price, duration, departure_time, arrival_time",
+        "default": "price"
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of results to return (10-100)",
+        "default": 50
+      }
+    },
+    "error_messages": [
+      "Unsupported platform: Use one of [expedia, kayak, priceline, orbitz, travelocity].",
+      "Invalid API key: Provide a valid authentication key for the specified platform.",
+      "Malformed search criteria: Ensure search_criteria is valid JSON with required fields.",
+      "Platform rate limit exceeded: Too many requests to the platform. Wait before retrying.",
+      "Invalid sort preference: Use one of [price, duration, departure_time, arrival_time].",
+      "Invalid max_results: Must be an integer between 10 and 100."
+    ],
+    "usage": "Select a platform_name, provide search_criteria as JSON string, and include valid api_key. Optionally set sort_preference and max_results to customize the output.",
+    "output_details": {
+      "platform": {
+        "type": "string",
+        "description": "Name of the platform that provided the results"
+      },
+      "results_count": {
+        "type": "integer",
+        "description": "Number of flight options returned"
+      },
+      "booking_links": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Direct booking URLs for each flight option"
+      },
+      "platform_fees": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Additional fees charged by the platform for each option"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp when platform data was last refreshed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Flight Price Comparator",
+    "tool_description": "Compares flight prices across multiple sources and identifies the best deals, price differences, and value recommendations.",
+    "parameters": {
+      "flight_data_sources": {
+        "type": "array",
+        "required": true,
+        "description": "Array of data source identifiers to compare",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "comparison_metric": {
+        "type": "string",
+        "required": false,
+        "description": "Primary comparison factor: total_price, base_fare, price_per_hour, value_score",
+        "default": "total_price"
+      },
+      "include_fees": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include additional fees in price comparison",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Insufficient data sources: Provide at least 2 data sources for meaningful comparison.",
+      "Invalid comparison metric: Use one of [total_price, base_fare, price_per_hour, value_score].",
+      "Incompatible flight data: Flight data from sources cannot be compared due to different routes or dates.",
+      "Missing price information: Some sources lack complete pricing data for comparison."
+    ],
+    "usage": "Provide flight_data_sources array with at least 2 source identifiers. Choose comparison_metric to determine ranking criteria. Set include_fees to control whether additional costs are factored in.",
+    "output_details": {
+      "best_deal": {
+        "type": "string",
+        "description": "Identifier of the source offering the best value"
+      },
+      "price_differences": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Price differences between sources in ascending order"
+      },
+      "savings_potential": {
+        "type": "number",
+        "description": "Maximum possible savings by choosing the best deal"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Detailed recommendation explaining the best choice"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Route Optimizer",
+    "tool_description": "Analyzes different routing options including direct flights, connections, and multi-city itineraries to find optimal travel paths.",
+    "parameters": {
+      "origin_city": {
+        "type": "string",
+        "required": true,
+        "description": "Departure city name or airport code"
+      },
+      "destination_city": {
+        "type": "string",
+        "required": true,
+        "description": "Final destination city name or airport code"
+      },
+      "intermediate_cities": {
+        "type": "array",
+        "required": false,
+        "description": "Optional cities to visit en route",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "optimization_goal": {
+        "type": "string",
+        "required": false,
+        "description": "Optimization priority: shortest_time, lowest_cost, fewest_stops, best_schedule",
+        "default": "shortest_time"
+      },
+      "max_connections": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of connections allowed (0-3)",
+        "default": 2
+      },
+      "min_layover_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum layover time in minutes (30-300)",
+        "default": 60
+      },
+      "max_layover_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum acceptable layover time in minutes (60-1440)",
+        "default": 300
+      },
+      "preferred_airlines": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred airline codes",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "avoid_airports": {
+        "type": "array",
+        "required": false,
+        "description": "Airport codes to avoid for connections",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "travel_date": {
+        "type": "string",
+        "required": true,
+        "description": "Preferred travel date",
+        "format": "date-time"
+      },
+      "date_flexibility": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days flexible around preferred date (0-7)",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid city or airport: Provide valid city names or IATA airport codes for origin and destination.",
+      "Invalid optimization goal: Use one of [shortest_time, lowest_cost, fewest_stops, best_schedule].",
+      "Invalid connection limits: max_connections must be 0-3, layover times must be within specified ranges.",
+      "Conflicting layover times: min_layover_minutes must be less than max_layover_minutes.",
+      "Invalid date flexibility: date_flexibility must be 0-7 days.",
+      "No valid routes found: No routes available matching the specified criteria.",
+      "Unreachable destination: No flight connections available between specified cities."
+    ],
+    "usage": "Provide origin_city, destination_city, and travel_date. Optionally specify intermediate_cities for multi-city trips, set optimization_goal for routing priority, and adjust connection and layover preferences. Use preferred_airlines and avoid_airports to customize routing.",
+    "output_details": {
+      "recommended_route": {
+        "type": "string",
+        "description": "Best route recommendation with connection cities"
+      },
+      "total_travel_time": {
+        "type": "integer",
+        "description": "Total journey time in minutes"
+      },
+      "connection_airports": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of airports where connections are required"
+      },
+      "alternative_routes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Up to 3 alternative route options"
+      },
+      "route_efficiency_score": {
+        "type": "number",
+        "description": "Route efficiency rating from 0-100"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Analyzer",
+    "tool_description": "Analyzes flight schedules to identify patterns, optimal departure times, and schedule-related recommendations.",
+    "parameters": {
+      "flight_schedules": {
+        "type": "array",
+        "required": true,
+        "description": "Array of flight schedule identifiers to analyze",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of analysis: timing_optimization, frequency_analysis, delay_patterns, seasonal_trends",
+        "default": "timing_optimization"
+      },
+      "time_preferences": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred time of day: morning, afternoon, evening, red_eye, any",
+        "default": "any"
+      }
+    },
+    "error_messages": [
+      "Empty schedule data: Provide at least one flight schedule identifier for analysis.",
+      "Invalid analysis type: Use one of [timing_optimization, frequency_analysis, delay_patterns, seasonal_trends].",
+      "Invalid time preference: Use one of [morning, afternoon, evening, red_eye, any].",
+      "Insufficient data: Not enough schedule data available for meaningful analysis."
+    ],
+    "usage": "Provide flight_schedules array with schedule identifiers. Select analysis_type for specific insights. Set time_preferences to get recommendations aligned with preferred departure times.",
+    "output_details": {
+      "analysis_summary": {
+        "type": "string",
+        "description": "Summary of schedule analysis findings"
+      },
+      "optimal_departure_times": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended departure times based on analysis"
+      },
+      "schedule_reliability_score": {
+        "type": "number",
+        "description": "Overall schedule reliability rating from 0-100"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific schedule-related recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fare Rules Extractor",
+    "tool_description": "Extracts and analyzes fare rules, restrictions, and conditions from flight bookings to help understand cancellation policies, change fees, and baggage allowances.",
+    "parameters": {
+      "fare_code": {
+        "type": "string",
+        "required": true,
+        "description": "Airline fare class code (e.g., 'Y', 'B', 'M', 'Q')"
+      },
+      "airline_code": {
+        "type": "string",
+        "required": true,
+        "description": "2-letter IATA airline code"
+      },
+      "ticket_type": {
+        "type": "string",
+        "required": false,
+        "description": "Ticket type: economy, premium_economy, business, first",
+        "default": "economy"
+      }
+    },
+    "error_messages": [
+      "Invalid fare code: Provide a valid airline fare class code.",
+      "Invalid airline code: Use a valid 2-letter IATA airline code.",
+      "Invalid ticket type: Use one of [economy, premium_economy, business, first].",
+      "Fare rules not found: No fare rules available for the specified combination."
+    ],
+    "usage": "Provide fare_code and airline_code to extract specific fare rules. Specify ticket_type to get class-specific restrictions and allowances.",
+    "output_details": {
+      "change_fee": {
+        "type": "number",
+        "description": "Fee charged for flight changes in USD"
+      },
+      "cancellation_allowed": {
+        "type": "boolean",
+        "description": "Whether the fare allows cancellation"
+      },
+      "refund_type": {
+        "type": "string",
+        "description": "Type of refund available: full, partial, credit_only, non_refundable"
+      },
+      "baggage_allowance": {
+        "type": "string",
+        "description": "Description of included baggage allowance"
+      },
+      "seat_selection": {
+        "type": "string",
+        "description": "Seat selection policy: free, fee_based, restricted, not_allowed"
+      },
+      "advance_purchase_required": {
+        "type": "integer",
+        "description": "Minimum days before departure to book"
+      },
+      "restrictions_summary": {
+        "type": "string",
+        "description": "Summary of key fare restrictions and conditions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Availability Tracker",
+    "tool_description": "Monitors real-time seat availability and tracks changes in flight capacity across different booking classes.",
+    "parameters": {
+      "flight_number": {
+        "type": "string",
+        "required": true,
+        "description": "Flight number including airline code (e.g., 'AA1234')"
+      },
+      "departure_date": {
+        "type": "string",
+        "required": true,
+        "description": "Flight departure date",
+        "format": "date-time"
+      },
+      "monitoring_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Hours to monitor availability (1-72)",
+        "default": 24
+      }
+    },
+    "error_messages": [
+      "Invalid flight number: Provide flight number in format 'XX1234' with airline code.",
+      "Invalid departure date: Date must be in the future and properly formatted.",
+      "Invalid monitoring duration: Duration must be between 1 and 72 hours.",
+      "Flight not found: The specified flight number and date combination does not exist."
+    ],
+    "usage": "Provide flight_number and departure_date to start monitoring. Set monitoring_duration to specify how long to track availability changes.",
+    "output_details": {
+      "current_availability": {
+        "type": "integer",
+        "description": "Current number of available seats"
+      },
+      "availability_trend": {
+        "type": "string",
+        "description": "Trend description: increasing, decreasing, stable"
+      },
+      "booking_classes_available": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of currently available booking classes"
+      },
+      "last_checked": {
+        "type": "string",
+        "description": "Timestamp of last availability check",
+        "format": "date-time"
+      },
+      "availability_alerts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any availability-related alerts or warnings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Filter Engine",
+    "tool_description": "Applies comprehensive filtering criteria to flight search results to narrow down options based on user preferences and requirements.",
+    "parameters": {
+      "flight_results": {
+        "type": "array",
+        "required": true,
+        "description": "Array of flight result identifiers to filter",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "max_price": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum acceptable price in USD",
+        "default": "None"
+      },
+      "max_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum flight duration in minutes",
+        "default": "None"
+      },
+      "preferred_airlines": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred airline codes",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "excluded_airlines": {
+        "type": "array",
+        "required": false,
+        "description": "Airlines to exclude",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "max_stops": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of stops (0-3)",
+        "default": "None"
+      },
+      "departure_time_earliest": {
+        "type": "string",
+        "required": false,
+        "description": "Earliest acceptable departure time (HH:MM format)",
+        "default": "None"
+      },
+      "departure_time_latest": {
+        "type": "string",
+        "required": false,
+        "description": "Latest acceptable departure time (HH:MM format)",
+        "default": "None"
+      },
+      "arrival_time_earliest": {
+        "type": "string",
+        "required": false,
+        "description": "Earliest acceptable arrival time (HH:MM format)",
+        "default": "None"
+      },
+      "arrival_time_latest": {
+        "type": "string",
+        "required": false,
+        "description": "Latest acceptable arrival time (HH:MM format)",
+        "default": "None"
+      },
+      "include_red_eye": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include overnight flights",
+        "default": true
+      },
+      "refundable_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Only show refundable fares",
+        "default": false
+      },
+      "baggage_included": {
+        "type": "boolean",
+        "required": false,
+        "description": "Only show flights with included baggage",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Empty flight results: Provide at least one flight result identifier to filter.",
+      "Invalid time format: Use HH:MM format for time parameters (e.g., '14:30').",
+      "Invalid price range: max_price must be a positive number.",
+      "Invalid duration: max_duration must be a positive integer in minutes.",
+      "Invalid stops limit: max_stops must be between 0 and 3.",
+      "Conflicting time constraints: Ensure earliest times are before latest times.",
+      "Over-restrictive filters: No flights match the specified criteria."
+    ],
+    "usage": "Provide flight_results array with result identifiers. Set any combination of filter parameters to narrow results. Use time filters in HH:MM format and boolean options to refine the selection based on specific requirements.",
+    "output_details": {
+      "filtered_results_count": {
+        "type": "integer",
+        "description": "Number of flights remaining after filtering"
+      },
+      "filtered_flight_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of flight identifiers that passed all filters"
+      },
+      "excluded_count": {
+        "type": "integer",
+        "description": "Number of flights excluded by the filters"
+      },
+      "filter_summary": {
+        "type": "string",
+        "description": "Summary of applied filters and their impact"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggestions for adjusting filters if results are limited"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Booking Validator",
+    "tool_description": "Validates booking details for accuracy, completeness, and compliance with airline requirements before finalizing reservations.",
+    "parameters": {
+      "passenger_details": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passenger information strings in JSON format",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "flight_selection": {
+        "type": "string",
+        "required": true,
+        "description": "Selected flight information as JSON string"
+      },
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method: credit_card, debit_card, paypal, bank_transfer"
+      },
+      "contact_email": {
+        "type": "string",
+        "required": true,
+        "description": "Contact email address for booking confirmations"
+      },
+      "special_requests": {
+        "type": "array",
+        "required": false,
+        "description": "Special service requests",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid passenger details: Ensure all passenger information is complete and properly formatted.",
+      "Flight selection error: The selected flight is no longer available or pricing has changed.",
+      "Invalid payment method: Use one of [credit_card, debit_card, paypal, bank_transfer].",
+      "Invalid email format: Provide a valid email address for booking confirmations.",
+      "Document requirements not met: Check passport/ID validity and visa requirements.",
+      "Booking deadline passed: The booking deadline for this flight has expired.",
+      "Age restrictions: Some passengers do not meet age requirements for unaccompanied travel."
+    ],
+    "usage": "Provide complete passenger_details array, flight_selection, payment_method, and contact_email. Add special_requests if needed. The tool validates all information against airline requirements and booking policies.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: passed, failed, warning"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation errors that must be resolved"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warnings that should be reviewed but don't prevent booking"
+      },
+      "estimated_total_cost": {
+        "type": "number",
+        "description": "Total estimated cost including taxes and fees"
+      },
+      "booking_readiness": {
+        "type": "boolean",
+        "description": "Whether the booking is ready to be finalized"
+      }
+    }
+  }

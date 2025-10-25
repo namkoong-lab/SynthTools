@@ -1,0 +1,820 @@
+field_name: calendar_management
+subfield: meeting_coordination
+task: Schedule and book meeting rooms or virtual meeting spaces
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is of medium difficulty. It involves coordinating multiple resources (attendees, rooms, equipment) with complex scheduling constraints, requires handling conflicts and availability checks across different systems, and has moderate risk of errors that could disrupt business operations.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to handle the various aspects of meeting coordination, room booking, and virtual space management.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their relationships:
+  - Attendee Availability Checker → consumes: attendee emails, time range; produces: availability data
+  - Room Availability Checker → consumes: location, time, capacity needs; produces: available rooms
+  - Virtual Space Provisioner → consumes: meeting type, duration, attendee count; produces: virtual meeting links
+  - Meeting Conflict Detector → consumes: proposed times, attendee lists; produces: conflict reports
+  - Room Booking Manager → consumes: room ID, time slot, requirements; produces: booking confirmation
+  - Meeting Invitation Sender → consumes: attendee lists, meeting details; produces: invitation status
+  - Equipment Availability Checker → consumes: equipment types, location, time; produces: equipment status
+  - Calendar Integration Tool → consumes: calendar system, meeting details; produces: calendar entries
+  - Meeting Reminder Scheduler → consumes: meeting details, reminder preferences; produces: reminder tasks
+  - Booking Cancellation Tool → consumes: booking IDs, cancellation reason; produces: cancellation confirmations
+  - Meeting Analytics Tracker → consumes: meeting metadata, attendance data; produces: usage metrics
+  - Resource Optimization Tool → consumes: historical data, current requests; produces: scheduling recommendations
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  1. Quick room booking: Room Availability Checker → Room Booking Manager → Meeting Invitation Sender
+  2. Virtual meeting setup: Virtual Space Provisioner → Meeting Invitation Sender → Meeting Reminder Scheduler
+
+  Medium plans:
+  1. Standard meeting coordination: Attendee Availability Checker → Meeting Conflict Detector → Room Availability Checker → Room Booking Manager → Equipment Availability Checker → Meeting Invitation Sender
+  2. Hybrid meeting planning: Attendee Availability Checker → Room Availability Checker → Virtual Space Provisioner → Equipment Availability Checker → Calendar Integration Tool → Meeting Reminder Scheduler
+
+  Complex plans:
+  1. Enterprise meeting optimization: Resource Optimization Tool → Attendee Availability Checker → Meeting Conflict Detector → Room Availability Checker → Equipment Availability Checker → Room Booking Manager → Virtual Space Provisioner → Calendar Integration Tool → Meeting Invitation Sender → Meeting Reminder Scheduler → Meeting Analytics Tracker
+  2. Multi-location coordination with fallbacks: Attendee Availability Checker → Room Availability Checker (multiple locations) → Meeting Conflict Detector → Virtual Space Provisioner (backup) → Equipment Availability Checker → Room Booking Manager → Calendar Integration Tool → Meeting Invitation Sender → Meeting Reminder Scheduler
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Attendee Availability Checker",
+    "tool_description": "Checks availability of multiple attendees across specified time ranges by querying their calendar systems and returns consolidated availability windows.",
+    "parameters": {
+      "attendee_emails": {
+        "type": "array",
+        "required": true,
+        "description": "List of attendee email addresses to check availability for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Start of availability check window in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "End of availability check window in ISO 8601 format",
+        "format": "date-time"
+      },
+      "meeting_duration": {
+        "type": "integer",
+        "required": true,
+        "description": "Required meeting duration in minutes (15-480)"
+      },
+      "timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Timezone for the availability check (e.g., America/New_York)",
+        "default": "UTC"
+      }
+    },
+    "error_messages": [
+      "Invalid email format: One or more attendee emails are not in valid email format.",
+      "Invalid time range: start_time must be before end_time and both must be in valid ISO 8601 format.",
+      "Meeting duration out of range: Duration must be between 15 and 480 minutes.",
+      "Too many attendees: Maximum 50 attendees allowed per availability check.",
+      "Calendar access denied: Unable to access calendar for one or more attendees.",
+      "Invalid timezone: Provided timezone is not recognized."
+    ],
+    "usage": "Provide attendee email addresses, time window, and meeting duration. The tool will return available time slots when all attendees are free.",
+    "output_details": {
+      "available_slots": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of available time slots in ISO 8601 format"
+      },
+      "unavailable_attendees": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of attendee emails who have conflicts"
+      },
+      "success": {
+        "type": "boolean",
+        "description": "Whether the availability check completed successfully"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Room Availability Checker",
+    "tool_description": "Searches for available meeting rooms based on location, capacity, time slot, and equipment requirements.",
+    "parameters": {
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Building or office location identifier"
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Meeting start time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "Meeting end time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "min_capacity": {
+        "type": "integer",
+        "required": true,
+        "description": "Minimum room capacity required (1-200)"
+      },
+      "equipment_needed": {
+        "type": "array",
+        "required": false,
+        "description": "List of required equipment types",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "room_type": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred room type (conference, huddle, boardroom, auditorium)",
+        "default": "conference"
+      }
+    },
+    "error_messages": [
+      "Invalid location: Location identifier not found in system.",
+      "Invalid time range: start_time must be before end_time and in valid ISO 8601 format.",
+      "Invalid capacity: min_capacity must be between 1 and 200.",
+      "Invalid room type: room_type must be one of conference, huddle, boardroom, auditorium.",
+      "Equipment not available: One or more requested equipment types not available at location."
+    ],
+    "usage": "Specify location, time range, capacity needs, and optional equipment requirements. Returns list of available rooms matching criteria.",
+    "output_details": {
+      "available_rooms": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of available room identifiers"
+      },
+      "room_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed information about each available room"
+      },
+      "total_found": {
+        "type": "integer",
+        "description": "Total number of available rooms found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Virtual Space Provisioner",
+    "tool_description": "Creates and configures virtual meeting spaces with appropriate settings based on meeting type, duration, and participant count.",
+    "parameters": {
+      "meeting_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of virtual meeting (webinar, conference, training, interview)"
+      },
+      "duration_minutes": {
+        "type": "integer",
+        "required": true,
+        "description": "Expected meeting duration in minutes (15-600)"
+      },
+      "max_participants": {
+        "type": "integer",
+        "required": true,
+        "description": "Maximum number of participants expected (2-1000)"
+      },
+      "recording_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to enable meeting recording",
+        "default": false
+      },
+      "waiting_room": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to enable waiting room feature",
+        "default": true
+      },
+      "security_level": {
+        "type": "string",
+        "required": false,
+        "description": "Security level (standard, high, enterprise)",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid meeting type: meeting_type must be one of webinar, conference, training, interview.",
+      "Invalid duration: duration_minutes must be between 15 and 600.",
+      "Invalid participant count: max_participants must be between 2 and 1000.",
+      "Invalid security level: security_level must be one of standard, high, enterprise.",
+      "Virtual space creation failed: Unable to provision virtual meeting space due to system limitations."
+    ],
+    "usage": "Specify meeting type, duration, and participant count. Optional settings include recording, waiting room, and security level. Returns virtual meeting details and access links.",
+    "output_details": {
+      "meeting_url": {
+        "type": "string",
+        "description": "Primary meeting access URL"
+      },
+      "meeting_id": {
+        "type": "string",
+        "description": "Unique meeting identifier"
+      },
+      "host_key": {
+        "type": "string",
+        "description": "Host access key for meeting control"
+      },
+      "dial_in_numbers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Phone numbers for dial-in access"
+      },
+      "success": {
+        "type": "boolean",
+        "description": "Whether virtual space was successfully created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Meeting Conflict Detector",
+    "tool_description": "Analyzes proposed meeting times against attendee schedules and existing bookings to identify scheduling conflicts and overlaps.",
+    "parameters": {
+      "proposed_start": {
+        "type": "string",
+        "required": true,
+        "description": "Proposed meeting start time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "proposed_end": {
+        "type": "string",
+        "required": true,
+        "description": "Proposed meeting end time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "attendee_emails": {
+        "type": "array",
+        "required": true,
+        "description": "List of attendee email addresses to check for conflicts",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "room_id": {
+        "type": "string",
+        "required": false,
+        "description": "Room identifier if checking room availability",
+        "default": null
+      },
+      "buffer_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Buffer time in minutes to check before and after meeting (0-60)",
+        "default": 15
+      },
+      "conflict_tolerance": {
+        "type": "string",
+        "required": false,
+        "description": "Tolerance level for conflicts (strict, moderate, flexible)",
+        "default": "moderate"
+      },
+      "include_tentative": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to consider tentative appointments as conflicts",
+        "default": true
+      },
+      "priority_attendees": {
+        "type": "array",
+        "required": false,
+        "description": "List of high-priority attendee emails whose conflicts are critical",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "exclude_types": {
+        "type": "array",
+        "required": false,
+        "description": "Meeting types to exclude from conflict detection",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Timezone for conflict analysis",
+        "default": "UTC"
+      }
+    },
+    "error_messages": [
+      "Invalid time range: proposed_start must be before proposed_end and both in valid ISO 8601 format.",
+      "Invalid attendee list: At least one valid email address required, maximum 100 attendees.",
+      "Invalid buffer time: buffer_minutes must be between 0 and 60.",
+      "Invalid conflict tolerance: Must be one of strict, moderate, flexible.",
+      "Calendar access failed: Unable to access calendar data for conflict detection.",
+      "Room not found: Specified room_id does not exist in the system.",
+      "Invalid timezone: Provided timezone is not recognized.",
+      "Priority attendee not found: One or more priority attendees not in main attendee list."
+    ],
+    "usage": "Provide proposed meeting time and attendee list. Optional parameters include room checking, buffer time, and conflict tolerance settings. Returns detailed conflict analysis.",
+    "output_details": {
+      "has_conflicts": {
+        "type": "boolean",
+        "description": "Whether any conflicts were detected"
+      },
+      "conflicted_attendees": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of attendees with scheduling conflicts"
+      },
+      "conflict_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed description of each conflict found"
+      },
+      "room_conflict": {
+        "type": "boolean",
+        "description": "Whether the requested room has a conflict"
+      },
+      "severity_level": {
+        "type": "string",
+        "description": "Overall conflict severity (low, medium, high, critical)"
+      },
+      "suggested_alternatives": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative time slots with fewer or no conflicts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Room Booking Manager",
+    "tool_description": "Books meeting rooms with specified requirements, handles reservations, and manages booking confirmations with optional recurring schedule support.",
+    "parameters": {
+      "room_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the room to book"
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Booking start time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "Booking end time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "organizer_email": {
+        "type": "string",
+        "required": true,
+        "description": "Email address of the meeting organizer"
+      },
+      "meeting_title": {
+        "type": "string",
+        "required": true,
+        "description": "Title or subject of the meeting"
+      },
+      "attendee_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Expected number of attendees (1-200)"
+      },
+      "equipment_requests": {
+        "type": "array",
+        "required": false,
+        "description": "List of equipment needed for the meeting",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "setup_requirements": {
+        "type": "string",
+        "required": false,
+        "description": "Special room setup requirements",
+        "default": "standard"
+      },
+      "catering_needed": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether catering services are needed",
+        "default": false
+      },
+      "recurring_pattern": {
+        "type": "string",
+        "required": false,
+        "description": "Recurring pattern (none, daily, weekly, monthly)",
+        "default": "none"
+      },
+      "recurrence_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date for recurring bookings in ISO 8601 format",
+        "format": "date-time",
+        "default": null
+      },
+      "booking_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Booking priority level (low, normal, high, urgent)",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Room not available: Specified room is already booked for the requested time slot.",
+      "Invalid time range: start_time must be before end_time and in valid ISO 8601 format.",
+      "Room not found: Specified room_id does not exist in the system.",
+      "Invalid organizer email: Organizer email address is not in valid format.",
+      "Capacity exceeded: attendee_count exceeds room capacity.",
+      "Equipment unavailable: One or more requested equipment items not available.",
+      "Invalid recurring pattern: Must be one of none, daily, weekly, monthly.",
+      "Recurrence end required: recurrence_end must be specified for recurring bookings.",
+      "Invalid priority: booking_priority must be one of low, normal, high, urgent.",
+      "Booking conflict: Room has conflicting reservation during specified time."
+    ],
+    "usage": "Provide room ID, time slot, organizer details, and meeting information. Optional parameters include equipment, setup requirements, and recurring patterns. Returns booking confirmation details.",
+    "output_details": {
+      "booking_id": {
+        "type": "string",
+        "description": "Unique identifier for the room booking"
+      },
+      "confirmation_number": {
+        "type": "string",
+        "description": "Confirmation number for the booking"
+      },
+      "booking_status": {
+        "type": "string",
+        "description": "Status of the booking (confirmed, pending, failed)"
+      },
+      "room_details": {
+        "type": "string",
+        "description": "Details about the booked room including location and amenities"
+      },
+      "total_cost": {
+        "type": "number",
+        "description": "Total cost of the room booking if applicable"
+      },
+      "recurring_bookings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of booking IDs for recurring meetings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Meeting Invitation Sender",
+    "tool_description": "Sends meeting invitations to attendees with calendar integration, manages RSVP tracking, and handles invitation updates.",
+    "parameters": {
+      "attendee_emails": {
+        "type": "array",
+        "required": true,
+        "description": "List of attendee email addresses to send invitations to",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "meeting_subject": {
+        "type": "string",
+        "required": true,
+        "description": "Subject line for the meeting invitation"
+      },
+      "meeting_description": {
+        "type": "string",
+        "required": false,
+        "description": "Detailed description of the meeting purpose and agenda",
+        "default": ""
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Meeting start time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "Meeting end time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "location": {
+        "type": "string",
+        "required": false,
+        "description": "Meeting location or virtual meeting link",
+        "default": ""
+      },
+      "organizer_email": {
+        "type": "string",
+        "required": true,
+        "description": "Email address of the meeting organizer"
+      },
+      "rsvp_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether RSVP responses are required",
+        "default": true
+      },
+      "send_reminders": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to send automatic reminders",
+        "default": true
+      },
+      "invitation_template": {
+        "type": "string",
+        "required": false,
+        "description": "Template style for invitation (standard, formal, casual)",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid attendee emails: One or more email addresses are not in valid format.",
+      "Too many attendees: Maximum 200 attendees allowed per invitation batch.",
+      "Invalid time range: start_time must be before end_time and in valid ISO 8601 format.",
+      "Missing subject: meeting_subject is required and cannot be empty.",
+      "Invalid organizer email: Organizer email address is not in valid format.",
+      "Invalid template: invitation_template must be one of standard, formal, casual.",
+      "Email delivery failed: Unable to send invitations to one or more recipients."
+    ],
+    "usage": "Provide attendee list, meeting details, and time information. Optional settings include RSVP requirements and reminder preferences. Returns invitation sending status and tracking information.",
+    "output_details": {
+      "invitation_id": {
+        "type": "string",
+        "description": "Unique identifier for this invitation batch"
+      },
+      "sent_count": {
+        "type": "integer",
+        "description": "Number of invitations successfully sent"
+      },
+      "failed_recipients": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of email addresses where invitation delivery failed"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Overall delivery status (complete, partial, failed)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Equipment Availability Checker",
+    "tool_description": "Checks availability of meeting equipment and technology resources for specified time periods and locations.",
+    "parameters": {
+      "equipment_types": {
+        "type": "array",
+        "required": true,
+        "description": "List of equipment types needed (projector, whiteboard, video_conference, audio_system, laptop, tablet)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Building or office location where equipment is needed"
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Equipment needed from time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "Equipment needed until time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "quantity_needed": {
+        "type": "array",
+        "required": false,
+        "description": "Quantity needed for each equipment type (matches equipment_types order)",
+        "items": {"type": "integer"},
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid equipment types: One or more equipment types not recognized.",
+      "Invalid location: Location identifier not found in system.",
+      "Invalid time range: start_time must be before end_time and in valid ISO 8601 format.",
+      "Quantity mismatch: quantity_needed array must match equipment_types array length.",
+      "Equipment not available at location: Requested equipment not available at specified location."
+    ],
+    "usage": "Specify equipment types, location, and time range. Optional quantity specification for each equipment type. Returns availability status and reservation options.",
+    "output_details": {
+      "available_equipment": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of available equipment with identifiers"
+      },
+      "unavailable_equipment": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of equipment types that are not available"
+      },
+      "availability_status": {
+        "type": "string",
+        "description": "Overall availability status (all_available, partial, none_available)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Calendar Integration Tool",
+    "tool_description": "Integrates meeting information with various calendar systems and synchronizes meeting details across platforms.",
+    "parameters": {
+      "calendar_system": {
+        "type": "string",
+        "required": true,
+        "description": "Target calendar system (outlook, google, apple, exchange)"
+      },
+      "meeting_details": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing complete meeting information"
+      },
+      "sync_attendees": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to sync with attendee calendars",
+        "default": true
+      },
+      "update_existing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to update existing calendar entries",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Unsupported calendar system: calendar_system must be one of outlook, google, apple, exchange.",
+      "Invalid meeting details: meeting_details must be valid JSON format.",
+      "Calendar authentication failed: Unable to authenticate with specified calendar system.",
+      "Sync failed: Unable to synchronize meeting with one or more attendee calendars."
+    ],
+    "usage": "Specify target calendar system and meeting details in JSON format. Optional settings for attendee sync and updating existing entries. Returns calendar integration status.",
+    "output_details": {
+      "integration_status": {
+        "type": "string",
+        "description": "Status of calendar integration (success, partial, failed)"
+      },
+      "calendar_event_id": {
+        "type": "string",
+        "description": "Unique event identifier in the calendar system"
+      },
+      "synced_attendees": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of attendees successfully synced"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Meeting Reminder Scheduler",
+    "tool_description": "Schedules and manages automated meeting reminders for attendees with customizable timing and delivery methods.",
+    "parameters": {
+      "meeting_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the meeting for reminder scheduling"
+      },
+      "attendee_emails": {
+        "type": "array",
+        "required": true,
+        "description": "List of attendee email addresses to send reminders to",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "reminder_times": {
+        "type": "array",
+        "required": false,
+        "description": "Minutes before meeting to send reminders (e.g., 1440 for 24 hours, 60 for 1 hour)",
+        "items": {"type": "integer"},
+        "default": [1440, 60, 15]
+      },
+      "delivery_method": {
+        "type": "string",
+        "required": false,
+        "description": "How to deliver reminders (email, sms, push, all)",
+        "default": "email"
+      }
+    },
+    "error_messages": [
+      "Meeting not found: Specified meeting_id does not exist in the system.",
+      "Invalid attendee emails: One or more email addresses are not in valid format.",
+      "Invalid reminder times: Reminder times must be positive integers representing minutes.",
+      "Invalid delivery method: delivery_method must be one of email, sms, push, all.",
+      "Reminder scheduling failed: Unable to schedule reminders due to system error."
+    ],
+    "usage": "Provide meeting ID and attendee list. Optional settings include custom reminder timing and delivery methods. Returns confirmation of scheduled reminders.",
+    "output_details": {
+      "scheduled_reminders": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of scheduled reminder identifiers"
+      },
+      "reminder_count": {
+        "type": "integer",
+        "description": "Total number of reminders scheduled"
+      },
+      "scheduling_status": {
+        "type": "string",
+        "description": "Status of reminder scheduling (success, partial, failed)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Booking Cancellation Tool",
+    "tool_description": "Cancels room bookings and meeting reservations, handles notifications to attendees, and manages refunds or rescheduling.",
+    "parameters": {
+      "booking_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the booking to cancel"
+      },
+      "cancellation_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for cancellation"
+      },
+      "notify_attendees": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to send cancellation notifications to attendees",
+        "default": true
+      },
+      "refund_applicable": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether booking is eligible for refund",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Booking not found: Specified booking_id does not exist or has already been cancelled.",
+      "Cancellation not allowed: Booking cannot be cancelled due to policy restrictions.",
+      "Missing cancellation reason: cancellation_reason is required and cannot be empty.",
+      "Notification delivery failed: Unable to send cancellation notifications to some attendees."
+    ],
+    "usage": "Provide booking ID and cancellation reason. Optional settings for attendee notifications and refund processing. Returns cancellation confirmation and status.",
+    "output_details": {
+      "cancellation_id": {
+        "type": "string",
+        "description": "Unique identifier for the cancellation record"
+      },
+      "cancellation_status": {
+        "type": "string",
+        "description": "Status of the cancellation (confirmed, pending, failed)"
+      },
+      "refund_amount": {
+        "type": "number",
+        "description": "Refund amount if applicable"
+      },
+      "notifications_sent": {
+        "type": "integer",
+        "description": "Number of attendees notified of cancellation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Meeting Analytics Tracker",
+    "tool_description": "Tracks and analyzes meeting metrics including attendance, room utilization, equipment usage, and generates usage reports.",
+    "parameters": {
+      "tracking_period_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for

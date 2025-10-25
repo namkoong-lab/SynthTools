@@ -1,0 +1,853 @@
+field_name: cooking_and_recipes
+subfield: Meal Planning and Menu Design
+task: Generate shopping lists with ingredient quantities and cost estimates for planned meals
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task is medium difficulty. It requires coordinating multiple data sources (recipes, nutritional info, store pricing), handling quantity calculations and unit conversions, managing dietary restrictions, and producing accurate cost estimates. The scope involves recipe parsing, inventory management, price comparison, and list optimization with moderate dependencies between components.
+
+  **STEP 2 — Set a tool budget**
+  For this medium difficulty task, I'll target 12 tools to cover recipe management, quantity calculations, pricing, inventory tracking, and list optimization while maintaining modularity and composability.
+
+  **STEP 3 — List all tool names and dependencies**
+  1. Recipe Parser - consumes recipe data → produces structured ingredients
+  2. Portion Calculator - consumes servings/people → produces scaling factors
+  3. Unit Converter - consumes mixed units → produces standardized quantities
+  4. Ingredient Aggregator - consumes multiple ingredient lists → produces consolidated quantities
+  5. Pantry Checker - consumes inventory data → produces availability status
+  6. Price Fetcher - consumes ingredients/stores → produces current prices
+  7. Cost Calculator - consumes quantities/prices → produces total costs
+  8. Store Comparator - consumes multi-store prices → produces best options
+  9. Dietary Filter - consumes restrictions/ingredients → produces compliant alternatives
+  10. Shopping Optimizer - consumes ingredients/preferences → produces optimized lists
+  11. Budget Analyzer - consumes costs/budget → produces budget compliance
+  12. List Formatter - consumes shopping data → produces formatted output
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  - Basic shopping list: Recipe Parser → Ingredient Aggregator → Cost Calculator → List Formatter
+  - Price comparison: Price Fetcher → Store Comparator → List Formatter
+
+  Medium plans:
+  - Diet-conscious planning: Recipe Parser → Dietary Filter → Portion Calculator → Unit Converter → Cost Calculator → List Formatter
+  - Budget-aware shopping: Recipe Parser → Ingredient Aggregator → Pantry Checker → Price Fetcher → Budget Analyzer → Shopping Optimizer
+
+  Complex plans:
+  - Full meal planning workflow: Recipe Parser → Portion Calculator → Unit Converter → Ingredient Aggregator → Pantry Checker → Dietary Filter → Price Fetcher → Store Comparator → Budget Analyzer → Shopping Optimizer → List Formatter
+  - Multi-week planning with optimization: Recipe Parser → Portion Calculator → Ingredient Aggregator → Pantry Checker → Price Fetcher → Cost Calculator → Budget Analyzer → Shopping Optimizer → Store Comparator → List Formatter
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Recipe Parser",
+    "tool_description": "Extracts and structures ingredient information from recipe text or URLs, standardizing ingredient names, quantities, and units for further processing.",
+    "parameters": {
+      "recipe_input": {
+        "type": "string",
+        "required": true,
+        "description": "Recipe text, URL, or recipe ID to parse for ingredients"
+      },
+      "input_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of input: 'text', 'url', or 'id'"
+      }
+    },
+    "error_messages": [
+      "Invalid input type: Use 'text', 'url', or 'id' for input_type parameter.",
+      "Recipe not found: The provided URL or ID does not contain accessible recipe data.",
+      "Parsing failed: Recipe text is malformed or missing ingredient information."
+    ],
+    "usage": "Provide recipe_input as text, URL, or ID along with the corresponding input_type. Returns structured ingredient data with quantities and units.",
+    "output_details": {
+      "recipe_title": {
+        "type": "string",
+        "description": "Name of the parsed recipe"
+      },
+      "ingredients": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of ingredient names"
+      },
+      "quantities": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Corresponding quantities for each ingredient"
+      },
+      "units": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Units of measurement for each quantity"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Portion Calculator",
+    "tool_description": "Scales ingredient quantities based on desired number of servings or people, adjusting all amounts proportionally while maintaining recipe integrity.",
+    "parameters": {
+      "original_servings": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of servings the original recipe makes"
+      },
+      "desired_servings": {
+        "type": "integer",
+        "required": true,
+        "description": "Target number of servings needed"
+      },
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Original ingredient quantities to scale",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      }
+    },
+    "error_messages": [
+      "Invalid serving count: Both original_servings and desired_servings must be positive integers.",
+      "Empty quantities: Provide at least one quantity value to scale.",
+      "Non-numeric quantities: All quantity values must be valid numbers greater than 0."
+    ],
+    "usage": "Input the original recipe servings, desired servings, and ingredient quantities. Returns proportionally scaled quantities for all ingredients.",
+    "output_details": {
+      "scaling_factor": {
+        "type": "number",
+        "description": "Multiplication factor used for scaling"
+      },
+      "scaled_quantities": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Adjusted quantities for desired serving size"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Unit Converter",
+    "tool_description": "Converts ingredient quantities between different measurement units (volume, weight, count) to standardize shopping calculations and enable accurate aggregation.",
+    "parameters": {
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities to convert",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "from_units": {
+        "type": "array",
+        "required": true,
+        "description": "Original units for each quantity",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "to_units": {
+        "type": "array",
+        "required": true,
+        "description": "Target units for conversion",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "ingredient_names": {
+        "type": "array",
+        "required": true,
+        "description": "Ingredient names for density-based conversions",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: quantities, from_units, to_units, and ingredient_names must have the same length.",
+      "Unsupported unit conversion: Cannot convert between the specified from_unit and to_unit combination.",
+      "Unknown ingredient: Ingredient name not recognized for density-based volume/weight conversion.",
+      "Invalid unit format: Use standard abbreviations like 'cup', 'oz', 'lb', 'g', 'ml', 'tsp', 'tbsp'."
+    ],
+    "usage": "Provide parallel arrays of quantities, from_units, to_units, and ingredient_names. Returns converted quantities in the target units.",
+    "output_details": {
+      "converted_quantities": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Quantities converted to target units"
+      },
+      "conversion_notes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Notes about conversion accuracy or assumptions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ingredient Aggregator",
+    "tool_description": "Combines ingredient lists from multiple recipes, summing quantities of duplicate ingredients and identifying potential bulk purchasing opportunities.",
+    "parameters": {
+      "recipe_ingredients": {
+        "type": "array",
+        "required": true,
+        "description": "List of ingredient names from all recipes",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "recipe_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Corresponding quantities for each ingredient",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "recipe_units": {
+        "type": "array",
+        "required": true,
+        "description": "Units of measurement for each quantity",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "recipe_sources": {
+        "type": "array",
+        "required": true,
+        "description": "Source recipe names for tracking",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "merge_similar": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to merge similar ingredients (e.g., 'tomato' and 'tomatoes')",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: recipe_ingredients, recipe_quantities, recipe_units, and recipe_sources must have equal lengths.",
+      "Empty ingredient list: Provide at least one ingredient to aggregate.",
+      "Invalid quantity values: All quantities must be positive numbers.",
+      "Unit mismatch: Cannot aggregate ingredients with incompatible units without conversion first."
+    ],
+    "usage": "Input parallel arrays of ingredients, quantities, units, and source recipes. Optionally enable similar ingredient merging. Returns consolidated ingredient list with total quantities.",
+    "output_details": {
+      "unique_ingredients": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Consolidated list of unique ingredients"
+      },
+      "total_quantities": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Summed quantities for each unique ingredient"
+      },
+      "units": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Units for each aggregated quantity"
+      },
+      "source_recipes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Comma-separated recipe sources for each ingredient"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pantry Checker",
+    "tool_description": "Compares required ingredients against current pantry inventory to determine what items are already available and what quantities still need to be purchased.",
+    "parameters": {
+      "required_ingredients": {
+        "type": "array",
+        "required": true,
+        "description": "List of ingredients needed for recipes",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "required_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities needed for each ingredient",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "required_units": {
+        "type": "array",
+        "required": true,
+        "description": "Units for each required quantity",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "pantry_ingredients": {
+        "type": "array",
+        "required": true,
+        "description": "List of ingredients currently in pantry",
+        "items": {
+          "type": "string"
+        }
+      },
+      "pantry_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Available quantities of pantry ingredients",
+        "items": {
+          "type": "number"
+        }
+      },
+      "pantry_units": {
+        "type": "array",
+        "required": true,
+        "description": "Units for pantry ingredient quantities",
+        "items": {
+          "type": "string"
+        }
+      },
+      "safety_margin": {
+        "type": "number",
+        "required": false,
+        "description": "Extra percentage to keep in pantry (0-50)",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Required arrays length mismatch: required_ingredients, required_quantities, and required_units must have equal lengths.",
+      "Pantry arrays length mismatch: pantry_ingredients, pantry_quantities, and pantry_units must have equal lengths.",
+      "Invalid safety margin: Value must be between 0 and 50 percent.",
+      "Unit conversion needed: Pantry and required ingredients have incompatible units for comparison."
+    ],
+    "usage": "Provide required ingredients with quantities/units and current pantry inventory with quantities/units. Optionally set safety_margin percentage. Returns shopping needs after accounting for available inventory.",
+    "output_details": {
+      "shopping_needed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Ingredients that need to be purchased"
+      },
+      "shopping_quantities": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Quantities to purchase for each needed ingredient"
+      },
+      "shopping_units": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Units for shopping quantities"
+      },
+      "available_ingredients": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Ingredients already available in sufficient quantities"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price Fetcher",
+    "tool_description": "Retrieves current pricing information for ingredients from specified stores or online sources, including unit prices, package sizes, and availability status.",
+    "parameters": {
+      "ingredients": {
+        "type": "array",
+        "required": true,
+        "description": "List of ingredients to price check",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "store_names": {
+        "type": "array",
+        "required": true,
+        "description": "List of stores to check prices at",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "zip_code": {
+        "type": "string",
+        "required": true,
+        "description": "ZIP code for local store pricing"
+      },
+      "include_organic": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include organic options in price search",
+        "default": false
+      },
+      "include_generic": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include store-brand/generic options",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid ZIP code: Provide a valid 5-digit US ZIP code for store location.",
+      "Store not found: One or more specified stores are not available in the given location.",
+      "Ingredient not found: Some ingredients could not be located in store inventories.",
+      "Rate limit exceeded: Too many price requests in short time period, retry after delay."
+    ],
+    "usage": "Provide ingredients list, store_names to check, and zip_code for location. Optionally include organic or generic options. Returns pricing data for each ingredient at each store.",
+    "output_details": {
+      "ingredient_prices": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Formatted price data for each ingredient at each store"
+      },
+      "lowest_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Best price found for each ingredient across all stores"
+      },
+      "best_stores": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Store with lowest price for each ingredient"
+      },
+      "availability_status": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Whether each ingredient is available at any checked store"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cost Calculator",
+    "tool_description": "Calculates total shopping costs based on ingredient quantities and current prices, including tax estimates, bulk discounts, and cost per serving analysis.",
+    "parameters": {
+      "ingredients": {
+        "type": "array",
+        "required": true,
+        "description": "List of ingredients to calculate costs for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities needed for each ingredient",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "unit_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Price per unit for each ingredient",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "tax_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Local tax rate as decimal (e.g., 0.08 for 8%)",
+        "default": 0.0875
+      },
+      "servings": {
+        "type": "integer",
+        "required": false,
+        "description": "Total servings to calculate per-serving cost",
+        "default": 4
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: ingredients, quantities, and unit_prices must have equal lengths.",
+      "Invalid price data: All unit_prices must be positive numbers.",
+      "Invalid tax rate: Tax rate must be between 0 and 0.25 (0-25%).",
+      "Invalid servings: Servings must be a positive integer greater than 0."
+    ],
+    "usage": "Provide ingredients, quantities, and unit_prices arrays along with tax_rate and servings. Returns detailed cost breakdown including totals and per-serving costs.",
+    "output_details": {
+      "subtotal": {
+        "type": "number",
+        "description": "Total cost before tax"
+      },
+      "tax_amount": {
+        "type": "number",
+        "description": "Calculated tax amount"
+      },
+      "total_cost": {
+        "type": "number",
+        "description": "Final total including tax"
+      },
+      "cost_per_serving": {
+        "type": "number",
+        "description": "Cost divided by number of servings"
+      },
+      "ingredient_costs": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Individual cost for each ingredient"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Store Comparator",
+    "tool_description": "Compares total shopping costs across multiple stores and suggests optimal shopping strategies to minimize total expense while considering travel distance.",
+    "parameters": {
+      "ingredients": {
+        "type": "array",
+        "required": true,
+        "description": "List of ingredients to compare prices for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "store_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Comma-separated price lists for each store",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2
+      },
+      "store_names": {
+        "type": "array",
+        "required": true,
+        "description": "Names of stores being compared",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2
+      },
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Shopping quantities for each ingredient",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      }
+    },
+    "error_messages": [
+      "Store data mismatch: store_prices and store_names arrays must have equal lengths.",
+      "Ingredient quantity mismatch: ingredients and quantities arrays must have equal lengths.",
+      "Insufficient stores: At least 2 stores required for comparison.",
+      "Invalid price format: Store prices must be comma-separated numeric values matching ingredient count."
+    ],
+    "usage": "Provide ingredients with quantities, store names, and corresponding price data for each store. Returns comparison analysis and shopping recommendations.",
+    "output_details": {
+      "cheapest_store": {
+        "type": "string",
+        "description": "Store with lowest total shopping cost"
+      },
+      "total_costs": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Total cost at each store"
+      },
+      "potential_savings": {
+        "type": "number",
+        "description": "Money saved by choosing cheapest vs most expensive store"
+      },
+      "mixed_strategy": {
+        "type": "string",
+        "description": "Recommendation for splitting purchases across stores if beneficial"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dietary Filter",
+    "tool_description": "Filters ingredients and suggests alternatives based on dietary restrictions, allergies, and nutritional preferences while maintaining recipe integrity.",
+    "parameters": {
+      "ingredients": {
+        "type": "array",
+        "required": true,
+        "description": "List of ingredients to filter",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "dietary_restrictions": {
+        "type": "array",
+        "required": true,
+        "description": "List of dietary restrictions to apply",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "allergies": {
+        "type": "array",
+        "required": false,
+        "description": "List of allergens to avoid",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "substitution_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Preference for substitutions: 'closest_match', 'healthiest', 'cheapest'",
+        "default": "closest_match"
+      },
+      "allow_omissions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to allow ingredient omission if no substitute available",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Unsupported dietary restriction: Use recognized restrictions like 'vegetarian', 'vegan', 'gluten-free', 'keto', 'paleo'.",
+      "Unknown allergen: Specify common allergens like 'nuts', 'dairy', 'eggs', 'shellfish', 'soy'.",
+      "Invalid substitution preference: Use 'closest_match', 'healthiest', or 'cheapest'.",
+      "No suitable alternatives: Some ingredients cannot be substituted with given restrictions and omissions not allowed."
+    ],
+    "usage": "Provide ingredients list and dietary_restrictions. Optionally specify allergies, substitution_preference, and allow_omissions. Returns filtered ingredients with suggested alternatives.",
+    "output_details": {
+      "approved_ingredients": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Ingredients that comply with dietary restrictions"
+      },
+      "substitutions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggested substitutes for restricted ingredients"
+      },
+      "omitted_ingredients": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Ingredients removed due to restrictions with no substitute"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Alerts about potential recipe impact from substitutions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shopping Optimizer",
+    "tool_description": "Optimizes shopping lists by organizing items by store sections, suggesting bulk purchases, and identifying opportunities for meal prep efficiency.",
+    "parameters": {
+      "ingredients": {
+        "type": "array",
+        "required": true,
+        "description": "Final list of ingredients to purchase",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities to purchase for each ingredient",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "units": {
+        "type": "array",
+        "required": true,
+        "description": "Units for each quantity",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "store_layout": {
+        "type": "string",
+        "required": false,
+        "description": "Store type for section organization: 'supermarket', 'warehouse', 'specialty'",
+        "default": "supermarket"
+      },
+      "bulk_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum quantity to suggest bulk purchase",
+        "default": 5.0
+      },
+      "priority_fresh": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to prioritize fresh ingredients at end of shopping",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: ingredients, quantities, and units must have equal lengths.",
+      "Invalid store layout: Use 'supermarket', 'warehouse', or 'specialty'.",
+      "Invalid bulk threshold: Must be a positive number greater than 0.",
+      "Empty shopping list: At least one ingredient required for optimization."
+    ],
+    "usage": "Provide ingredients with quantities and units. Optionally specify store_layout, bulk_threshold, and priority_fresh preferences. Returns organized and optimized shopping list.",
+    "output_details": {
+      "organized_sections": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Shopping list organized by store sections"
+      },
+      "bulk_suggestions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Items recommended for bulk purchase"
+      },
+      "shopping_order": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Optimal order to collect items in store"
+      },
+      "efficiency_tips": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Tips for efficient shopping and meal prep"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Budget Analyzer",
+    "tool_description": "Analyzes shopping costs against budget constraints and suggests cost-saving modifications while maintaining nutritional value and meal satisfaction.",
+    "parameters": {
+      "total_cost": {
+        "type": "number",
+        "required": true,
+        "description": "Calculated total shopping cost"
+      },
+      "budget_limit": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum budget available for shopping"
+      }
+    },
+    "error_messages": [
+      "Invalid cost data: total_cost must be a positive number.",
+      "Invalid budget: budget_limit must be a positive number greater than 0.",
+      "Budget too low: Budget limit is unrealistically low for basic meal planning."
+    ],
+    "usage": "Provide total_cost from shopping calculations and budget_limit. Returns budget analysis with recommendations for staying within budget if needed.",
+    "output_details": {
+      "within_budget": {
+        "type": "boolean",
+        "description": "Whether shopping cost is within budget limit"
+      },
+      "budget_remaining": {
+        "type": "number",
+        "description": "Amount under budget (positive) or over budget (negative)"
+      },
+      "budget_utilization": {
+        "type": "number",
+        "description": "Percentage of budget used"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggestions for budget optimization"
+      }
+    }
+  }
+  ```

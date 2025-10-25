@@ -1,0 +1,812 @@
+field_name: document_scanning_and_ocr
+subfield: legal_document_digitization
+task: Extract and digitize text content from scanned legal contracts and agreements
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task is **hard** due to the complex scope involving multiple document types, high ambiguity in interpreting legal terminology and formatting variations, critical dependencies between OCR accuracy and downstream processing, significant risk from errors that could affect legal compliance, and substantial infrastructure requirements for handling diverse document formats and maintaining data security.
+
+  **STEP 2 — Set a tool budget**
+  Based on the hard difficulty rating, I'm targeting **17 tools** within the 15–20 range to handle the comprehensive workflow from document ingestion through final digitized output with quality assurance.
+
+  **STEP 3 — List all tool names and dependencies**
+  1. **Document Format Detector** - consumes: raw document files → produces: format metadata
+  2. **Image Preprocessor** - consumes: raw images → produces: enhanced images
+  3. **Page Segmentation Tool** - consumes: preprocessed images → produces: page regions
+  4. **OCR Text Extractor** - consumes: page regions → produces: raw text
+  5. **Text Confidence Analyzer** - consumes: OCR output → produces: confidence scores
+  6. **Legal Structure Parser** - consumes: raw text → produces: structured elements
+  7. **Contract Clause Identifier** - consumes: structured text → produces: clause classifications
+  8. **Table Structure Detector** - consumes: page regions → produces: table layouts
+  9. **Signature Area Extractor** - consumes: page regions → produces: signature locations
+  10. **Text Quality Validator** - consumes: extracted text → produces: quality metrics
+  11. **Legal Term Corrector** - consumes: text + confidence → produces: corrected text
+  12. **Document Merger** - consumes: multiple page outputs → produces: unified document
+  13. **Metadata Extractor** - consumes: document structure → produces: document metadata
+  14. **Format Converter** - consumes: structured data → produces: target formats
+  15. **Version Comparator** - consumes: multiple document versions → produces: differences
+  16. **Audit Trail Generator** - consumes: processing steps → produces: audit logs
+  17. **Quality Report Generator** - consumes: all outputs → produces: quality assessment
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic OCR: Document Format Detector → Image Preprocessor → OCR Text Extractor → Format Converter
+  - Quick Validation: Text Confidence Analyzer → Text Quality Validator → Quality Report Generator
+
+  **Medium Plans:**
+  - Standard Processing: Document Format Detector → Image Preprocessor → Page Segmentation Tool → OCR Text Extractor → Legal Structure Parser → Document Merger → Format Converter
+  - Quality Enhancement: OCR Text Extractor → Text Confidence Analyzer → Legal Term Corrector → Text Quality Validator → Quality Report Generator
+
+  **Complex Plans:**
+  - Full Legal Processing: All 17 tools in sequence for comprehensive contract digitization with audit trails
+  - Multi-version Analysis: Document Format Detector → Image Preprocessor → OCR Text Extractor → Legal Structure Parser → Version Comparator → Audit Trail Generator → Quality Report Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Document Format Detector",
+    "tool_description": "Analyzes uploaded document files to identify format type, page count, resolution, and basic structural properties for optimal processing pipeline selection.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the document file to be analyzed"
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to extract detailed file metadata"
+      }
+    },
+    "error_messages": [
+      "File not found: Ensure the file_path points to an existing file and check file permissions.",
+      "Unsupported format: Only PDF, TIFF, PNG, JPG, and JPEG formats are supported.",
+      "Corrupted file: The file appears to be damaged or incomplete, try re-uploading.",
+      "File too large: Maximum file size is 100MB, compress or split large documents."
+    ],
+    "usage": "Provide the file_path to the document. Optionally set include_metadata to false if you only need basic format information.",
+    "output_details": {
+      "format_type": {
+        "type": "string",
+        "description": "Detected file format (PDF, TIFF, PNG, JPG, JPEG)"
+      },
+      "page_count": {
+        "type": "integer",
+        "description": "Number of pages in the document"
+      },
+      "resolution_dpi": {
+        "type": "integer",
+        "description": "Document resolution in dots per inch"
+      },
+      "file_size_mb": {
+        "type": "number",
+        "description": "File size in megabytes"
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "description": "Whether the document already contains searchable text"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Preprocessor",
+    "tool_description": "Enhances scanned document images through noise reduction, contrast adjustment, rotation correction, and resolution optimization to improve OCR accuracy.",
+    "parameters": {
+      "input_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the input image or document file"
+      },
+      "enhance_contrast": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Apply contrast enhancement algorithms"
+      },
+      "remove_noise": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Apply noise reduction filtering"
+      },
+      "auto_rotate": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Automatically detect and correct rotation"
+      },
+      "target_dpi": {
+        "type": "integer",
+        "required": false,
+        "default": 300,
+        "description": "Target resolution in DPI (150-600 range)"
+      },
+      "binarize": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Convert to black and white for text-only documents"
+      }
+    },
+    "error_messages": [
+      "Invalid input path: Ensure the file exists and is readable.",
+      "Unsupported image format: Only PNG, JPG, JPEG, TIFF, and PDF formats are supported.",
+      "Invalid DPI value: target_dpi must be between 150 and 600.",
+      "Processing failed: Image may be too damaged or corrupted for enhancement.",
+      "Memory error: Image too large for processing, try reducing resolution first."
+    ],
+    "usage": "Specify input_path and optionally configure enhancement settings. For legal documents, keep enhance_contrast and remove_noise enabled, set target_dpi to 300 for optimal OCR results.",
+    "output_details": {
+      "output_path": {
+        "type": "string",
+        "description": "Path to the processed image file"
+      },
+      "applied_enhancements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of enhancement operations applied"
+      },
+      "rotation_degrees": {
+        "type": "number",
+        "description": "Degrees of rotation correction applied"
+      },
+      "final_dpi": {
+        "type": "integer",
+        "description": "Actual DPI of the processed image"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Processing time in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Page Segmentation Tool",
+    "tool_description": "Analyzes document pages to identify and segment different regions such as headers, body text, tables, signatures, and footer areas for targeted processing.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the preprocessed document image"
+      },
+      "segmentation_mode": {
+        "type": "string",
+        "required": false,
+        "default": "automatic",
+        "description": "Segmentation approach: automatic, layout_based, or content_based"
+      },
+      "include_tables": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Identify and segment table regions"
+      },
+      "include_signatures": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Identify signature and stamp areas"
+      },
+      "minimum_region_size": {
+        "type": "integer",
+        "required": false,
+        "default": 100,
+        "description": "Minimum pixel area for region detection"
+      }
+    },
+    "error_messages": [
+      "Image file not found: Verify the image_path is correct and file exists.",
+      "Invalid segmentation mode: Use 'automatic', 'layout_based', or 'content_based'.",
+      "Image too small: Document image must be at least 200x200 pixels.",
+      "Segmentation failed: Unable to detect distinct regions, try different segmentation_mode.",
+      "Invalid minimum_region_size: Value must be between 50 and 5000 pixels."
+    ],
+    "usage": "Provide image_path to a preprocessed document image. Use 'automatic' mode for most legal documents, 'layout_based' for structured contracts, 'content_based' for variable layouts.",
+    "output_details": {
+      "region_count": {
+        "type": "integer",
+        "description": "Number of identified regions"
+      },
+      "regions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of region types detected (header, body, table, signature, footer)"
+      },
+      "region_coordinates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Bounding box coordinates for each region (x,y,width,height)"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each detected region"
+      },
+      "segmentation_map_path": {
+        "type": "string",
+        "description": "Path to visual segmentation overlay image"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "OCR Text Extractor",
+    "tool_description": "Performs optical character recognition on segmented document regions to extract text content with position information and confidence scores.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image file or document page"
+      },
+      "region_coordinates": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "Array of region coordinates to process (x,y,width,height)"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "default": "en",
+        "description": "OCR language code (en, es, fr, de, etc.)"
+      },
+      "ocr_engine": {
+        "type": "string",
+        "required": false,
+        "default": "tesseract",
+        "description": "OCR engine to use: tesseract, paddle, or ensemble"
+      },
+      "preserve_formatting": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Maintain original text formatting and spacing"
+      }
+    },
+    "error_messages": [
+      "Image file not accessible: Check that image_path points to a valid, readable file.",
+      "Invalid language code: Specify a supported ISO 639-1 language code.",
+      "Unsupported OCR engine: Use 'tesseract', 'paddle', or 'ensemble'.",
+      "Invalid region coordinates: Format should be 'x,y,width,height' with integer values.",
+      "OCR processing failed: Image quality may be too poor, try preprocessing first.",
+      "Text extraction timeout: Large documents may require region-based processing."
+    ],
+    "usage": "Specify image_path and optionally provide region_coordinates from page segmentation. Use 'ensemble' engine for highest accuracy on legal documents, 'tesseract' for speed.",
+    "output_details": {
+      "extracted_text": {
+        "type": "string",
+        "description": "Full extracted text content"
+      },
+      "word_count": {
+        "type": "integer",
+        "description": "Total number of words extracted"
+      },
+      "average_confidence": {
+        "type": "number",
+        "description": "Average confidence score across all text"
+      },
+      "text_regions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Text content for each processed region"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "OCR processing time in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Text Confidence Analyzer",
+    "tool_description": "Analyzes OCR-extracted text to provide word-level and sentence-level confidence scores, identifying areas that may require manual review or re-processing.",
+    "parameters": {
+      "extracted_text": {
+        "type": "string",
+        "required": true,
+        "description": "OCR-extracted text content to analyze"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.8,
+        "description": "Confidence threshold for flagging low-quality text (0.0-1.0)"
+      }
+    },
+    "error_messages": [
+      "Empty text input: Provide non-empty extracted_text for analysis.",
+      "Invalid confidence threshold: Value must be between 0.0 and 1.0.",
+      "Analysis failed: Text may contain unsupported characters or formatting."
+    ],
+    "usage": "Input the extracted_text from OCR processing and optionally set confidence_threshold. Lower thresholds will flag more text for review.",
+    "output_details": {
+      "overall_confidence": {
+        "type": "number",
+        "description": "Overall confidence score for the entire text"
+      },
+      "low_confidence_areas": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Text segments below confidence threshold"
+      },
+      "word_confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Individual confidence scores for each word"
+      },
+      "flagged_words_count": {
+        "type": "integer",
+        "description": "Number of words below confidence threshold"
+      },
+      "quality_rating": {
+        "type": "string",
+        "description": "Overall quality rating: excellent, good, fair, poor"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Legal Structure Parser",
+    "tool_description": "Parses extracted text to identify and structure legal document elements such as clauses, sections, definitions, parties, dates, and legal terminology using pattern recognition and NLP techniques.",
+    "parameters": {
+      "document_text": {
+        "type": "string",
+        "required": true,
+        "description": "Full text content of the legal document"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of legal document: contract, agreement, lease, license, amendment, or general"
+      },
+      "extract_parties": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Extract party names and roles"
+      },
+      "extract_dates": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Extract important dates and deadlines"
+      },
+      "extract_amounts": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Extract monetary amounts and financial terms"
+      },
+      "extract_definitions": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Extract defined terms and definitions"
+      },
+      "language_jurisdiction": {
+        "type": "string",
+        "required": false,
+        "default": "us_en",
+        "description": "Legal language and jurisdiction: us_en, uk_en, ca_en, au_en"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.75,
+        "description": "Minimum confidence for element extraction (0.0-1.0)"
+      },
+      "include_cross_references": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Identify cross-references between document sections"
+      },
+      "extract_obligations": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Identify obligations and responsibilities"
+      },
+      "custom_patterns": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "Custom regex patterns for specific term extraction"
+      }
+    },
+    "error_messages": [
+      "Empty document text: Provide non-empty document_text for parsing.",
+      "Invalid document type: Use contract, agreement, lease, license, amendment, or general.",
+      "Unsupported jurisdiction: Use us_en, uk_en, ca_en, or au_en for language_jurisdiction.",
+      "Invalid confidence threshold: Value must be between 0.0 and 1.0.",
+      "Parsing failed: Document text may be too fragmented or contain unsupported formatting.",
+      "Invalid custom pattern: Ensure regex patterns are properly formatted.",
+      "Text too short: Document must contain at least 100 characters for effective parsing."
+    ],
+    "usage": "Provide document_text and document_type. Enable extraction options based on your needs. Use higher confidence_threshold for more precise results, lower for broader extraction.",
+    "output_details": {
+      "document_structure": {
+        "type": "string",
+        "description": "Overall document structure description"
+      },
+      "parties": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Identified parties and their roles"
+      },
+      "key_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Important dates found in the document"
+      },
+      "monetary_amounts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Financial amounts and terms"
+      },
+      "definitions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Defined terms and their definitions"
+      },
+      "obligations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Identified obligations and responsibilities"
+      },
+      "sections": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Document sections and headings"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each extracted element"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contract Clause Identifier",
+    "tool_description": "Identifies and classifies specific types of legal clauses within contract text such as termination, indemnification, liability, confidentiality, and payment terms.",
+    "parameters": {
+      "contract_text": {
+        "type": "string",
+        "required": true,
+        "description": "Full or partial contract text to analyze"
+      },
+      "clause_types": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "Specific clause types to identify: termination, indemnification, liability, confidentiality, payment, dispute, governing_law"
+      },
+      "include_subclauses": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Include sub-clauses and nested provisions"
+      }
+    },
+    "error_messages": [
+      "Empty contract text: Provide non-empty contract_text for analysis.",
+      "Invalid clause type: Use supported clause types like termination, indemnification, liability, confidentiality, payment, dispute, governing_law.",
+      "Text too short: Contract text must be at least 200 characters for effective clause identification.",
+      "Classification failed: Unable to identify clear clause structures in the provided text."
+    ],
+    "usage": "Input contract_text and optionally specify clause_types to focus on. Leave clause_types empty to identify all common clause types.",
+    "output_details": {
+      "identified_clauses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of identified clause types"
+      },
+      "clause_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Text positions where clauses were found"
+      },
+      "clause_summaries": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Brief summaries of each identified clause"
+      },
+      "missing_standard_clauses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Standard clauses that appear to be missing"
+      },
+      "total_clauses_found": {
+        "type": "integer",
+        "description": "Total number of clauses identified"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Table Structure Detector",
+    "tool_description": "Detects and extracts structured data from tables within legal documents, preserving column headers, row data, and table relationships for accurate digitization.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to document image containing tables"
+      },
+      "table_regions": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "Specific regions to analyze for tables (x,y,width,height)"
+      },
+      "preserve_formatting": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Maintain original table formatting and alignment"
+      },
+      "detect_merged_cells": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Identify and handle merged table cells"
+      }
+    },
+    "error_messages": [
+      "Image file not found: Verify image_path points to an existing image file.",
+      "No tables detected: Unable to identify table structures in the provided image or regions.",
+      "Invalid region coordinates: Format should be 'x,y,width,height' with integer values.",
+      "Table extraction failed: Image quality may be insufficient for table detection.",
+      "Complex table structure: Table too complex for automatic extraction, manual review needed."
+    ],
+    "usage": "Provide image_path to a document page containing tables. Optionally specify table_regions from page segmentation results for more accurate detection.",
+    "output_details": {
+      "tables_found": {
+        "type": "integer",
+        "description": "Number of tables detected"
+      },
+      "table_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Extracted table content in structured format"
+      },
+      "table_headers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Column headers for each detected table"
+      },
+      "table_coordinates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Bounding box coordinates for each table"
+      },
+      "extraction_confidence": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each table extraction"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Signature Area Extractor",
+    "tool_description": "Locates and extracts signature blocks, date fields, and notarization areas from legal documents while preserving their spatial relationships and metadata.",
+    "parameters": {
+      "document_image": {
+        "type": "string",
+        "required": true,
+        "description": "Path to document image file"
+      },
+      "extract_dates": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Extract signature dates and timestamps"
+      }
+    },
+    "error_messages": [
+      "Document image not accessible: Ensure the file path is correct and file exists.",
+      "No signature areas found: Unable to detect signature blocks in the document.",
+      "Image resolution too low: Minimum 150 DPI required for signature detection.",
+      "Extraction failed: Document layout may not contain standard signature formatting."
+    ],
+    "usage": "Provide document_image path to a legal document page. The tool will automatically detect signature areas and extract associated information.",
+    "output_details": {
+      "signature_blocks_found": {
+        "type": "integer",
+        "description": "Number of signature areas detected"
+      },
+      "signature_coordinates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Bounding box coordinates for each signature area"
+      },
+      "signature_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Associated labels or titles for signature areas"
+      },
+      "signature_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Dates associated with signature areas"
+      },
+      "notarization_found": {
+        "type": "boolean",
+        "description": "Whether notarization areas were detected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Text Quality Validator",
+    "tool_description": "Validates the quality and completeness of extracted text by checking for common OCR errors, missing characters, formatting issues, and legal document completeness indicators.",
+    "parameters": {
+      "extracted_text": {
+        "type": "string",
+        "required": true,
+        "description": "Text content to validate for quality"
+      },
+      "expected_word_count": {
+        "type": "integer",
+        "required": false,
+        "default": "None",
+        "description": "Expected approximate word count for completeness check"
+      },
+      "check_legal_completeness": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Validate presence of essential legal document elements"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "default": "en",
+        "description": "Language code for spell-checking and validation"
+      },
+      "strict_validation": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Apply strict validation rules for critical documents"
+      }
+    },
+    "error_messages": [
+      "Empty text input: Provide non-empty extracted_text for validation.",
+      "Unsupported language: Use a supported ISO 639-1 language code.",
+      "Invalid word count: expected_word_count must be a positive integer.",
+      "Validation failed: Unable to complete quality analysis on the provided text."
+    ],
+    "usage": "Input extracted_text from OCR processing. Set check_legal_completeness to true for contracts and agreements. Use strict_validation for critical legal documents.",
+    "output_details": {
+      "overall_quality_score": {
+        "type": "number",
+        "description": "Overall quality score from 0.0 to 1.0"
+      },
+      "completeness_score": {
+        "type": "number",
+        "description": "Text completeness score from 0.0 to 1.0"
+      },
+      "identified_issues": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of quality issues found"
+      },
+      "missing_elements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Missing legal document elements if applicable"
+      },
+      "quality_rating": {
+        "type": "string",
+        "description": "Quality rating: excellent, good, acceptable, poor"
+      },
+      "requires_manual_review": {
+        "type": "boolean",
+        "description": "Whether manual review is recommended"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Legal Term Corrector",
+    "tool_description": "Corrects OCR errors in legal terminology using legal dictionary matching and context-aware correction algorithms specifically designed for legal document vocabulary.",
+    "parameters": {
+      "text_content": {
+        "type": "string",
+        "required": true,
+        "description": "Text content containing potential OCR errors"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "number"},
+        "description": "Word-level confidence scores from OCR processing"
+      },
+      "legal_domain": {
+        "type": "string",
+        "required": false,
+        "default": "general",
+        "description": "Legal domain for specialized terminology: general, contract, real_estate, intellectual_property, employment"
+      },
+      "correction_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.7,
+        "description": "Confidence threshold below which corrections are attempted"
+      },
+      "preserve_proper_nouns": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Avoid correcting proper nouns like company names"
+      }
+    },
+    "error_messages": [
+      "Empty text content: Provide non-empty text_content for correction.",
+      "Mismatched arrays: confidence_scores array length must match word count in text_content.",
+      "Invalid legal domain: Use general, contract, real_estate, intellectual_property, or employment.",
+      "Invalid correction threshold: Value must be between 0.0 and 1.0.",
+      "Correction failed: Unable to process text for legal term correction."
+    ],
+    "usage": "Provide text_content and corresponding confidence_scores from OCR. Specify legal_domain for domain-specific corrections. Lower correction_threshold will attempt more corrections.",
+    "output_details": {
+      "corrected_text": {
+        "type": "string",
+        "description": "Text with legal terminology corrections applied"
+      },
+      "corrections_made": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of corrections made (original -> corrected)"
+      },
+      "correction_count": {
+        "type": "integer",
+        "description": "Total number of corrections applied"
+      },
+      "uncertain_terms": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Terms that may need manual review"
+      },
+      "improvement_score": {
+        "type": "number",
+        "description": "Estimated improvement in text quality (0.0-1.0)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document Merger",
+    "tool_description": "

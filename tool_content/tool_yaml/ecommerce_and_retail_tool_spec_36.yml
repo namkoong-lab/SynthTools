@@ -1,0 +1,826 @@
+field_name: ecommerce_and_retail
+subfield: Order Processing and Fulfillment
+task: Order validation and inventory verification
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  The task of order validation and inventory verification is **medium** difficulty. It involves multiple interconnected subproblems including data validation, inventory checks, pricing verification, and customer authentication, with moderate dependencies between validation steps and significant impact of errors on business operations.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'll target **12 tools** to cover the various validation and verification workflows needed for comprehensive order processing.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Order Schema Validator** - Consumes: raw order data → Produces: validated order structure
+  2. **Customer Validator** - Consumes: customer info → Produces: customer verification status
+  3. **Product Catalog Checker** - Consumes: product IDs → Produces: product existence/details
+  4. **Inventory Availability Checker** - Consumes: product IDs, quantities → Produces: availability status
+  5. **Pricing Validator** - Consumes: products, prices, discounts → Produces: price verification
+  6. **Shipping Address Validator** - Consumes: address data → Produces: address validation status
+  7. **Payment Method Validator** - Consumes: payment info → Produces: payment validation status
+  8. **Inventory Reservation Manager** - Consumes: validated items → Produces: reservation confirmations
+  9. **Order Risk Assessor** - Consumes: order details → Produces: risk score and flags
+  10. **Tax Calculator** - Consumes: items, location → Produces: tax calculations
+  11. **Shipping Cost Calculator** - Consumes: items, destination → Produces: shipping costs
+  12. **Order Validation Reporter** - Consumes: all validation results → Produces: comprehensive validation report
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple workflows (2-4 tools):**
+  - Basic order check: Order Schema Validator → Product Catalog Checker → Inventory Availability Checker
+  - Quick validation: Customer Validator → Payment Method Validator → Order Validation Reporter
+
+  **Medium workflows (5-8 tools):**
+  - Standard validation: Order Schema Validator → Customer Validator → Product Catalog Checker → Inventory Availability Checker → Pricing Validator → Order Validation Reporter
+  - Pre-fulfillment check: Inventory Availability Checker → Shipping Address Validator → Tax Calculator → Shipping Cost Calculator → Inventory Reservation Manager
+
+  **Complex workflows (9-12 tools):**
+  - Complete order processing: All tools in sequence for comprehensive validation, risk assessment, cost calculation, and inventory reservation
+  - Full audit trail: Order Schema Validator → Customer Validator → Product Catalog Checker → Inventory Availability Checker → Pricing Validator → Shipping Address Validator → Payment Method Validator → Order Risk Assessor → Tax Calculator → Shipping Cost Calculator → Inventory Reservation Manager → Order Validation Reporter
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Order Schema Validator",
+    "tool_description": "Validates the structure and format of incoming order data against predefined schemas to ensure all required fields are present and correctly formatted.",
+    "parameters": {
+      "order_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing the raw order data to be validated"
+      },
+      "schema_version": {
+        "type": "string",
+        "required": false,
+        "description": "Version of the order schema to validate against",
+        "default": "v1.0"
+      }
+    },
+    "error_messages": [
+      "Invalid JSON format: The order_data parameter must contain valid JSON string. Check for syntax errors and proper escaping.",
+      "Missing required fields: Order data is missing mandatory fields such as customer_id, items, or billing_address. Ensure all required fields are included.",
+      "Invalid data types: One or more fields contain incorrect data types. Check that numeric fields contain numbers and string fields contain text.",
+      "Schema version not supported: The specified schema_version is not recognized. Use a supported version like v1.0, v1.1, or v2.0."
+    ],
+    "usage": "Pass the raw order data as a JSON string in the order_data parameter. Optionally specify a schema_version if validating against a specific version. The tool will return validation status and any errors found.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the order data passes schema validation"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation errors found in the order data"
+      },
+      "parsed_order": {
+        "type": "string",
+        "description": "JSON string of the successfully parsed order data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Validator",
+    "tool_description": "Verifies customer information including account status, authentication, and eligibility to place orders.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer"
+      },
+      "email": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's email address"
+      },
+      "account_status": {
+        "type": "string",
+        "required": false,
+        "description": "Expected account status to validate against",
+        "default": "active"
+      },
+      "require_verification": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to require additional identity verification",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Customer not found: The specified customer_id does not exist in the system. Verify the customer ID is correct.",
+      "Account suspended: The customer account is suspended and cannot place orders. Contact customer service to resolve account issues.",
+      "Email mismatch: The provided email does not match the customer's registered email. Ensure the correct email is provided.",
+      "Verification required: Additional identity verification is needed before processing this order. Complete verification steps first."
+    ],
+    "usage": "Provide the customer_id and email to validate the customer. Set require_verification to true for high-value orders. The tool returns validation status and customer details.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the customer passes validation checks"
+      },
+      "customer_status": {
+        "type": "string",
+        "description": "Current status of the customer account"
+      },
+      "verification_level": {
+        "type": "string",
+        "description": "Level of customer verification completed"
+      },
+      "validation_messages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any validation messages or warnings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Catalog Checker",
+    "tool_description": "Verifies that all products in an order exist in the catalog, are currently available for sale, and retrieves current product information.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of product identifiers to check",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "include_variants": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include product variant information",
+        "default": true
+      },
+      "check_active_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Only return products that are currently active for sale",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Product not found: One or more product IDs do not exist in the catalog. Verify all product IDs are correct and currently listed.",
+      "Product discontinued: One or more products have been discontinued and are no longer available for purchase.",
+      "Invalid product ID format: Product IDs must be non-empty strings. Check that all IDs are properly formatted.",
+      "Too many products: Maximum of 100 products can be checked at once. Split large requests into smaller batches."
+    ],
+    "usage": "Provide an array of product_ids to check their existence and availability. Set check_active_only to false to include inactive products. The tool returns product details and availability status.",
+    "output_details": {
+      "valid_products": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of product IDs that exist and are available"
+      },
+      "invalid_products": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of product IDs that do not exist or are unavailable"
+      },
+      "product_details": {
+        "type": "string",
+        "description": "JSON string containing detailed information about valid products"
+      },
+      "total_checked": {
+        "type": "integer",
+        "description": "Total number of products checked"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Availability Checker",
+    "tool_description": "Checks real-time inventory levels to determine if requested quantities are available across multiple warehouses and fulfillment centers.",
+    "parameters": {
+      "product_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Array of product ID and quantity pairs in format 'productId:quantity'",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "warehouse_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific warehouses to check inventory in",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "reserve_on_check": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to temporarily reserve inventory if available",
+        "default": false
+      },
+      "check_backorder": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check for backorder availability",
+        "default": true
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Priority level for inventory allocation: standard, high, urgent",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid quantity format: Product quantities must be in 'productId:quantity' format with positive integer quantities.",
+      "Insufficient inventory: One or more items do not have sufficient stock available. Check available quantities and adjust order.",
+      "Warehouse not found: One or more specified warehouse IDs are invalid. Use valid warehouse identifiers.",
+      "Invalid priority level: Priority level must be one of: standard, high, urgent.",
+      "Inventory system unavailable: Cannot connect to inventory management system. Try again later or contact support."
+    ],
+    "usage": "Provide product_quantities as an array of 'productId:quantity' strings. Optionally specify warehouse_ids to check specific locations. Set reserve_on_check to true to hold inventory temporarily.",
+    "output_details": {
+      "availability_status": {
+        "type": "string",
+        "description": "Overall availability status: fully_available, partially_available, or unavailable"
+      },
+      "available_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of items that are fully available"
+      },
+      "unavailable_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of items that are not available in requested quantities"
+      },
+      "reservation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Reservation IDs if reserve_on_check was enabled"
+      },
+      "backorder_info": {
+        "type": "string",
+        "description": "JSON string with backorder availability and estimated dates"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pricing Validator",
+    "tool_description": "Validates product prices, discounts, and promotional codes against current pricing rules and policies to ensure order totals are accurate.",
+    "parameters": {
+      "order_items": {
+        "type": "array",
+        "required": true,
+        "description": "Array of items with format 'productId:quantity:unitPrice'",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "discount_codes": {
+        "type": "array",
+        "required": false,
+        "description": "List of discount or promotional codes to validate",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Customer loyalty tier for pricing: standard, silver, gold, platinum",
+        "default": "standard"
+      },
+      "order_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date of the order for time-sensitive pricing",
+        "format": "date-time",
+        "default": "None"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Currency code for pricing validation",
+        "default": "USD"
+      },
+      "include_tax": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether prices include tax",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid item format: Order items must be in 'productId:quantity:unitPrice' format with valid numeric values.",
+      "Price mismatch: One or more item prices do not match current catalog prices. Update with correct prices.",
+      "Invalid discount code: One or more discount codes are expired, invalid, or not applicable to these items.",
+      "Currency not supported: The specified currency is not supported. Use a valid currency code like USD, EUR, GBP.",
+      "Customer tier invalid: Customer tier must be one of: standard, silver, gold, platinum.",
+      "Pricing rules violation: Order violates minimum order value, maximum discount, or other pricing constraints."
+    ],
+    "usage": "Provide order_items in the specified format with current prices. Include discount_codes if applicable and set customer_tier for loyalty pricing. The tool validates all pricing and returns corrected totals.",
+    "output_details": {
+      "pricing_valid": {
+        "type": "boolean",
+        "description": "Whether all pricing is valid and current"
+      },
+      "corrected_prices": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Corrected prices for any items with pricing errors"
+      },
+      "valid_discounts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of valid discount codes that were applied"
+      },
+      "invalid_discounts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of invalid or expired discount codes"
+      },
+      "subtotal": {
+        "type": "number",
+        "description": "Calculated subtotal before discounts and tax"
+      },
+      "discount_amount": {
+        "type": "number",
+        "description": "Total discount amount applied"
+      },
+      "final_total": {
+        "type": "number",
+        "description": "Final calculated total after all pricing adjustments"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Address Validator",
+    "tool_description": "Validates and standardizes shipping addresses to ensure deliverability and compliance with shipping carrier requirements.",
+    "parameters": {
+      "street_address": {
+        "type": "string",
+        "required": true,
+        "description": "Street address including house number and street name"
+      },
+      "city": {
+        "type": "string",
+        "required": true,
+        "description": "City name"
+      },
+      "state_province": {
+        "type": "string",
+        "required": true,
+        "description": "State or province code or name"
+      },
+      "postal_code": {
+        "type": "string",
+        "required": true,
+        "description": "Postal or ZIP code"
+      },
+      "country": {
+        "type": "string",
+        "required": true,
+        "description": "Country code (ISO 3166-1 alpha-2)"
+      },
+      "address_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of address: residential, commercial, po_box",
+        "default": "residential"
+      }
+    },
+    "error_messages": [
+      "Invalid address format: Address components are missing or improperly formatted. Ensure all required fields are provided.",
+      "Address not deliverable: The address cannot be verified as deliverable by postal services. Check address accuracy.",
+      "Invalid postal code: The postal code format is invalid for the specified country. Use correct postal code format.",
+      "Country not supported: Shipping to the specified country is not supported. Check supported shipping destinations.",
+      "PO Box restriction: PO Box addresses are not allowed for this shipping method. Provide a physical address.",
+      "Address validation service unavailable: Cannot connect to address validation service. Try again later."
+    ],
+    "usage": "Provide all required address components including street_address, city, state_province, postal_code, and country. The tool will validate and return standardized address information.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the address passed validation"
+      },
+      "standardized_address": {
+        "type": "string",
+        "description": "JSON string with standardized address components"
+      },
+      "delivery_confirmation": {
+        "type": "string",
+        "description": "Delivery confirmation status: confirmed, unconfirmed, or uncertain"
+      },
+      "address_suggestions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Alternative address suggestions if validation fails"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Method Validator",
+    "tool_description": "Validates payment method information including card details, payment processor compatibility, and fraud checks without processing the actual payment.",
+    "parameters": {
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method type: credit_card, debit_card, paypal, bank_transfer, digital_wallet"
+      },
+      "card_number": {
+        "type": "string",
+        "required": false,
+        "description": "Masked or tokenized card number for card payments",
+        "default": "None"
+      },
+      "expiry_date": {
+        "type": "string",
+        "required": false,
+        "description": "Card expiry date in MM/YY format",
+        "default": "None"
+      },
+      "billing_zip": {
+        "type": "string",
+        "required": false,
+        "description": "Billing address ZIP code for AVS verification",
+        "default": "None"
+      },
+      "payment_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total payment amount to validate"
+      }
+    },
+    "error_messages": [
+      "Invalid payment method: Payment method must be one of: credit_card, debit_card, paypal, bank_transfer, digital_wallet.",
+      "Card expired: The provided card has expired. Use a card with a future expiry date.",
+      "Invalid card number: Card number format is invalid or card type is not supported.",
+      "Payment amount invalid: Payment amount must be a positive number greater than zero.",
+      "Billing verification failed: Billing ZIP code does not match card on file. Verify billing information.",
+      "Payment processor unavailable: Cannot connect to payment validation service. Try again later."
+    ],
+    "usage": "Specify the payment_method and payment_amount. For card payments, provide card_number, expiry_date, and billing_zip. The tool validates the payment method without charging.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the payment method passed validation"
+      },
+      "validation_code": {
+        "type": "string",
+        "description": "Payment validation result code"
+      },
+      "supported_processors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of payment processors that support this payment method"
+      },
+      "fraud_score": {
+        "type": "number",
+        "description": "Fraud risk score from 0-100 (higher is more risky)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Reservation Manager",
+    "tool_description": "Creates temporary inventory reservations to hold stock for validated orders during the fulfillment process, with configurable hold durations and release mechanisms.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique order identifier for the reservation"
+      },
+      "product_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Array of product ID and quantity pairs to reserve in format 'productId:quantity'",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "reservation_duration_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "How long to hold the reservation in minutes",
+        "default": 30
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Reservation priority: standard, high, urgent",
+        "default": "standard"
+      },
+      "warehouse_preference": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred warehouses in order of preference",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "auto_release": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to automatically release reservation when duration expires",
+        "default": true
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer ID associated with the reservation"
+      },
+      "reservation_notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional notes for the reservation",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Order ID already exists: A reservation with this order_id already exists. Use a unique order identifier.",
+      "Insufficient inventory: Cannot reserve requested quantities due to insufficient stock levels.",
+      "Invalid quantity format: Product quantities must be in 'productId:quantity' format with positive integers.",
+      "Reservation duration invalid: Duration must be between 5 and 1440 minutes (24 hours).",
+      "Priority level invalid: Priority must be one of: standard, high, urgent.",
+      "Warehouse not found: One or more preferred warehouses do not exist or are unavailable.",
+      "Customer not found: The specified customer_id does not exist in the system.",
+      "Reservation limit exceeded: Customer has reached maximum allowed concurrent reservations."
+    ],
+    "usage": "Provide order_id, product_quantities, and customer_id to create inventory reservations. Set reservation_duration_minutes and priority_level as needed. The tool creates holds on inventory and returns reservation details.",
+    "output_details": {
+      "reservation_id": {
+        "type": "string",
+        "description": "Unique identifier for the created reservation"
+      },
+      "reservation_status": {
+        "type": "string",
+        "description": "Status of the reservation: confirmed, partial, or failed"
+      },
+      "reserved_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of successfully reserved items with quantities"
+      },
+      "failed_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of items that could not be reserved"
+      },
+      "expiry_time": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the reservation will expire"
+      },
+      "warehouse_allocations": {
+        "type": "string",
+        "description": "JSON string showing which warehouses items were reserved from"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order Risk Assessor",
+    "tool_description": "Analyzes order characteristics to identify potential fraud, policy violations, or other risks that may require additional review or rejection.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer ID placing the order"
+      },
+      "order_value": {
+        "type": "number",
+        "required": true,
+        "description": "Total order value in dollars"
+      },
+      "shipping_address": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string with complete shipping address"
+      },
+      "billing_address": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string with complete billing address"
+      },
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method being used"
+      },
+      "customer_history_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days of customer history to analyze",
+        "default": 90
+      },
+      "ip_address": {
+        "type": "string",
+        "required": false,
+        "description": "Customer's IP address for geolocation checks",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Customer not found: The specified customer_id does not exist in the system.",
+      "Invalid order value: Order value must be a positive number greater than zero.",
+      "Invalid address format: Shipping or billing address must be valid JSON with required fields.",
+      "Payment method invalid: Payment method must be a supported type.",
+      "History period invalid: Customer history days must be between 1 and 365.",
+      "Risk assessment service unavailable: Cannot connect to fraud detection service. Try again later."
+    ],
+    "usage": "Provide customer_id, order_value, shipping_address, billing_address, and payment_method. Optionally include ip_address and customer_history_days for enhanced risk analysis. The tool returns risk scores and recommendations.",
+    "output_details": {
+      "risk_score": {
+        "type": "number",
+        "description": "Overall risk score from 0-100 (higher is more risky)"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Risk level classification: low, medium, high, or critical"
+      },
+      "risk_factors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of identified risk factors"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Recommended action: approve, review, or reject"
+      },
+      "fraud_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific fraud indicators detected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tax Calculator",
+    "tool_description": "Calculates applicable taxes for orders based on product types, customer location, and current tax regulations.",
+    "parameters": {
+      "order_items": {
+        "type": "array",
+        "required": true,
+        "description": "Array of items with format 'productId:quantity:unitPrice:taxCategory'",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "shipping_state": {
+        "type": "string",
+        "required": true,
+        "description": "State or province where order will be shipped"
+      },
+      "shipping_zip": {
+        "type": "string",
+        "required": true,
+        "description": "ZIP or postal code for tax jurisdiction determination"
+      },
+      "customer_type": {
+        "type": "string",
+        "required": false,
+        "description": "Customer type: individual, business, tax_exempt, nonprofit",
+        "default": "individual"
+      },
+      "tax_exempt_id": {
+        "type": "string",
+        "required": false,
+        "description": "Tax exemption certificate ID if applicable",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid item format: Order items must be in 'productId:quantity:unitPrice:taxCategory' format.",
+      "Tax jurisdiction not found: Cannot determine tax rates for the specified shipping location.",
+      "Invalid customer type: Customer type must be one of: individual, business, tax_exempt, nonprofit.",
+      "Tax exempt ID invalid: The provided tax exemption ID is not valid or has expired.",
+      "Tax service unavailable: Cannot connect to tax calculation service. Try again later."
+    ],
+    "usage": "Provide order_items with tax categories, shipping_state, and shipping_zip. Set customer_type and tax_exempt_id if applicable. The tool calculates all applicable taxes based on current rates.",
+    "output_details": {
+      "subtotal": {
+        "type": "number",
+        "description": "Order subtotal before tax"
+      },
+      "total_tax": {
+        "type": "number",
+        "description": "Total tax amount calculated"
+      },
+      "tax_breakdown": {
+        "type": "string",
+        "description": "JSON string with detailed tax breakdown by jurisdiction and type"
+      },
+      "tax_rate": {
+        "type": "number",
+        "description": "Effective tax rate as a percentage"
+      },
+      "exempt_amount": {
+        "type": "number",
+        "description": "Amount exempted from tax if applicable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Cost Calculator",
+    "tool_description": "Calculates shipping costs based on package dimensions, weight, destination, and selected shipping method.",
+    "parameters": {
+      "items": {
+        "type": "array",
+        "required": true,
+        "description": "Array of items with format 'productId:quantity:weight:dimensions'",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin ZIP code for shipping calculation"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination ZIP code"
+      },
+      "shipping_method": {
+        "type": "string",
+        "required": false,
+        "description": "Shipping method: ground, express, overnight, international",
+        "default": "ground"
+      }
+    },
+    "error_messages": [
+      "Invalid item format: Items must be in 'productId:quantity:weight:dimensions' format with numeric values.",

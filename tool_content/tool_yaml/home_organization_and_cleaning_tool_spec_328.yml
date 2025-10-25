@@ -1,0 +1,761 @@
+field_name: home_organization_and_cleaning
+subfield: Cleaning Schedule Planning
+task: Track and manage cleaning task completion status and progress
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is of **medium** difficulty. It involves coordinating multiple cleaning tasks across different rooms and timeframes, tracking progress states, handling dependencies between tasks, and managing scheduling complexities. The scope includes various cleaning activities with different frequencies and requirements, but the domain is well-defined with clear success criteria.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target **12 tools** to cover task creation, scheduling, progress tracking, status management, reporting, and coordination workflows.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Task Creator** - Consumes: task details, schedules → Produces: structured cleaning tasks
+  2. **Schedule Generator** - Consumes: tasks, frequencies, preferences → Produces: time-based schedules
+  3. **Progress Tracker** - Consumes: task IDs, completion data → Produces: progress records
+  4. **Status Manager** - Consumes: task IDs, status updates → Produces: current status states
+  5. **Completion Validator** - Consumes: task details, completion claims → Produces: validation results
+  6. **Priority Calculator** - Consumes: tasks, urgency factors → Produces: priority rankings
+  7. **Time Estimator** - Consumes: task types, room sizes → Produces: duration estimates
+  8. **Dependency Resolver** - Consumes: task lists, dependencies → Produces: execution order
+  9. **Progress Reporter** - Consumes: task data, time ranges → Produces: progress summaries
+  10. **Schedule Optimizer** - Consumes: tasks, constraints, preferences → Produces: optimized schedules
+  11. **Reminder Generator** - Consumes: schedules, user preferences → Produces: reminder notifications
+  12. **Performance Analyzer** - Consumes: historical completion data → Produces: performance insights
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic task tracking: Task Creator → Progress Tracker → Status Manager
+  - Quick scheduling: Task Creator → Time Estimator → Schedule Generator
+
+  **Medium Plans:**
+  - Weekly planning: Task Creator → Priority Calculator → Schedule Generator → Reminder Generator → Progress Tracker
+  - Progress review: Progress Reporter → Performance Analyzer → Priority Calculator → Schedule Optimizer
+
+  **Complex Plans:**
+  - Complete workflow: Task Creator → Time Estimator → Priority Calculator → Dependency Resolver → Schedule Generator → Schedule Optimizer → Reminder Generator → Progress Tracker → Completion Validator → Status Manager → Progress Reporter → Performance Analyzer
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Task Creator",
+    "tool_description": "Creates structured cleaning tasks with details about location, type, frequency requirements, and associated metadata for tracking purposes.",
+    "parameters": {
+      "task_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the cleaning task"
+      },
+      "room_location": {
+        "type": "string",
+        "required": true,
+        "description": "Room or area where task is performed"
+      },
+      "task_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of cleaning activity (vacuuming, dusting, mopping, etc.)"
+      },
+      "frequency": {
+        "type": "string",
+        "required": true,
+        "description": "How often task should be performed (daily, weekly, monthly, quarterly)"
+      },
+      "estimated_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Expected time in minutes to complete task",
+        "default": 15
+      }
+    },
+    "error_messages": [
+      "Empty task name: Provide a descriptive name for the cleaning task.",
+      "Invalid room location: Specify a valid room or area name.",
+      "Unsupported task type: Use standard cleaning activities like vacuuming, dusting, mopping, scrubbing, organizing.",
+      "Invalid frequency: Use one of [daily, weekly, bi-weekly, monthly, quarterly, annually].",
+      "Invalid duration: Estimated duration must be a positive integer between 1 and 480 minutes."
+    ],
+    "usage": "Provide task_name, room_location, task_type, and frequency. Optionally specify estimated_duration. Creates a structured task record for tracking and scheduling.",
+    "output_details": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier for the created task"
+      },
+      "task_details": {
+        "type": "string",
+        "description": "Formatted summary of task parameters"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "When the task was created in ISO 8601 format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Generator",
+    "tool_description": "Generates time-based cleaning schedules by distributing tasks across specified time periods according to their frequency requirements and user preferences.",
+    "parameters": {
+      "task_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of task identifiers to schedule",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "schedule_start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for the schedule in ISO 8601 format",
+        "format": "date-time"
+      },
+      "schedule_duration_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days to generate schedule for"
+      },
+      "preferred_days": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred days of week for scheduling",
+        "items": {"type": "string"},
+        "default": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      },
+      "daily_time_limit": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum minutes per day for cleaning tasks",
+        "default": 120
+      }
+    },
+    "error_messages": [
+      "Empty task list: Provide at least one valid task ID to schedule.",
+      "Invalid start date: Use valid ISO 8601 date-time format for schedule_start_date.",
+      "Invalid duration: Schedule duration must be between 1 and 365 days.",
+      "Invalid preferred days: Use valid day names (Monday, Tuesday, etc.).",
+      "Invalid time limit: Daily time limit must be between 15 and 480 minutes."
+    ],
+    "usage": "Provide task_ids, schedule_start_date, and schedule_duration_days. Optionally specify preferred_days and daily_time_limit. Returns a distributed schedule with specific dates and times.",
+    "output_details": {
+      "schedule_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated schedule"
+      },
+      "scheduled_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of dates when tasks are scheduled"
+      },
+      "total_tasks_scheduled": {
+        "type": "integer",
+        "description": "Number of task instances scheduled"
+      },
+      "schedule_summary": {
+        "type": "string",
+        "description": "Text summary of the generated schedule"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Progress Tracker",
+    "tool_description": "Records and updates completion progress for individual cleaning tasks, maintaining historical records and current status information.",
+    "parameters": {
+      "task_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the task to update"
+      },
+      "completion_status": {
+        "type": "string",
+        "required": true,
+        "description": "Current completion status of the task"
+      },
+      "completion_percentage": {
+        "type": "integer",
+        "required": false,
+        "description": "Percentage of task completed (0-100)",
+        "default": 0
+      },
+      "notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional notes about task progress",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Invalid task ID: Provide a valid task identifier that exists in the system.",
+      "Invalid completion status: Use one of [not_started, in_progress, completed, skipped, postponed].",
+      "Invalid completion percentage: Must be an integer between 0 and 100.",
+      "Notes too long: Notes must be under 500 characters."
+    ],
+    "usage": "Provide task_id and completion_status. Optionally add completion_percentage and notes. Updates the task's progress record with timestamp.",
+    "output_details": {
+      "update_timestamp": {
+        "type": "string",
+        "description": "When the progress was updated"
+      },
+      "previous_status": {
+        "type": "string",
+        "description": "Previous completion status before update"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "Current completion status after update"
+      },
+      "progress_summary": {
+        "type": "string",
+        "description": "Text summary of progress change"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Status Manager",
+    "tool_description": "Manages and retrieves current status information for cleaning tasks, providing centralized status queries and bulk status updates.",
+    "parameters": {
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Type of status operation to perform"
+      },
+      "task_ids": {
+        "type": "array",
+        "required": false,
+        "description": "List of task IDs to query or update",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "status_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Filter results by specific status values",
+        "items": {"type": "string"},
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid operation: Use one of [get_status, get_all_statuses, filter_by_status, bulk_update].",
+      "Invalid task IDs: Provide valid task identifiers that exist in the system.",
+      "Invalid status filter: Use valid status values [not_started, in_progress, completed, skipped, postponed]."
+    ],
+    "usage": "Specify operation type. For get_status, provide task_ids. For filter_by_status, provide status_filter. Returns current status information based on the operation.",
+    "output_details": {
+      "operation_result": {
+        "type": "string",
+        "description": "Summary of the status operation performed"
+      },
+      "task_count": {
+        "type": "integer",
+        "description": "Number of tasks processed"
+      },
+      "status_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Status information for requested tasks"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Completion Validator",
+    "tool_description": "Validates task completion claims by checking completion criteria, quality standards, and required evidence for cleaning tasks.",
+    "parameters": {
+      "task_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of task to validate"
+      },
+      "completion_claim": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether task is claimed as completed"
+      },
+      "quality_check_items": {
+        "type": "array",
+        "required": true,
+        "description": "List of quality criteria met",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "time_spent_minutes": {
+        "type": "integer",
+        "required": true,
+        "description": "Actual time spent on task in minutes"
+      },
+      "photo_evidence": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether photographic evidence was provided",
+        "default": false
+      },
+      "completion_notes": {
+        "type": "string",
+        "required": false,
+        "description": "Notes about task completion",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Invalid task ID: Provide a valid task identifier that exists in the system.",
+      "Missing quality criteria: Provide at least one quality check item that was verified.",
+      "Invalid time spent: Time spent must be a positive integer between 1 and 480 minutes.",
+      "Quality criteria too many: Maximum 20 quality check items allowed.",
+      "Notes too long: Completion notes must be under 1000 characters."
+    ],
+    "usage": "Provide task_id, completion_claim, quality_check_items, and time_spent_minutes. Optionally add photo_evidence and completion_notes. Returns validation result and recommendations.",
+    "output_details": {
+      "validation_result": {
+        "type": "string",
+        "description": "Whether completion is validated (passed, failed, partial)"
+      },
+      "validation_score": {
+        "type": "integer",
+        "description": "Validation score from 0 to 100"
+      },
+      "issues_found": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation issues or concerns"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Suggestions for improvement or next steps"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Priority Calculator",
+    "tool_description": "Calculates priority scores for cleaning tasks based on urgency factors, health impact, frequency requirements, and user preferences.",
+    "parameters": {
+      "task_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of tasks to prioritize",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "urgency_factors": {
+        "type": "array",
+        "required": true,
+        "description": "Factors affecting task urgency",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "health_priority": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to prioritize health-related tasks",
+        "default": true
+      },
+      "guest_arriving": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether guests are expected soon",
+        "default": false
+      },
+      "days_overdue": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days task is overdue",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Empty task list: Provide at least one task ID to prioritize.",
+      "Invalid task IDs: Ensure all task IDs exist in the system.",
+      "Missing urgency factors: Provide at least one urgency factor (overdue, health_hazard, visible_dirt, guest_area, high_traffic).",
+      "Too many urgency factors: Maximum 10 urgency factors allowed.",
+      "Invalid days overdue: Must be a non-negative integer."
+    ],
+    "usage": "Provide task_ids and urgency_factors. Optionally set health_priority, guest_arriving, and days_overdue. Returns priority rankings and scores for scheduling decisions.",
+    "output_details": {
+      "priority_rankings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Task IDs ordered by priority (highest first)"
+      },
+      "priority_scores": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Numerical priority scores corresponding to rankings"
+      },
+      "high_priority_count": {
+        "type": "integer",
+        "description": "Number of high-priority tasks identified"
+      },
+      "priority_summary": {
+        "type": "string",
+        "description": "Summary of prioritization results and recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Time Estimator",
+    "tool_description": "Estimates time requirements for cleaning tasks based on task type, room characteristics, and historical performance data.",
+    "parameters": {
+      "task_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of cleaning task to estimate"
+      },
+      "room_size": {
+        "type": "string",
+        "required": true,
+        "description": "Size category of the room or area"
+      }
+    },
+    "error_messages": [
+      "Invalid task type: Use standard cleaning tasks like vacuuming, mopping, dusting, scrubbing, organizing, deep_cleaning.",
+      "Invalid room size: Use one of [small, medium, large, extra_large] for room size category."
+    ],
+    "usage": "Provide task_type and room_size to get time estimates. Returns duration estimates with confidence intervals for planning purposes.",
+    "output_details": {
+      "estimated_minutes": {
+        "type": "integer",
+        "description": "Primary time estimate in minutes"
+      },
+      "min_time": {
+        "type": "integer",
+        "description": "Minimum expected time in minutes"
+      },
+      "max_time": {
+        "type": "integer",
+        "description": "Maximum expected time in minutes"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence level of estimate (high, medium, low)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dependency Resolver",
+    "tool_description": "Analyzes task dependencies and determines optimal execution order to ensure cleaning tasks are performed in logical sequence for maximum efficiency.",
+    "parameters": {
+      "task_list": {
+        "type": "array",
+        "required": true,
+        "description": "List of task IDs to analyze for dependencies",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 50
+      },
+      "room_locations": {
+        "type": "array",
+        "required": true,
+        "description": "Room locations corresponding to each task",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 50
+      },
+      "task_types": {
+        "type": "array",
+        "required": true,
+        "description": "Task types for dependency analysis",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 50
+      },
+      "include_room_grouping": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to group tasks by room for efficiency",
+        "default": true
+      },
+      "respect_prerequisites": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to enforce prerequisite task ordering",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Insufficient tasks: Provide at least 2 tasks for dependency analysis.",
+      "Array length mismatch: task_list, room_locations, and task_types must have equal lengths.",
+      "Invalid task references: All task IDs must exist in the system.",
+      "Circular dependencies detected: Cannot resolve dependencies due to circular references.",
+      "Too many tasks: Maximum 50 tasks can be analyzed at once."
+    ],
+    "usage": "Provide task_list, room_locations, and task_types arrays of equal length. Optionally set include_room_grouping and respect_prerequisites. Returns optimized execution order.",
+    "output_details": {
+      "execution_order": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Task IDs in recommended execution order"
+      },
+      "dependency_groups": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Groups of tasks that can be done together"
+      },
+      "efficiency_score": {
+        "type": "integer",
+        "description": "Efficiency score from 0 to 100 for the ordering"
+      },
+      "ordering_rationale": {
+        "type": "string",
+        "description": "Explanation of the dependency resolution logic used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Progress Reporter",
+    "tool_description": "Generates comprehensive progress reports for cleaning tasks over specified time periods, including completion rates, trends, and performance analytics.",
+    "parameters": {
+      "report_start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for report period",
+        "format": "date-time"
+      },
+      "report_end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for report period",
+        "format": "date-time"
+      },
+      "report_scope": {
+        "type": "string",
+        "required": true,
+        "description": "Scope of tasks to include in report"
+      },
+      "include_metrics": {
+        "type": "array",
+        "required": true,
+        "description": "Metrics to include in the report",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "grouping_method": {
+        "type": "string",
+        "required": false,
+        "description": "How to group results in the report",
+        "default": "by_room"
+      },
+      "include_trends": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include trend analysis",
+        "default": true
+      },
+      "export_format": {
+        "type": "string",
+        "required": false,
+        "description": "Format for report output",
+        "default": "summary"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: report_start_date must be before report_end_date.",
+      "Invalid report scope: Use one of [all_tasks, scheduled_only, completed_only, overdue_only, room_specific].",
+      "Invalid metrics selection: Use valid metrics like completion_rate, time_efficiency, quality_scores, overdue_count.",
+      "Invalid grouping method: Use one of [by_room, by_task_type, by_frequency, by_priority, chronological].",
+      "Invalid export format: Use one of [summary, detailed, statistical].",
+      "Date range too large: Maximum report period is 365 days."
+    ],
+    "usage": "Provide report_start_date, report_end_date, report_scope, and include_metrics. Optionally specify grouping_method, include_trends, and export_format. Returns comprehensive progress analysis.",
+    "output_details": {
+      "report_summary": {
+        "type": "string",
+        "description": "Executive summary of progress report"
+      },
+      "completion_rates": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Completion rates by category or time period"
+      },
+      "trend_analysis": {
+        "type": "string",
+        "description": "Analysis of trends and patterns in the data"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommendations for improvement based on report"
+      },
+      "key_insights": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key insights and findings from the analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Optimizer",
+    "tool_description": "Optimizes existing cleaning schedules by analyzing constraints, workload distribution, and efficiency factors to create more effective task arrangements.",
+    "parameters": {
+      "schedule_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of schedule to optimize"
+      },
+      "optimization_goals": {
+        "type": "array",
+        "required": true,
+        "description": "Optimization objectives to prioritize",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 8
+      },
+      "time_constraints": {
+        "type": "array",
+        "required": true,
+        "description": "Time limitations and availability windows",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "workload_balance": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to balance daily workloads",
+        "default": true
+      },
+      "preserve_preferences": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to maintain user scheduling preferences",
+        "default": true
+      },
+      "max_iterations": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum optimization iterations to perform",
+        "default": 100
+      }
+    },
+    "error_messages": [
+      "Invalid schedule ID: Provide a valid schedule identifier that exists in the system.",
+      "Missing optimization goals: Specify at least one goal like minimize_time, balance_workload, reduce_conflicts, maximize_efficiency.",
+      "Invalid time constraints: Use valid constraint formats specifying available time windows.",
+      "Too many constraints: Maximum 20 time constraints allowed for processing.",
+      "Invalid iteration count: max_iterations must be between 10 and 1000.",
+      "Optimization impossible: Cannot satisfy all specified constraints simultaneously."
+    ],
+    "usage": "Provide schedule_id, optimization_goals, and time_constraints. Optionally set workload_balance, preserve_preferences, and max_iterations. Returns optimized schedule with improvement metrics.",
+    "output_details": {
+      "optimized_schedule": {
+        "type": "string",
+        "description": "Summary of the optimized schedule arrangement"
+      },
+      "improvement_score": {
+        "type": "integer",
+        "description": "Improvement score from 0 to 100 compared to original"
+      },
+      "optimization_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Metrics showing optimization results"
+      },
+      "changes_made": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of changes made during optimization"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reminder Generator",
+    "tool_description": "Creates customized reminder notifications for upcoming cleaning tasks based on schedule, user preferences, and task characteristics.",
+    "parameters": {
+      "task_schedules": {
+        "type": "array",
+        "required": true,
+        "description": "List of scheduled task identifiers",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "reminder_timing": {
+        "type": "array",
+        "required": true,
+        "description": "When to send reminders before tasks",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "notification_method": {
+        "type": "string",
+        "required": true,
+        "description": "How to deliver reminder notifications"
+      },
+      "reminder_content": {
+        "type": "string",
+        "required": false,
+        "description": "Style of reminder content to generate",
+        "default": "standard"
+      },
+      "include_preparation_tips": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include task preparation advice",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Empty schedule list: Provide at least one scheduled task to create reminders for.",
+      "Invalid reminder timing: Timing values must be positive integers representing minutes before task.",
+      "Invalid notification method: Use one of [email, text, app_notification, calendar_alert].",
+      "Invalid content style: Use one of [standard, detailed, minimal, motivational].",
+      "Too many reminders: Maximum 5 reminder times per task allowed."
+    ],
+    "usage": "Provide task_schedules, reminder_timing, and notification_method. Optionally specify reminder_content and include_preparation_tips. Returns generated reminders ready for delivery.",
+    "output_details": {
+      "reminders_created": {
+        "type": "integer",
+        "description": "Number of reminder notifications created"
+      },
+      "next_reminder_time": {
+        "type": "string",
+        "description": "When the next reminder will be sent"
+      },
+      "reminder_schedule": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of scheduled reminder times"
+      },
+      "delivery_summary": {
+        "type": "string",
+        "description": "Summary of reminder delivery plan"
+      }
+    }
+  }
+  ```

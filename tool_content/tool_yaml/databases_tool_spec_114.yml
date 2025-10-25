@@ -1,0 +1,842 @@
+field_name: databases
+subfield: Backup and Disaster Recovery
+task: Validate backup integrity and perform test restore operations
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves multiple complex subproblems including backup validation, test restore operations, integrity checking, and disaster recovery planning. There are moderate coordination requirements between different backup systems and restore procedures, with significant risk if validation fails to detect corrupted backups during actual disaster scenarios.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover the various aspects of backup validation, test restore operations, integrity checking, recovery planning, and monitoring.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Backup Catalog Scanner** - Consumes: backup locations, filters → Produces: backup inventory metadata
+  2. **Backup Integrity Validator** - Consumes: backup file paths → Produces: integrity status, checksum validation
+  3. **Test Environment Provisioner** - Consumes: environment specs → Produces: isolated test environment details
+  4. **Database Restore Executor** - Consumes: backup files, target environment → Produces: restore operation results
+  5. **Data Consistency Checker** - Consumes: restored database connection → Produces: consistency validation results
+  6. **Recovery Time Analyzer** - Consumes: restore operation logs → Produces: RTO/RPO metrics
+  7. **Backup Storage Monitor** - Consumes: storage locations, thresholds → Produces: storage health metrics
+  8. **Restore Test Scheduler** - Consumes: test schedules, backup sources → Produces: scheduled test execution plans
+  9. **Recovery Documentation Generator** - Consumes: test results, procedures → Produces: recovery playbooks
+  10. **Backup Retention Manager** - Consumes: retention policies, backup inventory → Produces: retention compliance status
+  11. **Cross-Platform Compatibility Tester** - Consumes: backup files, target platforms → Produces: compatibility assessment
+  12. **Disaster Recovery Simulator** - Consumes: failure scenarios, recovery procedures → Produces: simulation results
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic backup validation: Backup Catalog Scanner → Backup Integrity Validator → generate integrity report
+  2. Quick restore test: Test Environment Provisioner → Database Restore Executor → basic functionality verification
+
+  **Medium Plans:**
+  1. Complete restore validation: Backup Catalog Scanner → Test Environment Provisioner → Database Restore Executor → Data Consistency Checker → Recovery Time Analyzer
+  2. Scheduled testing workflow: Restore Test Scheduler → Test Environment Provisioner → Database Restore Executor → Recovery Documentation Generator
+
+  **Complex Plans:**
+  1. Full disaster recovery audit: Backup Catalog Scanner → Backup Integrity Validator → Cross-Platform Compatibility Tester → Test Environment Provisioner → Database Restore Executor → Data Consistency Checker → Recovery Time Analyzer → Recovery Documentation Generator
+  2. Comprehensive backup management: Backup Storage Monitor → Backup Catalog Scanner → Backup Retention Manager → Disaster Recovery Simulator → Recovery Documentation Generator → scheduled via Restore Test Scheduler
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Backup Catalog Scanner",
+    "tool_description": "Scans backup storage locations to discover and catalog available backup files, collecting metadata about backup types, dates, sizes, and associated database instances.",
+    "parameters": {
+      "storage_locations": {
+        "type": "array",
+        "required": true,
+        "description": "List of backup storage paths or URLs to scan",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of database system (mysql, postgresql, oracle, sqlserver, mongodb)"
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for backup discovery filter",
+        "format": "date-time",
+        "default": "None"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date for backup discovery filter",
+        "format": "date-time",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Storage location inaccessible: Ensure storage paths exist and have proper read permissions.",
+      "Unsupported database type: Use one of [mysql, postgresql, oracle, sqlserver, mongodb].",
+      "Invalid date range: Ensure date_range_start is before date_range_end and both are valid ISO 8601 format.",
+      "No backups found: No backup files matching criteria found in specified locations."
+    ],
+    "usage": "Provide storage_locations array and database_type. Optionally filter by date range. Tool will scan locations and return catalog of discovered backup files with metadata.",
+    "output_details": {
+      "total_backups_found": {
+        "type": "integer",
+        "description": "Total number of backup files discovered"
+      },
+      "backup_files": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of discovered backup file paths"
+      },
+      "backup_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Creation dates of each backup file"
+      },
+      "backup_sizes_mb": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Size of each backup file in megabytes"
+      },
+      "backup_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Type of each backup (full, incremental, differential)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Integrity Validator",
+    "tool_description": "Validates the integrity of backup files by performing checksum verification, corruption detection, and structural validation without performing full restore operations.",
+    "parameters": {
+      "backup_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the backup file to validate"
+      },
+      "expected_checksum": {
+        "type": "string",
+        "required": false,
+        "description": "Expected checksum value for verification",
+        "default": "None"
+      },
+      "checksum_algorithm": {
+        "type": "string",
+        "required": false,
+        "description": "Checksum algorithm to use (md5, sha256, sha512)",
+        "default": "sha256"
+      }
+    },
+    "error_messages": [
+      "Backup file not found: Ensure the backup file path exists and is accessible.",
+      "Checksum mismatch: Calculated checksum does not match expected value, indicating potential corruption.",
+      "Invalid checksum algorithm: Use one of [md5, sha256, sha512].",
+      "File read error: Unable to read backup file, check file permissions and disk health."
+    ],
+    "usage": "Provide backup_file_path and optionally expected_checksum with checksum_algorithm. Tool will validate file integrity and report any issues.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the backup file passed all integrity checks"
+      },
+      "calculated_checksum": {
+        "type": "string",
+        "description": "Computed checksum value of the backup file"
+      },
+      "file_size_bytes": {
+        "type": "integer",
+        "description": "Size of the backup file in bytes"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation errors found, if any"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Summary of validation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Test Environment Provisioner",
+    "tool_description": "Creates isolated test environments for backup restore operations, ensuring clean environments that don't interfere with production systems.",
+    "parameters": {
+      "environment_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of test environment (docker, vm, cloud, local)"
+      },
+      "database_engine": {
+        "type": "string",
+        "required": true,
+        "description": "Database engine to provision (mysql, postgresql, oracle, sqlserver, mongodb)"
+      },
+      "engine_version": {
+        "type": "string",
+        "required": true,
+        "description": "Specific version of the database engine"
+      },
+      "memory_mb": {
+        "type": "integer",
+        "required": false,
+        "description": "Memory allocation in megabytes",
+        "default": 2048
+      },
+      "storage_gb": {
+        "type": "integer",
+        "required": false,
+        "description": "Storage allocation in gigabytes",
+        "default": 20
+      },
+      "network_isolated": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to isolate environment from external networks",
+        "default": true
+      },
+      "cleanup_on_completion": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to automatically cleanup environment after testing",
+        "default": true
+      },
+      "custom_config": {
+        "type": "array",
+        "required": false,
+        "description": "Custom configuration parameters as key=value pairs",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Unsupported environment type: Use one of [docker, vm, cloud, local].",
+      "Unsupported database engine: Use one of [mysql, postgresql, oracle, sqlserver, mongodb].",
+      "Resource allocation error: Insufficient system resources to provision requested environment.",
+      "Engine version not available: Specified database engine version is not supported or available.",
+      "Network configuration error: Unable to configure network isolation settings.",
+      "Invalid custom configuration: Custom config must be in key=value format."
+    ],
+    "usage": "Specify environment_type, database_engine, and engine_version. Optionally configure resource allocation and network settings. Tool will provision isolated test environment and return connection details.",
+    "output_details": {
+      "environment_id": {
+        "type": "string",
+        "description": "Unique identifier for the provisioned environment"
+      },
+      "connection_host": {
+        "type": "string",
+        "description": "Host address for database connections"
+      },
+      "connection_port": {
+        "type": "integer",
+        "description": "Port number for database connections"
+      },
+      "admin_username": {
+        "type": "string",
+        "description": "Administrator username for database access"
+      },
+      "admin_password": {
+        "type": "string",
+        "description": "Administrator password for database access"
+      },
+      "provisioning_status": {
+        "type": "string",
+        "description": "Status of environment provisioning"
+      },
+      "resource_usage": {
+        "type": "string",
+        "description": "Summary of allocated resources"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Database Restore Executor",
+    "tool_description": "Executes database restore operations from backup files to target environments, supporting various restore modes and monitoring the restoration process.",
+    "parameters": {
+      "backup_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the backup file to restore"
+      },
+      "target_host": {
+        "type": "string",
+        "required": true,
+        "description": "Target database host for restore operation"
+      },
+      "target_port": {
+        "type": "integer",
+        "required": true,
+        "description": "Target database port"
+      },
+      "target_database": {
+        "type": "string",
+        "required": true,
+        "description": "Target database name"
+      },
+      "admin_username": {
+        "type": "string",
+        "required": true,
+        "description": "Database administrator username"
+      },
+      "admin_password": {
+        "type": "string",
+        "required": true,
+        "description": "Database administrator password"
+      },
+      "restore_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Restore mode (full, partial, point_in_time)",
+        "default": "full"
+      },
+      "point_in_time": {
+        "type": "string",
+        "required": false,
+        "description": "Specific point in time for restore (ISO 8601 format)",
+        "format": "date-time",
+        "default": "None"
+      },
+      "overwrite_existing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to overwrite existing database",
+        "default": false
+      },
+      "timeout_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum time to wait for restore completion",
+        "default": 120
+      },
+      "verify_after_restore": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform basic verification after restore",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Connection failed: Unable to connect to target database server, check host, port, and credentials.",
+      "Backup file not accessible: Cannot access backup file, verify path and permissions.",
+      "Database already exists: Target database exists and overwrite_existing is false.",
+      "Insufficient privileges: Admin user lacks required privileges for restore operation.",
+      "Restore timeout: Restore operation exceeded specified timeout duration.",
+      "Invalid restore mode: Use one of [full, partial, point_in_time].",
+      "Point in time required: point_in_time parameter required when restore_mode is point_in_time.",
+      "Restore verification failed: Post-restore verification detected issues with restored data."
+    ],
+    "usage": "Provide backup_file_path and target database connection details. Configure restore_mode and other options as needed. Tool will execute restore and monitor progress.",
+    "output_details": {
+      "restore_successful": {
+        "type": "boolean",
+        "description": "Whether the restore operation completed successfully"
+      },
+      "restore_duration_seconds": {
+        "type": "integer",
+        "description": "Total time taken for restore operation"
+      },
+      "data_size_restored_mb": {
+        "type": "number",
+        "description": "Amount of data restored in megabytes"
+      },
+      "tables_restored": {
+        "type": "integer",
+        "description": "Number of database tables restored"
+      },
+      "restore_log": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Log messages from restore operation"
+      },
+      "verification_results": {
+        "type": "string",
+        "description": "Results of post-restore verification if enabled"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Consistency Checker",
+    "tool_description": "Performs comprehensive data consistency validation on restored databases, checking referential integrity, constraint violations, and data corruption.",
+    "parameters": {
+      "database_host": {
+        "type": "string",
+        "required": true,
+        "description": "Database server host address"
+      },
+      "database_port": {
+        "type": "integer",
+        "required": true,
+        "description": "Database server port"
+      },
+      "database_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of database to check"
+      },
+      "username": {
+        "type": "string",
+        "required": true,
+        "description": "Database username for connection"
+      },
+      "password": {
+        "type": "string",
+        "required": true,
+        "description": "Database password for connection"
+      },
+      "check_referential_integrity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check foreign key constraints",
+        "default": true
+      },
+      "check_data_types": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate data type consistency",
+        "default": true
+      },
+      "check_constraints": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate check constraints",
+        "default": true
+      },
+      "sample_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage of data to sample for checks (1-100)",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Database connection failed: Unable to connect to database, verify connection parameters.",
+      "Insufficient permissions: User lacks required permissions to perform consistency checks.",
+      "Invalid sample percentage: sample_percentage must be between 1 and 100.",
+      "Database not accessible: Database may be offline or corrupted.",
+      "Consistency check timeout: Checks took too long, consider reducing sample_percentage."
+    ],
+    "usage": "Provide database connection details and configure which consistency checks to perform. Tool will analyze database and report any inconsistencies found.",
+    "output_details": {
+      "overall_consistency": {
+        "type": "boolean",
+        "description": "Whether database passed all consistency checks"
+      },
+      "referential_integrity_errors": {
+        "type": "integer",
+        "description": "Number of referential integrity violations found"
+      },
+      "constraint_violations": {
+        "type": "integer",
+        "description": "Number of constraint violations found"
+      },
+      "data_type_errors": {
+        "type": "integer",
+        "description": "Number of data type inconsistencies found"
+      },
+      "tables_checked": {
+        "type": "integer",
+        "description": "Total number of tables examined"
+      },
+      "rows_sampled": {
+        "type": "integer",
+        "description": "Total number of rows examined"
+      },
+      "error_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed descriptions of consistency errors found"
+      },
+      "check_summary": {
+        "type": "string",
+        "description": "Summary of consistency check results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Recovery Time Analyzer",
+    "tool_description": "Analyzes restore operation logs and metrics to calculate Recovery Time Objective (RTO) and Recovery Point Objective (RPO) metrics for disaster recovery planning.",
+    "parameters": {
+      "restore_start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Start time of restore operation",
+        "format": "date-time"
+      },
+      "restore_end_time": {
+        "type": "string",
+        "required": true,
+        "description": "End time of restore operation",
+        "format": "date-time"
+      },
+      "backup_creation_time": {
+        "type": "string",
+        "required": true,
+        "description": "Time when backup was created",
+        "format": "date-time"
+      },
+      "failure_time": {
+        "type": "string",
+        "required": false,
+        "description": "Time of simulated or actual failure",
+        "format": "date-time",
+        "default": "None"
+      },
+      "data_size_gb": {
+        "type": "number",
+        "required": true,
+        "description": "Size of data restored in gigabytes"
+      }
+    },
+    "error_messages": [
+      "Invalid time sequence: restore_start_time must be before restore_end_time.",
+      "Invalid backup time: backup_creation_time cannot be after restore_start_time.",
+      "Invalid failure time: failure_time must be between backup_creation_time and restore_start_time.",
+      "Invalid data size: data_size_gb must be greater than 0."
+    ],
+    "usage": "Provide restore operation timestamps, backup creation time, and data size. Optionally specify failure time for more accurate RPO calculation.",
+    "output_details": {
+      "rto_minutes": {
+        "type": "number",
+        "description": "Recovery Time Objective in minutes"
+      },
+      "rpo_minutes": {
+        "type": "number",
+        "description": "Recovery Point Objective in minutes"
+      },
+      "restore_throughput_mbps": {
+        "type": "number",
+        "description": "Data restore throughput in MB per second"
+      },
+      "total_downtime_minutes": {
+        "type": "number",
+        "description": "Total estimated downtime including restore"
+      },
+      "performance_rating": {
+        "type": "string",
+        "description": "Performance rating (excellent, good, fair, poor)"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommendations for improving recovery metrics"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Storage Monitor",
+    "tool_description": "Monitors backup storage locations for health, capacity, performance issues, and generates alerts when thresholds are exceeded.",
+    "parameters": {
+      "storage_locations": {
+        "type": "array",
+        "required": true,
+        "description": "List of storage paths or URLs to monitor",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "capacity_threshold_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Storage capacity threshold for alerts (1-100)",
+        "default": 85
+      },
+      "check_connectivity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to test network connectivity to storage",
+        "default": true
+      },
+      "check_read_performance": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to test read performance",
+        "default": true
+      },
+      "check_write_performance": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to test write performance",
+        "default": false
+      },
+      "performance_threshold_mbps": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum acceptable performance in MB/s",
+        "default": 50
+      },
+      "include_file_count": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to count files in storage locations",
+        "default": true
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Timeout for storage operations",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Storage location inaccessible: One or more storage locations cannot be accessed.",
+      "Invalid capacity threshold: capacity_threshold_percent must be between 1 and 100.",
+      "Performance test failed: Unable to perform performance tests on storage location.",
+      "Timeout exceeded: Storage operations exceeded specified timeout.",
+      "Invalid performance threshold: performance_threshold_mbps must be greater than 0."
+    ],
+    "usage": "Provide array of storage_locations to monitor. Configure threshold values and performance tests as needed. Tool will check storage health and report issues.",
+    "output_details": {
+      "overall_health_status": {
+        "type": "string",
+        "description": "Overall health status (healthy, warning, critical)"
+      },
+      "storage_capacities_gb": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Available capacity for each storage location in GB"
+      },
+      "storage_used_percent": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Percentage of storage used for each location"
+      },
+      "connectivity_status": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Connectivity status for each storage location"
+      },
+      "read_performance_mbps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Read performance for each location in MB/s"
+      },
+      "file_counts": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Number of files in each storage location"
+      },
+      "alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of alerts generated for threshold violations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Restore Test Scheduler",
+    "tool_description": "Schedules and manages automated backup restore testing across multiple backup sources and environments, maintaining test execution history and results.",
+    "parameters": {
+      "test_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name identifier for this test schedule"
+      },
+      "backup_sources": {
+        "type": "array",
+        "required": true,
+        "description": "List of backup sources to include in testing",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "test_frequency": {
+        "type": "string",
+        "required": true,
+        "description": "Test execution frequency (daily, weekly, monthly, quarterly)"
+      },
+      "test_time": {
+        "type": "string",
+        "required": true,
+        "description": "Preferred execution time in HH:MM format"
+      },
+      "environment_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of test environment to use (docker, vm, cloud)"
+      },
+      "max_concurrent_tests": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of concurrent test executions",
+        "default": 3
+      },
+      "test_timeout_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum hours to allow for each test",
+        "default": 4
+      },
+      "notification_email": {
+        "type": "string",
+        "required": false,
+        "description": "Email address for test result notifications",
+        "default": "None"
+      },
+      "retain_test_data_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Days to retain test environment data",
+        "default": 1
+      },
+      "skip_weekends": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to skip test execution on weekends",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid test frequency: Use one of [daily, weekly, monthly, quarterly].",
+      "Invalid time format: test_time must be in HH:MM format (24-hour).",
+      "Unsupported environment type: Use one of [docker, vm, cloud].",
+      "Invalid concurrent limit: max_concurrent_tests must be between 1 and 10.",
+      "Invalid timeout: test_timeout_hours must be between 1 and 24.",
+      "Invalid retention period: retain_test_data_days must be between 1 and 30.",
+      "Backup source not found: One or more backup sources are not accessible."
+    ],
+    "usage": "Provide test_name, backup_sources array, test_frequency, test_time, and environment_type. Configure additional parameters for concurrent execution and notifications.",
+    "output_details": {
+      "schedule_id": {
+        "type": "string",
+        "description": "Unique identifier for the created test schedule"
+      },
+      "next_execution_time": {
+        "type": "string",
+        "description": "Next scheduled execution date and time"
+      },
+      "scheduled_tests_count": {
+        "type": "integer",
+        "description": "Number of backup sources scheduled for testing"
+      },
+      "estimated_duration_hours": {
+        "type": "number",
+        "description": "Estimated total duration for all scheduled tests"
+      },
+      "schedule_status": {
+        "type": "string",
+        "description": "Status of the schedule (active, inactive, error)"
+      },
+      "configuration_summary": {
+        "type": "string",
+        "description": "Summary of schedule configuration"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Recovery Documentation Generator",
+    "tool_description": "Generates comprehensive disaster recovery documentation including runbooks, procedures, and test reports based on backup testing results and recovery scenarios.",
+    "parameters": {
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document to generate (runbook, test_report, procedure_guide, recovery_plan)"
+      },
+      "test_results_data": {
+        "type": "array",
+        "required": true,
+        "description": "Test execution results and metrics data",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "database_systems": {
+        "type": "array",
+        "required": true,
+        "description": "Database systems covered in documentation",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "recovery_scenarios": {
+        "type": "array",
+        "required": false,
+        "description": "Recovery scenarios to include in documentation",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "include_screenshots": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include procedural screenshots",
+        "default": false
+      },
+      "include_metrics": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include performance metrics",
+        "default": true
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output format (pdf, html, markdown, docx)",
+        "default": "pdf"
+      },
+      "template_style": {
+        "type": "string",
+        "required": false,
+        "description": "Documentation template style (corporate, technical, minimal)",
+        "default": "technical"
+      },
+      "include_appendix": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include technical appendix",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid document type: Use one of [runbook, test_report, procedure_guide, recovery_plan].",
+      "Insufficient test data: test_results_data must contain valid test result information.",
+      "Invalid output format: Use one of [pdf, html, markdown, docx].",
+      "Invalid template style: Use one of [corporate, technical, minimal].",
+      "Database systems required: At least one database system must be specified."
+    ],
+    "usage": "Specify document_type, provide test_results_data array, and list database_systems. Configure output format and styling options as needed.",
+    "output_details": {
+      "document_generated": {
+        "type": "boolean",
+        "description": "Whether document was successfully generated"
+      },
+      "document_path": {
+        "type": "string",
+        "description": "File path of generated documentation"
+      },
+      "document_size_kb": {
+        "type": "number",
+        "description": "Size of generated document in kilobytes"
+      },
+      "page_count": {
+        "type": "integer",
+        "description": "Number of pages in generated document"
+      },
+      "sections_included": {
+        "type": "array",
+        "items": {"type":

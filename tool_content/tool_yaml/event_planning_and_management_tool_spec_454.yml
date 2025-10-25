@@ -1,0 +1,912 @@
+field_name: event_planning_and_management
+subfield: venue_selection_and_booking
+task: Compare venue pricing, packages, and availability across multiple options
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task involves medium complexity as it requires coordinating multiple data sources (venues), standardizing different pricing structures and package formats, handling availability constraints across time periods, and managing dependencies between venue features, dates, and budget requirements.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium difficulty, I'll target 12 tools to cover venue discovery, data collection, pricing analysis, availability checking, comparison workflows, and booking coordination.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+  1. **Venue Search Engine** - Consumes: location, event type, capacity → Produces: venue list
+  2. **Venue Detail Fetcher** - Consumes: venue IDs → Produces: detailed venue information
+  3. **Pricing Structure Analyzer** - Consumes: venue pricing data → Produces: standardized pricing breakdown
+  4. **Package Comparator** - Consumes: multiple venue packages → Produces: feature comparison matrix
+  5. **Availability Checker** - Consumes: venue IDs, date ranges → Produces: availability status
+  6. **Cost Calculator** - Consumes: pricing data, guest count, requirements → Produces: total cost estimates
+  7. **Venue Scorer** - Consumes: venue data, criteria weights → Produces: weighted scores
+  8. **Date Optimizer** - Consumes: availability data, preferences → Produces: optimal date suggestions
+  9. **Contract Terms Extractor** - Consumes: venue contracts → Produces: key terms summary
+  10. **Booking Request Generator** - Consumes: venue selection, event details → Produces: booking request
+  11. **Venue Comparison Report** - Consumes: analyzed venue data → Produces: comprehensive comparison
+  12. **Budget Allocation Tool** - Consumes: costs, budget constraints → Produces: allocation recommendations
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic venue search: Venue Search Engine → Venue Detail Fetcher → Availability Checker
+  - Quick price check: Venue Detail Fetcher → Pricing Structure Analyzer → Cost Calculator
+
+  **Medium Plans:**
+  - Standard comparison: Venue Search Engine → Venue Detail Fetcher → Pricing Structure Analyzer → Package Comparator → Venue Comparison Report
+  - Budget-focused selection: Venue Search Engine → Cost Calculator → Budget Allocation Tool → Venue Scorer
+
+  **Complex Plans:**
+  - Comprehensive venue analysis: Venue Search Engine → Venue Detail Fetcher → Availability Checker → Pricing Structure Analyzer → Package Comparator → Contract Terms Extractor → Venue Scorer → Date Optimizer → Venue Comparison Report
+  - Full booking workflow: All tools in sequence ending with Booking Request Generator
+
+  ```json
+  {
+    "tool_name": "Venue Search Engine",
+    "tool_description": "Searches and filters venues based on location, event type, capacity, and other criteria to generate a list of potential venues.",
+    "parameters": {
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "City or address where the event will be held"
+      },
+      "event_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of event (wedding, conference, party, corporate, exhibition)"
+      },
+      "min_capacity": {
+        "type": "integer",
+        "required": true,
+        "description": "Minimum number of guests the venue must accommodate"
+      },
+      "max_capacity": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of guests needed",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid location: Provide a valid city name or address.",
+      "Unsupported event type: Use one of [wedding, conference, party, corporate, exhibition, social].",
+      "Invalid capacity range: min_capacity must be positive and less than max_capacity if provided.",
+      "No venues found: No venues match the specified criteria in the given location."
+    ],
+    "usage": "Provide location, event_type, and min_capacity. Optionally specify max_capacity to narrow results. Returns a list of venue IDs and basic information.",
+    "output_details": {
+      "venue_count": {
+        "type": "integer",
+        "description": "Number of venues found"
+      },
+      "venue_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of unique venue identifiers"
+      },
+      "venue_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of venue names corresponding to the IDs"
+      },
+      "basic_info": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of brief venue descriptions with capacity and location"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Venue Detail Fetcher",
+    "tool_description": "Retrieves comprehensive details for specific venues including amenities, services, restrictions, and contact information.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of venue IDs to fetch details for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      }
+    },
+    "error_messages": [
+      "Invalid venue ID: One or more venue IDs do not exist in the database.",
+      "Too many venues requested: Maximum 20 venues can be processed at once.",
+      "Empty venue list: Provide at least one venue ID.",
+      "Venue data unavailable: Some venue information is temporarily unavailable."
+    ],
+    "usage": "Provide an array of venue_ids obtained from Venue Search Engine. Returns detailed information for each venue.",
+    "output_details": {
+      "venue_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed descriptions for each venue including facilities and features"
+      },
+      "amenities": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Available amenities for each venue"
+      },
+      "contact_info": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Contact details for each venue"
+      },
+      "restrictions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any restrictions or limitations for each venue"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pricing Structure Analyzer",
+    "tool_description": "Analyzes and standardizes venue pricing information to enable fair comparisons across different pricing models and package structures.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of venue IDs to analyze pricing for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "guest_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Expected number of guests for pricing calculations"
+      },
+      "event_duration": {
+        "type": "number",
+        "required": true,
+        "description": "Event duration in hours"
+      },
+      "day_of_week": {
+        "type": "string",
+        "required": true,
+        "description": "Day of the week (monday, tuesday, wednesday, thursday, friday, saturday, sunday)"
+      },
+      "season": {
+        "type": "string",
+        "required": false,
+        "description": "Season for seasonal pricing (spring, summer, fall, winter)",
+        "default": "None"
+      },
+      "premium_services": {
+        "type": "array",
+        "required": false,
+        "description": "List of additional services needed",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid guest count: Guest count must be a positive integer.",
+      "Invalid event duration: Duration must be between 0.5 and 24 hours.",
+      "Invalid day of week: Use standard day names (monday through sunday).",
+      "Pricing data incomplete: Some venues have incomplete pricing information.",
+      "Invalid season: Use one of [spring, summer, fall, winter] or leave empty."
+    ],
+    "usage": "Provide venue_ids, guest_count, event_duration, and day_of_week. Optionally specify season and premium_services for accurate pricing. Returns standardized pricing breakdown.",
+    "output_details": {
+      "base_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Base rental prices for each venue"
+      },
+      "per_person_costs": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Per-person charges for each venue"
+      },
+      "additional_fees": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Sum of additional fees and charges for each venue"
+      },
+      "total_estimates": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Total estimated costs for each venue"
+      },
+      "pricing_notes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Important pricing notes and conditions for each venue"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Package Comparator",
+    "tool_description": "Compares venue packages side-by-side, highlighting differences in inclusions, services, and value propositions.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Venues to compare packages for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "package_types": {
+        "type": "array",
+        "required": false,
+        "description": "Specific package types to compare (basic, standard, premium, deluxe)",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Insufficient venues: Provide at least 2 venues for comparison.",
+      "Package information missing: Some venues do not have package details available.",
+      "Invalid package type: Use standard package names (basic, standard, premium, deluxe).",
+      "Too many venues: Maximum 10 venues can be compared simultaneously."
+    ],
+    "usage": "Provide at least 2 venue_ids for package comparison. Optionally specify package_types to focus on particular tiers. Returns detailed package comparison matrix.",
+    "output_details": {
+      "comparison_matrix": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Side-by-side comparison of package features for each venue"
+      },
+      "included_services": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Services included in each venue's packages"
+      },
+      "excluded_services": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Services not included requiring additional cost"
+      },
+      "value_ratings": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Calculated value scores for each venue's packages"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Availability Checker",
+    "tool_description": "Checks venue availability for specific dates and time slots, handling multiple date preferences and booking conflicts.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Venues to check availability for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "preferred_dates": {
+        "type": "array",
+        "required": true,
+        "description": "Preferred event dates in order of preference",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Event start time in HH:MM format"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "Event end time in HH:MM format"
+      },
+      "setup_time": {
+        "type": "number",
+        "required": false,
+        "description": "Setup time needed in hours",
+        "default": 2
+      },
+      "breakdown_time": {
+        "type": "number",
+        "required": false,
+        "description": "Breakdown time needed in hours",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Provide dates in YYYY-MM-DD format.",
+      "Invalid time format: Use HH:MM format for start_time and end_time.",
+      "Time conflict: start_time must be before end_time.",
+      "Past date error: Cannot check availability for dates in the past.",
+      "Setup/breakdown time invalid: Times must be positive numbers under 24 hours."
+    ],
+    "usage": "Provide venue_ids, preferred_dates array, start_time, and end_time. Optionally specify setup_time and breakdown_time. Returns availability status for each venue and date combination.",
+    "output_details": {
+      "availability_matrix": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Availability status for each venue-date combination"
+      },
+      "available_venues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Venues available for at least one preferred date"
+      },
+      "conflict_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Details about booking conflicts or restrictions"
+      },
+      "alternative_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Alternative available dates for unavailable venues"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cost Calculator",
+    "tool_description": "Calculates comprehensive event costs including base fees, per-person charges, additional services, taxes, and gratuities.",
+    "parameters": {
+      "venue_id": {
+        "type": "string",
+        "required": true,
+        "description": "Venue ID to calculate costs for"
+      },
+      "guest_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of guests attending"
+      },
+      "event_date": {
+        "type": "string",
+        "required": true,
+        "description": "Event date for seasonal pricing",
+        "format": "date-time"
+      },
+      "package_level": {
+        "type": "string",
+        "required": true,
+        "description": "Package level (basic, standard, premium, deluxe)"
+      },
+      "additional_services": {
+        "type": "array",
+        "required": false,
+        "description": "Additional services to include in cost calculation",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "tax_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Local tax rate as percentage",
+        "default": 8.25
+      },
+      "service_charge": {
+        "type": "number",
+        "required": false,
+        "description": "Service charge percentage",
+        "default": 18
+      },
+      "gratuity": {
+        "type": "number",
+        "required": false,
+        "description": "Additional gratuity percentage",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid venue ID: Venue not found in database.",
+      "Invalid guest count: Must be a positive integer within venue capacity.",
+      "Invalid package level: Use one of [basic, standard, premium, deluxe].",
+      "Invalid percentage: Tax rate, service charge, and gratuity must be between 0-50.",
+      "Date parsing error: Provide event_date in valid date-time format.",
+      "Service not available: One or more additional services not offered by venue."
+    ],
+    "usage": "Provide venue_id, guest_count, event_date, and package_level. Optionally specify additional_services and adjust tax_rate, service_charge, or gratuity. Returns detailed cost breakdown.",
+    "output_details": {
+      "base_cost": {
+        "type": "number",
+        "description": "Base venue rental cost"
+      },
+      "per_person_total": {
+        "type": "number",
+        "description": "Total per-person charges"
+      },
+      "additional_services_cost": {
+        "type": "number",
+        "description": "Cost of additional services"
+      },
+      "subtotal": {
+        "type": "number",
+        "description": "Subtotal before taxes and fees"
+      },
+      "tax_amount": {
+        "type": "number",
+        "description": "Tax amount"
+      },
+      "service_charge_amount": {
+        "type": "number",
+        "description": "Service charge amount"
+      },
+      "gratuity_amount": {
+        "type": "number",
+        "description": "Gratuity amount"
+      },
+      "final_total": {
+        "type": "number",
+        "description": "Final total cost including all fees"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Venue Scorer",
+    "tool_description": "Scores and ranks venues based on weighted criteria including cost, location, amenities, availability, and customer preferences.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Venues to score and rank",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 15
+      },
+      "cost_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Importance weight for cost factor (0-1)"
+      },
+      "location_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Importance weight for location factor (0-1)"
+      },
+      "amenities_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Importance weight for amenities factor (0-1)"
+      },
+      "availability_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Importance weight for availability factor (0-1)"
+      },
+      "reviews_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Importance weight for customer reviews factor (0-1)"
+      },
+      "max_budget": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum budget constraint"
+      },
+      "preferred_location": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred location or area",
+        "default": "None"
+      },
+      "must_have_amenities": {
+        "type": "array",
+        "required": false,
+        "description": "Required amenities that venues must have",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "exclude_venues": {
+        "type": "array",
+        "required": false,
+        "description": "Venue IDs to exclude from scoring",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Weight sum error: All weight values must sum to approximately 1.0.",
+      "Invalid weight values: Weights must be between 0 and 1.",
+      "Insufficient venues: Provide at least 2 venues for scoring.",
+      "Budget constraint violation: max_budget must be a positive number.",
+      "Venue data incomplete: Some venues lack sufficient data for scoring.",
+      "Amenity not recognized: One or more must_have_amenities not available."
+    ],
+    "usage": "Provide venue_ids and weight values for all five criteria (must sum to 1.0). Set max_budget constraint. Optionally specify preferred_location, must_have_amenities, and venues to exclude. Returns ranked venue list with scores.",
+    "output_details": {
+      "venue_rankings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Venue IDs ranked from highest to lowest score"
+      },
+      "venue_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Numerical scores for each venue"
+      },
+      "score_breakdown": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed score breakdown by criteria for each venue"
+      },
+      "eliminated_venues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Venues eliminated due to constraints or missing requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Date Optimizer",
+    "tool_description": "Optimizes event date selection based on venue availability, pricing variations, and preference rankings.",
+    "parameters": {
+      "venue_id": {
+        "type": "string",
+        "required": true,
+        "description": "Venue ID to optimize dates for"
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start of acceptable date range",
+        "format": "date-time"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": true,
+        "description": "End of acceptable date range",
+        "format": "date-time"
+      },
+      "preferred_days": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred days of the week",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "avoid_holidays": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to avoid major holidays",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid date range: Start date must be before end date and both must be in the future.",
+      "Date range too narrow: Provide at least a 30-day range for optimization.",
+      "Invalid day names: Use standard day names (monday, tuesday, etc.).",
+      "Venue unavailable: Selected venue has no availability in the specified range.",
+      "Date format error: Use valid date-time format for date ranges."
+    ],
+    "usage": "Provide venue_id and date range boundaries. Optionally specify preferred_days and avoid_holidays setting. Returns optimized date recommendations with cost and availability insights.",
+    "output_details": {
+      "recommended_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Top recommended dates in order of preference"
+      },
+      "cost_savings": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Potential cost savings for each recommended date"
+      },
+      "availability_confidence": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence level of availability for each date (0-1)"
+      },
+      "pricing_notes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Pricing explanations for each recommended date"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contract Terms Extractor",
+    "tool_description": "Extracts and summarizes key contract terms, policies, and conditions from venue agreements to facilitate comparison.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Venues to extract contract terms for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "focus_areas": {
+        "type": "array",
+        "required": false,
+        "description": "Specific contract areas to focus on",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Contract unavailable: Some venues do not have contract terms available.",
+      "Invalid focus area: Use standard contract categories (cancellation, payment, liability, restrictions).",
+      "Too many venues: Maximum 10 venues can be processed for contract analysis.",
+      "Venue not found: One or more venue IDs are invalid."
+    ],
+    "usage": "Provide venue_ids for contract analysis. Optionally specify focus_areas to highlight particular contract sections. Returns summarized key terms and conditions.",
+    "output_details": {
+      "cancellation_policies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Cancellation terms and penalties for each venue"
+      },
+      "payment_terms": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Payment schedules and requirements for each venue"
+      },
+      "liability_clauses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Liability and insurance requirements for each venue"
+      },
+      "restriction_summary": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Key restrictions and limitations for each venue"
+      },
+      "notable_terms": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Other significant contract terms worth attention"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Booking Request Generator",
+    "tool_description": "Generates formal booking requests with all necessary details, terms acknowledgment, and contact information.",
+    "parameters": {
+      "venue_id": {
+        "type": "string",
+        "required": true,
+        "description": "Selected venue ID for booking request"
+      },
+      "event_date": {
+        "type": "string",
+        "required": true,
+        "description": "Confirmed event date",
+        "format": "date-time"
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Event start time in HH:MM format"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "Event end time in HH:MM format"
+      },
+      "guest_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Final guest count"
+      },
+      "package_selection": {
+        "type": "string",
+        "required": true,
+        "description": "Selected package level"
+      },
+      "client_name": {
+        "type": "string",
+        "required": true,
+        "description": "Primary contact name"
+      },
+      "client_email": {
+        "type": "string",
+        "required": true,
+        "description": "Contact email address"
+      },
+      "client_phone": {
+        "type": "string",
+        "required": true,
+        "description": "Contact phone number"
+      },
+      "event_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of event being booked"
+      },
+      "special_requests": {
+        "type": "array",
+        "required": false,
+        "description": "Any special requests or requirements",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "additional_services": {
+        "type": "array",
+        "required": false,
+        "description": "Additional services to include",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid venue ID: Venue not available for booking.",
+      "Date unavailable: Selected date is no longer available.",
+      "Invalid time format: Use HH:MM format for start and end times.",
+      "Guest count exceeded: Guest count exceeds venue capacity.",
+      "Invalid contact information: Provide valid email and phone number formats.",
+      "Missing required fields: All client contact information is required.",
+      "Package not available: Selected package is not offered by this venue."
+    ],
+    "usage": "Provide all required venue, event, and contact details. Optionally include special_requests and additional_services. Returns formatted booking request ready for submission.",
+    "output_details": {
+      "booking_request": {
+        "type": "string",
+        "description": "Formatted booking request document"
+      },
+      "cost_summary": {
+        "type": "string",
+        "description": "Summary of estimated costs for the booking"
+      },
+      "next_steps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended next steps in the booking process"
+      },
+      "submission_method": {
+        "type": "string",
+        "description": "How to submit the booking request to the venue"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Venue Comparison Report",
+    "tool_description": "Generates comprehensive comparison reports summarizing all analyzed venues with rankings, costs, pros/cons, and recommendations.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Venues to include in comparison report",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "report_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format of the report (summary, detailed, executive)"
+      },
+      "include_pricing": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether to include detailed pricing analysis"
+      },
+      "include_contracts": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether to include contract terms comparison"
+      },
+      "include_photos": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include venue photos

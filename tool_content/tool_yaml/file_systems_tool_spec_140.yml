@@ -1,0 +1,808 @@
+field_name: file_systems
+subfield: File Storage and Retrieval
+task: Upload and store files with metadata and version control
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves multiple interconnected components (file storage, metadata management, version control) with moderate coordination requirements. Error handling is critical for data integrity, and the task requires managing various file types, formats, and concurrent access patterns.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the breadth of file operations, metadata management, version control, and access control while maintaining composability.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  1. **File Upload Handler** - consumes: file data, metadata → produces: file_id, storage_location
+  2. **Metadata Extractor** - consumes: file_path → produces: extracted metadata
+  3. **Version Creator** - consumes: file_id, change_description → produces: version_id
+  4. **Storage Allocator** - consumes: file_size, storage_policy → produces: storage_path
+  5. **Checksum Generator** - consumes: file_path → produces: checksum, algorithm
+  6. **File Validator** - consumes: file_path, validation_rules → produces: validation_status
+  7. **Permission Manager** - consumes: file_id, user_permissions → produces: access_control_list
+  8. **Version Comparer** - consumes: version_id1, version_id2 → produces: differences
+  9. **Backup Scheduler** - consumes: file_id, backup_policy → produces: backup_job_id
+  10. **File Retriever** - consumes: file_id, version → produces: file_content, metadata
+  11. **Storage Monitor** - consumes: storage_location → produces: usage_stats
+  12. **Audit Logger** - consumes: operation_type, file_id, user_id → produces: audit_entry
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans (2-4 tools):
+  - Basic upload: File Upload Handler → Storage Allocator → Checksum Generator
+  - Simple retrieval: File Retriever → Permission Manager validation
+
+  Medium plans (5-8 tools):
+  - Secure upload with validation: File Validator → Metadata Extractor → File Upload Handler → Storage Allocator → Permission Manager → Checksum Generator → Audit Logger
+  - Version management workflow: File Retriever → Version Comparer → Version Creator → Backup Scheduler → Audit Logger
+
+  Complex plans (9+ tools):
+  - Full enterprise upload: File Validator → Metadata Extractor → Storage Allocator → File Upload Handler → Checksum Generator → Version Creator → Permission Manager → Backup Scheduler → Storage Monitor → Audit Logger
+  - Complete file lifecycle management: All tools orchestrated for upload, validation, versioning, backup, monitoring, and audit compliance
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "File Upload Handler",
+    "tool_description": "Uploads files to the storage system with metadata tracking and returns unique file identifiers for further processing.",
+    "parameters": {
+      "file_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the file being uploaded"
+      },
+      "file_size": {
+        "type": "integer",
+        "required": true,
+        "description": "Size of the file in bytes"
+      },
+      "file_type": {
+        "type": "string",
+        "required": true,
+        "description": "MIME type of the file"
+      },
+      "storage_path": {
+        "type": "string",
+        "required": true,
+        "description": "Target storage location path"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the user uploading the file"
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "description": "Optional description of the file",
+        "default": ""
+      },
+      "tags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Optional tags for categorization",
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid file size: File size must be greater than 0 bytes and less than system maximum limit.",
+      "Unsupported file type: The provided MIME type is not supported by the storage system.",
+      "Storage path unavailable: The specified storage path does not exist or is not accessible.",
+      "Invalid user credentials: User ID does not correspond to a valid authenticated user.",
+      "File name conflict: A file with the same name already exists at the target location."
+    ],
+    "usage": "Provide file_name, file_size, file_type, storage_path, and user_id as required parameters. Optionally add description and tags for better organization. The tool will create a new file entry and return identifiers for tracking.",
+    "output_details": {
+      "file_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to the uploaded file"
+      },
+      "upload_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Timestamp when the file was successfully uploaded"
+      },
+      "storage_location": {
+        "type": "string",
+        "description": "Full path where the file is stored"
+      },
+      "status": {
+        "type": "string",
+        "description": "Upload status: success, partial, or failed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Metadata Extractor",
+    "tool_description": "Extracts and analyzes metadata from files including technical properties, content analysis, and format-specific information.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Full path to the file for metadata extraction"
+      },
+      "extract_content": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform content-based metadata extraction",
+        "default": true
+      },
+      "include_technical": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include technical file properties",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "File not accessible: The specified file path does not exist or cannot be read.",
+      "Unsupported file format: Metadata extraction is not supported for this file type.",
+      "Corrupted file: The file appears to be corrupted and metadata cannot be extracted.",
+      "Permission denied: Insufficient permissions to read the file for metadata extraction."
+    ],
+    "usage": "Provide the file_path to extract metadata. Set extract_content to false for faster processing if content analysis isn't needed. Set include_technical to false to skip technical properties extraction.",
+    "output_details": {
+      "file_format": {
+        "type": "string",
+        "description": "Detected file format and version"
+      },
+      "creation_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "File creation timestamp if available"
+      },
+      "modification_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Last modification timestamp"
+      },
+      "content_summary": {
+        "type": "string",
+        "description": "Brief summary of file contents"
+      },
+      "technical_properties": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of technical properties like dimensions, encoding, etc."
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Version Creator",
+    "tool_description": "Creates new versions of existing files with change tracking, maintaining version history and relationships between file iterations.",
+    "parameters": {
+      "file_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the base file"
+      },
+      "new_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the new version of the file"
+      },
+      "change_description": {
+        "type": "string",
+        "required": true,
+        "description": "Description of changes made in this version"
+      },
+      "version_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of version: major, minor, or patch"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of user creating the version"
+      },
+      "merge_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Strategy for handling conflicts: overwrite, merge, or preserve",
+        "default": "overwrite"
+      },
+      "auto_increment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to automatically increment version numbers",
+        "default": true
+      },
+      "branch_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name of the version branch",
+        "default": "main"
+      },
+      "parent_version": {
+        "type": "string",
+        "required": false,
+        "description": "Parent version ID for branching",
+        "default": null
+      },
+      "preserve_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve metadata from previous version",
+        "default": true
+      },
+      "notification_users": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "List of user IDs to notify about the new version",
+        "default": []
+      },
+      "approval_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether the version requires approval before activation",
+        "default": false
+      },
+      "retention_policy": {
+        "type": "string",
+        "required": false,
+        "description": "How long to retain this version: indefinite, temporary, or archive",
+        "default": "indefinite"
+      }
+    },
+    "error_messages": [
+      "File not found: The specified file_id does not correspond to an existing file.",
+      "Invalid version type: Version type must be one of major, minor, or patch.",
+      "New file path invalid: The new file path does not exist or is not accessible.",
+      "Version conflict: A version with similar characteristics already exists.",
+      "User permission denied: User does not have permission to create versions of this file.",
+      "Invalid merge strategy: Merge strategy must be one of overwrite, merge, or preserve.",
+      "Parent version not found: The specified parent_version does not exist.",
+      "Invalid retention policy: Retention policy must be one of indefinite, temporary, or archive."
+    ],
+    "usage": "Provide file_id, new_file_path, change_description, version_type, and user_id. Optionally configure merge_strategy, branching, metadata handling, notifications, and approval workflow. The tool creates a new version with proper lineage tracking.",
+    "output_details": {
+      "version_id": {
+        "type": "string",
+        "description": "Unique identifier for the newly created version"
+      },
+      "version_number": {
+        "type": "string",
+        "description": "Human-readable version number (e.g., 1.2.3)"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the version was created"
+      },
+      "status": {
+        "type": "string",
+        "description": "Version status: active, pending, or draft"
+      },
+      "branch": {
+        "type": "string",
+        "description": "Branch name where the version was created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Storage Allocator",
+    "tool_description": "Determines optimal storage location and allocates space based on file characteristics, storage policies, and system capacity.",
+    "parameters": {
+      "file_size": {
+        "type": "integer",
+        "required": true,
+        "description": "Size of file in bytes requiring storage allocation"
+      },
+      "file_type": {
+        "type": "string",
+        "required": true,
+        "description": "MIME type or file extension for storage optimization"
+      },
+      "access_pattern": {
+        "type": "string",
+        "required": false,
+        "description": "Expected access frequency: frequent, occasional, or archive",
+        "default": "occasional"
+      },
+      "redundancy_level": {
+        "type": "string",
+        "required": false,
+        "description": "Required redundancy: none, standard, or high",
+        "default": "standard"
+      },
+      "geographic_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred geographic region for storage",
+        "default": "any"
+      }
+    },
+    "error_messages": [
+      "Insufficient storage space: Not enough available space to accommodate the file size.",
+      "Invalid access pattern: Access pattern must be one of frequent, occasional, or archive.",
+      "Invalid redundancy level: Redundancy level must be none, standard, or high.",
+      "Geographic region unavailable: The requested geographic preference is not supported.",
+      "File size exceeds limits: File size exceeds maximum allowed size for the storage system."
+    ],
+    "usage": "Provide file_size and file_type as required parameters. Optionally specify access_pattern, redundancy_level, and geographic_preference to influence storage placement. The tool returns the optimal storage path and allocation details.",
+    "output_details": {
+      "storage_path": {
+        "type": "string",
+        "description": "Allocated storage path for the file"
+      },
+      "storage_tier": {
+        "type": "string",
+        "description": "Storage tier assigned (hot, warm, cold, or archive)"
+      },
+      "allocated_space": {
+        "type": "integer",
+        "description": "Total space allocated in bytes including overhead"
+      },
+      "geographic_location": {
+        "type": "string",
+        "description": "Geographic region where file will be stored"
+      },
+      "estimated_retrieval_time": {
+        "type": "number",
+        "description": "Estimated retrieval time in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Checksum Generator",
+    "tool_description": "Generates cryptographic checksums and hash values for files to ensure data integrity and detect corruption or tampering.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Full path to the file for checksum generation"
+      },
+      "algorithm": {
+        "type": "string",
+        "required": false,
+        "description": "Hash algorithm to use: MD5, SHA1, SHA256, or SHA512",
+        "default": "SHA256"
+      }
+    },
+    "error_messages": [
+      "File not accessible: Cannot read the file at the specified path for checksum generation.",
+      "Unsupported algorithm: Hash algorithm must be one of MD5, SHA1, SHA256, or SHA512.",
+      "File reading error: Error occurred while reading file contents for hashing.",
+      "Algorithm computation failed: The selected hash algorithm failed to process the file."
+    ],
+    "usage": "Provide the file_path for checksum generation. Optionally specify the hash algorithm (defaults to SHA256 for security). The tool returns the computed checksum and algorithm details.",
+    "output_details": {
+      "checksum": {
+        "type": "string",
+        "description": "Hexadecimal representation of the computed hash"
+      },
+      "algorithm_used": {
+        "type": "string",
+        "description": "Hash algorithm that was used for computation"
+      },
+      "file_size": {
+        "type": "integer",
+        "description": "Size of the file that was hashed"
+      },
+      "computation_time": {
+        "type": "number",
+        "description": "Time taken to compute the checksum in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "File Validator",
+    "tool_description": "Validates files against specified rules including format compliance, content scanning, and security checks before storage.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the file requiring validation"
+      },
+      "validation_rules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of validation rules to apply"
+      },
+      "max_file_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum allowed file size in bytes",
+        "default": 104857600
+      },
+      "scan_for_malware": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform malware scanning",
+        "default": true
+      },
+      "allowed_extensions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "List of allowed file extensions",
+        "default": []
+      },
+      "content_validation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate file content structure",
+        "default": true
+      },
+      "encoding_check": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to verify file encoding",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "File not found: The specified file path does not exist or is not accessible.",
+      "File size exceeds limit: File size is larger than the maximum allowed size.",
+      "Validation rule violation: One or more validation rules failed during processing.",
+      "Malware detected: Security scan identified potential malware in the file.",
+      "Unsupported file extension: File extension is not in the allowed extensions list.",
+      "Invalid file format: File content does not match expected format for the file type.",
+      "Encoding validation failed: File encoding is invalid or unsupported."
+    ],
+    "usage": "Provide file_path and validation_rules as required parameters. Configure optional validation settings like max_file_size, malware scanning, allowed extensions, and content validation based on security requirements.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: passed, failed, or warning"
+      },
+      "passed_rules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation rules that passed"
+      },
+      "failed_rules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation rules that failed"
+      },
+      "security_status": {
+        "type": "string",
+        "description": "Security scan result: clean, suspicious, or malware"
+      },
+      "file_format_valid": {
+        "type": "boolean",
+        "description": "Whether file format validation passed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Permission Manager",
+    "tool_description": "Manages access control and permissions for files, handling user authentication, authorization levels, and permission inheritance.",
+    "parameters": {
+      "file_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the file for permission management"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "User requesting access or having permissions modified"
+      },
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Permission operation: grant, revoke, check, or list"
+      },
+      "permission_level": {
+        "type": "string",
+        "required": false,
+        "description": "Permission level: read, write, delete, or admin",
+        "default": "read"
+      },
+      "group_permissions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "List of group IDs to apply permissions to",
+        "default": []
+      }
+    },
+    "error_messages": [
+      "File not found: The specified file_id does not correspond to an existing file.",
+      "Invalid user: The user_id does not correspond to a valid user in the system.",
+      "Invalid operation: Operation must be one of grant, revoke, check, or list.",
+      "Invalid permission level: Permission level must be read, write, delete, or admin.",
+      "Insufficient privileges: Current user lacks authority to modify permissions for this file.",
+      "Group not found: One or more group IDs in group_permissions do not exist."
+    ],
+    "usage": "Provide file_id, user_id, and operation as required parameters. For grant/revoke operations, specify permission_level. Use group_permissions to apply permissions to multiple users simultaneously.",
+    "output_details": {
+      "operation_result": {
+        "type": "string",
+        "description": "Result of the permission operation: success, failed, or partial"
+      },
+      "current_permissions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current permission levels for the user"
+      },
+      "effective_permissions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Effective permissions including inherited group permissions"
+      },
+      "permission_source": {
+        "type": "string",
+        "description": "Source of permissions: direct, group, or inherited"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Version Comparer",
+    "tool_description": "Compares different versions of files to identify changes, differences, and evolution patterns between file iterations.",
+    "parameters": {
+      "version_id1": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the first version to compare"
+      },
+      "version_id2": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the second version to compare"
+      },
+      "comparison_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of comparison: content, metadata, or both",
+        "default": "both"
+      },
+      "detail_level": {
+        "type": "string",
+        "required": false,
+        "description": "Level of detail: summary, detailed, or comprehensive",
+        "default": "detailed"
+      }
+    },
+    "error_messages": [
+      "Version not found: One or both version IDs do not correspond to existing file versions.",
+      "Invalid comparison type: Comparison type must be content, metadata, or both.",
+      "Invalid detail level: Detail level must be summary, detailed, or comprehensive.",
+      "Comparison failed: Unable to perform comparison due to file access or format issues.",
+      "Identical versions: The specified version IDs refer to the same version."
+    ],
+    "usage": "Provide version_id1 and version_id2 for comparison. Optionally specify comparison_type to focus on content or metadata, and detail_level to control the depth of analysis returned.",
+    "output_details": {
+      "comparison_summary": {
+        "type": "string",
+        "description": "High-level summary of differences between versions"
+      },
+      "content_changes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of content-level changes identified"
+      },
+      "metadata_changes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of metadata changes between versions"
+      },
+      "similarity_score": {
+        "type": "number",
+        "description": "Numerical similarity score between 0 and 1"
+      },
+      "change_type": {
+        "type": "string",
+        "description": "Overall change classification: minor, major, or complete"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Scheduler",
+    "tool_description": "Schedules and manages automated backups for files based on policies, ensuring data preservation and recovery capabilities.",
+    "parameters": {
+      "file_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the file to schedule for backup"
+      },
+      "backup_frequency": {
+        "type": "string",
+        "required": true,
+        "description": "Backup frequency: hourly, daily, weekly, monthly, or custom"
+      },
+      "retention_period": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days to retain backups"
+      },
+      "backup_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of backup: full, incremental, or differential",
+        "default": "incremental"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Backup priority level: low, normal, or high",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "File not found: The specified file_id does not correspond to an existing file.",
+      "Invalid backup frequency: Backup frequency must be hourly, daily, weekly, monthly, or custom.",
+      "Invalid retention period: Retention period must be a positive integer representing days.",
+      "Invalid backup type: Backup type must be full, incremental, or differential.",
+      "Invalid priority level: Priority must be low, normal, or high.",
+      "Scheduling conflict: A backup schedule already exists for this file with conflicting parameters."
+    ],
+    "usage": "Provide file_id, backup_frequency, and retention_period as required parameters. Optionally specify backup_type and priority to customize the backup strategy. The tool creates a scheduled backup job with the specified parameters.",
+    "output_details": {
+      "backup_job_id": {
+        "type": "string",
+        "description": "Unique identifier for the created backup job"
+      },
+      "next_backup_time": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Scheduled time for the next backup execution"
+      },
+      "estimated_backup_size": {
+        "type": "integer",
+        "description": "Estimated size of backup in bytes"
+      },
+      "schedule_status": {
+        "type": "string",
+        "description": "Status of the backup schedule: active, pending, or paused"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "File Retriever",
+    "tool_description": "Retrieves files from storage with version control support, permission checking, and delivery optimization based on access patterns.",
+    "parameters": {
+      "file_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the file to retrieve"
+      },
+      "version": {
+        "type": "string",
+        "required": false,
+        "description": "Specific version to retrieve (defaults to latest)",
+        "default": "latest"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "User requesting the file retrieval"
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include file metadata in response",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "File not found: The specified file_id does not correspond to an existing file.",
+      "Version not found: The requested version does not exist for this file.",
+      "Access denied: User does not have permission to retrieve this file.",
+      "File unavailable: File is currently being processed or is temporarily unavailable.",
+      "Invalid user: The user_id does not correspond to a valid user in the system."
+    ],
+    "usage": "Provide file_id and user_id as required parameters. Optionally specify a version number to retrieve a specific version, or use 'latest' for the most recent. Set include_metadata to false for faster retrieval if metadata is not needed.",
+    "output_details": {
+      "retrieval_status": {
+        "type": "string",
+        "description": "Status of retrieval operation: success, partial, or failed"
+      },
+      "file_content_url": {
+        "type": "string",
+        "description": "URL or path to access the retrieved file content"
+      },
+      "content_type": {
+        "type": "string",
+        "description": "MIME type of the retrieved file"
+      },
+      "file_size": {
+        "type": "integer",
+        "description": "Size of the retrieved file in bytes"
+      },
+      "version_info": {
+        "type": "string",
+        "description": "Version information of the retrieved file"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Storage Monitor",
+    "tool_description": "Monitors storage system health, capacity, performance metrics, and provides insights for optimization and maintenance planning.",
+    "parameters": {
+      "storage_location": {
+        "type": "string",
+        "required": true,
+        "description": "Storage location or system identifier to monitor"
+      },
+      "monitoring_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Monitoring period in hours for historical data",
+        "default": 24
+      },
+      "include_performance": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include performance metrics",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Storage location not found: The specified storage location does not exist or is not accessible.",
+      "Invalid monitoring period: Monitoring period must be a positive integer representing hours.",
+      "Monitoring unavailable: Storage monitoring is temporarily unavailable for this location.",
+      "Insufficient permissions: User lacks permission to access monitoring data for this storage location."
+    ],
+    "usage": "Provide storage_location to monitor. Optionally specify monitoring_period for historical analysis and include_performance to get detailed performance metrics. The tool returns comprehensive storage health and usage information.",
+    "output_details": {
+      "total_capacity": {
+        "type": "integer",
+        "description": "Total storage capacity in bytes"
+      },
+      "used_space": {
+        "type": "integer",
+        "description": "Currently used storage space in bytes"
+      },
+      "available_space": {
+        "type": "integer",
+        "description": "Available storage space in bytes"
+      },
+      "utilization_percentage": {
+        "type": "number",
+        "description": "Storage utilization as a percentage"
+      },
+      "health_status": {
+        "type": "string",
+        "description": "Overall health status: healthy, warning, or critical"
+      },
+      "performance_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of performance metrics and values"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "System recommendations for optimization"
+      }
+    }
+  }
+  ```

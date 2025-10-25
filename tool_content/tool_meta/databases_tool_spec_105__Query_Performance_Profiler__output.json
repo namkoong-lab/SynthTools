@@ -1,0 +1,39 @@
+{
+  "Tool Call": {
+    "database_host": "db-prod-01.company.com",
+    "database_port": 5432,
+    "database_name": "sales_analytics",
+    "username": "db_analyst",
+    "password": "SecurePass123!",
+    "queries": [
+      "SELECT c.customer_id, c.name, SUM(o.total_amount) FROM customers c JOIN orders o ON c.customer_id = o.customer_id WHERE o.order_date >= '2024-01-01' GROUP BY c.customer_id, c.name ORDER BY SUM(o.total_amount) DESC LIMIT 100",
+      "SELECT p.product_name, AVG(oi.unit_price), COUNT(*) FROM products p JOIN order_items oi ON p.product_id = oi.product_id GROUP BY p.product_name HAVING COUNT(*) > 50",
+      "SELECT DATE_TRUNC('month', order_date) as month, COUNT(*), SUM(total_amount) FROM orders WHERE order_date BETWEEN '2023-01-01' AND '2024-12-31' GROUP BY DATE_TRUNC('month', order_date) ORDER BY month"
+    ],
+    "include_execution_plan": true,
+    "timeout_seconds": 120
+  },
+  "Return Data": {
+    "query_count": 3,
+    "execution_times": [
+      1250.3,
+      892.7,
+      2341.8
+    ],
+    "execution_plans": [
+      "Sort (cost=15623.45..15873.45 rows=100 width=68) -> HashAggregate (cost=12456.78..14206.78 rows=17500 width=68) -> Hash Join (cost=2341.67..8965.23 rows=185563 width=40) -> Seq Scan on customers c (cost=0.00..1234.56 rows=45678 width=36) -> Hash (cost=1567.89..1567.89 rows=61902 width=16) -> Index Scan using idx_orders_date on orders o (cost=0.43..1567.89 rows=61902 width=16)",
+      "HashAggregate (cost=8967.34..9234.67 rows=267 width=84) -> Hash Join (cost=3456.78..7234.56 rows=115570 width=52) -> Seq Scan on products p (cost=0.00..567.89 rows=12345 width=48) -> Hash (cost=2345.67..2345.67 rows=88890 width=12) -> Seq Scan on order_items oi (cost=0.00..2345.67 rows=88890 width=12)",
+      "GroupAggregate (cost=4567.89..5234.67 rows=24 width=24) -> Sort (cost=4567.89..4678.90 rows=44405 width=16) -> Index Scan using idx_orders_date_range on orders (cost=0.43..1876.54 rows=44405 width=16)"
+    ],
+    "scan_operations": [
+      "Sequential scan on customers table (45,678 rows), Index scan on orders using date index",
+      "Sequential scan on products table (12,345 rows), Sequential scan on order_items table (88,890 rows)",
+      "Index scan on orders using date range index (44,405 rows)"
+    ],
+    "bottlenecks": [
+      "Sequential scan on customers table - missing index on customer_id join, Sort operation on large result set",
+      "Sequential scan on order_items table - consider index on product_id, HashAggregate on large dataset",
+      "Date truncation function prevents index optimization - consider pre-computed monthly aggregates"
+    ]
+  }
+}

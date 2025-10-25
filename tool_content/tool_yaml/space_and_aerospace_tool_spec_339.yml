@@ -1,0 +1,802 @@
+field_name: space_and_aerospace
+subfield: Launch Vehicle Development
+task: Vehicle design and structural analysis
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard**. Launch vehicle design and structural analysis involves complex multi-physics simulations, safety-critical calculations with high precision requirements, extensive interdisciplinary coordination between propulsion, structures, aerodynamics, and thermal systems, and substantial risk from potential failures that could result in mission loss or safety hazards.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'll target **17 tools** to cover the comprehensive workflow from initial design through detailed structural analysis and validation.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Vehicle Configuration Designer** - Consumes: design requirements → Produces: basic geometry and mass estimates
+  2. **Material Property Database** - Consumes: material queries → Produces: material properties and specifications
+  3. **Load Case Generator** - Consumes: flight profile, vehicle config → Produces: structural load conditions
+  4. **Structural Mesh Generator** - Consumes: geometry, analysis requirements → Produces: finite element mesh
+  5. **Static Stress Analyzer** - Consumes: mesh, loads, materials → Produces: stress/strain distributions
+  6. **Dynamic Response Analyzer** - Consumes: mesh, dynamic loads → Produces: frequency/vibration analysis
+  7. **Buckling Stability Checker** - Consumes: geometry, loads → Produces: buckling factors and modes
+  8. **Fatigue Life Estimator** - Consumes: stress history, materials → Produces: fatigue life predictions
+  9. **Safety Factor Calculator** - Consumes: analysis results, requirements → Produces: margin assessments
+  10. **Mass Property Calculator** - Consumes: geometry, materials → Produces: center of gravity, moments of inertia
+  11. **Aerodynamic Load Estimator** - Consumes: flight conditions, geometry → Produces: pressure distributions
+  12. **Thermal Load Generator** - Consumes: flight profile, geometry → Produces: thermal stress conditions
+  13. **Joint Connection Analyzer** - Consumes: connection details, loads → Produces: joint stress analysis
+  14. **Optimization Parameter Scanner** - Consumes: design variables, constraints → Produces: optimized configurations
+  15. **Structural Report Generator** - Consumes: all analysis results → Produces: comprehensive design reports
+  16. **Design Validation Checker** - Consumes: analysis results, requirements → Produces: compliance verification
+  17. **CAD Model Exporter** - Consumes: final design → Produces: manufacturing-ready models
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic structural check: Vehicle Configuration Designer → Material Property Database → Static Stress Analyzer → Safety Factor Calculator
+  - Quick mass analysis: Vehicle Configuration Designer → Material Property Calculator → Mass Property Calculator
+
+  **Medium Plans:**
+  - Standard structural analysis: Vehicle Configuration Designer → Load Case Generator → Structural Mesh Generator → Static Stress Analyzer → Dynamic Response Analyzer → Safety Factor Calculator → Structural Report Generator
+  - Design optimization cycle: Vehicle Configuration Designer → Static Stress Analyzer → Optimization Parameter Scanner → Safety Factor Calculator → Design Validation Checker
+
+  **Complex Plans:**
+  - Full vehicle certification: Vehicle Configuration Designer → Material Property Database → Load Case Generator → Aerodynamic Load Estimator → Thermal Load Generator → Structural Mesh Generator → Static Stress Analyzer → Dynamic Response Analyzer → Buckling Stability Checker → Fatigue Life Estimator → Joint Connection Analyzer → Safety Factor Calculator → Design Validation Checker → Structural Report Generator → CAD Model Exporter
+  - Comprehensive design iteration: Vehicle Configuration Designer → Load Case Generator → Structural Mesh Generator → Static Stress Analyzer → Buckling Stability Checker → Optimization Parameter Scanner → Mass Property Calculator → Safety Factor Calculator → Design Validation Checker → Structural Report Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Vehicle Configuration Designer",
+    "tool_description": "Generates initial launch vehicle configuration including stage definitions, basic geometry, and preliminary mass estimates based on mission requirements and design constraints.",
+    "parameters": {
+      "payload_mass": {
+        "type": "number",
+        "required": true,
+        "description": "Target payload mass in kilograms"
+      },
+      "target_orbit": {
+        "type": "string",
+        "required": true,
+        "description": "Destination orbit (LEO, GTO, GEO, or custom altitude in km)"
+      },
+      "vehicle_type": {
+        "type": "string",
+        "required": true,
+        "description": "Launch vehicle type: single-stage, two-stage, three-stage"
+      },
+      "propellant_type": {
+        "type": "string",
+        "required": true,
+        "description": "Primary propellant: RP1-LOX, LH2-LOX, solid, hybrid"
+      },
+      "diameter_constraint": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum vehicle diameter in meters",
+        "default": "None"
+      },
+      "height_constraint": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum vehicle height in meters",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid payload mass: Must be a positive number greater than 0 kg",
+      "Unsupported orbit: Use LEO, GTO, GEO, or specify altitude as number followed by 'km'",
+      "Invalid vehicle type: Must be single-stage, two-stage, or three-stage",
+      "Unsupported propellant: Use RP1-LOX, LH2-LOX, solid, or hybrid",
+      "Invalid constraint: Diameter and height constraints must be positive numbers"
+    ],
+    "usage": "Specify payload_mass, target_orbit, vehicle_type, and propellant_type. Optionally add diameter_constraint and height_constraint. Tool returns preliminary vehicle configuration with mass breakdown and dimensions.",
+    "output_details": {
+      "vehicle_id": {
+        "type": "string",
+        "description": "Unique identifier for the vehicle configuration"
+      },
+      "total_mass": {
+        "type": "number",
+        "description": "Total launch mass in kilograms"
+      },
+      "stage_count": {
+        "type": "integer",
+        "description": "Number of stages in the vehicle"
+      },
+      "overall_length": {
+        "type": "number",
+        "description": "Total vehicle length in meters"
+      },
+      "max_diameter": {
+        "type": "number",
+        "description": "Maximum vehicle diameter in meters"
+      },
+      "stage_masses": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Mass of each stage in kilograms"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Material Property Database",
+    "tool_description": "Retrieves material properties and specifications for aerospace-grade materials used in launch vehicle construction, including mechanical, thermal, and chemical properties.",
+    "parameters": {
+      "material_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the material (e.g., aluminum-2219, titanium-6AL4V, carbon-fiber-composite)"
+      },
+      "temperature": {
+        "type": "number",
+        "required": false,
+        "description": "Operating temperature in Celsius for temperature-dependent properties",
+        "default": 20
+      },
+      "property_type": {
+        "type": "string",
+        "required": false,
+        "description": "Specific property category: mechanical, thermal, chemical, or all",
+        "default": "all"
+      }
+    },
+    "error_messages": [
+      "Material not found: Specified material is not in the aerospace materials database",
+      "Invalid temperature range: Temperature must be between -273°C and 2000°C",
+      "Invalid property type: Use mechanical, thermal, chemical, or all"
+    ],
+    "usage": "Provide material_name and optionally specify temperature and property_type. Returns comprehensive material properties for structural analysis use.",
+    "output_details": {
+      "material_id": {
+        "type": "string",
+        "description": "Standard material designation"
+      },
+      "density": {
+        "type": "number",
+        "description": "Material density in kg/m³"
+      },
+      "elastic_modulus": {
+        "type": "number",
+        "description": "Young's modulus in GPa"
+      },
+      "yield_strength": {
+        "type": "number",
+        "description": "Yield strength in MPa"
+      },
+      "ultimate_strength": {
+        "type": "number",
+        "description": "Ultimate tensile strength in MPa"
+      },
+      "poisson_ratio": {
+        "type": "number",
+        "description": "Poisson's ratio (dimensionless)"
+      },
+      "thermal_expansion": {
+        "type": "number",
+        "description": "Coefficient of thermal expansion in /°C"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Load Case Generator",
+    "tool_description": "Generates comprehensive structural load cases for launch vehicle analysis including static loads, dynamic loads, and combined loading scenarios based on flight profile and operational requirements.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Vehicle configuration identifier from Vehicle Configuration Designer"
+      },
+      "flight_profile": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Flight phases: liftoff, max-q, staging, payload-deployment"
+      },
+      "max_acceleration": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum longitudinal acceleration in g's"
+      },
+      "max_dynamic_pressure": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum dynamic pressure in kPa"
+      },
+      "wind_speed": {
+        "type": "number",
+        "required": false,
+        "description": "Design wind speed in m/s",
+        "default": 40
+      },
+      "safety_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Load amplification safety factor",
+        "default": 1.4
+      },
+      "include_thermal": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include thermal loading effects",
+        "default": true
+      },
+      "include_acoustic": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include acoustic loading from engines",
+        "default": true
+      },
+      "ground_handling": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include ground handling and transport loads",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle ID: Specified vehicle configuration not found",
+      "Invalid flight profile: Each phase must be liftoff, max-q, staging, or payload-deployment",
+      "Invalid acceleration: Maximum acceleration must be positive and typically 3-12 g's",
+      "Invalid dynamic pressure: Must be positive, typically 20-100 kPa for launch vehicles",
+      "Invalid wind speed: Must be positive, typically 10-60 m/s",
+      "Invalid safety factor: Must be greater than 1.0, typically 1.25-2.0"
+    ],
+    "usage": "Provide vehicle_id, flight_profile array, max_acceleration, and max_dynamic_pressure. Optionally specify wind_speed, safety_factor, and boolean flags for additional load types. Returns complete load case definitions for structural analysis.",
+    "output_details": {
+      "load_case_id": {
+        "type": "string",
+        "description": "Unique identifier for the load case set"
+      },
+      "critical_cases": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of most critical load case names"
+      },
+      "axial_loads": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Axial force values in kN for each critical case"
+      },
+      "lateral_loads": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Lateral force values in kN for each critical case"
+      },
+      "bending_moments": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Bending moment values in kN-m for each critical case"
+      },
+      "pressure_loads": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Pressure differential values in kPa"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Structural Mesh Generator",
+    "tool_description": "Creates finite element meshes for launch vehicle structural components with appropriate element types, sizing, and boundary conditions for accurate stress analysis.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Vehicle configuration identifier"
+      },
+      "mesh_density": {
+        "type": "string",
+        "required": true,
+        "description": "Mesh fineness: coarse, medium, fine, very-fine"
+      },
+      "element_type": {
+        "type": "string",
+        "required": true,
+        "description": "Primary element type: shell, solid, beam, mixed"
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": true,
+        "description": "Analysis type: static, dynamic, buckling, thermal"
+      },
+      "refinement_regions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Regions requiring mesh refinement: joints, cutouts, load-points, stage-interfaces",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle ID: Vehicle configuration not found",
+      "Invalid mesh density: Use coarse, medium, fine, or very-fine",
+      "Invalid element type: Use shell, solid, beam, or mixed",
+      "Invalid analysis type: Use static, dynamic, buckling, or thermal",
+      "Invalid refinement region: Use joints, cutouts, load-points, or stage-interfaces"
+    ],
+    "usage": "Specify vehicle_id, mesh_density, element_type, and analysis_type. Optionally add refinement_regions array for local mesh refinement. Returns mesh statistics and quality metrics.",
+    "output_details": {
+      "mesh_id": {
+        "type": "string",
+        "description": "Unique mesh identifier"
+      },
+      "total_nodes": {
+        "type": "integer",
+        "description": "Total number of nodes in the mesh"
+      },
+      "total_elements": {
+        "type": "integer",
+        "description": "Total number of elements in the mesh"
+      },
+      "element_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Types of elements used in the mesh"
+      },
+      "mesh_quality": {
+        "type": "number",
+        "description": "Overall mesh quality score (0-1)"
+      },
+      "memory_estimate": {
+        "type": "number",
+        "description": "Estimated memory requirement in GB"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Static Stress Analyzer",
+    "tool_description": "Performs static finite element analysis to compute stress, strain, and displacement distributions in launch vehicle structures under applied loads.",
+    "parameters": {
+      "mesh_id": {
+        "type": "string",
+        "required": true,
+        "description": "Finite element mesh identifier"
+      },
+      "load_case_id": {
+        "type": "string",
+        "required": true,
+        "description": "Load case identifier from Load Case Generator"
+      },
+      "material_assignments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Material assignments for each structural component"
+      },
+      "solver_type": {
+        "type": "string",
+        "required": false,
+        "description": "Solver algorithm: direct, iterative, or auto",
+        "default": "auto"
+      },
+      "convergence_tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Solution convergence tolerance",
+        "default": 1e-6
+      }
+    },
+    "error_messages": [
+      "Invalid mesh ID: Specified mesh not found or corrupted",
+      "Invalid load case ID: Load case not found or incompatible with mesh",
+      "Material assignment mismatch: Number of materials doesn't match mesh regions",
+      "Invalid solver type: Use direct, iterative, or auto",
+      "Convergence tolerance out of range: Must be between 1e-3 and 1e-8",
+      "Singular stiffness matrix: Check boundary conditions and constraints"
+    ],
+    "usage": "Provide mesh_id, load_case_id, and material_assignments array. Optionally specify solver_type and convergence_tolerance. Returns stress analysis results including maximum values and critical locations.",
+    "output_details": {
+      "analysis_id": {
+        "type": "string",
+        "description": "Unique analysis result identifier"
+      },
+      "max_von_mises": {
+        "type": "number",
+        "description": "Maximum von Mises stress in MPa"
+      },
+      "max_displacement": {
+        "type": "number",
+        "description": "Maximum displacement magnitude in mm"
+      },
+      "critical_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Locations of maximum stress concentrations"
+      },
+      "solution_time": {
+        "type": "number",
+        "description": "Analysis computation time in seconds"
+      },
+      "converged": {
+        "type": "boolean",
+        "description": "Whether solution achieved convergence"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dynamic Response Analyzer",
+    "tool_description": "Performs modal analysis and dynamic response calculations to determine natural frequencies, mode shapes, and structural response to time-varying loads.",
+    "parameters": {
+      "mesh_id": {
+        "type": "string",
+        "required": true,
+        "description": "Finite element mesh identifier"
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": true,
+        "description": "Dynamic analysis type: modal, harmonic, transient, random"
+      },
+      "frequency_range": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Frequency range [min_freq, max_freq] in Hz"
+      },
+      "num_modes": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of modes to extract (1-100)",
+        "default": 20
+      },
+      "damping_ratio": {
+        "type": "number",
+        "required": false,
+        "description": "Structural damping ratio (0.001-0.1)",
+        "default": 0.02
+      }
+    },
+    "error_messages": [
+      "Invalid mesh ID: Mesh not found or not suitable for dynamic analysis",
+      "Invalid analysis type: Use modal, harmonic, transient, or random",
+      "Invalid frequency range: Must provide [min, max] with min < max and both > 0",
+      "Invalid number of modes: Must be integer between 1 and 100",
+      "Invalid damping ratio: Must be between 0.001 and 0.1"
+    ],
+    "usage": "Specify mesh_id, analysis_type, and frequency_range. Optionally set num_modes and damping_ratio. Returns dynamic characteristics including natural frequencies and participation factors.",
+    "output_details": {
+      "dynamic_id": {
+        "type": "string",
+        "description": "Dynamic analysis result identifier"
+      },
+      "natural_frequencies": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Natural frequencies in Hz"
+      },
+      "modal_masses": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Modal effective masses as percentage"
+      },
+      "critical_frequency": {
+        "type": "number",
+        "description": "Most critical frequency for structural response in Hz"
+      },
+      "resonance_risk": {
+        "type": "string",
+        "description": "Assessment of resonance risk: low, medium, high"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Buckling Stability Checker",
+    "tool_description": "Evaluates structural buckling stability under compressive loads, determining critical buckling loads and mode shapes for thin-walled launch vehicle structures.",
+    "parameters": {
+      "mesh_id": {
+        "type": "string",
+        "required": true,
+        "description": "Finite element mesh identifier"
+      },
+      "load_case_id": {
+        "type": "string",
+        "required": true,
+        "description": "Compressive load case identifier"
+      },
+      "buckling_modes": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of buckling modes to calculate (1-50)",
+        "default": 10
+      },
+      "imperfection_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Geometric imperfection factor (0.1-1.0)",
+        "default": 0.5
+      }
+    },
+    "error_messages": [
+      "Invalid mesh ID: Mesh not found or not suitable for buckling analysis",
+      "Invalid load case ID: Load case must contain compressive loads",
+      "Invalid buckling modes: Must be integer between 1 and 50",
+      "Invalid imperfection factor: Must be between 0.1 and 1.0",
+      "No compressive loads detected: Buckling analysis requires compression"
+    ],
+    "usage": "Provide mesh_id and load_case_id with compressive loads. Optionally specify buckling_modes and imperfection_factor. Returns critical buckling loads and safety assessments.",
+    "output_details": {
+      "buckling_id": {
+        "type": "string",
+        "description": "Buckling analysis identifier"
+      },
+      "critical_load_factor": {
+        "type": "number",
+        "description": "Critical buckling load factor"
+      },
+      "buckling_mode": {
+        "type": "string",
+        "description": "Description of critical buckling mode shape"
+      },
+      "stability_margin": {
+        "type": "number",
+        "description": "Buckling safety margin"
+      },
+      "buckling_risk": {
+        "type": "string",
+        "description": "Risk assessment: low, medium, high, critical"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fatigue Life Estimator",
+    "tool_description": "Calculates fatigue life and damage accumulation for launch vehicle structures subjected to cyclic loading during multiple mission cycles.",
+    "parameters": {
+      "analysis_id": {
+        "type": "string",
+        "required": true,
+        "description": "Static stress analysis identifier"
+      },
+      "loading_spectrum": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Stress amplitude spectrum in MPa"
+      },
+      "cycle_counts": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Number of cycles at each stress level"
+      },
+      "material_curve": {
+        "type": "string",
+        "required": true,
+        "description": "S-N curve identifier for material fatigue properties"
+      },
+      "stress_concentration": {
+        "type": "number",
+        "required": false,
+        "description": "Stress concentration factor (1.0-5.0)",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Invalid analysis ID: Static stress analysis results not found",
+      "Mismatched spectrum data: Loading spectrum and cycle counts must have same length",
+      "Invalid stress values: All stress amplitudes must be positive",
+      "Invalid cycle counts: All cycle counts must be positive integers",
+      "Unknown material curve: Specified S-N curve not in database",
+      "Invalid stress concentration factor: Must be between 1.0 and 5.0"
+    ],
+    "usage": "Provide analysis_id, loading_spectrum, cycle_counts, and material_curve. Optionally specify stress_concentration. Returns fatigue life predictions and critical locations.",
+    "output_details": {
+      "fatigue_id": {
+        "type": "string",
+        "description": "Fatigue analysis identifier"
+      },
+      "cycles_to_failure": {
+        "type": "number",
+        "description": "Predicted cycles to fatigue failure"
+      },
+      "damage_ratio": {
+        "type": "number",
+        "description": "Cumulative damage ratio (0-1)"
+      },
+      "critical_location": {
+        "type": "string",
+        "description": "Location of highest fatigue damage"
+      },
+      "fatigue_safety": {
+        "type": "number",
+        "description": "Fatigue safety factor"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Safety Factor Calculator",
+    "tool_description": "Calculates structural safety factors and margins of safety based on analysis results and design requirements to ensure compliance with aerospace standards.",
+    "parameters": {
+      "analysis_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of analysis result IDs to evaluate"
+      },
+      "design_requirements": {
+        "type": "string",
+        "required": true,
+        "description": "Design standard: NASA, ESA, commercial, military"
+      },
+      "load_factor": {
+        "type": "number",
+        "required": true,
+        "description": "Ultimate load factor (1.2-2.0)"
+      },
+      "yield_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Yield load factor (0.8-1.25)",
+        "default": 1.0
+      },
+      "environmental_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Environmental degradation factor (0.8-1.0)",
+        "default": 0.9
+      },
+      "manufacturing_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Manufacturing uncertainty factor (0.85-1.0)",
+        "default": 0.95
+      }
+    },
+    "error_messages": [
+      "Invalid analysis results: One or more analysis IDs not found",
+      "Invalid design standard: Use NASA, ESA, commercial, or military",
+      "Invalid load factor: Ultimate load factor must be between 1.2 and 2.0",
+      "Invalid yield factor: Must be between 0.8 and 1.25",
+      "Invalid environmental factor: Must be between 0.8 and 1.0",
+      "Invalid manufacturing factor: Must be between 0.85 and 1.0"
+    ],
+    "usage": "Provide analysis_results array, design_requirements, and load_factor. Optionally specify yield_factor, environmental_factor, and manufacturing_factor. Returns safety margins and compliance assessment.",
+    "output_details": {
+      "safety_id": {
+        "type": "string",
+        "description": "Safety assessment identifier"
+      },
+      "ultimate_margin": {
+        "type": "number",
+        "description": "Ultimate load margin of safety"
+      },
+      "yield_margin": {
+        "type": "number",
+        "description": "Yield load margin of safety"
+      },
+      "critical_components": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Components with lowest safety margins"
+      },
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance: pass, conditional, fail"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Design improvement recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Mass Property Calculator",
+    "tool_description": "Calculates detailed mass properties including center of gravity, moments of inertia, and mass distribution for launch vehicle configuration and balance analysis.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Vehicle configuration identifier"
+      },
+      "fuel_loading": {
+        "type": "number",
+        "required": true,
+        "description": "Fuel loading percentage (0-100)"
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle ID: Vehicle configuration not found",
+      "Invalid fuel loading: Must be between 0 and 100 percent"
+    ],
+    "usage": "Provide vehicle_id and fuel_loading percentage. Returns comprehensive mass properties for the specified loading condition.",
+    "output_details": {
+      "mass_id": {
+        "type": "string",
+        "description": "Mass properties calculation identifier"
+      },
+      "total_mass": {
+        "type": "number",
+        "description": "Total vehicle mass in kg"
+      },
+      "cg_x": {
+        "type": "number",
+        "description": "Center of gravity X-coordinate in meters"
+      },
+      "cg_y": {
+        "type": "number",
+        "description": "Center of gravity Y-coordinate in meters"
+      },
+      "cg_z": {
+        "type": "number",
+        "description": "Center of gravity Z-coordinate in meters"
+      },
+      "moment_inertia": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Principal moments of inertia in kg-m²"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Aerodynamic Load Estimator",
+    "tool_description": "Estimates aerodynamic pressure distributions and loads on launch vehicle external surfaces during atmospheric flight phases for structural loading analysis.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Vehicle configuration identifier"
+      },
+      "flight_condition": {
+        "type": "string",
+        "required": true,
+        "description": "Flight condition: liftoff, transonic, supersonic, max-q"
+      },
+      "mach_number": {
+        "type": "number",
+        "required": true,
+        "description": "Mach number (0.1-5.0)"
+      },
+      "altitude": {
+        "type": "number",
+        "required": true,
+        "description": "Altitude in kilometers (0-100)"
+      },
+      "angle_of_attack": {
+        "type": "number",
+        "required": false,
+        "description": "Vehicle angle of attack in degrees",
+        "default": 0
+      },
+      "wind_angle": {
+        "type": "number",
+        "required": false,
+        "description": "Wind angle relative to flight path in degrees",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle ID: Vehicle configuration not found",
+      "Invalid flight condition: Use liftoff, transonic, supersonic, or max-q",
+      "Invalid Mach number: Must be between 0.1 and 5.0",
+      "Invalid altitude: Must be between 0

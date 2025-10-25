@@ -1,0 +1,776 @@
+field_name: student_services_and_campus_life
+subfield: academic_advising_and_planning
+task: degree_requirement_tracking_and_validation
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves medium complexity due to the need to track multiple interconnected academic requirements (prerequisites, co-requisites, credit hours, GPA thresholds), handle diverse degree program structures, validate course sequences, and manage exceptions or substitutions. The coordination between different academic policies and real-time student progress tracking adds moderate complexity.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover the various sub-workflows: course validation, prerequisite checking, credit tracking, GPA calculation, requirement mapping, progress assessment, and exception handling.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Course Catalog Validator** - Consumes: course codes, term → Produces: course details, validity status
+  2. **Prerequisite Checker** - Consumes: course codes, transcript data → Produces: prerequisite compliance
+  3. **Credit Hour Calculator** - Consumes: completed courses, grades → Produces: credit totals, GPA metrics
+  4. **Degree Program Mapper** - Consumes: program code, catalog year → Produces: requirement structure
+  5. **Course Sequence Planner** - Consumes: degree requirements, completed courses → Produces: remaining course plan
+  6. **GPA Threshold Validator** - Consumes: grades, requirements → Produces: GPA compliance status
+  7. **Transfer Credit Evaluator** - Consumes: external transcripts, equivalency rules → Produces: applicable credits
+  8. **Graduation Requirement Auditor** - Consumes: all academic data → Produces: comprehensive graduation status
+  9. **Course Substitution Processor** - Consumes: substitution requests, approval data → Produces: approved alternatives
+  10. **Academic Standing Calculator** - Consumes: GPA, credit progress → Produces: standing status
+  11. **Requirement Exception Handler** - Consumes: exception requests, policies → Produces: approved exceptions
+  12. **Progress Timeline Generator** - Consumes: current status, planned courses → Produces: graduation timeline
+
+  **STEP 4 — List multi-tool plans**
+
+  **Simple Plans:**
+  - Basic Progress Check: Course Catalog Validator → Credit Hour Calculator → Academic Standing Calculator
+  - Quick Prerequisite Validation: Course Catalog Validator → Prerequisite Checker
+
+  **Medium Plans:**
+  - Degree Audit: Degree Program Mapper → Credit Hour Calculator → GPA Threshold Validator → Graduation Requirement Auditor
+  - Transfer Student Evaluation: Transfer Credit Evaluator → Degree Program Mapper → Course Sequence Planner
+
+  **Complex Plans:**
+  - Comprehensive Graduation Planning: Degree Program Mapper → Credit Hour Calculator → Transfer Credit Evaluator → Course Substitution Processor → Prerequisite Checker → Course Sequence Planner → Progress Timeline Generator
+  - Full Academic Review: All tools integrated for complete student academic status assessment and planning
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Course Catalog Validator",
+    "tool_description": "Validates course codes against the official course catalog and retrieves detailed course information including credits, prerequisites, and availability.",
+    "parameters": {
+      "course_codes": {
+        "type": "array",
+        "required": true,
+        "description": "Array of course codes to validate (e.g., ['CS101', 'MATH201'])",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "catalog_year": {
+        "type": "string",
+        "required": true,
+        "description": "Academic catalog year in format YYYY-YYYY (e.g., '2023-2024')"
+      },
+      "term": {
+        "type": "string",
+        "required": false,
+        "description": "Specific term for availability check (Fall, Spring, Summer)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid course code format: Course codes must follow standard format (e.g., CS101, MATH201).",
+      "Course not found: One or more course codes do not exist in the specified catalog year.",
+      "Invalid catalog year: Catalog year must be in YYYY-YYYY format and represent a valid academic year.",
+      "Invalid term: Term must be one of [Fall, Spring, Summer] or left unspecified."
+    ],
+    "usage": "Provide an array of course codes and catalog year to validate courses. Optionally specify a term to check course availability for that specific term.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: 'all_valid', 'partially_valid', or 'invalid'"
+      },
+      "valid_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of course codes that were successfully validated"
+      },
+      "invalid_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of course codes that failed validation"
+      },
+      "course_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of detailed course information for valid courses"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Prerequisite Checker",
+    "tool_description": "Verifies if a student has completed all prerequisite and co-requisite courses required for enrollment in specified courses.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "target_courses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of course codes to check prerequisites for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "completed_courses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of previously completed course codes",
+        "items": {"type": "string"}
+      },
+      "completed_grades": {
+        "type": "array",
+        "required": true,
+        "description": "Array of grades for completed courses (A, B, C, D, F)",
+        "items": {"type": "string"}
+      },
+      "enrollment_term": {
+        "type": "string",
+        "required": true,
+        "description": "Term for intended enrollment (Fall YYYY, Spring YYYY, Summer YYYY)"
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: completed_courses and completed_grades arrays must have the same length.",
+      "Invalid grade format: Grades must be one of [A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F].",
+      "Student not found: The provided student_id does not exist in the system.",
+      "Invalid enrollment term: Term must be in format 'Fall YYYY', 'Spring YYYY', or 'Summer YYYY'.",
+      "Course prerequisite data unavailable: Unable to retrieve prerequisite information for one or more target courses."
+    ],
+    "usage": "Provide student_id, target courses for enrollment, completed courses with grades, and intended enrollment term. The tool will check if all prerequisites are satisfied.",
+    "output_details": {
+      "overall_eligibility": {
+        "type": "boolean",
+        "description": "Whether the student is eligible for all requested courses"
+      },
+      "eligible_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of courses the student is eligible to enroll in"
+      },
+      "ineligible_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of courses the student cannot enroll in due to unmet prerequisites"
+      },
+      "missing_prerequisites": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of prerequisite courses that need to be completed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Credit Hour Calculator",
+    "tool_description": "Calculates total credit hours earned, GPA, and credit distribution across different course categories for degree planning.",
+    "parameters": {
+      "completed_courses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of completed course codes",
+        "items": {"type": "string"}
+      },
+      "course_credits": {
+        "type": "array",
+        "required": true,
+        "description": "Array of credit hours for each completed course",
+        "items": {"type": "number"}
+      },
+      "course_grades": {
+        "type": "array",
+        "required": true,
+        "description": "Array of letter grades for each completed course",
+        "items": {"type": "string"}
+      },
+      "grade_scale": {
+        "type": "string",
+        "required": false,
+        "description": "Grading scale to use: '4.0', '4.33', or '5.0'",
+        "default": "4.0"
+      },
+      "include_transfer": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include transfer credits in calculations",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: completed_courses, course_credits, and course_grades must have the same length.",
+      "Invalid credit value: Credit hours must be positive numbers, typically between 0.5 and 6.0.",
+      "Invalid grade: Grades must be valid letter grades (A, B, C, D, F with optional +/-) or P/NP.",
+      "Invalid grade scale: Grade scale must be one of ['4.0', '4.33', '5.0'].",
+      "Insufficient data: At least one completed course is required for calculations."
+    ],
+    "usage": "Provide arrays of completed courses, their credit hours, and grades. Optionally specify grade scale and whether to include transfer credits.",
+    "output_details": {
+      "total_credits_earned": {
+        "type": "number",
+        "description": "Total credit hours successfully completed"
+      },
+      "total_credits_attempted": {
+        "type": "number",
+        "description": "Total credit hours attempted (including failed courses)"
+      },
+      "cumulative_gpa": {
+        "type": "number",
+        "description": "Overall grade point average"
+      },
+      "credit_distribution": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Breakdown of credits by category (core, elective, major, etc.)"
+      },
+      "quality_points": {
+        "type": "number",
+        "description": "Total quality points earned"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Degree Program Mapper",
+    "tool_description": "Retrieves and maps all requirements for a specific degree program including core courses, electives, credit minimums, and special requirements.",
+    "parameters": {
+      "program_code": {
+        "type": "string",
+        "required": true,
+        "description": "Official degree program code (e.g., 'BSCS', 'BAENGL', 'MSEE')"
+      },
+      "catalog_year": {
+        "type": "string",
+        "required": true,
+        "description": "Academic catalog year in YYYY-YYYY format"
+      },
+      "concentration": {
+        "type": "string",
+        "required": false,
+        "description": "Specific concentration or track within the program",
+        "default": "None"
+      },
+      "minor_programs": {
+        "type": "array",
+        "required": false,
+        "description": "Array of minor program codes if applicable",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Program not found: The specified program code does not exist in the catalog year.",
+      "Invalid catalog year: Catalog year must be in YYYY-YYYY format and represent a valid academic year.",
+      "Concentration not available: The specified concentration is not offered for this program.",
+      "Minor conflict: One or more specified minors conflict with the major program requirements.",
+      "Catalog data unavailable: Unable to retrieve program requirements for the specified catalog year."
+    ],
+    "usage": "Provide the program code and catalog year to retrieve degree requirements. Optionally specify concentration and minor programs for comprehensive mapping.",
+    "output_details": {
+      "program_title": {
+        "type": "string",
+        "description": "Full name of the degree program"
+      },
+      "total_credits_required": {
+        "type": "integer",
+        "description": "Total credit hours required for graduation"
+      },
+      "core_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of required core course codes"
+      },
+      "elective_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Categories of elective requirements with credit minimums"
+      },
+      "special_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Non-course requirements (internships, capstone, etc.)"
+      },
+      "minimum_gpa": {
+        "type": "number",
+        "description": "Minimum GPA required for graduation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Course Sequence Planner",
+    "tool_description": "Generates an optimal course sequence plan for remaining degree requirements based on prerequisites, course availability, and student preferences.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "remaining_requirements": {
+        "type": "array",
+        "required": true,
+        "description": "Array of course codes or requirement categories still needed",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "completed_courses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of already completed course codes",
+        "items": {"type": "string"}
+      },
+      "max_credits_per_term": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum credit hours per term (typically 12-18)",
+        "default": 15
+      },
+      "preferred_terms": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred terms for enrollment (Fall, Spring, Summer)",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "target_graduation": {
+        "type": "string",
+        "required": false,
+        "description": "Target graduation term in format 'Fall YYYY' or 'Spring YYYY'",
+        "default": "None"
+      },
+      "course_priorities": {
+        "type": "array",
+        "required": false,
+        "description": "Array of high-priority course codes to schedule early",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid credit limit: max_credits_per_term must be between 6 and 24 credits.",
+      "Invalid term format: preferred_terms must contain only 'Fall', 'Spring', or 'Summer'.",
+      "Invalid graduation date: target_graduation must be in format 'Fall YYYY' or 'Spring YYYY'.",
+      "Prerequisite conflict: Some remaining requirements cannot be completed due to missing prerequisites.",
+      "Impossible timeline: Cannot complete all requirements by target graduation date with given constraints.",
+      "Course availability conflict: Some required courses are not offered in preferred terms."
+    ],
+    "usage": "Provide student ID, remaining requirements, completed courses, and optional planning constraints. The tool generates a term-by-term course sequence plan.",
+    "output_details": {
+      "feasibility_status": {
+        "type": "string",
+        "description": "Whether the plan is 'feasible', 'challenging', or 'impossible'"
+      },
+      "planned_graduation": {
+        "type": "string",
+        "description": "Projected graduation term based on the generated plan"
+      },
+      "term_sequences": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of term-by-term course schedules"
+      },
+      "critical_path_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Courses that must be taken in specific terms due to prerequisites"
+      },
+      "alternative_options": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative course options or scheduling adjustments"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "GPA Threshold Validator",
+    "tool_description": "Validates whether a student's GPA meets various academic thresholds for graduation, program continuation, or special requirements.",
+    "parameters": {
+      "current_gpa": {
+        "type": "number",
+        "required": true,
+        "description": "Student's current cumulative GPA"
+      },
+      "program_requirements": {
+        "type": "array",
+        "required": true,
+        "description": "Array of GPA requirements to check against",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "major_gpa": {
+        "type": "number",
+        "required": false,
+        "description": "GPA calculated from major-specific courses only",
+        "default": "None"
+      },
+      "credits_completed": {
+        "type": "integer",
+        "required": true,
+        "description": "Total credit hours completed by the student"
+      }
+    },
+    "error_messages": [
+      "Invalid GPA value: GPA values must be between 0.0 and the maximum for the grading scale (typically 4.0).",
+      "Invalid credit count: credits_completed must be a non-negative integer.",
+      "Unrecognized requirement: One or more program requirements are not recognized by the system.",
+      "Insufficient data: Cannot validate GPA requirements without complete academic history."
+    ],
+    "usage": "Provide current GPA, program-specific requirements, and credit hours. Optionally include major GPA for programs with separate major GPA requirements.",
+    "output_details": {
+      "overall_status": {
+        "type": "string",
+        "description": "Overall GPA compliance status: 'meets_all', 'meets_some', or 'meets_none'"
+      },
+      "met_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of GPA requirements that are currently satisfied"
+      },
+      "unmet_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of GPA requirements that are not currently satisfied"
+      },
+      "gpa_deficit": {
+        "type": "number",
+        "description": "Points below the highest unmet GPA requirement"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transfer Credit Evaluator",
+    "tool_description": "Evaluates external transfer credits against degree requirements and determines which credits can be applied toward the student's program.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "transfer_institution": {
+        "type": "string",
+        "required": true,
+        "description": "Name or code of the institution where credits were earned"
+      },
+      "transfer_courses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of course codes or titles from transfer institution",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "transfer_credits": {
+        "type": "array",
+        "required": true,
+        "description": "Array of credit hours for each transfer course",
+        "items": {"type": "number"}
+      },
+      "transfer_grades": {
+        "type": "array",
+        "required": true,
+        "description": "Array of grades earned for each transfer course",
+        "items": {"type": "string"}
+      },
+      "target_program": {
+        "type": "string",
+        "required": true,
+        "description": "Degree program code for credit evaluation"
+      },
+      "minimum_grade": {
+        "type": "string",
+        "required": false,
+        "description": "Minimum grade required for credit transfer (default: C)",
+        "default": "C"
+      },
+      "max_transfer_credits": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of transfer credits allowed",
+        "default": "None"
+      },
+      "evaluation_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of evaluation: 'exact_match', 'equivalent', or 'elective'",
+        "default": "equivalent"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: transfer_courses, transfer_credits, and transfer_grades must have equal lengths.",
+      "Institution not recognized: The transfer institution is not in the approved institutions database.",
+      "Invalid grade threshold: minimum_grade must be a valid letter grade (A, B, C, D, or F).",
+      "Credit limit exceeded: Requested transfer credits exceed the maximum allowed for the program.",
+      "Invalid evaluation type: evaluation_type must be 'exact_match', 'equivalent', or 'elective'.",
+      "Course equivalency not found: Unable to find equivalencies for one or more transfer courses.",
+      "Below minimum grade: Some transfer courses have grades below the required minimum."
+    ],
+    "usage": "Provide student information, transfer institution details, course information, and target program. The tool evaluates which credits can transfer and how they apply to degree requirements.",
+    "output_details": {
+      "total_credits_accepted": {
+        "type": "integer",
+        "description": "Total number of transfer credits accepted"
+      },
+      "accepted_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of transfer courses that were accepted"
+      },
+      "rejected_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of transfer courses that were rejected"
+      },
+      "equivalent_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array showing how transfer credits map to institutional requirements"
+      },
+      "remaining_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of degree requirements not satisfied by transfer credits"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Graduation Requirement Auditor",
+    "tool_description": "Performs a comprehensive audit of all graduation requirements including courses, credits, GPA, and special requirements to determine graduation eligibility.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "program_code": {
+        "type": "string",
+        "required": true,
+        "description": "Official degree program code"
+      },
+      "catalog_year": {
+        "type": "string",
+        "required": true,
+        "description": "Academic catalog year in YYYY-YYYY format"
+      },
+      "completed_courses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of all completed course codes",
+        "items": {"type": "string"}
+      },
+      "course_grades": {
+        "type": "array",
+        "required": true,
+        "description": "Array of grades for all completed courses",
+        "items": {"type": "string"}
+      },
+      "course_credits": {
+        "type": "array",
+        "required": true,
+        "description": "Array of credit hours for all completed courses",
+        "items": {"type": "number"}
+      },
+      "transfer_credits": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of accepted transfer credits",
+        "default": 0
+      },
+      "special_requirements_completed": {
+        "type": "array",
+        "required": false,
+        "description": "Array of completed special requirements (internship, thesis, etc.)",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "intended_graduation_term": {
+        "type": "string",
+        "required": false,
+        "description": "Intended graduation term in format 'Fall YYYY' or 'Spring YYYY'",
+        "default": "None"
+      },
+      "audit_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of audit: 'preliminary', 'official', or 'final'",
+        "default": "preliminary"
+      }
+    },
+    "error_messages": [
+      "Student record not found: The provided student_id does not exist in the system.",
+      "Program not found: The specified program code does not exist in the catalog year.",
+      "Array length mismatch: completed_courses, course_grades, and course_credits must have equal lengths.",
+      "Invalid audit type: audit_type must be 'preliminary', 'official', or 'final'.",
+      "Incomplete academic record: Cannot perform audit without complete course and grade information.",
+      "Invalid graduation term: intended_graduation_term must be in format 'Fall YYYY' or 'Spring YYYY'.",
+      "Catalog year mismatch: Student's catalog year does not match the specified catalog_year parameter."
+    ],
+    "usage": "Provide complete student academic information including courses, grades, credits, and program details. The tool performs a comprehensive graduation audit and identifies any remaining requirements.",
+    "output_details": {
+      "graduation_eligible": {
+        "type": "boolean",
+        "description": "Whether the student is eligible for graduation"
+      },
+      "completion_percentage": {
+        "type": "number",
+        "description": "Percentage of degree requirements completed"
+      },
+      "satisfied_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of degree requirements that have been satisfied"
+      },
+      "outstanding_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of requirements that still need to be completed"
+      },
+      "credit_summary": {
+        "type": "string",
+        "description": "Summary of credit hours earned vs. required"
+      },
+      "gpa_status": {
+        "type": "string",
+        "description": "GPA requirement status and current standing"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated term when all requirements could be completed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Course Substitution Processor",
+    "tool_description": "Processes and validates course substitution requests, checking approval status and updating degree requirements accordingly.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "original_requirement": {
+        "type": "string",
+        "required": true,
+        "description": "Original course code or requirement being substituted"
+      },
+      "substitute_course": {
+        "type": "string",
+        "required": true,
+        "description": "Course code being used as substitute"
+      },
+      "substitution_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for substitution request"
+      },
+      "approval_status": {
+        "type": "string",
+        "required": false,
+        "description": "Current approval status: 'pending', 'approved', 'denied'",
+        "default": "pending"
+      }
+    },
+    "error_messages": [
+      "Student not found: The provided student_id does not exist in the system.",
+      "Invalid course code: Original requirement or substitute course code is not valid.",
+      "Duplicate substitution: A substitution for this requirement has already been processed.",
+      "Invalid approval status: approval_status must be 'pending', 'approved', or 'denied'.",
+      "Substitution not equivalent: The substitute course does not meet the learning objectives of the original requirement.",
+      "Missing authorization: Course substitutions require proper departmental or advisor approval."
+    ],
+    "usage": "Provide student ID, original requirement, substitute course, and reason for substitution. The tool processes the request and updates the student's degree audit accordingly.",
+    "output_details": {
+      "substitution_id": {
+        "type": "string",
+        "description": "Unique identifier for the substitution request"
+      },
+      "processing_status": {
+        "type": "string",
+        "description": "Current status of the substitution processing"
+      },
+      "approval_required_from": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of departments or individuals who must approve the substitution"
+      },
+      "updated_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array showing how degree requirements are modified by this substitution"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Academic Standing Calculator",
+    "tool_description": "Calculates and determines a student's academic standing based on GPA, credit progress, and institutional policies.",
+    "parameters": {
+      "cumulative_gpa": {
+        "type": "number",
+        "required": true,
+        "description": "Student's cumulative grade point average"
+      },
+      "credits_attempted": {
+        "type": "integer",
+        "required": true,
+        "description": "Total credit hours attempted by the student"
+      },
+      "credits_earned": {
+        "type": "integer",
+        "required": true,
+        "description": "Total credit hours successfully completed"
+      },
+      "terms_enrolled": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of terms the student has been enrolled"
+      },
+      "student_level": {
+        "type": "string",
+        "required": true,
+        "description": "Student classification: 'freshman', 'sophomore', 'junior', 'senior', 'graduate'"
+      }
+    },
+    "error_messages": [
+      "Invalid GPA: Cumulative GPA must be between 0.0 and 4.0 (or maximum for the grading scale).",
+      "Invalid credit values: credits_earned cannot exceed credits_attempted, and both must be non-negative.",
+      "Invalid student level: student_level must be one of ['freshman', 'sophomore', 'junior', 'senior', 'graduate'].",
+      "Invalid terms enrolled: terms_enrolled must be a positive integer.",
+      "Inconsistent data: Academic data provided appears to be inconsistent or incomplete."
+    ],
+    "usage": "Provide the student's cumulative GPA, credit information, terms enrolled, and student level. The tool calculates academic standing according to institutional policies.",
+    "output_details": {
+      "academic_standing": {
+        "type": "string",
+        "description": "Current academic standing: 'good_standing', 'probation', 'suspension', 'dismissal'"
+      },
+      "completion_rate": {
+        "type": "number",
+        "description": "Percentage of attempted credits successfully completed"
+      },
+      "standing_explanation": {
+        "type": "string",
+        "description": "Explanation of how the academic standing was determined"
+      },
+      "requirements_

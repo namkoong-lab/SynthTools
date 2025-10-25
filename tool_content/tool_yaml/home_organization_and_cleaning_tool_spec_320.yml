@@ -1,0 +1,832 @@
+field_name: home_organization_and_cleaning
+subfield: Household Inventory Management
+task: Track and catalog household items across different rooms and storage locations
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium difficulty. It involves managing multiple data types (items, locations, categories) with moderate complexity in tracking relationships between items and storage locations. There's some ambiguity in categorization decisions and coordination requirements between different rooms and family members, but the core data management operations are well-defined with manageable risk if errors occur.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools within the 10-15 range for medium complexity tasks.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tool Names with Dependencies:**
+  1. **Item Registrar** - Consumes: item details → Produces: registered item records
+  2. **Location Manager** - Consumes: location details → Produces: location records
+  3. **Category Classifier** - Consumes: item descriptions → Produces: category assignments
+  4. **Inventory Scanner** - Consumes: room/location → Produces: item lists with quantities
+  5. **Item Relocator** - Consumes: item IDs, locations → Produces: updated location records
+  6. **Quantity Updater** - Consumes: item IDs, quantities → Produces: updated inventory counts
+  7. **Item Searcher** - Consumes: search criteria → Produces: matching item records
+  8. **Expiration Tracker** - Consumes: item IDs, dates → Produces: expiration alerts
+  9. **Usage Logger** - Consumes: item IDs, usage data → Produces: usage history
+  10. **Inventory Reporter** - Consumes: filters/criteria → Produces: inventory reports
+  11. **Batch Importer** - Consumes: CSV/list data → Produces: bulk item records
+  12. **Item Validator** - Consumes: item records → Produces: validation status
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Item Addition** (Item Registrar → Category Classifier): Add new household items and automatically categorize them
+  2. **Quick Location Search** (Item Searcher): Find where specific items are stored
+
+  **Medium Plans:**
+  1. **Room Organization** (Location Manager → Inventory Scanner → Item Relocator): Set up storage locations, scan existing items, and relocate items to organized positions
+  2. **Expiration Management** (Item Searcher → Expiration Tracker → Inventory Reporter): Find perishable items, track expiration dates, and generate expiration reports
+
+  **Complex Plans:**
+  1. **Complete Inventory Setup** (Location Manager → Batch Importer → Category Classifier → Item Validator → Inventory Scanner): Establish all storage locations, import existing items in bulk, categorize and validate them, then scan for completeness
+  2. **Usage Analysis & Optimization** (Usage Logger → Item Searcher → Quantity Updater → Inventory Reporter → Item Relocator): Track item usage patterns, find frequently used items, update quantities based on consumption, generate optimization reports, and relocate items for better accessibility
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Item Registrar",
+    "tool_description": "Registers new household items in the inventory system with basic details and assigns unique identifiers.",
+    "parameters": {
+      "item_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name or description of the item"
+      },
+      "brand": {
+        "type": "string",
+        "required": false,
+        "description": "Brand name of the item",
+        "default": "None"
+      },
+      "purchase_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date when item was purchased",
+        "format": "date-time",
+        "default": "None"
+      },
+      "purchase_price": {
+        "type": "number",
+        "required": false,
+        "description": "Original purchase price",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty item name: Item name cannot be empty or contain only whitespace.",
+      "Invalid purchase date: Purchase date must be in ISO 8601 format and not in the future.",
+      "Invalid purchase price: Purchase price must be a positive number or zero."
+    ],
+    "usage": "Provide item_name as the primary identifier, optionally include brand, purchase_date, and purchase_price for better tracking. The tool assigns a unique ID and creates the initial item record.",
+    "output_details": {
+      "item_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to the item"
+      },
+      "registration_status": {
+        "type": "string",
+        "description": "Status of registration process"
+      },
+      "registration_timestamp": {
+        "type": "string",
+        "description": "When the item was registered",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Location Manager",
+    "tool_description": "Creates and manages storage locations and rooms within the household inventory system.",
+    "parameters": {
+      "location_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the storage location"
+      },
+      "room": {
+        "type": "string",
+        "required": true,
+        "description": "Room where the location is situated"
+      },
+      "location_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of storage: shelf, drawer, cabinet, closet, pantry, refrigerator, freezer, garage, basement, attic"
+      },
+      "capacity": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of items this location can hold",
+        "default": "None"
+      },
+      "access_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "How often location is accessed: daily, weekly, monthly, rarely",
+        "default": "weekly"
+      }
+    },
+    "error_messages": [
+      "Invalid location type: Must be one of [shelf, drawer, cabinet, closet, pantry, refrigerator, freezer, garage, basement, attic].",
+      "Invalid access frequency: Must be one of [daily, weekly, monthly, rarely].",
+      "Invalid capacity: Capacity must be a positive integer if specified.",
+      "Duplicate location: A location with this name already exists in the specified room."
+    ],
+    "usage": "Specify location_name, room, and location_type to create a new storage location. Optionally set capacity limits and access_frequency for better organization planning.",
+    "output_details": {
+      "location_id": {
+        "type": "string",
+        "description": "Unique identifier for the storage location"
+      },
+      "creation_status": {
+        "type": "string",
+        "description": "Status of location creation"
+      },
+      "full_location_path": {
+        "type": "string",
+        "description": "Complete path showing room and location name"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Category Classifier",
+    "tool_description": "Automatically categorizes household items based on their names and descriptions using predefined category rules.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the item to categorize"
+      },
+      "item_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the item"
+      },
+      "manual_category": {
+        "type": "string",
+        "required": false,
+        "description": "Manually override automatic categorization",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Item not found: No item exists with the provided item_id.",
+      "Empty description: Item description cannot be empty for categorization.",
+      "Invalid manual category: Manual category must be from the predefined category list if specified."
+    ],
+    "usage": "Provide item_id and item_description for automatic categorization, or use manual_category to override the automatic classification. The tool assigns appropriate categories based on item characteristics.",
+    "output_details": {
+      "assigned_category": {
+        "type": "string",
+        "description": "Primary category assigned to the item"
+      },
+      "subcategory": {
+        "type": "string",
+        "description": "More specific subcategory if applicable"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence level of automatic categorization (0-1)"
+      },
+      "suggested_location_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended storage location types for this category"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Scanner",
+    "tool_description": "Scans and lists all items currently stored in specified locations or rooms with their current quantities and conditions.",
+    "parameters": {
+      "location_id": {
+        "type": "string",
+        "required": false,
+        "description": "Specific location to scan",
+        "default": "None"
+      },
+      "room": {
+        "type": "string",
+        "required": false,
+        "description": "Room to scan all locations within",
+        "default": "None"
+      },
+      "scan_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of scan: quick, detailed, condition_check"
+      },
+      "include_empty_locations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include locations with no items",
+        "default": false
+      },
+      "category_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Only scan items from specified categories",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "No scan target specified: Must provide either location_id or room parameter.",
+      "Invalid scan type: Must be one of [quick, detailed, condition_check].",
+      "Location not found: The specified location_id does not exist.",
+      "Room not found: The specified room does not exist in the system.",
+      "Invalid category filter: One or more specified categories are not recognized."
+    ],
+    "usage": "Specify either location_id for a specific location or room for all locations in a room, choose scan_type based on detail needed, and optionally filter by categories. Use include_empty_locations to see vacant storage spaces.",
+    "output_details": {
+      "scan_timestamp": {
+        "type": "string",
+        "description": "When the scan was performed",
+        "format": "date-time"
+      },
+      "total_items_found": {
+        "type": "integer",
+        "description": "Total number of items discovered in scan"
+      },
+      "locations_scanned": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of location IDs that were scanned"
+      },
+      "item_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of item IDs found during scan"
+      },
+      "scan_summary": {
+        "type": "string",
+        "description": "Summary of scan results and any issues found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Item Relocator",
+    "tool_description": "Moves items between storage locations and updates their location records in the inventory system.",
+    "parameters": {
+      "item_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of item IDs to relocate",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "destination_location_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target location ID where items will be moved"
+      },
+      "move_reason": {
+        "type": "string",
+        "required": false,
+        "description": "Reason for relocation: organization, access_optimization, space_management, seasonal, maintenance",
+        "default": "organization"
+      },
+      "move_date": {
+        "type": "string",
+        "required": false,
+        "description": "When the move was completed",
+        "format": "date-time",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Items not found: One or more item IDs in the list do not exist in the inventory.",
+      "Destination location not found: The specified destination_location_id does not exist.",
+      "Insufficient destination capacity: The destination location cannot accommodate all items being moved.",
+      "Invalid move reason: Must be one of [organization, access_optimization, space_management, seasonal, maintenance].",
+      "Invalid move date: Move date must be in ISO 8601 format and not in the future."
+    ],
+    "usage": "Provide item_ids array with items to move and destination_location_id for the target location. Optionally specify move_reason and move_date for tracking purposes. The tool updates location records and maintains move history.",
+    "output_details": {
+      "move_id": {
+        "type": "string",
+        "description": "Unique identifier for this relocation operation"
+      },
+      "items_moved": {
+        "type": "integer",
+        "description": "Number of items successfully relocated"
+      },
+      "move_timestamp": {
+        "type": "string",
+        "description": "When the relocation was completed",
+        "format": "date-time"
+      },
+      "source_locations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of original location IDs items were moved from"
+      },
+      "relocation_status": {
+        "type": "string",
+        "description": "Overall status of the relocation operation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quantity Updater",
+    "tool_description": "Updates the quantity counts for items in inventory, handling additions, removals, and consumption tracking.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the item to update"
+      },
+      "quantity_change": {
+        "type": "integer",
+        "required": true,
+        "description": "Change in quantity (positive for additions, negative for removals)"
+      },
+      "change_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for quantity change: purchase, consumption, donation, disposal, loss, found, inventory_correction"
+      },
+      "change_date": {
+        "type": "string",
+        "required": false,
+        "description": "When the quantity change occurred",
+        "format": "date-time",
+        "default": "None"
+      },
+      "notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional notes about the quantity change",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Item not found: No item exists with the provided item_id.",
+      "Invalid quantity change: quantity_change cannot be zero.",
+      "Invalid change reason: Must be one of [purchase, consumption, donation, disposal, loss, found, inventory_correction].",
+      "Insufficient quantity: Cannot remove more items than currently in inventory.",
+      "Invalid change date: Change date must be in ISO 8601 format and not in the future."
+    ],
+    "usage": "Specify item_id and quantity_change (positive for additions, negative for removals), provide change_reason for tracking purposes. Optionally add change_date and notes for detailed record keeping.",
+    "output_details": {
+      "previous_quantity": {
+        "type": "integer",
+        "description": "Quantity before the update"
+      },
+      "new_quantity": {
+        "type": "integer",
+        "description": "Quantity after the update"
+      },
+      "update_timestamp": {
+        "type": "string",
+        "description": "When the update was processed",
+        "format": "date-time"
+      },
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique identifier for this quantity change transaction"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Item Searcher",
+    "tool_description": "Searches for items in the inventory using various criteria including name, location, category, and attributes.",
+    "parameters": {
+      "search_term": {
+        "type": "string",
+        "required": false,
+        "description": "Text to search for in item names and descriptions",
+        "default": "None"
+      },
+      "category": {
+        "type": "string",
+        "required": false,
+        "description": "Category to filter results by",
+        "default": "None"
+      },
+      "location_id": {
+        "type": "string",
+        "required": false,
+        "description": "Specific location to search within",
+        "default": "None"
+      },
+      "room": {
+        "type": "string",
+        "required": false,
+        "description": "Room to search within",
+        "default": "None"
+      },
+      "min_quantity": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum quantity threshold for results",
+        "default": "None"
+      },
+      "max_quantity": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum quantity threshold for results",
+        "default": "None"
+      },
+      "brand": {
+        "type": "string",
+        "required": false,
+        "description": "Brand name to filter by",
+        "default": "None"
+      },
+      "purchase_date_start": {
+        "type": "string",
+        "required": false,
+        "description": "Earliest purchase date for results",
+        "format": "date-time",
+        "default": "None"
+      },
+      "purchase_date_end": {
+        "type": "string",
+        "required": false,
+        "description": "Latest purchase date for results",
+        "format": "date-time",
+        "default": "None"
+      },
+      "sort_by": {
+        "type": "string",
+        "required": false,
+        "description": "Sort results by: name, quantity, purchase_date, category, location",
+        "default": "name"
+      },
+      "sort_order": {
+        "type": "string",
+        "required": false,
+        "description": "Sort order: ascending or descending",
+        "default": "ascending"
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of results to return",
+        "default": 100
+      }
+    },
+    "error_messages": [
+      "No search criteria specified: At least one search parameter must be provided.",
+      "Invalid date range: purchase_date_start must be earlier than purchase_date_end.",
+      "Invalid quantity range: min_quantity must be less than or equal to max_quantity.",
+      "Invalid sort criteria: sort_by must be one of [name, quantity, purchase_date, category, location].",
+      "Invalid sort order: sort_order must be either ascending or descending.",
+      "Invalid max_results: max_results must be between 1 and 1000."
+    ],
+    "usage": "Provide any combination of search criteria to find items. Use search_term for text matching, category/location/room for filtering, quantity ranges for inventory levels, and date ranges for purchase timing. Configure sorting and result limits as needed.",
+    "output_details": {
+      "search_results_count": {
+        "type": "integer",
+        "description": "Number of items found matching criteria"
+      },
+      "matching_item_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of item IDs that match the search criteria"
+      },
+      "search_summary": {
+        "type": "string",
+        "description": "Summary of search parameters and results"
+      },
+      "search_timestamp": {
+        "type": "string",
+        "description": "When the search was performed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expiration Tracker",
+    "tool_description": "Tracks expiration dates for perishable items and generates alerts for items nearing expiration.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the item to track"
+      },
+      "expiration_date": {
+        "type": "string",
+        "required": true,
+        "description": "Expiration or best-by date of the item",
+        "format": "date-time"
+      },
+      "expiration_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of expiration: best_by, use_by, expires_on, sell_by"
+      },
+      "alert_days_before": {
+        "type": "integer",
+        "required": false,
+        "description": "Days before expiration to trigger alert",
+        "default": 7
+      }
+    ],
+    "error_messages": [
+      "Item not found: No item exists with the provided item_id.",
+      "Invalid expiration date: Expiration date must be in ISO 8601 format and in the future.",
+      "Invalid expiration type: Must be one of [best_by, use_by, expires_on, sell_by].",
+      "Invalid alert timing: alert_days_before must be between 1 and 365 days."
+    ],
+    "usage": "Provide item_id, expiration_date, and expiration_type to set up expiration tracking. Optionally configure alert_days_before to customize when warnings are generated.",
+    "output_details": {
+      "tracking_status": {
+        "type": "string",
+        "description": "Status of expiration tracking setup"
+      },
+      "days_until_expiration": {
+        "type": "integer",
+        "description": "Number of days remaining until expiration"
+      },
+      "alert_active": {
+        "type": "boolean",
+        "description": "Whether an expiration alert is currently active"
+      },
+      "next_alert_date": {
+        "type": "string",
+        "description": "When the next expiration alert will be triggered",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Usage Logger",
+    "tool_description": "Records usage patterns and consumption data for household items to track utilization and inform purchasing decisions.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the item being used"
+      },
+      "usage_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of usage: consumed, borrowed, temporary_removal, returned, maintenance_use"
+      },
+      "usage_date": {
+        "type": "string",
+        "required": false,
+        "description": "When the usage occurred",
+        "format": "date-time",
+        "default": "None"
+      },
+      "quantity_used": {
+        "type": "number",
+        "required": false,
+        "description": "Amount of item used (for partial consumption)",
+        "default": 1
+      },
+      "user_name": {
+        "type": "string",
+        "required": false,
+        "description": "Person who used the item",
+        "default": "None"
+      },
+      "usage_notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional details about the usage",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Item not found: No item exists with the provided item_id.",
+      "Invalid usage type: Must be one of [consumed, borrowed, temporary_removal, returned, maintenance_use].",
+      "Invalid usage date: Usage date must be in ISO 8601 format and not in the future.",
+      "Invalid quantity used: quantity_used must be a positive number."
+    ],
+    "usage": "Specify item_id and usage_type for basic usage logging. Optionally provide usage_date, quantity_used, user_name, and usage_notes for detailed tracking. This helps analyze consumption patterns and optimize inventory levels.",
+    "output_details": {
+      "usage_log_id": {
+        "type": "string",
+        "description": "Unique identifier for this usage record"
+      },
+      "log_timestamp": {
+        "type": "string",
+        "description": "When the usage was recorded",
+        "format": "date-time"
+      },
+      "cumulative_usage": {
+        "type": "number",
+        "description": "Total usage of this item to date"
+      },
+      "usage_frequency": {
+        "type": "string",
+        "description": "Calculated usage frequency based on history"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Reporter",
+    "tool_description": "Generates comprehensive reports on household inventory status, including summaries, trends, and actionable insights.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: summary, expiration_alert, low_stock, usage_analysis, location_utilization, purchase_recommendations"
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for report data",
+        "format": "date-time",
+        "default": "None"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date for report data",
+        "format": "date-time",
+        "default": "None"
+      },
+      "filter_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Categories to include in report",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "filter_rooms": {
+        "type": "array",
+        "required": false,
+        "description": "Rooms to include in report",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "include_charts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include visual charts in report",
+        "default": false
+      },
+      "export_format": {
+        "type": "string",
+        "required": false,
+        "description": "Export format: text, csv, json",
+        "default": "text"
+      }
+    },
+    "error_messages": [
+      "Invalid report type: Must be one of [summary, expiration_alert, low_stock, usage_analysis, location_utilization, purchase_recommendations].",
+      "Invalid date range: date_range_start must be earlier than date_range_end.",
+      "Invalid export format: Must be one of [text, csv, json].",
+      "No data available: No inventory data exists for the specified filters and date range.",
+      "Invalid categories: One or more specified categories are not recognized.",
+      "Invalid rooms: One or more specified rooms are not recognized."
+    ],
+    "usage": "Specify report_type for the kind of analysis needed. Optionally filter by date_range, categories, and rooms to focus the report. Use include_charts for visual data and set export_format based on how you plan to use the report data.",
+    "output_details": {
+      "report_title": {
+        "type": "string",
+        "description": "Title of the generated report"
+      },
+      "report_content": {
+        "type": "string",
+        "description": "Main content of the report"
+      },
+      "generation_timestamp": {
+        "type": "string",
+        "description": "When the report was generated",
+        "format": "date-time"
+      },
+      "total_items_analyzed": {
+        "type": "integer",
+        "description": "Number of items included in the analysis"
+      },
+      "key_insights": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of key findings and recommendations"
+      },
+      "data_summary": {
+        "type": "string",
+        "description": "Statistical summary of the analyzed data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Importer",
+    "tool_description": "Imports multiple household items from structured data files or lists, enabling bulk inventory setup and updates.",
+    "parameters": {
+      "import_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of item data strings in format 'name|brand|category|location|quantity'",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "data_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format of import data: pipe_delimited, comma_separated, tab_separated"
+      },
+      "update_existing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to update existing items or skip duplicates",
+        "default": false
+      },
+      "auto_create_locations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Automatically create new locations if they don't exist",
+        "default": true
+      },
+      "default_room": {
+        "type": "string",
+        "required": false,
+        "description": "Default room for new locations if not specified",
+        "default": "storage"
+      },
+      "validation_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Validation strictness: strict, moderate, lenient",
+        "default": "moderate"
+      }
+    },
+    "error_messages": [
+      "Invalid data format: Must be one of [pipe_delimited, comma_separated, tab_separated].",
+      "Malformed import data: One or more rows do not match the expected format.",
+      "Import data too large: Maximum 500 items can be imported in a single batch.",
+      "Invalid validation mode: Must be one of [strict, moderate, lenient].",
+      "Data parsing error: Unable to parse one or more data rows according to the specified format.",
+      "Duplicate detection conflict: Found conflicting data for existing items when update_existing is false."
+    ],
+    "usage": "Provide import_data as an array of formatted item strings and specify the data_format. Use update_existing to control handling of duplicate items, auto_create_locations for new storage spaces, and validation_mode to balance data quality vs. import success rate.",
+    "output_details": {
+      "import_summary": {
+        "type": "string",
+        "description": "Summary of the import operation results"
+      },
+      "items_processed": {
+        "type": "integer",
+        "description": "Total number of items processed"
+      },
+      "items_created": {
+        "type": "integer",
+        "description": "Number of new items successfully created"
+      },
+      "items_updated": {
+        "type": "integer",
+        "description": "Number of existing items updated"
+      },
+      "items_skipped": {
+        "type": "integer",
+        "description": "Number of items skipped due to errors or duplicates"

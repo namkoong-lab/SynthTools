@@ -1,0 +1,839 @@
+field_name: healthcare_medical
+subfield: Laboratory Information Systems
+task: Laboratory test ordering and requisition processing
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves complex healthcare workflows with strict regulatory requirements, patient safety considerations, and integration with multiple hospital systems. The coordination between physicians, lab technicians, and billing departments, plus the need for accurate test interpretation and compliance with medical standards makes this a **hard** difficulty task.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'll target **17 tools** to cover the comprehensive workflow from test ordering through requisition processing, result reporting, and quality assurance.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. Patient_Eligibility_Validator (consumes: patient_id, insurance → produces: eligibility_status)
+  2. Test_Catalog_Browser (consumes: search_terms → produces: available_tests)
+  3. Clinical_Decision_Support (consumes: patient_data, proposed_tests → produces: recommendations)
+  4. Test_Order_Creator (consumes: patient_id, test_codes, clinical_info → produces: order_id)
+  5. Insurance_Authorization_Checker (consumes: patient_id, test_codes → produces: auth_status)
+  6. Specimen_Label_Generator (consumes: order_id, patient_info → produces: label_data)
+  7. Collection_Schedule_Manager (consumes: order_requirements → produces: scheduled_times)
+  8. Lab_Workflow_Router (consumes: specimen_info → produces: routing_instructions)
+  9. Quality_Control_Monitor (consumes: test_parameters → produces: qc_status)
+  10. Result_Validator (consumes: raw_results → produces: validated_results)
+  11. Reference_Range_Analyzer (consumes: results, patient_demographics → produces: interpreted_results)
+  12. Critical_Value_Alert_System (consumes: test_results → produces: alert_notifications)
+  13. Report_Generator (consumes: validated_results → produces: formatted_reports)
+  14. Physician_Notification_Manager (consumes: results, urgency → produces: notification_status)
+  15. Billing_Code_Generator (consumes: completed_tests → produces: billing_codes)
+  16. Compliance_Auditor (consumes: order_history → produces: audit_report)
+  17. Test_Turnaround_Tracker (consumes: order_timestamps → produces: performance_metrics)
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  - **Routine Lab Order**: Patient_Eligibility_Validator → Test_Catalog_Browser → Test_Order_Creator → Specimen_Label_Generator
+  - **Basic Result Processing**: Result_Validator → Reference_Range_Analyzer → Report_Generator
+
+  **Medium plans:**
+  - **Complete Test Cycle**: Patient_Eligibility_Validator → Clinical_Decision_Support → Test_Order_Creator → Insurance_Authorization_Checker → Collection_Schedule_Manager → Lab_Workflow_Router → Result_Validator → Report_Generator
+  - **Quality Assurance Workflow**: Quality_Control_Monitor → Result_Validator → Reference_Range_Analyzer → Critical_Value_Alert_System → Compliance_Auditor
+
+  **Complex plans:**
+  - **Full Laboratory Management**: All tools in sequence for comprehensive test ordering, processing, quality control, reporting, and billing
+  - **Emergency/STAT Processing**: Patient_Eligibility_Validator → Test_Order_Creator → Specimen_Label_Generator → Lab_Workflow_Router → Quality_Control_Monitor → Result_Validator → Critical_Value_Alert_System → Physician_Notification_Manager → Report_Generator → Test_Turnaround_Tracker
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Patient_Eligibility_Validator",
+    "tool_description": "Validates patient eligibility for laboratory testing by checking insurance coverage, patient demographics, and authorization requirements.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier in the hospital system"
+      },
+      "insurance_provider": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the patient's insurance provider"
+      },
+      "policy_number": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's insurance policy number"
+      }
+    },
+    "error_messages": [
+      "Invalid patient ID: Patient not found in system. Verify the patient ID is correct and patient is registered.",
+      "Insurance verification failed: Unable to verify coverage. Check insurance provider name and policy number.",
+      "Patient eligibility expired: Insurance coverage has lapsed. Contact insurance provider to update coverage."
+    ],
+    "usage": "Provide patient_id, insurance_provider, and policy_number to verify the patient's eligibility for laboratory services before proceeding with test orders.",
+    "output_details": {
+      "eligibility_status": {
+        "type": "string",
+        "description": "Overall eligibility status: eligible, not_eligible, or pending"
+      },
+      "coverage_percentage": {
+        "type": "number",
+        "description": "Percentage of lab costs covered by insurance"
+      },
+      "authorization_required": {
+        "type": "boolean",
+        "description": "Whether prior authorization is needed for testing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Test_Catalog_Browser",
+    "tool_description": "Searches and retrieves available laboratory tests from the test catalog with detailed information including CPT codes, specimen requirements, and clinical indications.",
+    "parameters": {
+      "search_term": {
+        "type": "string",
+        "required": true,
+        "description": "Test name, CPT code, or clinical keyword to search for"
+      },
+      "department": {
+        "type": "string",
+        "required": false,
+        "description": "Laboratory department: chemistry, hematology, microbiology, immunology, molecular, pathology",
+        "default": "None"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Test urgency: routine, urgent, stat",
+        "default": "routine"
+      },
+      "specimen_type": {
+        "type": "string",
+        "required": false,
+        "description": "Required specimen type: blood, urine, stool, tissue, other",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "No tests found: No matching tests for the search criteria. Try broader search terms or check spelling.",
+      "Invalid department: Department must be one of [chemistry, hematology, microbiology, immunology, molecular, pathology].",
+      "Invalid urgency level: Urgency must be one of [routine, urgent, stat].",
+      "Invalid specimen type: Specimen type must be one of [blood, urine, stool, tissue, other]."
+    ],
+    "usage": "Enter search_term to find laboratory tests. Optionally filter by department, urgency_level, or specimen_type to narrow results.",
+    "output_details": {
+      "test_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of matching test codes"
+      },
+      "test_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of corresponding test names"
+      },
+      "specimen_requirements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of specimen collection requirements for each test"
+      },
+      "turnaround_times": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Expected result delivery times for each test"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Clinical_Decision_Support",
+    "tool_description": "Provides clinical decision support by analyzing patient data and proposed tests to recommend appropriate laboratory testing based on clinical guidelines and best practices.",
+    "parameters": {
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "patient_gender": {
+        "type": "string",
+        "required": true,
+        "description": "Patient gender: male, female, other"
+      },
+      "chief_complaint": {
+        "type": "string",
+        "required": true,
+        "description": "Primary reason for the patient visit or symptoms"
+      },
+      "proposed_tests": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of test codes being considered for ordering",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "medical_history": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of relevant medical conditions or diagnoses",
+        "default": "None"
+      },
+      "current_medications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of current medications that might affect test results",
+        "default": "None"
+      },
+      "allergies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of known allergies relevant to testing procedures",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid patient demographics: Age must be 0-150, gender must be [male, female, other].",
+      "Missing clinical information: Chief complaint cannot be empty.",
+      "Invalid test codes: One or more proposed test codes are not recognized in the system.",
+      "Contraindicated testing: Some proposed tests are contraindicated based on patient allergies or medications."
+    ],
+    "usage": "Provide patient demographics, chief_complaint, and proposed_tests. Optionally include medical_history, current_medications, and allergies for more comprehensive recommendations.",
+    "output_details": {
+      "recommendation_summary": {
+        "type": "string",
+        "description": "Overall clinical recommendation for the proposed testing"
+      },
+      "approved_tests": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Tests recommended for ordering based on clinical guidelines"
+      },
+      "additional_tests": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Additional tests suggested based on patient presentation"
+      },
+      "contraindications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Tests that should be avoided due to patient factors"
+      },
+      "clinical_notes": {
+        "type": "string",
+        "description": "Additional clinical considerations and recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Test_Order_Creator",
+    "tool_description": "Creates official laboratory test orders in the system with all required clinical and administrative information for proper test execution and billing.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "ordering_physician": {
+        "type": "string",
+        "required": true,
+        "description": "Name or ID of the physician ordering the tests"
+      },
+      "test_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of laboratory test codes to be ordered",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "clinical_indication": {
+        "type": "string",
+        "required": true,
+        "description": "Clinical reason for ordering the tests"
+      },
+      "urgency": {
+        "type": "string",
+        "required": true,
+        "description": "Order urgency: routine, urgent, stat"
+      },
+      "collection_date": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred specimen collection date and time",
+        "format": "date-time",
+        "default": "None"
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "description": "Any special collection or processing instructions",
+        "default": "None"
+      },
+      "diagnosis_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "ICD-10 diagnosis codes supporting the test orders",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid patient ID: Patient not found in system. Verify patient is registered.",
+      "Invalid physician credentials: Ordering physician not authorized to order laboratory tests.",
+      "Invalid test codes: One or more test codes are not valid or available.",
+      "Missing clinical justification: Clinical indication must be provided for all test orders.",
+      "Invalid urgency level: Urgency must be [routine, urgent, stat].",
+      "Invalid collection date: Date must be current or future, properly formatted as ISO 8601.",
+      "Authorization required: Some tests require prior authorization before ordering."
+    ],
+    "usage": "Provide patient_id, ordering_physician, test_codes, clinical_indication, and urgency to create a laboratory order. Optionally specify collection_date, special_instructions, and diagnosis_codes.",
+    "output_details": {
+      "order_id": {
+        "type": "string",
+        "description": "Unique identifier for the created laboratory order"
+      },
+      "order_status": {
+        "type": "string",
+        "description": "Current status of the order: pending, active, cancelled"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Expected completion date and time for all ordered tests",
+        "format": "date-time"
+      },
+      "total_tests": {
+        "type": "integer",
+        "description": "Number of tests included in this order"
+      },
+      "collection_instructions": {
+        "type": "string",
+        "description": "Instructions for specimen collection"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Insurance_Authorization_Checker",
+    "tool_description": "Verifies insurance coverage and obtains prior authorization for laboratory tests when required, ensuring proper billing and patient coverage.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "test_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of test codes requiring authorization check",
+        "minItems": 1,
+        "maxItems": 30
+      },
+      "diagnosis_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "ICD-10 codes justifying the laboratory testing",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "ordering_physician_npi": {
+        "type": "string",
+        "required": true,
+        "description": "National Provider Identifier of the ordering physician"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Authorization priority: routine, expedited, emergency",
+        "default": "routine"
+      }
+    },
+    "error_messages": [
+      "Patient insurance not found: No active insurance information for this patient. Update insurance details.",
+      "Invalid test codes: One or more test codes are not recognized for authorization.",
+      "Invalid diagnosis codes: ICD-10 codes must be valid and current.",
+      "Invalid NPI: Ordering physician NPI is not valid or not found in provider network.",
+      "Authorization denied: Insurance has denied coverage for one or more requested tests.",
+      "Incomplete prior authorization: Required documentation missing for authorization request."
+    ],
+    "usage": "Provide patient_id, test_codes, diagnosis_codes, and ordering_physician_npi to check authorization requirements. Set priority_level for urgent cases.",
+    "output_details": {
+      "authorization_status": {
+        "type": "string",
+        "description": "Overall authorization status: approved, denied, pending, not_required"
+      },
+      "authorized_tests": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Test codes that have been authorized"
+      },
+      "denied_tests": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Test codes that were denied authorization"
+      },
+      "authorization_numbers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Authorization reference numbers for approved tests"
+      },
+      "coverage_amount": {
+        "type": "number",
+        "description": "Total dollar amount approved for coverage"
+      },
+      "patient_responsibility": {
+        "type": "number",
+        "description": "Estimated patient out-of-pocket cost"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Specimen_Label_Generator",
+    "tool_description": "Generates standardized specimen labels with barcodes and all required patient and test information for proper specimen identification and tracking.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Laboratory order identifier"
+      },
+      "patient_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient full name as registered"
+      },
+      "patient_dob": {
+        "type": "string",
+        "required": true,
+        "description": "Patient date of birth",
+        "format": "date-time"
+      },
+      "label_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of specimen labels to generate"
+      }
+    },
+    "error_messages": [
+      "Invalid order ID: Order not found in system. Verify order was successfully created.",
+      "Patient information mismatch: Patient name or DOB doesn't match order record.",
+      "Invalid label count: Label count must be between 1 and 20.",
+      "Label generation failed: System error occurred during label creation. Retry or contact IT support."
+    ],
+    "usage": "Provide order_id, patient_name, patient_dob, and label_count to generate specimen labels with barcodes and tracking information.",
+    "output_details": {
+      "label_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of unique label identifiers generated"
+      },
+      "barcode_data": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Barcode information for each label"
+      },
+      "print_status": {
+        "type": "string",
+        "description": "Label printing status: ready, printed, error"
+      },
+      "label_format": {
+        "type": "string",
+        "description": "Type of labels generated based on test requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Collection_Schedule_Manager",
+    "tool_description": "Manages specimen collection scheduling by coordinating collection requirements, staff availability, and patient preferences for optimal workflow efficiency.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Laboratory order requiring specimen collection"
+      },
+      "collection_location": {
+        "type": "string",
+        "required": true,
+        "description": "Where specimen will be collected: inpatient, outpatient, emergency, home, clinic"
+      },
+      "preferred_time": {
+        "type": "string",
+        "required": false,
+        "description": "Patient preferred collection date and time",
+        "format": "date-time",
+        "default": "None"
+      },
+      "fasting_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether patient fasting is required for specimen collection",
+        "default": false
+      },
+      "special_preparation": {
+        "type": "string",
+        "required": false,
+        "description": "Special patient preparation instructions",
+        "default": "None"
+      },
+      "collector_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred staff member or skill level for collection",
+        "default": "None"
+      },
+      "collection_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Collection priority: routine, urgent, stat, timed",
+        "default": "routine"
+      }
+    },
+    "error_messages": [
+      "Order not found: Invalid order_id provided. Verify order exists and is active.",
+      "Invalid collection location: Location must be [inpatient, outpatient, emergency, home, clinic].",
+      "Scheduling conflict: Requested time conflicts with existing appointments or staff availability.",
+      "Invalid collection priority: Priority must be [routine, urgent, stat, timed].",
+      "Preparation time insufficient: Requested collection time doesn't allow adequate patient preparation.",
+      "Staff unavailable: No qualified collection staff available for requested time and location."
+    ],
+    "usage": "Provide order_id and collection_location to schedule specimen collection. Optionally specify preferred_time, fasting_required, special_preparation, collector_preference, and collection_priority.",
+    "output_details": {
+      "scheduled_time": {
+        "type": "string",
+        "description": "Confirmed specimen collection date and time",
+        "format": "date-time"
+      },
+      "collection_staff": {
+        "type": "string",
+        "description": "Assigned staff member for specimen collection"
+      },
+      "preparation_instructions": {
+        "type": "string",
+        "description": "Patient preparation instructions and timeline"
+      },
+      "collection_supplies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Required collection supplies and containers"
+      },
+      "schedule_confirmation": {
+        "type": "string",
+        "description": "Unique confirmation number for the scheduled collection"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Lab_Workflow_Router",
+    "tool_description": "Routes specimens and test orders to appropriate laboratory departments and workstations based on test requirements, urgency, and workflow optimization.",
+    "parameters": {
+      "specimen_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique specimen identifier from barcode or label"
+      },
+      "test_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of tests to be performed on this specimen",
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "specimen_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of specimen: blood, urine, stool, tissue, csf, other"
+      },
+      "urgency": {
+        "type": "string",
+        "required": true,
+        "description": "Processing urgency: routine, urgent, stat"
+      },
+      "collection_time": {
+        "type": "string",
+        "required": true,
+        "description": "When specimen was collected",
+        "format": "date-time"
+      },
+      "special_handling": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Special handling requirements like refrigeration, light protection",
+        "default": "None"
+      },
+      "processing_notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional processing instructions or clinical notes",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Specimen not found: Invalid specimen_id or specimen not properly registered in system.",
+      "Invalid test codes: One or more test codes are not valid or not available for this specimen type.",
+      "Invalid specimen type: Specimen type must be [blood, urine, stool, tissue, csf, other].",
+      "Invalid urgency level: Urgency must be [routine, urgent, stat].",
+      "Specimen stability issue: Specimen age or handling conditions may compromise test results.",
+      "Insufficient specimen volume: Specimen volume insufficient for all requested tests.",
+      "Department unavailable: Required laboratory department is currently not accepting specimens."
+    ],
+    "usage": "Provide specimen_id, test_codes, specimen_type, urgency, and collection_time to route specimen for processing. Include special_handling and processing_notes as needed.",
+    "output_details": {
+      "routing_destinations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Laboratory departments/workstations where specimen should be sent"
+      },
+      "processing_sequence": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended order for test processing to optimize specimen use"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Expected completion time for all tests",
+        "format": "date-time"
+      },
+      "priority_level": {
+        "type": "integer",
+        "description": "Numeric priority for workflow queue (1=highest priority)"
+      },
+      "handling_instructions": {
+        "type": "string",
+        "description": "Consolidated handling and processing instructions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quality_Control_Monitor",
+    "tool_description": "Monitors laboratory quality control by tracking QC sample results, instrument performance, and procedural compliance to ensure accurate test results.",
+    "parameters": {
+      "instrument_id": {
+        "type": "string",
+        "required": true,
+        "description": "Laboratory instrument or analyzer identifier"
+      },
+      "test_method": {
+        "type": "string",
+        "required": true,
+        "description": "Testing methodology or assay name being monitored"
+      },
+      "qc_level": {
+        "type": "string",
+        "required": true,
+        "description": "QC sample level: normal, high, low, abnormal"
+      },
+      "control_value": {
+        "type": "number",
+        "required": true,
+        "description": "Expected value for the QC control sample"
+      },
+      "measured_value": {
+        "type": "number",
+        "required": true,
+        "description": "Actual measured value from QC control"
+      }
+    },
+    "error_messages": [
+      "Invalid instrument ID: Instrument not found in system or not active.",
+      "Unrecognized test method: Test method not configured for QC monitoring.",
+      "Invalid QC level: QC level must be [normal, high, low, abnormal].",
+      "QC value out of range: Control or measured values are outside acceptable limits.",
+      "QC failure detected: Measured value exceeds acceptable deviation from control value."
+    ],
+    "usage": "Provide instrument_id, test_method, qc_level, control_value, and measured_value to monitor quality control performance and detect analytical issues.",
+    "output_details": {
+      "qc_status": {
+        "type": "string",
+        "description": "QC result status: pass, fail, warning"
+      },
+      "deviation_percentage": {
+        "type": "number",
+        "description": "Percentage deviation from expected control value"
+      },
+      "action_required": {
+        "type": "boolean",
+        "description": "Whether corrective action is required"
+      },
+      "trend_analysis": {
+        "type": "string",
+        "description": "Analysis of recent QC trends for this test method"
+      },
+      "next_qc_due": {
+        "type": "string",
+        "description": "When next QC check is due",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Result_Validator",
+    "tool_description": "Validates laboratory test results by checking for analytical errors, delta checks, and critical values before results are reported to physicians.",
+    "parameters": {
+      "test_result": {
+        "type": "number",
+        "required": true,
+        "description": "Numeric test result value"
+      },
+      "test_code": {
+        "type": "string",
+        "required": true,
+        "description": "Laboratory test code for the result"
+      },
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier for historical comparison"
+      },
+      "specimen_id": {
+        "type": "string",
+        "required": true,
+        "description": "Specimen identifier for result tracking"
+      },
+      "units": {
+        "type": "string",
+        "required": true,
+        "description": "Measurement units for the test result"
+      },
+      "instrument_id": {
+        "type": "string",
+        "required": true,
+        "description": "Instrument that performed the analysis"
+      },
+      "analysis_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date and time when analysis was performed",
+        "format": "date-time"
+      },
+      "technologist_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of laboratory technologist who performed the test"
+      },
+      "dilution_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Sample dilution factor if applicable",
+        "default": 1
+      },
+      "repeat_analysis": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this is a repeat analysis of the same specimen",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid test result: Result value is outside analytical measurement range for this test.",
+      "Unknown test code: Test code not found in laboratory test menu.",
+      "Patient not found: Patient ID not valid or not found in system.",
+      "Invalid specimen: Specimen ID not found or specimen expired.",
+      "Invalid units: Units do not match expected units for this test.",
+      "Instrument not validated: Instrument failed recent QC checks or calibration.",
+      "Delta check failure: Result differs significantly from patient's previous results.",
+      "Critical value detected: Result requires immediate physician notification.",
+      "Unauthorized technologist: Technologist not certified to perform this test type."
+    ],
+    "usage": "Provide all required parameters including test_result, test_code, patient_id, specimen_id, units, instrument_id, analysis_date, and technologist_id to validate test results before reporting.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Result validation status: valid, invalid, requires_review, critical"
+      },
+      "delta_check_result": {
+        "type": "string",
+        "description": "Delta check comparison with previous results"
+      },
+      "critical_flag": {
+        "type": "boolean",
+        "description": "Whether result is a critical value requiring immediate action"
+      },
+      "validation_notes": {
+        "type": "string",
+        "description": "Additional validation comments or concerns"
+      },
+      "reviewer_required": {
+        "type

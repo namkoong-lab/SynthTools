@@ -1,0 +1,868 @@
+field_name: ecommerce_and_retail
+subfield: Inventory Management and Tracking
+task: Product catalog management and SKU organization
+tool_description: |-
+  STEP 1 — Rate task difficulty
+  This task has medium difficulty due to the moderate scope of catalog operations (creating, updating, organizing SKUs), potential data consistency challenges across multiple product attributes, dependencies between catalog structure and inventory systems, and moderate risk of errors affecting customer experience and operations.
+
+  STEP 2 — Set a tool budget
+  Given the medium difficulty, I'll target 12 tools within the 10-15 range to cover catalog creation, SKU management, attribute handling, categorization, validation, and reporting functionalities.
+
+  STEP 3 — List all tool names and dependencies
+  1. **Product Creator** - Consumes: product details → Produces: product records
+  2. **SKU Generator** - Consumes: product attributes → Produces: unique SKUs
+  3. **Attribute Validator** - Consumes: product attributes → Produces: validation results
+  4. **Category Manager** - Consumes: category data → Produces: category hierarchy
+  5. **Product Updater** - Consumes: product IDs, new attributes → Produces: updated records
+  6. **Bulk Product Importer** - Consumes: CSV/data files → Produces: batch import results
+  7. **SKU Organizer** - Consumes: SKU patterns, products → Produces: organized SKU structure
+  8. **Product Searcher** - Consumes: search criteria → Produces: matching products
+  9. **Inventory Linker** - Consumes: products, inventory data → Produces: linked records
+  10. **Catalog Validator** - Consumes: catalog data → Produces: validation report
+  11. **Product Deactivator** - Consumes: product IDs → Produces: deactivation results
+  12. **Catalog Reporter** - Consumes: catalog parameters → Produces: analytics reports
+
+  STEP 4 — Multi-tool plans
+  **Simple Plans:**
+  1. Create new product: Product Creator → SKU Generator → Attribute Validator
+  2. Update existing product: Product Searcher → Product Updater → Catalog Validator
+
+  **Medium Plans:**
+  1. Bulk catalog setup: Category Manager → Bulk Product Importer → SKU Organizer → Inventory Linker
+  2. Product lifecycle management: Product Searcher → Product Updater → Attribute Validator → Catalog Reporter
+
+  **Complex Plans:**
+  1. Complete catalog restructure: Category Manager → Product Searcher → SKU Organizer → Product Updater → Inventory Linker → Catalog Validator → Catalog Reporter
+  2. Quality assurance workflow: Bulk Product Importer → Attribute Validator → Catalog Validator → Product Updater → SKU Organizer → Catalog Reporter
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Product Creator",
+    "tool_description": "Creates new product records in the catalog with basic product information and automatically assigns internal product IDs.",
+    "parameters": {
+      "product_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the product to be created"
+      },
+      "brand": {
+        "type": "string",
+        "required": true,
+        "description": "Brand or manufacturer name"
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "description": "Detailed product description",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty product name: Product name cannot be empty or contain only whitespace.",
+      "Empty brand name: Brand name cannot be empty or contain only whitespace.",
+      "Duplicate product: A product with the same name and brand already exists in the catalog."
+    ],
+    "usage": "Provide product_name and brand as required parameters. Optionally include description for more detailed product information. The tool will create a new product record and return the assigned product ID.",
+    "output_details": {
+      "product_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to the created product"
+      },
+      "status": {
+        "type": "string",
+        "description": "Creation status (success or failure)"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the product was created in ISO 8601 format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SKU Generator",
+    "tool_description": "Generates unique SKU codes for products based on configurable patterns and attributes, ensuring no duplicates in the catalog.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product ID to generate SKU for"
+      },
+      "category_code": {
+        "type": "string",
+        "required": true,
+        "description": "Category abbreviation (2-4 characters)"
+      },
+      "brand_code": {
+        "type": "string",
+        "required": true,
+        "description": "Brand abbreviation (2-4 characters)"
+      },
+      "color": {
+        "type": "string",
+        "required": false,
+        "description": "Product color",
+        "default": "None"
+      },
+      "size": {
+        "type": "string",
+        "required": false,
+        "description": "Product size",
+        "default": "None"
+      },
+      "pattern": {
+        "type": "string",
+        "required": false,
+        "description": "SKU pattern: STANDARD, SEQUENTIAL, or CUSTOM",
+        "default": "STANDARD"
+      },
+      "custom_prefix": {
+        "type": "string",
+        "required": false,
+        "description": "Custom prefix for SKU when using CUSTOM pattern",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid product ID: Product ID does not exist in the catalog.",
+      "Invalid pattern type: Pattern must be one of STANDARD, SEQUENTIAL, or CUSTOM.",
+      "Missing custom prefix: Custom prefix is required when using CUSTOM pattern.",
+      "Invalid code format: Category and brand codes must be 2-4 alphanumeric characters.",
+      "SKU generation failed: Unable to generate unique SKU after multiple attempts."
+    ],
+    "usage": "Provide product_id, category_code, and brand_code. Optionally specify color, size, pattern type, and custom_prefix for more specific SKU generation. The tool ensures uniqueness across the entire catalog.",
+    "output_details": {
+      "sku": {
+        "type": "string",
+        "description": "Generated unique SKU code"
+      },
+      "pattern_used": {
+        "type": "string",
+        "description": "The SKU pattern that was applied"
+      },
+      "components": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of components used to build the SKU"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Attribute Validator",
+    "tool_description": "Validates product attributes against predefined rules and constraints to ensure data quality and consistency across the catalog.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product ID to validate attributes for"
+      },
+      "attributes": {
+        "type": "array",
+        "required": true,
+        "description": "Array of attribute names to validate",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of attribute values corresponding to attributes",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "strict_mode": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply strict validation rules",
+        "default": false
+      },
+      "category_id": {
+        "type": "string",
+        "required": false,
+        "description": "Category ID for category-specific validation rules",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid product ID: Product ID does not exist in the catalog.",
+      "Mismatched arrays: Attributes and values arrays must have the same length.",
+      "Empty attribute name: Attribute names cannot be empty or contain only whitespace.",
+      "Invalid category ID: Category ID does not exist in the category hierarchy.",
+      "Validation rule not found: No validation rules defined for one or more attributes."
+    ],
+    "usage": "Provide product_id, attributes array, and corresponding values array. Ensure both arrays have the same length. Optionally enable strict_mode for stricter validation and provide category_id for category-specific rules.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether all attributes passed validation"
+      },
+      "validation_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of validation results for each attribute"
+      },
+      "errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of validation error messages"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of validation warning messages"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Category Manager",
+    "tool_description": "Manages product category hierarchy including creating, updating, and organizing categories with parent-child relationships.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: CREATE, UPDATE, DELETE, or GET_HIERARCHY"
+      },
+      "category_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name of the category",
+        "default": "None"
+      },
+      "category_id": {
+        "type": "string",
+        "required": false,
+        "description": "Category ID for UPDATE or DELETE actions",
+        "default": "None"
+      },
+      "parent_category_id": {
+        "type": "string",
+        "required": false,
+        "description": "Parent category ID for hierarchical organization",
+        "default": "None"
+      },
+      "category_code": {
+        "type": "string",
+        "required": false,
+        "description": "Short code for the category (2-6 characters)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Action must be one of CREATE, UPDATE, DELETE, or GET_HIERARCHY.",
+      "Missing category name: Category name is required for CREATE action.",
+      "Missing category ID: Category ID is required for UPDATE and DELETE actions.",
+      "Category not found: The specified category ID does not exist.",
+      "Duplicate category: A category with the same name already exists at this level.",
+      "Invalid parent category: The specified parent category ID does not exist.",
+      "Circular reference: Cannot set parent category that would create a circular hierarchy."
+    ],
+    "usage": "Specify the action to perform and provide required parameters based on the action. For CREATE, provide category_name; for UPDATE/DELETE, provide category_id. Use parent_category_id to create hierarchical structures.",
+    "output_details": {
+      "category_id": {
+        "type": "string",
+        "description": "ID of the affected category"
+      },
+      "status": {
+        "type": "string",
+        "description": "Operation status (success or failure)"
+      },
+      "hierarchy": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Category hierarchy structure (for GET_HIERARCHY action)"
+      },
+      "message": {
+        "type": "string",
+        "description": "Status message or additional information"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Updater",
+    "tool_description": "Updates existing product information including attributes, categorization, and metadata with validation and change tracking.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product ID to update"
+      },
+      "field_names": {
+        "type": "array",
+        "required": true,
+        "description": "Array of field names to update",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "field_values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of new values corresponding to field names",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "validate_changes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate changes before applying",
+        "default": true
+      },
+      "update_timestamp": {
+        "type": "string",
+        "required": false,
+        "description": "Timestamp for the update in ISO 8601 format",
+        "default": "None"
+      },
+      "reason": {
+        "type": "string",
+        "required": false,
+        "description": "Reason for the update (for audit trail)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Product not found: The specified product ID does not exist in the catalog.",
+      "Mismatched arrays: Field names and field values arrays must have the same length.",
+      "Invalid field name: One or more field names are not recognized or updatable.",
+      "Validation failed: One or more field values failed validation checks.",
+      "Update conflict: The product has been modified by another process since retrieval.",
+      "Invalid timestamp format: Timestamp must be in ISO 8601 format if provided."
+    ],
+    "usage": "Provide product_id, field_names array, and corresponding field_values array. Ensure both arrays have matching lengths. Optionally disable validation, provide custom timestamp, or add update reason for audit purposes.",
+    "output_details": {
+      "update_status": {
+        "type": "string",
+        "description": "Status of the update operation"
+      },
+      "updated_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of successfully updated field names"
+      },
+      "failed_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of field names that failed to update"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp when the update was applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bulk Product Importer",
+    "tool_description": "Imports multiple products from CSV files or data arrays with validation, error handling, and progress tracking for large catalog operations.",
+    "parameters": {
+      "data_source": {
+        "type": "string",
+        "required": true,
+        "description": "Data source type: CSV_FILE or ARRAY"
+      },
+      "file_path": {
+        "type": "string",
+        "required": false,
+        "description": "Path to CSV file (required if data_source is CSV_FILE)",
+        "default": "None"
+      },
+      "product_names": {
+        "type": "array",
+        "required": false,
+        "description": "Array of product names (required if data_source is ARRAY)",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "brands": {
+        "type": "array",
+        "required": false,
+        "description": "Array of brand names corresponding to product names",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "categories": {
+        "type": "array",
+        "required": false,
+        "description": "Array of category names corresponding to products",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "prices": {
+        "type": "array",
+        "required": false,
+        "description": "Array of product prices as numbers",
+        "items": {
+          "type": "number"
+        },
+        "default": "None"
+      },
+      "validate_before_import": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate all data before importing",
+        "default": true
+      },
+      "skip_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to skip products that already exist",
+        "default": true
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of products to process in each batch (1-1000)",
+        "default": 100
+      },
+      "generate_skus": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to automatically generate SKUs for imported products",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid data source: Data source must be CSV_FILE or ARRAY.",
+      "Missing file path: File path is required when data_source is CSV_FILE.",
+      "File not found: The specified CSV file does not exist or is not accessible.",
+      "Missing array data: Product names and brands arrays are required when data_source is ARRAY.",
+      "Mismatched array lengths: All provided arrays must have the same length.",
+      "Invalid batch size: Batch size must be between 1 and 1000.",
+      "CSV format error: CSV file has invalid format or missing required columns."
+    ],
+    "usage": "Set data_source to CSV_FILE and provide file_path, or set to ARRAY and provide product_names, brands, and optional categories/prices arrays. Configure validation, duplicate handling, and batch processing options as needed.",
+    "output_details": {
+      "import_summary": {
+        "type": "string",
+        "description": "Summary of the import operation"
+      },
+      "total_processed": {
+        "type": "integer",
+        "description": "Total number of products processed"
+      },
+      "successful_imports": {
+        "type": "integer",
+        "description": "Number of products successfully imported"
+      },
+      "failed_imports": {
+        "type": "integer",
+        "description": "Number of products that failed to import"
+      },
+      "skipped_duplicates": {
+        "type": "integer",
+        "description": "Number of duplicate products skipped"
+      },
+      "error_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of detailed error messages for failed imports"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SKU Organizer",
+    "tool_description": "Reorganizes and standardizes SKU patterns across the catalog, updates existing SKUs to new patterns, and ensures consistency.",
+    "parameters": {
+      "organization_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of organization: STANDARDIZE, RENUMBER, or CATEGORIZE"
+      },
+      "target_pattern": {
+        "type": "string",
+        "required": true,
+        "description": "Target SKU pattern to apply"
+      },
+      "category_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Array of category IDs to limit organization scope",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "preserve_existing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve existing valid SKUs",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid organization type: Type must be STANDARDIZE, RENUMBER, or CATEGORIZE.",
+      "Invalid target pattern: Target pattern format is not recognized.",
+      "Category not found: One or more category IDs in the filter do not exist.",
+      "SKU conflict: Organization would create duplicate SKUs in the catalog."
+    ],
+    "usage": "Specify organization_type and target_pattern. Optionally filter by categories and choose whether to preserve existing valid SKUs. The tool will reorganize SKUs according to the specified pattern.",
+    "output_details": {
+      "organization_summary": {
+        "type": "string",
+        "description": "Summary of the SKU organization operation"
+      },
+      "products_processed": {
+        "type": "integer",
+        "description": "Number of products processed"
+      },
+      "skus_updated": {
+        "type": "integer",
+        "description": "Number of SKUs that were updated"
+      },
+      "skus_preserved": {
+        "type": "integer",
+        "description": "Number of existing SKUs that were preserved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Searcher",
+    "tool_description": "Searches and filters products in the catalog using various criteria including name, SKU, category, brand, and custom attributes.",
+    "parameters": {
+      "search_term": {
+        "type": "string",
+        "required": false,
+        "description": "General search term to match against product names and descriptions",
+        "default": "None"
+      },
+      "sku": {
+        "type": "string",
+        "required": false,
+        "description": "Specific SKU to search for",
+        "default": "None"
+      },
+      "brand": {
+        "type": "string",
+        "required": false,
+        "description": "Brand name to filter by",
+        "default": "None"
+      },
+      "category": {
+        "type": "string",
+        "required": false,
+        "description": "Category name or ID to filter by",
+        "default": "None"
+      },
+      "min_price": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum price filter",
+        "default": "None"
+      },
+      "max_price": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum price filter",
+        "default": "None"
+      },
+      "status": {
+        "type": "string",
+        "required": false,
+        "description": "Product status: ACTIVE, INACTIVE, or ALL",
+        "default": "ACTIVE"
+      },
+      "limit": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of results to return (1-1000)",
+        "default": 50
+      },
+      "sort_by": {
+        "type": "string",
+        "required": false,
+        "description": "Sort field: NAME, SKU, PRICE, or DATE_CREATED",
+        "default": "NAME"
+      },
+      "sort_order": {
+        "type": "string",
+        "required": false,
+        "description": "Sort order: ASC or DESC",
+        "default": "ASC"
+      }
+    },
+    "error_messages": [
+      "Invalid price range: min_price cannot be greater than max_price.",
+      "Invalid status filter: Status must be ACTIVE, INACTIVE, or ALL.",
+      "Invalid limit: Limit must be between 1 and 1000.",
+      "Invalid sort field: Sort field must be NAME, SKU, PRICE, or DATE_CREATED.",
+      "Invalid sort order: Sort order must be ASC or DESC."
+    ],
+    "usage": "Provide any combination of search criteria. Use search_term for general text matching, specific fields for exact filtering, and configure result limits and sorting. All search parameters are optional but at least one should be provided for meaningful results.",
+    "output_details": {
+      "total_results": {
+        "type": "integer",
+        "description": "Total number of products matching the search criteria"
+      },
+      "returned_count": {
+        "type": "integer",
+        "description": "Number of products returned in this response"
+      },
+      "product_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of product IDs matching the search criteria"
+      },
+      "product_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of product names corresponding to the product IDs"
+      },
+      "skus": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of SKUs corresponding to the products"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Linker",
+    "tool_description": "Links product catalog records with inventory management system data, synchronizing stock levels and availability status.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of product IDs to link with inventory",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "inventory_source": {
+        "type": "string",
+        "required": true,
+        "description": "Inventory data source: DATABASE, API, or CSV_FILE"
+      },
+      "source_location": {
+        "type": "string",
+        "required": false,
+        "description": "Location of inventory data (database table, API endpoint, or file path)",
+        "default": "None"
+      },
+      "sync_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Synchronization mode: FULL, INCREMENTAL, or VERIFY_ONLY",
+        "default": "INCREMENTAL"
+      },
+      "update_availability": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to update product availability based on stock levels",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid inventory source: Source must be DATABASE, API, or CSV_FILE.",
+      "Invalid sync mode: Mode must be FULL, INCREMENTAL, or VERIFY_ONLY.",
+      "Source location required: Source location must be provided for the selected inventory source.",
+      "Product not found: One or more product IDs do not exist in the catalog.",
+      "Inventory data access failed: Unable to access inventory data from the specified source.",
+      "Data format mismatch: Inventory data format does not match expected schema."
+    ],
+    "usage": "Provide an array of product_ids and specify the inventory_source. Configure sync_mode for different synchronization behaviors and set update_availability to control automatic availability updates based on stock levels.",
+    "output_details": {
+      "link_summary": {
+        "type": "string",
+        "description": "Summary of the inventory linking operation"
+      },
+      "products_linked": {
+        "type": "integer",
+        "description": "Number of products successfully linked"
+      },
+      "products_failed": {
+        "type": "integer",
+        "description": "Number of products that failed to link"
+      },
+      "inventory_records_processed": {
+        "type": "integer",
+        "description": "Number of inventory records processed"
+      },
+      "availability_updates": {
+        "type": "integer",
+        "description": "Number of product availability statuses updated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Catalog Validator",
+    "tool_description": "Performs comprehensive validation of catalog data integrity, consistency, and completeness across products, SKUs, and categories.",
+    "parameters": {
+      "validation_scope": {
+        "type": "string",
+        "required": true,
+        "description": "Validation scope: FULL_CATALOG, CATEGORY, or PRODUCT_LIST"
+      },
+      "target_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Array of specific IDs to validate (category IDs or product IDs)",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "check_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of checks to perform",
+        "items": {
+          "type": "string"
+        },
+        "default": ["COMPLETENESS", "CONSISTENCY", "DUPLICATES", "REFERENCES"]
+      },
+      "severity_filter": {
+        "type": "string",
+        "required": false,
+        "description": "Minimum severity level to report: LOW, MEDIUM, or HIGH",
+        "default": "MEDIUM"
+      }
+    },
+    "error_messages": [
+      "Invalid validation scope: Scope must be FULL_CATALOG, CATEGORY, or PRODUCT_LIST.",
+      "Missing target IDs: Target IDs are required when scope is CATEGORY or PRODUCT_LIST.",
+      "Invalid check types: Check types must be from [COMPLETENESS, CONSISTENCY, DUPLICATES, REFERENCES].",
+      "Invalid severity filter: Severity filter must be LOW, MEDIUM, or HIGH.",
+      "Target not found: One or more target IDs do not exist in the catalog."
+    ],
+    "usage": "Specify validation_scope and optionally provide target_ids for focused validation. Configure check_types to perform specific validation checks and set severity_filter to control the level of issues reported.",
+    "output_details": {
+      "validation_summary": {
+        "type": "string",
+        "description": "Overall summary of validation results"
+      },
+      "total_issues": {
+        "type": "integer",
+        "description": "Total number of issues found"
+      },
+      "high_severity_issues": {
+        "type": "integer",
+        "description": "Number of high severity issues"
+      },
+      "medium_severity_issues": {
+        "type": "integer",
+        "description": "Number of medium severity issues"
+      },
+      "low_severity_issues": {
+        "type": "integer",
+        "description": "Number of low severity issues"
+      },
+      "issue_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of issue categories found during validation"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of recommended actions to resolve issues"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Deactivator",
+    "tool_description": "Safely deactivates or removes products from the catalog while preserving historical data and managing dependencies.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of product IDs to deactivate",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "action_type": {
+        "type": "string",
+        "required": true,
+        "description": "Deactivation action: SOFT_DELETE, HARD_DELETE, or ARCHIVE"
+      },
+      "reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for deactivation"
+      },
+      "preserve_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve product history and transaction records",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid action type: Action must be SOFT_DELETE, HARD_DELETE, or ARCHIVE.",
+      "Empty reason: Reason for deactivation cannot

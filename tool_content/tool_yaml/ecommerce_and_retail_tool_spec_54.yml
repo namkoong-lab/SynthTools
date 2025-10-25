@@ -1,0 +1,813 @@
+field_name: ecommerce_and_retail
+subfield: Payment Processing and Financial Transactions
+task: Process split payments and marketplace fee distribution
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to its multi-party coordination requirements, complex financial calculations involving multiple payment methods and fee structures, strict regulatory compliance needs, real-time transaction processing demands, and high risk of errors that could result in financial losses or legal issues.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** within the 15-20 range to handle the complexity of payment splitting, fee calculations, compliance checks, transaction routing, and reconciliation processes.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Payment Method Validator** - Consumes: payment details → Produces: validation status
+  2. **Fee Calculator** - Consumes: transaction amounts, marketplace rules → Produces: fee breakdowns
+  3. **Split Payment Processor** - Consumes: payment amounts, recipient details → Produces: split instructions
+  4. **Bank Account Verifier** - Consumes: account details → Produces: verification status
+  5. **Transaction Router** - Consumes: payment instructions, routing rules → Produces: routing decisions
+  6. **Escrow Manager** - Consumes: payment data, release conditions → Produces: escrow status
+  7. **Compliance Checker** - Consumes: transaction details, regulations → Produces: compliance status
+  8. **Currency Converter** - Consumes: amounts, currencies → Produces: converted amounts
+  9. **Payout Scheduler** - Consumes: payout requests, schedules → Produces: scheduled payouts
+  10. **Transaction Logger** - Consumes: transaction data → Produces: audit trail
+  11. **Refund Processor** - Consumes: refund requests, original transactions → Produces: refund status
+  12. **Risk Assessor** - Consumes: transaction patterns → Produces: risk scores
+  13. **Settlement Reconciler** - Consumes: transaction records, bank statements → Produces: reconciliation reports
+  14. **Tax Calculator** - Consumes: transaction amounts, tax rules → Produces: tax obligations
+  15. **Payment Gateway Connector** - Consumes: payment requests → Produces: gateway responses
+  16. **Dispute Handler** - Consumes: dispute claims → Produces: dispute resolutions
+  17. **Financial Reporter** - Consumes: transaction data → Produces: financial reports
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  1. Basic payment validation: Payment Method Validator → Fee Calculator → Transaction Logger
+  2. Currency conversion: Currency Converter → Fee Calculator → Payment Gateway Connector
+
+  **Medium plans:**
+  1. Standard split payment: Payment Method Validator → Fee Calculator → Split Payment Processor → Transaction Router → Payout Scheduler → Transaction Logger
+  2. Compliance processing: Bank Account Verifier → Compliance Checker → Risk Assessor → Transaction Router → Settlement Reconciler
+
+  **Complex plans:**
+  1. Full marketplace transaction: Payment Method Validator → Compliance Checker → Risk Assessor → Fee Calculator → Tax Calculator → Split Payment Processor → Currency Converter → Transaction Router → Escrow Manager → Payout Scheduler → Transaction Logger → Settlement Reconciler
+  2. Dispute resolution workflow: Dispute Handler → Refund Processor → Fee Calculator → Split Payment Processor → Transaction Router → Settlement Reconciler → Financial Reporter
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Payment Method Validator",
+    "tool_description": "Validates payment methods including credit cards, bank accounts, and digital wallets to ensure they are active and have sufficient funds.",
+    "parameters": {
+      "payment_method_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of payment method: credit_card, debit_card, bank_account, digital_wallet"
+      },
+      "payment_details": {
+        "type": "string",
+        "required": true,
+        "description": "Encrypted payment method identifier or token"
+      },
+      "amount": {
+        "type": "number",
+        "required": true,
+        "description": "Transaction amount to validate against available funds"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "default": "USD",
+        "description": "Currency code (ISO 4217)"
+      }
+    },
+    "error_messages": [
+      "Invalid payment method type: Must be one of [credit_card, debit_card, bank_account, digital_wallet].",
+      "Payment method not found: The provided payment details do not correspond to a valid payment method.",
+      "Insufficient funds: The payment method does not have sufficient balance for the requested amount.",
+      "Expired payment method: The payment method has expired and cannot be used.",
+      "Invalid currency code: Currency must be a valid ISO 4217 code."
+    ],
+    "usage": "Provide payment_method_type, payment_details, and amount. Optionally specify currency. The tool validates the payment method and returns validation status.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the payment method is valid and has sufficient funds"
+      },
+      "validation_status": {
+        "type": "string",
+        "description": "Detailed validation status message"
+      },
+      "available_balance": {
+        "type": "number",
+        "description": "Available balance in the payment method"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fee Calculator",
+    "tool_description": "Calculates marketplace fees, processing fees, and other transaction-related charges based on configurable fee structures and transaction details.",
+    "parameters": {
+      "transaction_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Base transaction amount before fees"
+      },
+      "currency": {
+        "type": "string",
+        "required": true,
+        "description": "Currency code (ISO 4217)"
+      },
+      "payment_method_type": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method type: credit_card, debit_card, bank_account, digital_wallet"
+      },
+      "marketplace_fee_rate": {
+        "type": "number",
+        "required": false,
+        "default": 0.029,
+        "description": "Marketplace fee rate as decimal (e.g., 0.029 for 2.9%)"
+      },
+      "processing_fee_rate": {
+        "type": "number",
+        "required": false,
+        "default": 0.025,
+        "description": "Payment processing fee rate as decimal"
+      },
+      "fixed_fee": {
+        "type": "number",
+        "required": false,
+        "default": 0.30,
+        "description": "Fixed fee amount per transaction"
+      },
+      "merchant_category": {
+        "type": "string",
+        "required": false,
+        "default": "general",
+        "description": "Merchant category for fee calculation: general, high_risk, non_profit"
+      },
+      "volume_tier": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Volume tier for fee discounts: standard, premium, enterprise"
+      },
+      "transaction_type": {
+        "type": "string",
+        "required": false,
+        "default": "sale",
+        "description": "Transaction type: sale, refund, chargeback"
+      },
+      "international_transaction": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether this is an international transaction"
+      }
+    },
+    "error_messages": [
+      "Invalid transaction amount: Amount must be greater than 0.",
+      "Invalid currency code: Currency must be a valid ISO 4217 code.",
+      "Invalid fee rate: Fee rates must be between 0 and 1 (0-100%).",
+      "Invalid merchant category: Must be one of [general, high_risk, non_profit].",
+      "Invalid volume tier: Must be one of [standard, premium, enterprise].",
+      "Invalid transaction type: Must be one of [sale, refund, chargeback]."
+    ],
+    "usage": "Provide transaction_amount, currency, and payment_method_type. Configure fee rates and categories as needed. The tool calculates all applicable fees and returns a detailed breakdown.",
+    "output_details": {
+      "marketplace_fee": {
+        "type": "number",
+        "description": "Calculated marketplace fee amount"
+      },
+      "processing_fee": {
+        "type": "number",
+        "description": "Payment processing fee amount"
+      },
+      "fixed_fee": {
+        "type": "number",
+        "description": "Fixed fee amount"
+      },
+      "total_fees": {
+        "type": "number",
+        "description": "Sum of all fees"
+      },
+      "net_amount": {
+        "type": "number",
+        "description": "Transaction amount minus total fees"
+      },
+      "fee_breakdown": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed breakdown of each fee component"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Split Payment Processor",
+    "tool_description": "Processes split payments by dividing transaction amounts among multiple recipients based on specified allocation rules and payment schedules.",
+    "parameters": {
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the transaction"
+      },
+      "total_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total transaction amount to be split"
+      },
+      "recipient_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of recipient identifiers"
+      },
+      "allocation_amounts": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of allocation amounts corresponding to each recipient"
+      },
+      "allocation_type": {
+        "type": "string",
+        "required": false,
+        "default": "fixed",
+        "description": "Allocation method: fixed, percentage, priority_waterfall"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "default": "USD",
+        "description": "Currency code (ISO 4217)"
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: recipient_ids and allocation_amounts must have the same length.",
+      "Invalid allocation total: Sum of allocation amounts must equal total_amount for fixed allocation type.",
+      "Invalid allocation type: Must be one of [fixed, percentage, priority_waterfall].",
+      "Empty recipient list: At least one recipient must be specified.",
+      "Invalid amount: All amounts must be greater than 0.",
+      "Percentage allocation error: For percentage allocation, values must sum to 100."
+    ],
+    "usage": "Provide transaction_id, total_amount, recipient_ids, and allocation_amounts. The tool validates allocations and creates split payment instructions for each recipient.",
+    "output_details": {
+      "split_instructions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of payment instructions for each recipient"
+      },
+      "total_allocated": {
+        "type": "number",
+        "description": "Total amount allocated across all recipients"
+      },
+      "remaining_amount": {
+        "type": "number",
+        "description": "Any remaining amount after allocation"
+      },
+      "processing_status": {
+        "type": "string",
+        "description": "Status of the split payment processing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bank Account Verifier",
+    "tool_description": "Verifies bank account details for payout recipients, including account ownership, routing number validation, and account status checks.",
+    "parameters": {
+      "account_number": {
+        "type": "string",
+        "required": true,
+        "description": "Bank account number (encrypted or tokenized)"
+      },
+      "routing_number": {
+        "type": "string",
+        "required": true,
+        "description": "Bank routing number"
+      },
+      "account_type": {
+        "type": "string",
+        "required": true,
+        "description": "Account type: checking, savings, business"
+      },
+      "account_holder_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name on the bank account"
+      },
+      "verification_method": {
+        "type": "string",
+        "required": false,
+        "default": "micro_deposits",
+        "description": "Verification method: micro_deposits, instant_verification, manual_review"
+      }
+    },
+    "error_messages": [
+      "Invalid routing number: Routing number format is incorrect or bank not found.",
+      "Account verification failed: Unable to verify account ownership or account does not exist.",
+      "Invalid account type: Must be one of [checking, savings, business].",
+      "Name mismatch: Account holder name does not match bank records.",
+      "Account closed or frozen: The specified account cannot receive deposits."
+    ],
+    "usage": "Provide account_number, routing_number, account_type, and account_holder_name. Choose verification_method if needed. The tool performs comprehensive account verification.",
+    "output_details": {
+      "is_verified": {
+        "type": "boolean",
+        "description": "Whether the bank account is verified and valid"
+      },
+      "verification_status": {
+        "type": "string",
+        "description": "Detailed verification status message"
+      },
+      "bank_name": {
+        "type": "string",
+        "description": "Name of the bank institution"
+      },
+      "can_receive_deposits": {
+        "type": "boolean",
+        "description": "Whether the account can receive deposits"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transaction Router",
+    "tool_description": "Routes transactions to appropriate payment gateways, processors, or financial institutions based on routing rules, transaction characteristics, and system availability.",
+    "parameters": {
+      "transaction_data": {
+        "type": "string",
+        "required": true,
+        "description": "Serialized transaction data including amounts, recipients, and metadata"
+      },
+      "routing_strategy": {
+        "type": "string",
+        "required": false,
+        "default": "optimal_cost",
+        "description": "Routing strategy: optimal_cost, fastest_settlement, highest_success_rate, load_balance"
+      },
+      "preferred_processors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Array of preferred processor identifiers"
+      },
+      "excluded_processors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Array of processor identifiers to exclude"
+      }
+    },
+    "error_messages": [
+      "Invalid transaction data: Transaction data format is malformed or incomplete.",
+      "No available processors: No payment processors are available for this transaction type.",
+      "Invalid routing strategy: Must be one of [optimal_cost, fastest_settlement, highest_success_rate, load_balance].",
+      "Processor not supported: One or more specified processors are not supported.",
+      "Routing conflict: Preferred and excluded processor lists contain overlapping items."
+    ],
+    "usage": "Provide transaction_data and optionally specify routing_strategy, preferred_processors, or excluded_processors. The tool determines the optimal routing path for the transaction.",
+    "output_details": {
+      "selected_processor": {
+        "type": "string",
+        "description": "Identifier of the selected payment processor"
+      },
+      "routing_path": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Complete routing path for the transaction"
+      },
+      "estimated_settlement_time": {
+        "type": "string",
+        "description": "Estimated time for transaction settlement"
+      },
+      "routing_reason": {
+        "type": "string",
+        "description": "Explanation of why this routing was selected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Escrow Manager",
+    "tool_description": "Manages escrow accounts for marketplace transactions, holding funds until specified release conditions are met and handling fund releases or returns.",
+    "parameters": {
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the escrowed transaction"
+      },
+      "escrow_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Amount to be held in escrow"
+      },
+      "release_conditions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of conditions that must be met to release funds"
+      },
+      "release_to_recipient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the recipient when funds are released"
+      },
+      "escrow_duration_hours": {
+        "type": "integer",
+        "required": false,
+        "default": 72,
+        "description": "Maximum hours to hold funds in escrow"
+      },
+      "auto_release": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to automatically release funds when conditions are met"
+      },
+      "dispute_protection": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether dispute protection is enabled for this escrow"
+      }
+    },
+    "error_messages": [
+      "Invalid escrow amount: Amount must be greater than 0.",
+      "Empty release conditions: At least one release condition must be specified.",
+      "Invalid escrow duration: Duration must be between 1 and 720 hours (30 days).",
+      "Transaction already escrowed: This transaction is already under escrow management.",
+      "Insufficient funds: Not enough funds available to place in escrow.",
+      "Invalid recipient: The specified release recipient is not valid."
+    ],
+    "usage": "Provide transaction_id, escrow_amount, release_conditions, and release_to_recipient_id. Configure escrow_duration_hours, auto_release, and dispute_protection as needed. The tool manages the escrow lifecycle.",
+    "output_details": {
+      "escrow_account_id": {
+        "type": "string",
+        "description": "Unique identifier for the escrow account"
+      },
+      "escrow_status": {
+        "type": "string",
+        "description": "Current status of the escrow account"
+      },
+      "release_deadline": {
+        "type": "string",
+        "description": "Date and time when escrow will automatically release"
+      },
+      "conditions_met": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of release conditions that have been satisfied"
+      },
+      "pending_conditions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of release conditions still pending"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Checker",
+    "tool_description": "Validates transactions against regulatory compliance requirements including AML, KYC, sanctions screening, and jurisdiction-specific financial regulations.",
+    "parameters": {
+      "transaction_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Transaction amount for compliance threshold checks"
+      },
+      "currency": {
+        "type": "string",
+        "required": true,
+        "description": "Currency code (ISO 4217)"
+      },
+      "sender_jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Sender's jurisdiction code (ISO 3166-1 alpha-2)"
+      },
+      "recipient_jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Recipient's jurisdiction code (ISO 3166-1 alpha-2)"
+      },
+      "sender_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the sender"
+      },
+      "recipient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the recipient"
+      },
+      "transaction_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of transaction: payment, refund, withdrawal, deposit"
+      },
+      "business_relationship": {
+        "type": "string",
+        "required": false,
+        "default": "unknown",
+        "description": "Relationship between parties: customer, vendor, employee, contractor, unknown"
+      },
+      "check_sanctions": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to perform sanctions screening"
+      },
+      "check_pep": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to check for Politically Exposed Persons"
+      },
+      "reporting_threshold_override": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Override default reporting threshold for this transaction"
+      }
+    },
+    "error_messages": [
+      "Sanctions violation: One or more parties appear on sanctions lists and transaction cannot proceed.",
+      "KYC incomplete: Required Know Your Customer documentation is missing or expired.",
+      "AML threshold exceeded: Transaction exceeds anti-money laundering reporting thresholds.",
+      "Jurisdiction restriction: Transactions between these jurisdictions are not permitted.",
+      "PEP flagged: Transaction involves a Politically Exposed Person and requires additional review.",
+      "Invalid jurisdiction code: Jurisdiction must be a valid ISO 3166-1 alpha-2 code.",
+      "Compliance data unavailable: Unable to retrieve compliance data for verification."
+    ],
+    "usage": "Provide all required transaction and party details. Enable or disable specific compliance checks as needed. The tool performs comprehensive compliance validation and returns detailed results.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance status: approved, rejected, requires_review"
+      },
+      "aml_status": {
+        "type": "string",
+        "description": "Anti-money laundering check result"
+      },
+      "kyc_status": {
+        "type": "string",
+        "description": "Know Your Customer verification status"
+      },
+      "sanctions_clear": {
+        "type": "boolean",
+        "description": "Whether all parties cleared sanctions screening"
+      },
+      "pep_flagged": {
+        "type": "boolean",
+        "description": "Whether any party is flagged as PEP"
+      },
+      "reporting_required": {
+        "type": "boolean",
+        "description": "Whether transaction requires regulatory reporting"
+      },
+      "compliance_notes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Additional compliance notes and requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Currency Converter",
+    "tool_description": "Converts transaction amounts between different currencies using real-time exchange rates with support for multiple rate sources and conversion fees.",
+    "parameters": {
+      "amount": {
+        "type": "number",
+        "required": true,
+        "description": "Amount to convert"
+      },
+      "from_currency": {
+        "type": "string",
+        "required": true,
+        "description": "Source currency code (ISO 4217)"
+      },
+      "to_currency": {
+        "type": "string",
+        "required": true,
+        "description": "Target currency code (ISO 4217)"
+      },
+      "rate_source": {
+        "type": "string",
+        "required": false,
+        "default": "market",
+        "description": "Exchange rate source: market, bank, fixed, custom"
+      },
+      "conversion_fee_rate": {
+        "type": "number",
+        "required": false,
+        "default": 0.015,
+        "description": "Conversion fee rate as decimal (e.g., 0.015 for 1.5%)"
+      }
+    },
+    "error_messages": [
+      "Unsupported currency: One or more currency codes are not supported.",
+      "Invalid amount: Amount must be greater than 0.",
+      "Exchange rate unavailable: Current exchange rate cannot be retrieved.",
+      "Same currency conversion: From and to currencies are identical.",
+      "Invalid rate source: Must be one of [market, bank, fixed, custom].",
+      "Invalid conversion fee: Fee rate must be between 0 and 0.1 (10%)."
+    ],
+    "usage": "Provide amount, from_currency, and to_currency. Optionally specify rate_source and conversion_fee_rate. The tool performs currency conversion with current exchange rates.",
+    "output_details": {
+      "converted_amount": {
+        "type": "number",
+        "description": "Amount after currency conversion"
+      },
+      "exchange_rate": {
+        "type": "number",
+        "description": "Exchange rate used for conversion"
+      },
+      "conversion_fee": {
+        "type": "number",
+        "description": "Fee charged for currency conversion"
+      },
+      "net_amount": {
+        "type": "number",
+        "description": "Final amount after deducting conversion fees"
+      },
+      "rate_timestamp": {
+        "type": "string",
+        "description": "Timestamp of the exchange rate used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payout Scheduler",
+    "tool_description": "Schedules and manages payout distributions to recipients based on configurable schedules, minimum thresholds, and business rules.",
+    "parameters": {
+      "recipient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the payout recipient"
+      },
+      "payout_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Amount to be paid out"
+      },
+      "currency": {
+        "type": "string",
+        "required": true,
+        "description": "Currency code for the payout (ISO 4217)"
+      },
+      "schedule_type": {
+        "type": "string",
+        "required": false,
+        "default": "immediate",
+        "description": "Payout schedule: immediate, daily, weekly, bi_weekly, monthly"
+      },
+      "minimum_payout_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 10.00,
+        "description": "Minimum amount required to trigger payout"
+      },
+      "payout_method": {
+        "type": "string",
+        "required": false,
+        "default": "bank_transfer",
+        "description": "Payout method: bank_transfer, digital_wallet, check, wire_transfer"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "default": "normal",
+        "description": "Payout priority: low, normal, high, urgent"
+      }
+    },
+    "error_messages": [
+      "Invalid payout amount: Amount must be greater than 0.",
+      "Below minimum threshold: Payout amount is below the minimum threshold.",
+      "Invalid schedule type: Must be one of [immediate, daily, weekly, bi_weekly, monthly].",
+      "Invalid payout method: Must be one of [bank_transfer, digital_wallet, check, wire_transfer].",
+      "Recipient not found: The specified recipient ID does not exist.",
+      "Invalid priority level: Must be one of [low, normal, high, urgent].",
+      "Insufficient balance: Not enough funds available for payout."
+    ],
+    "usage": "Provide recipient_id, payout_amount, and currency. Configure schedule_type, minimum_payout_threshold, payout_method, and priority as needed. The tool schedules the payout according to specifications.",
+    "output_details": {
+      "payout_id": {
+        "type": "string",
+        "description": "Unique identifier for the scheduled payout"
+      },
+      "scheduled_date": {
+        "type": "string",
+        "description": "Date and time when payout is scheduled"
+      },
+      "payout_status": {
+        "type": "string",
+        "description": "Current status of the payout"
+      },
+      "estimated_arrival": {
+        "type": "string",
+        "description": "Estimated arrival time for the recipient"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transaction Logger",
+    "tool_description": "Logs all transaction activities, events, and status changes to create comprehensive audit trails for compliance, debugging, and reporting purposes.",
+    "parameters": {
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the transaction"
+      },
+      "event_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of event: created, validated, processed, settled, failed, cancelled, refunded"
+      },
+      "event_details": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the event or action"
+      },
+      "user_id": {
+        "type": "string",
+        "required": false,
+        "default": "system",
+        "description": "ID of user or system that triggered the event"
+      },
+      "severity_level": {
+        "type": "string",
+        "required": false,
+        "default": "info",
+        "description": "Event severity: debug, info, warning, error, critical"
+      },
+      "metadata": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Additional metadata as JSON string"
+      }
+    },
+    "error_messages": [
+      "Invalid event type: Must be one of [created, validated, processed, settled, failed, cancelled, refunded].",
+      "Invalid severity level: Must be one of [debug, info, warning, error, critical].",
+      "Empty event details: Event details cannot be empty.",
+      "Invalid metadata format: Metadata must be a valid JSON string if provided.",
+      "Logging failed: Unable to write log entry to storage."
+    ],
+    "usage": "Provide transaction_id, event_type, and event_details. Optionally include user_id, severity_level, and metadata. The tool creates persistent log entries for audit trails.",
+    "output_details": {
+      "log_id": {
+        "type": "string",
+        "description": "Unique identifier for the log entry"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "UTC timestamp when the log entry was created"
+      },
+      "log_status": {
+        "type": "string",
+        "description": "Status of the logging operation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Refund Processor",
+    "tool_description": "Processes refunds for transactions, handling partial or full refunds with appropriate fee adjustments and split payment reversals.",
+    "parameters": {
+      "original_transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the original transaction to refund"
+      },
+      "refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Amount to refund"
+      },
+      "refund_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for refund: customer_request, quality_issue, fraud, error, dispute"
+      },
+      "refund_fees":

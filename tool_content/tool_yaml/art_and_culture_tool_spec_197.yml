@@ -1,0 +1,780 @@
+field_name: art_and_culture
+subfield: Museum Collection Management
+task: Track provenance and ownership history of collection items
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium difficulty. It involves managing complex historical data with multiple interconnected records, requires careful documentation and verification processes, and has moderate risk since provenance errors can affect legal ownership and authenticity. The scope includes tracking ownership chains, verifying documentation, and maintaining detailed audit trails across potentially centuries of history.
+
+  ## STEP 2 — Set a tool budget
+
+  Based on the medium difficulty assessment, I'm targeting 12 tools to cover the various aspects of provenance tracking, documentation management, verification processes, and reporting needs.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Provenance Record Creator** - Creates initial provenance entries → feeds into Ownership Chain Builder
+  2. **Ownership Chain Builder** - Constructs ownership sequences → feeds into Chain Validator
+  3. **Chain Validator** - Validates ownership chains → feeds into Gap Analyzer
+  4. **Gap Analyzer** - Identifies missing periods → feeds into Research Task Generator
+  5. **Research Task Generator** - Creates research assignments → feeds into Documentation Uploader
+  6. **Documentation Uploader** - Adds supporting documents → feeds into Authentication Verifier
+  7. **Authentication Verifier** - Validates document authenticity → feeds into Legal Status Checker
+  8. **Legal Status Checker** - Checks ownership legality → feeds into Provenance Reporter
+  9. **Provenance Reporter** - Generates provenance reports → feeds into Timeline Visualizer
+  10. **Timeline Visualizer** - Creates visual timelines → feeds into Export Manager
+  11. **Export Manager** - Exports data to external systems → feeds into Audit Logger
+  12. **Audit Logger** - Tracks all system changes → provides audit trail for all tools
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple plans (2-3 tools):**
+  - Create new provenance record: Provenance Record Creator → Audit Logger
+  - Generate basic report: Provenance Reporter → Export Manager
+
+  **Medium plans (4-6 tools):**
+  - Validate existing chain: Ownership Chain Builder → Chain Validator → Gap Analyzer → Provenance Reporter
+  - Add new documentation: Documentation Uploader → Authentication Verifier → Legal Status Checker → Audit Logger
+
+  **Complex plans (7+ tools):**
+  - Complete provenance audit: Provenance Record Creator → Ownership Chain Builder → Chain Validator → Gap Analyzer → Research Task Generator → Authentication Verifier → Legal Status Checker → Provenance Reporter → Timeline Visualizer → Export Manager → Audit Logger
+  - New acquisition processing: Provenance Record Creator → Documentation Uploader → Authentication Verifier → Legal Status Checker → Ownership Chain Builder → Chain Validator → Provenance Reporter → Audit Logger
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Provenance Record Creator",
+    "tool_description": "Creates new provenance records for collection items with basic ownership and acquisition details.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the collection item"
+      },
+      "acquisition_method": {
+        "type": "string",
+        "required": true,
+        "description": "Method of acquisition (purchase, donation, bequest, exchange, loan)"
+      },
+      "acquisition_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of acquisition in ISO 8601 format",
+        "format": "date-time"
+      },
+      "source_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of person or organization from whom item was acquired"
+      },
+      "source_location": {
+        "type": "string",
+        "required": false,
+        "description": "Location of the source",
+        "default": "Unknown"
+      }
+    },
+    "error_messages": [
+      "Invalid item_id: Item ID must be a non-empty string and should not already exist in the system.",
+      "Invalid acquisition_method: Must be one of [purchase, donation, bequest, exchange, loan].",
+      "Invalid acquisition_date: Must be a valid ISO 8601 date-time format.",
+      "Missing source_name: Source name is required and cannot be empty."
+    ],
+    "usage": "Provide item_id, acquisition_method, acquisition_date, and source_name to create a new provenance record. Optionally specify source_location for additional context.",
+    "output_details": {
+      "record_id": {
+        "type": "string",
+        "description": "Unique identifier for the created provenance record"
+      },
+      "status": {
+        "type": "string",
+        "description": "Creation status message"
+      },
+      "created_timestamp": {
+        "type": "string",
+        "description": "Timestamp when record was created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ownership Chain Builder",
+    "tool_description": "Constructs chronological ownership chains by linking provenance records and identifying ownership transitions.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the collection item"
+      },
+      "start_date": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for chain analysis in ISO 8601 format",
+        "format": "date-time",
+        "default": null
+      },
+      "end_date": {
+        "type": "string",
+        "required": false,
+        "description": "End date for chain analysis in ISO 8601 format",
+        "format": "date-time",
+        "default": null
+      },
+      "include_uncertain": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include ownership periods with uncertain dates",
+        "default": true
+      },
+      "sort_order": {
+        "type": "string",
+        "required": false,
+        "description": "Sort order for ownership chain (chronological, reverse_chronological)",
+        "default": "chronological"
+      }
+    },
+    "error_messages": [
+      "Item not found: The specified item_id does not exist in the system.",
+      "Invalid date range: start_date must be earlier than end_date when both are provided.",
+      "Invalid sort_order: Must be either 'chronological' or 'reverse_chronological'.",
+      "No provenance data: No provenance records found for the specified item."
+    ],
+    "usage": "Provide item_id to build ownership chain. Optionally filter by date range and configure inclusion of uncertain records and sort order.",
+    "output_details": {
+      "chain_length": {
+        "type": "integer",
+        "description": "Number of ownership periods identified"
+      },
+      "ownership_periods": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of ownership period descriptions with dates and owners"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Overall confidence score for the ownership chain (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Chain Validator",
+    "tool_description": "Validates ownership chains for consistency, logical sequence, and identifies potential conflicts or issues.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the collection item"
+      },
+      "validation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Level of validation (basic, standard, comprehensive)",
+        "default": "standard"
+      },
+      "check_legal_issues": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check for potential legal issues",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Item not found: The specified item_id does not exist in the system.",
+      "Invalid validation_level: Must be one of [basic, standard, comprehensive].",
+      "No ownership chain: No ownership chain exists for this item. Run Ownership Chain Builder first."
+    ],
+    "usage": "Provide item_id to validate its ownership chain. Set validation_level for thoroughness and enable check_legal_issues for legal conflict detection.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result (valid, warning, invalid)"
+      },
+      "issues_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of validation issues or warnings identified"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of recommended actions to resolve issues"
+      },
+      "validation_score": {
+        "type": "number",
+        "description": "Validation score from 0-100 indicating chain quality"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Gap Analyzer",
+    "tool_description": "Analyzes ownership chains to identify gaps, missing periods, and undocumented ownership transitions.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the collection item"
+      },
+      "minimum_gap_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum gap duration in days to report (1-3650)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Item not found: The specified item_id does not exist in the system.",
+      "Invalid minimum_gap_days: Must be an integer between 1 and 3650 days.",
+      "No ownership chain: No ownership chain exists for this item. Run Ownership Chain Builder first."
+    ],
+    "usage": "Provide item_id to analyze gaps in ownership chain. Set minimum_gap_days to filter out very small gaps.",
+    "output_details": {
+      "gaps_found": {
+        "type": "integer",
+        "description": "Number of ownership gaps identified"
+      },
+      "gap_periods": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of gap period descriptions with start and end dates"
+      },
+      "total_gap_years": {
+        "type": "number",
+        "description": "Total years of undocumented ownership"
+      },
+      "priority_gaps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of high-priority gaps requiring immediate research"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Research Task Generator",
+    "tool_description": "Creates research tasks and assignments based on provenance gaps and validation issues to guide further investigation.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the collection item"
+      },
+      "task_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Priority level for generated tasks (high, medium, low)",
+        "default": "medium"
+      },
+      "research_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Types of research to include (archival, database, expert_consultation, auction_records)",
+        "default": ["archival", "database"]
+      },
+      "assigned_researcher": {
+        "type": "string",
+        "required": false,
+        "description": "Name of researcher to assign tasks to",
+        "default": null
+      },
+      "due_date": {
+        "type": "string",
+        "required": false,
+        "description": "Due date for research tasks in ISO 8601 format",
+        "format": "date-time",
+        "default": null
+      },
+      "include_gaps_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to create tasks only for identified gaps",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Item not found: The specified item_id does not exist in the system.",
+      "Invalid task_priority: Must be one of [high, medium, low].",
+      "Invalid research_types: Must include only [archival, database, expert_consultation, auction_records].",
+      "Invalid due_date: Must be a valid ISO 8601 date-time format and in the future.",
+      "No gaps or issues found: No research tasks needed for this item based on current analysis."
+    ],
+    "usage": "Provide item_id to generate research tasks. Configure priority, research types, assignment, and due date as needed.",
+    "output_details": {
+      "tasks_created": {
+        "type": "integer",
+        "description": "Number of research tasks generated"
+      },
+      "task_summaries": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of task descriptions and objectives"
+      },
+      "estimated_hours": {
+        "type": "number",
+        "description": "Estimated total research hours required"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Documentation Uploader",
+    "tool_description": "Uploads and manages supporting documents for provenance records including receipts, certificates, correspondence, and other evidence.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the collection item"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document (receipt, certificate, letter, contract, appraisal, photograph, other)"
+      },
+      "document_title": {
+        "type": "string",
+        "required": true,
+        "description": "Descriptive title for the document"
+      },
+      "document_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date of the document in ISO 8601 format",
+        "format": "date-time",
+        "default": null
+      },
+      "source_person": {
+        "type": "string",
+        "required": false,
+        "description": "Person or organization who provided the document",
+        "default": null
+      },
+      "authenticity_verified": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether document authenticity has been verified",
+        "default": false
+      },
+      "file_format": {
+        "type": "string",
+        "required": true,
+        "description": "File format of the document (pdf, jpg, png, tiff, doc, txt)"
+      },
+      "file_size_mb": {
+        "type": "number",
+        "required": true,
+        "description": "File size in megabytes (maximum 50MB)"
+      },
+      "keywords": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Keywords for document searchability",
+        "maxItems": 20,
+        "default": []
+      },
+      "confidential": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether document contains confidential information",
+        "default": false
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Primary language of the document",
+        "default": "English"
+      },
+      "related_owners": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Names of owners mentioned in the document",
+        "maxItems": 10,
+        "default": []
+      },
+      "notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional notes about the document",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Item not found: The specified item_id does not exist in the system.",
+      "Invalid document_type: Must be one of [receipt, certificate, letter, contract, appraisal, photograph, other].",
+      "File too large: File size must not exceed 50MB.",
+      "Invalid file_format: Must be one of [pdf, jpg, png, tiff, doc, txt].",
+      "Invalid document_date: Must be a valid ISO 8601 date-time format.",
+      "Too many keywords: Maximum 20 keywords allowed.",
+      "Too many related_owners: Maximum 10 related owners allowed."
+    ],
+    "usage": "Provide item_id, document_type, document_title, file_format, and file_size_mb. Add optional metadata like date, source, keywords, and related owners for better organization.",
+    "output_details": {
+      "document_id": {
+        "type": "string",
+        "description": "Unique identifier for the uploaded document"
+      },
+      "upload_status": {
+        "type": "string",
+        "description": "Upload completion status"
+      },
+      "storage_path": {
+        "type": "string",
+        "description": "Internal storage path for the document"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Authentication Verifier",
+    "tool_description": "Verifies the authenticity and reliability of provenance documents and evidence through various validation methods.",
+    "parameters": {
+      "document_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the document to verify"
+      },
+      "verification_method": {
+        "type": "string",
+        "required": true,
+        "description": "Method of verification (expert_review, digital_forensics, cross_reference, physical_examination)"
+      },
+      "expert_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name of expert conducting verification",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Document not found: The specified document_id does not exist in the system.",
+      "Invalid verification_method: Must be one of [expert_review, digital_forensics, cross_reference, physical_examination].",
+      "Expert required: expert_name is required when verification_method is 'expert_review'."
+    ],
+    "usage": "Provide document_id and verification_method. Include expert_name when using expert review method.",
+    "output_details": {
+      "verification_result": {
+        "type": "string",
+        "description": "Verification outcome (authentic, questionable, fraudulent, inconclusive)"
+      },
+      "confidence_level": {
+        "type": "number",
+        "description": "Confidence level in verification result (0-100)"
+      },
+      "verification_notes": {
+        "type": "string",
+        "description": "Detailed notes from verification process"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Legal Status Checker",
+    "tool_description": "Checks legal ownership status, identifies potential issues like stolen property claims, export restrictions, and ownership disputes.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the collection item"
+      },
+      "check_databases": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Databases to check (art_loss, fbi_stolen, interpol, icom, customs)",
+        "default": ["art_loss", "fbi_stolen"]
+      },
+      "check_export_restrictions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check export/import restrictions",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Item not found: The specified item_id does not exist in the system.",
+      "Invalid check_databases: Must include only [art_loss, fbi_stolen, interpol, icom, customs].",
+      "Database access error: Unable to connect to one or more external databases. Check network connectivity."
+    ],
+    "usage": "Provide item_id to check legal status. Configure which databases to query and whether to check export restrictions.",
+    "output_details": {
+      "legal_status": {
+        "type": "string",
+        "description": "Overall legal status (clear, warning, restricted, disputed)"
+      },
+      "database_matches": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of database matches found"
+      },
+      "restrictions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of legal restrictions or requirements"
+      },
+      "recommendations": {
+        "type": "string",
+        "description": "Legal recommendations based on findings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Provenance Reporter",
+    "tool_description": "Generates comprehensive provenance reports in various formats for internal use, exhibitions, loans, and legal documentation.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the collection item"
+      },
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report (summary, detailed, legal, exhibition, loan, acquisition)"
+      },
+      "include_images": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include document images in report",
+        "default": false
+      },
+      "confidential_level": {
+        "type": "string",
+        "required": false,
+        "description": "Confidentiality level (public, internal, restricted)",
+        "default": "internal"
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output format (pdf, html, word, json)",
+        "default": "pdf"
+      }
+    },
+    "error_messages": [
+      "Item not found: The specified item_id does not exist in the system.",
+      "Invalid report_type: Must be one of [summary, detailed, legal, exhibition, loan, acquisition].",
+      "Invalid confidential_level: Must be one of [public, internal, restricted].",
+      "Invalid output_format: Must be one of [pdf, html, word, json].",
+      "Insufficient data: Not enough provenance data available to generate the requested report type."
+    ],
+    "usage": "Provide item_id and report_type to generate provenance report. Configure format, confidentiality level, and image inclusion as needed.",
+    "output_details": {
+      "report_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated report"
+      },
+      "report_title": {
+        "type": "string",
+        "description": "Title of the generated report"
+      },
+      "page_count": {
+        "type": "integer",
+        "description": "Number of pages in the report"
+      },
+      "generation_date": {
+        "type": "string",
+        "description": "Timestamp when report was generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Timeline Visualizer",
+    "tool_description": "Creates visual timeline representations of ownership history with interactive elements and customizable display options.",
+    "parameters": {
+      "item_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the collection item"
+      },
+      "timeline_style": {
+        "type": "string",
+        "required": false,
+        "description": "Visual style for timeline (horizontal, vertical, circular)",
+        "default": "horizontal"
+      },
+      "show_gaps": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to highlight ownership gaps",
+        "default": true
+      },
+      "color_scheme": {
+        "type": "string",
+        "required": false,
+        "description": "Color scheme for visualization (classic, modern, accessible)",
+        "default": "classic"
+      }
+    },
+    "error_messages": [
+      "Item not found: The specified item_id does not exist in the system.",
+      "Invalid timeline_style: Must be one of [horizontal, vertical, circular].",
+      "Invalid color_scheme: Must be one of [classic, modern, accessible].",
+      "No ownership data: No ownership chain available for visualization."
+    ],
+    "usage": "Provide item_id to create timeline visualization. Configure style, gap highlighting, and color scheme for optimal display.",
+    "output_details": {
+      "visualization_id": {
+        "type": "string",
+        "description": "Unique identifier for the timeline visualization"
+      },
+      "image_format": {
+        "type": "string",
+        "description": "Format of generated visualization image"
+      },
+      "interactive_elements": {
+        "type": "integer",
+        "description": "Number of interactive elements in the timeline"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Export Manager",
+    "tool_description": "Exports provenance data and reports to external systems, formats, and standards for sharing and compliance.",
+    "parameters": {
+      "item_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of item identifiers to export",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "export_format": {
+        "type": "string",
+        "required": true,
+        "description": "Export format (csv, xml, json, dublin_core, cdwa_lite, lido)"
+      },
+      "destination_system": {
+        "type": "string",
+        "required": false,
+        "description": "Target system for export",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid item_ids: Must provide 1-100 valid item identifiers.",
+      "Items not found: One or more specified item_ids do not exist in the system.",
+      "Invalid export_format: Must be one of [csv, xml, json, dublin_core, cdwa_lite, lido].",
+      "Export failed: Unable to generate export file. Check item data completeness."
+    ],
+    "usage": "Provide array of item_ids and export_format. Optionally specify destination_system for direct system integration.",
+    "output_details": {
+      "export_file_id": {
+        "type": "string",
+        "description": "Unique identifier for the export file"
+      },
+      "records_exported": {
+        "type": "integer",
+        "description": "Number of records successfully exported"
+      },
+      "file_size_kb": {
+        "type": "number",
+        "description": "Size of export file in kilobytes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audit Logger",
+    "tool_description": "Records all system activities, changes, and access events for provenance records to maintain complete audit trails.",
+    "parameters": {
+      "action_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of action being logged (create, update, delete, view, export, verify)"
+      },
+      "item_id": {
+        "type": "string",
+        "required": false,
+        "description": "Item identifier related to the action",
+        "default": null
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of user performing the action"
+      },
+      "details": {
+        "type": "string",
+        "required": false,
+        "description": "Additional details about the action",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid action_type: Must be one of [create, update, delete, view, export, verify].",
+      "Missing user_id: User identifier is required for all audit log entries.",
+      "Log storage error: Unable to write audit log entry. Check system storage."
+    ],
+    "usage": "Provide action_type and user_id for all system actions. Include item_id and details for context when applicable.",
+    "output_details": {
+      "log_entry_id": {
+        "type": "string",
+        "description": "Unique identifier for the audit log entry"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp when action was logged"
+      },
+      "status": {
+        "type": "string",
+        "description": "Logging status confirmation"
+      }
+    }
+  }
+  ```

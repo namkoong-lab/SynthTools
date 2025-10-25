@@ -1,0 +1,827 @@
+field_name: metrology_and_calibration
+subfield: dimensional_measurement_calibration
+task: Calibrate length measuring instruments using gauge blocks and reference standards
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task is **hard** due to the high precision requirements, complex measurement uncertainties, multiple interdependent calibration procedures, critical impact of errors on measurement accuracy, and the need for specialized equipment and environmental controls.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'm targeting **17 tools** to cover the comprehensive workflow from initial setup through final certification.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tool Dependencies & Affordances:**
+  - Environmental Monitor → provides conditions → Pre-Calibration Setup
+  - Gauge Block Set Validator → provides block accuracy → Measurement Execution tools
+  - Instrument Inspector → provides instrument status → Pre-Calibration Setup
+  - Pre-Calibration Setup → provides setup status → all measurement tools
+  - Reference Standard Selector → provides standard specs → measurement tools
+  - Measurement Point Generator → provides measurement points → Measurement Executor
+  - Measurement Executor → provides raw data → Statistical Analyzer
+  - Statistical Analyzer → provides statistics → Uncertainty Calculator, Drift Analyzer
+  - Uncertainty Calculator → provides uncertainty → Calibration Certificate Generator
+  - Error Corrector → provides corrections → Calibration Certificate Generator
+  - Drift Analyzer → provides drift data → Calibration Certificate Generator
+  - Linearity Tester → provides linearity data → Calibration Certificate Generator
+  - Repeatability Assessor → provides repeatability data → Statistical Analyzer
+  - Hysteresis Detector → provides hysteresis data → Error Corrector
+  - Calibration Certificate Generator → provides certificate → Database Logger
+  - Traceability Chain Validator → validates standards → Certificate Generator
+  - Database Logger → provides logging confirmation → final workflow
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Gauge Block Validation**: Environmental Monitor → Gauge Block Set Validator → Database Logger
+  2. **Quick Instrument Check**: Instrument Inspector → Pre-Calibration Setup → Database Logger
+
+  **Medium Plans:**
+  1. **Standard Repeatability Test**: Pre-Calibration Setup → Measurement Point Generator → Measurement Executor → Repeatability Assessor → Statistical Analyzer → Database Logger
+  2. **Uncertainty Assessment**: Reference Standard Selector → Measurement Executor → Statistical Analyzer → Uncertainty Calculator → Calibration Certificate Generator
+
+  **Complex Plans:**
+  1. **Full Calibration Workflow**: Environmental Monitor → Instrument Inspector → Pre-Calibration Setup → Reference Standard Selector → Gauge Block Set Validator → Measurement Point Generator → Measurement Executor → Repeatability Assessor → Statistical Analyzer → Uncertainty Calculator → Error Corrector → Calibration Certificate Generator → Traceability Chain Validator → Database Logger
+  2. **Comprehensive Performance Analysis**: Pre-Calibration Setup → Measurement Executor → Linearity Tester → Hysteresis Detector → Drift Analyzer → Statistical Analyzer → Uncertainty Calculator → Calibration Certificate Generator
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Environmental Monitor",
+    "tool_description": "Monitors and validates environmental conditions (temperature, humidity, vibration) required for precision dimensional calibration.",
+    "parameters": {
+      "temperature_target": {
+        "type": "number",
+        "required": true,
+        "description": "Target temperature in Celsius (typically 20°C)"
+      },
+      "temperature_tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Allowable temperature deviation in Celsius",
+        "default": 0.5
+      },
+      "humidity_max": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum allowable relative humidity percentage",
+        "default": 60
+      }
+    },
+    "error_messages": [
+      "Temperature out of range: Current temperature exceeds specified tolerance. Allow environment to stabilize before proceeding.",
+      "Humidity too high: Relative humidity exceeds maximum threshold. Use dehumidification or wait for conditions to improve.",
+      "Environmental instability detected: Conditions are fluctuating beyond acceptable limits. Wait for stabilization."
+    ],
+    "usage": "Set temperature_target to the required calibration temperature (usually 20°C). Monitor will check current conditions against tolerances and report compliance status.",
+    "output_details": {
+      "temperature_current": {
+        "type": "number",
+        "description": "Current measured temperature in Celsius"
+      },
+      "humidity_current": {
+        "type": "number",
+        "description": "Current relative humidity percentage"
+      },
+      "environment_stable": {
+        "type": "boolean",
+        "description": "Whether conditions meet calibration requirements"
+      },
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall environmental compliance assessment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Gauge Block Validator",
+    "tool_description": "Validates the accuracy and certification status of gauge block sets used as reference standards in calibration procedures.",
+    "parameters": {
+      "block_set_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the gauge block set"
+      },
+      "grade_required": {
+        "type": "string",
+        "required": true,
+        "description": "Required accuracy grade (Grade 0, Grade 1, Grade 2, Grade K, Grade AS)"
+      },
+      "nominal_sizes": {
+        "type": "array",
+        "required": true,
+        "description": "List of nominal sizes in millimeters to validate",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "certificate_check": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to verify calibration certificate validity",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Block set not found: The specified block_set_id does not exist in the database.",
+      "Insufficient grade accuracy: Block set does not meet the required grade specification.",
+      "Expired calibration certificate: Block set calibration has expired and requires recertification.",
+      "Missing nominal sizes: One or more requested nominal sizes are not available in this block set.",
+      "Invalid grade specification: Use one of [Grade 0, Grade 1, Grade 2, Grade K, Grade AS]."
+    ],
+    "usage": "Provide block_set_id, required grade, and list of nominal sizes needed. Tool validates availability, accuracy grade, and certificate status of gauge blocks.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result for the block set"
+      },
+      "available_sizes": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confirmed available nominal sizes in millimeters"
+      },
+      "actual_grade": {
+        "type": "string",
+        "description": "Actual accuracy grade of the block set"
+      },
+      "certificate_expiry": {
+        "type": "string",
+        "description": "Calibration certificate expiration date",
+        "format": "date-time"
+      },
+      "uncertainty_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Measurement uncertainties for each validated size in micrometers"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Instrument Inspector",
+    "tool_description": "Performs pre-calibration inspection of length measuring instruments to assess physical condition and basic functionality.",
+    "parameters": {
+      "instrument_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the instrument being inspected"
+      },
+      "instrument_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of measuring instrument (micrometer, caliper, gauge, CMM, laser_interferometer, optical_comparator)"
+      }
+    },
+    "error_messages": [
+      "Instrument not found: The specified instrument_id is not recognized in the system.",
+      "Invalid instrument type: Use one of [micrometer, caliper, gauge, CMM, laser_interferometer, optical_comparator].",
+      "Physical damage detected: Instrument shows signs of damage that may affect measurement accuracy.",
+      "Mechanical malfunction: Instrument fails basic functionality tests and requires repair."
+    ],
+    "usage": "Provide instrument_id and instrument_type to perform comprehensive pre-calibration inspection including physical condition and basic operational tests.",
+    "output_details": {
+      "physical_condition": {
+        "type": "string",
+        "description": "Assessment of instrument physical condition"
+      },
+      "mechanical_function": {
+        "type": "string",
+        "description": "Results of basic mechanical function tests"
+      },
+      "cleanliness_status": {
+        "type": "string",
+        "description": "Cleanliness assessment for calibration readiness"
+      },
+      "inspection_passed": {
+        "type": "boolean",
+        "description": "Whether instrument passed pre-calibration inspection"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of recommended actions before calibration"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pre Calibration Setup",
+    "tool_description": "Configures and prepares the calibration setup including instrument mounting, reference positioning, and system initialization for dimensional measurement calibration.",
+    "parameters": {
+      "instrument_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the instrument to be calibrated"
+      },
+      "measurement_range_min": {
+        "type": "number",
+        "required": true,
+        "description": "Minimum measurement range in millimeters"
+      },
+      "measurement_range_max": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum measurement range in millimeters"
+      },
+      "resolution": {
+        "type": "number",
+        "required": true,
+        "description": "Instrument resolution in micrometers"
+      },
+      "mounting_type": {
+        "type": "string",
+        "required": true,
+        "description": "Mounting configuration (horizontal, vertical, angle_plate, universal_stand)"
+      },
+      "reference_standard": {
+        "type": "string",
+        "required": true,
+        "description": "Primary reference standard to be used"
+      },
+      "warmup_time": {
+        "type": "integer",
+        "required": false,
+        "description": "Instrument warmup time in minutes",
+        "default": 30
+      },
+      "automation_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to use automated measurement system",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid measurement range: minimum must be less than maximum, and range must be positive.",
+      "Unsupported mounting type: Use one of [horizontal, vertical, angle_plate, universal_stand].",
+      "Resolution incompatible: Specified resolution exceeds instrument capabilities.",
+      "Reference standard unavailable: The specified reference standard is not accessible.",
+      "Setup configuration error: Current configuration is incompatible with instrument specifications.",
+      "Insufficient warmup time: Warmup time must be at least 15 minutes for stable measurements."
+    ],
+    "usage": "Configure measurement parameters, mounting, and reference standards. Allow specified warmup time before beginning calibration measurements. Verify all connections and alignments.",
+    "output_details": {
+      "setup_status": {
+        "type": "string",
+        "description": "Overall setup configuration status"
+      },
+      "alignment_quality": {
+        "type": "string",
+        "description": "Assessment of mechanical alignment"
+      },
+      "thermal_stability": {
+        "type": "boolean",
+        "description": "Whether thermal equilibrium has been reached"
+      },
+      "ready_for_calibration": {
+        "type": "boolean",
+        "description": "Whether setup is ready for calibration measurements"
+      },
+      "estimated_uncertainty": {
+        "type": "number",
+        "description": "Initial estimated measurement uncertainty in micrometers"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reference Standard Selector",
+    "tool_description": "Selects appropriate reference standards and gauge blocks for calibrating instruments based on measurement requirements and traceability needs.",
+    "parameters": {
+      "measurement_range": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum measurement range in millimeters"
+      },
+      "required_accuracy": {
+        "type": "number",
+        "required": true,
+        "description": "Required measurement accuracy in micrometers"
+      },
+      "calibration_points": {
+        "type": "array",
+        "required": true,
+        "description": "Specific calibration point values in millimeters",
+        "items": {"type": "number"},
+        "minItems": 3,
+        "maxItems": 20
+      },
+      "uncertainty_ratio": {
+        "type": "number",
+        "required": false,
+        "description": "Required uncertainty ratio (reference:instrument)",
+        "default": 4.0
+      },
+      "traceability_level": {
+        "type": "string",
+        "required": false,
+        "description": "Required traceability level (primary, secondary, working)",
+        "default": "secondary"
+      }
+    },
+    "error_messages": [
+      "Insufficient reference accuracy: Available standards do not meet the required uncertainty ratio.",
+      "Calibration points out of range: Some requested points exceed available standard ranges.",
+      "Invalid uncertainty ratio: Ratio must be at least 3:1 for reliable calibration.",
+      "Traceability level unavailable: Requested traceability level not available for these measurements.",
+      "No suitable standards found: No reference standards meet all specified requirements."
+    ],
+    "usage": "Specify measurement range, accuracy requirements, and calibration points. Tool recommends optimal reference standards meeting traceability and uncertainty requirements.",
+    "output_details": {
+      "selected_standards": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of recommended reference standard identifiers"
+      },
+      "achievable_uncertainty": {
+        "type": "number",
+        "description": "Best achievable measurement uncertainty in micrometers"
+      },
+      "traceability_chain": {
+        "type": "string",
+        "description": "Description of measurement traceability path"
+      },
+      "standard_specifications": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key specifications of selected standards"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Measurement Point Generator",
+    "tool_description": "Generates optimal measurement points across the instrument range for comprehensive calibration coverage based on statistical requirements and standards.",
+    "parameters": {
+      "range_min": {
+        "type": "number",
+        "required": true,
+        "description": "Minimum measurement range in millimeters"
+      },
+      "range_max": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum measurement range in millimeters"
+      },
+      "point_distribution": {
+        "type": "string",
+        "required": true,
+        "description": "Distribution method (linear, logarithmic, custom, standard_decade)"
+      },
+      "minimum_points": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of calibration points",
+        "default": 5
+      },
+      "include_endpoints": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include range endpoints",
+        "default": true
+      },
+      "standard_compliance": {
+        "type": "string",
+        "required": false,
+        "description": "Calibration standard to follow (ISO_10012, ASME_B89, DIN_2257)",
+        "default": "ISO_10012"
+      }
+    },
+    "error_messages": [
+      "Invalid range: range_min must be less than range_max and both must be positive.",
+      "Insufficient points: minimum_points must be at least 3 for valid calibration.",
+      "Unknown distribution method: Use one of [linear, logarithmic, custom, standard_decade].",
+      "Standard not supported: Use one of [ISO_10012, ASME_B89, DIN_2257].",
+      "Range too small: Measurement range insufficient for meaningful point distribution."
+    ],
+    "usage": "Define measurement range and distribution preferences. Tool generates statistically appropriate calibration points according to specified standards and requirements.",
+    "output_details": {
+      "calibration_points": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Generated calibration point values in millimeters"
+      },
+      "point_count": {
+        "type": "integer",
+        "description": "Total number of calibration points generated"
+      },
+      "distribution_method": {
+        "type": "string",
+        "description": "Applied distribution method"
+      },
+      "coverage_factor": {
+        "type": "number",
+        "description": "Range coverage factor achieved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Measurement Executor",
+    "tool_description": "Executes calibration measurements at specified points, collecting data from the instrument under test against reference standards with proper measurement protocols.",
+    "parameters": {
+      "instrument_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the instrument being calibrated"
+      },
+      "measurement_points": {
+        "type": "array",
+        "required": true,
+        "description": "Calibration points to measure in millimeters",
+        "items": {"type": "number"},
+        "minItems": 3,
+        "maxItems": 50
+      },
+      "reference_values": {
+        "type": "array",
+        "required": true,
+        "description": "Reference standard values in millimeters",
+        "items": {"type": "number"},
+        "minItems": 3,
+        "maxItems": 50
+      },
+      "repetitions": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of measurement repetitions per point",
+        "default": 5
+      },
+      "measurement_force": {
+        "type": "number",
+        "required": false,
+        "description": "Applied measurement force in Newtons",
+        "default": 5.0
+      },
+      "settling_time": {
+        "type": "number",
+        "required": false,
+        "description": "Settling time between measurements in seconds",
+        "default": 2.0
+      },
+      "approach_direction": {
+        "type": "string",
+        "required": false,
+        "description": "Measurement approach direction (ascending, descending, bidirectional)",
+        "default": "bidirectional"
+      },
+      "temperature_compensation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable temperature compensation",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Measurement point mismatch: Number of measurement_points must equal number of reference_values.",
+      "Invalid repetitions: Must be between 3 and 20 for statistical validity.",
+      "Measurement force out of range: Force must be between 0.1 and 50 Newtons.",
+      "Invalid approach direction: Use one of [ascending, descending, bidirectional].",
+      "Measurement failed: Unable to obtain stable readings at one or more points.",
+      "Reference standard error: Cannot access or read reference values properly."
+    ],
+    "usage": "Provide measurement points with corresponding reference values. Execute measurements with specified repetitions and protocols. Ensure stable conditions throughout measurement sequence.",
+    "output_details": {
+      "measured_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Average measured values for each point in millimeters"
+      },
+      "individual_readings": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "All individual readings for each measurement point"
+      },
+      "measurement_errors": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Error values (measured minus reference) in micrometers"
+      },
+      "measurement_timestamp": {
+        "type": "string",
+        "description": "Measurement completion timestamp",
+        "format": "date-time"
+      },
+      "environmental_conditions": {
+        "type": "string",
+        "description": "Environmental conditions during measurement"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Statistical Analyzer",
+    "tool_description": "Performs comprehensive statistical analysis of calibration measurement data including standard deviations, confidence intervals, and distribution assessments.",
+    "parameters": {
+      "measurement_data": {
+        "type": "array",
+        "required": true,
+        "description": "Raw measurement data arrays for each calibration point",
+        "items": {"type": "number"},
+        "minItems": 15,
+        "maxItems": 1000
+      },
+      "reference_values": {
+        "type": "array",
+        "required": true,
+        "description": "Corresponding reference standard values in millimeters",
+        "items": {"type": "number"}
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "Statistical confidence level (0.9, 0.95, 0.99)",
+        "default": 0.95
+      },
+      "outlier_detection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable statistical outlier detection and removal",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 15 data points for meaningful statistical analysis.",
+      "Data array mismatch: measurement_data and reference_values must have compatible dimensions.",
+      "Invalid confidence level: Use 0.9, 0.95, or 0.99 for confidence_level.",
+      "Statistical analysis failed: Data does not meet requirements for normal distribution analysis."
+    ],
+    "usage": "Provide measurement data arrays and reference values. Tool performs comprehensive statistical analysis with outlier detection and confidence interval calculation.",
+    "output_details": {
+      "mean_errors": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Mean errors for each calibration point in micrometers"
+      },
+      "standard_deviations": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Standard deviations for each point in micrometers"
+      },
+      "confidence_intervals": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence interval half-widths in micrometers"
+      },
+      "outliers_detected": {
+        "type": "integer",
+        "description": "Number of outlier data points identified and removed"
+      },
+      "distribution_assessment": {
+        "type": "string",
+        "description": "Assessment of data distribution normality"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Uncertainty Calculator",
+    "tool_description": "Calculates comprehensive measurement uncertainty budgets following GUM methodology, combining Type A and Type B uncertainty components for calibration results.",
+    "parameters": {
+      "type_a_uncertainty": {
+        "type": "array",
+        "required": true,
+        "description": "Type A uncertainties from statistical analysis in micrometers",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "reference_uncertainty": {
+        "type": "array",
+        "required": true,
+        "description": "Reference standard uncertainties in micrometers",
+        "items": {"type": "number"}
+      },
+      "environmental_uncertainty": {
+        "type": "number",
+        "required": true,
+        "description": "Environmental condition uncertainty contribution in micrometers"
+      },
+      "resolution_uncertainty": {
+        "type": "number",
+        "required": true,
+        "description": "Instrument resolution uncertainty in micrometers"
+      },
+      "thermal_uncertainty": {
+        "type": "number",
+        "required": false,
+        "description": "Thermal expansion uncertainty in micrometers",
+        "default": 0.1
+      },
+      "drift_uncertainty": {
+        "type": "number",
+        "required": false,
+        "description": "Instrument drift uncertainty in micrometers",
+        "default": 0.05
+      },
+      "coverage_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Coverage factor for expanded uncertainty (typically 2)",
+        "default": 2.0
+      },
+      "gum_methodology": {
+        "type": "boolean",
+        "required": false,
+        "description": "Use GUM uncertainty propagation methodology",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: type_a_uncertainty and reference_uncertainty must have same length.",
+      "Invalid uncertainty values: All uncertainty values must be positive numbers.",
+      "Coverage factor out of range: Use coverage factor between 1.0 and 3.0.",
+      "Uncertainty calculation failed: Unable to compute uncertainty budget with provided inputs."
+    ],
+    "usage": "Provide all uncertainty components from statistical analysis and known sources. Tool combines components using GUM methodology to calculate expanded uncertainties.",
+    "output_details": {
+      "combined_uncertainties": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Combined standard uncertainties for each point in micrometers"
+      },
+      "expanded_uncertainties": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Expanded uncertainties (k=2) in micrometers"
+      },
+      "uncertainty_budget": {
+        "type": "string",
+        "description": "Detailed uncertainty budget breakdown"
+      },
+      "dominant_sources": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Primary uncertainty contributors identified"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Error Corrector",
+    "tool_description": "Calculates systematic error corrections and generates correction curves for dimensional measuring instruments based on calibration results.",
+    "parameters": {
+      "calibration_points": {
+        "type": "array",
+        "required": true,
+        "description": "Calibration point values in millimeters",
+        "items": {"type": "number"},
+        "minItems": 3,
+        "maxItems": 50
+      },
+      "measurement_errors": {
+        "type": "array",
+        "required": true,
+        "description": "Systematic errors at each point in micrometers",
+        "items": {"type": "number"}
+      },
+      "correction_method": {
+        "type": "string",
+        "required": true,
+        "description": "Correction method (linear_fit, polynomial_fit, spline_interpolation, lookup_table)"
+      },
+      "polynomial_degree": {
+        "type": "integer",
+        "required": false,
+        "description": "Polynomial degree for curve fitting (1-5)",
+        "default": 2
+      },
+      "interpolation_points": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of interpolation points for correction curve",
+        "default": 100
+      }
+    },
+    "error_messages": [
+      "Data array mismatch: calibration_points and measurement_errors must have equal length.",
+      "Invalid correction method: Use one of [linear_fit, polynomial_fit, spline_interpolation, lookup_table].",
+      "Polynomial degree out of range: Use degree between 1 and 5 for stable fitting.",
+      "Insufficient data points: Need at least 3 points for correction curve generation.",
+      "Curve fitting failed: Unable to generate stable correction curve with provided data."
+    ],
+    "usage": "Provide calibration points and corresponding errors. Select appropriate correction method based on error behavior. Tool generates correction curves and correction values.",
+    "output_details": {
+      "correction_curve": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Correction values across measurement range in micrometers"
+      },
+      "curve_points": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Measurement points for correction curve in millimeters"
+      },
+      "fitting_quality": {
+        "type": "number",
+        "description": "R-squared value indicating curve fit quality"
+      },
+      "correction_equation": {
+        "type": "string",
+        "description": "Mathematical equation for the correction curve"
+      },
+      "residual_errors": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Residual errors after correction in micrometers"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Drift Analyzer",
+    "tool_description": "Analyzes instrument drift over time during calibration process and assesses long-term stability characteristics for dimensional measuring instruments.",
+    "parameters": {
+      "measurement_timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Timestamps for each measurement in ISO 8601 format",
+        "items": {"type": "string"},
+        "minItems": 10,
+        "maxItems": 200
+      },
+      "measurement_values": {
+        "type": "array",
+        "required": true,
+        "description": "Measurement values corresponding to timestamps in micrometers",
+        "items": {"type": "number"}
+      },
+      "analysis_window": {
+        "type": "number",
+        "required": false,
+        "description": "Analysis time window in hours",
+        "default": 2.0
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: measurement_timestamps and measurement_values must have equal length.",
+      "Invalid timestamp format: Use ISO 8601 date-time format for all timestamps.",
+      "Insufficient data points: Need at least 10 time-stamped measurements for drift analysis.",
+      "Analysis window too small: Window must be at least 0.5 hours for meaningful analysis."
+    ],
+    "usage": "Provide time-stamped measurement data from calibration process. Tool analyzes temporal drift patterns and stability characteristics over specified time window.",
+    "output_details": {
+      "drift_rate": {
+        "type": "number",
+        "description": "Calculated drift rate in micrometers per hour"
+      },
+      "drift_direction": {
+        "type": "string",
+        "description": "Overall drift direction (positive, negative, stable)"
+      },
+      "stability_assessment": {
+        "type": "string",
+        "description": "Instrument stability classification"
+      },
+      "correlation_coefficient": {
+        "type": "number",
+        "description": "Correlation between time and measurement drift"
+      },
+      "recommended_recalibration": {
+        "type": "number",
+        "description": "Recommended recalibration interval in months"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Linearity Tester",
+    "tool_description": "Tests and evaluates the linearity characteristics of dimensional measuring instruments across their measurement range using statistical methods.",
+    "parameters": {
+      "measurement_points": {
+        "type": "array",
+        "required": true,
+        "description": "Measurement points across instrument range in millimeters",
+        "items": {"type": "number"},
+        "minItems": 5,
+        "maxItems": 30
+      },
+      "measured_values": {
+        "type": "array",
+        "required": true,
+        "description":

@@ -1,0 +1,816 @@
+field_name: membership_and_subscriptions
+subfield: Member Registration and Onboarding
+task: Digital membership application processing and form validation
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves moderate complexity with structured workflows for form processing, validation, and member onboarding. The scope includes data validation, document verification, payment processing, and multi-step approval workflows. While there are some dependencies between validation steps and moderate risk from processing errors, the requirements are well-defined with established patterns. This represents a **medium** difficulty task.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'm targeting **12 tools** within the 10-15 range. This allows for comprehensive coverage of form validation, document processing, payment handling, communication, and workflow management without excessive overlap.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Form Field Validator** - consumes: form data → produces: validation results
+  2. **Document Verifier** - consumes: uploaded documents → produces: verification status
+  3. **Payment Processor** - consumes: payment details → produces: transaction results
+  4. **Duplicate Member Checker** - consumes: applicant data → produces: duplicate status
+  5. **Eligibility Assessor** - consumes: member criteria → produces: eligibility decision
+  6. **Application Status Tracker** - consumes: application ID → produces: current status
+  7. **Member ID Generator** - consumes: approved application → produces: unique member ID
+  8. **Welcome Email Sender** - consumes: member details → produces: email confirmation
+  9. **Digital Badge Creator** - consumes: membership type → produces: digital credential
+  10. **Application Workflow Manager** - consumes: application state → produces: next actions
+  11. **Member Database Writer** - consumes: verified member data → produces: database record
+  12. **Notification Dispatcher** - consumes: notification requests → produces: delivery confirmations
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic validation: Form Field Validator → Duplicate Member Checker → Application Status Tracker
+  - Document verification: Document Verifier → Application Status Tracker → Notification Dispatcher
+
+  **Medium Plans:**
+  - Standard application: Form Field Validator → Duplicate Member Checker → Eligibility Assessor → Payment Processor → Member ID Generator → Member Database Writer
+  - Approval workflow: Application Workflow Manager → Eligibility Assessor → Welcome Email Sender → Digital Badge Creator
+
+  **Complex Plans:**
+  - Full processing pipeline: Form Field Validator → Document Verifier → Duplicate Member Checker → Eligibility Assessor → Payment Processor → Application Workflow Manager → Member ID Generator → Member Database Writer → Welcome Email Sender → Digital Badge Creator → Notification Dispatcher
+  - Error handling workflow: Form Field Validator → Application Status Tracker → Notification Dispatcher → Application Workflow Manager (for resubmission)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Form Field Validator",
+    "tool_description": "Validates membership application form fields against predefined rules and constraints, checking data types, formats, required fields, and business logic.",
+    "parameters": {
+      "form_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of form field values to validate",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "field_names": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding field names",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "validation_rules": {
+        "type": "array",
+        "required": true,
+        "description": "Array of validation rule codes (email, phone, required, date, numeric)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "membership_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of membership being applied for"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: form_data, field_names, and validation_rules arrays must have the same length.",
+      "Invalid validation rule: Use supported rules like email, phone, required, date, numeric, text.",
+      "Empty form data: At least one form field must be provided for validation.",
+      "Unknown membership type: Provide a valid membership type from the system."
+    ],
+    "usage": "Provide form_data array with corresponding field_names and validation_rules arrays, plus membership_type. The tool validates each field and returns detailed validation results.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Overall validation status of the form"
+      },
+      "field_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of specific field validation error messages"
+      },
+      "valid_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of field names that passed validation"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Summary of validation results and next steps"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document Verifier",
+    "tool_description": "Verifies uploaded documents for membership applications, checking file formats, readability, content requirements, and authenticity markers.",
+    "parameters": {
+      "document_paths": {
+        "type": "array",
+        "required": true,
+        "description": "Array of file paths to uploaded documents",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "document_types": {
+        "type": "array",
+        "required": true,
+        "description": "Array of expected document types (id, proof_of_address, certificate, photo)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "applicant_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the applicant"
+      }
+    },
+    "error_messages": [
+      "Document not found: One or more document paths are invalid or files are inaccessible.",
+      "Unsupported document type: Use valid types like id, proof_of_address, certificate, photo.",
+      "Document arrays mismatch: document_paths and document_types arrays must have the same length.",
+      "Invalid applicant ID: Provide a valid applicant identifier.",
+      "File format not supported: Upload documents in PDF, JPG, PNG, or DOC formats only."
+    ],
+    "usage": "Provide document_paths array with corresponding document_types array and applicant_id. The tool verifies each document and returns verification status.",
+    "output_details": {
+      "verification_status": {
+        "type": "string",
+        "description": "Overall document verification status (approved, rejected, pending)"
+      },
+      "verified_documents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of successfully verified document types"
+      },
+      "failed_documents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of document types that failed verification"
+      },
+      "verification_notes": {
+        "type": "string",
+        "description": "Detailed notes about the verification process"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Processor",
+    "tool_description": "Processes membership fee payments through various payment methods, handles transaction validation, and manages payment confirmations.",
+    "parameters": {
+      "payment_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Payment amount in dollars"
+      },
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method (credit_card, debit_card, bank_transfer, digital_wallet)"
+      },
+      "applicant_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the applicant"
+      },
+      "membership_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of membership being paid for"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Currency code (ISO 4217)",
+        "default": "USD"
+      }
+    },
+    "error_messages": [
+      "Invalid payment amount: Amount must be greater than 0 and match membership fee requirements.",
+      "Unsupported payment method: Use credit_card, debit_card, bank_transfer, or digital_wallet.",
+      "Payment processing failed: Transaction was declined or encountered an error.",
+      "Invalid currency code: Provide a valid ISO 4217 currency code.",
+      "Applicant not found: Provide a valid applicant identifier."
+    ],
+    "usage": "Provide payment_amount, payment_method, applicant_id, and membership_type. Optionally specify currency. The tool processes the payment and returns transaction details.",
+    "output_details": {
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique identifier for the completed transaction"
+      },
+      "payment_status": {
+        "type": "string",
+        "description": "Status of payment processing (success, failed, pending)"
+      },
+      "transaction_timestamp": {
+        "type": "string",
+        "description": "Timestamp when transaction was processed"
+      },
+      "confirmation_number": {
+        "type": "string",
+        "description": "Payment confirmation number for records"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Duplicate Member Checker",
+    "tool_description": "Checks existing member database for potential duplicates based on personal information, email, phone, and other identifying data.",
+    "parameters": {
+      "email_address": {
+        "type": "string",
+        "required": true,
+        "description": "Email address of the applicant"
+      },
+      "full_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of the applicant"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "Phone number of the applicant",
+        "default": "None"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": false,
+        "description": "Date of birth in ISO format",
+        "format": "date-time",
+        "default": "None"
+      },
+      "check_strictness": {
+        "type": "string",
+        "required": false,
+        "description": "Level of duplicate checking (strict, moderate, loose)",
+        "default": "moderate"
+      }
+    },
+    "error_messages": [
+      "Invalid email format: Provide a valid email address format.",
+      "Empty full name: Full name is required and cannot be empty.",
+      "Invalid date format: Date of birth must be in ISO date-time format.",
+      "Invalid strictness level: Use strict, moderate, or loose for check_strictness.",
+      "Database connection error: Unable to access member database for duplicate checking."
+    ],
+    "usage": "Provide email_address and full_name as required fields. Optionally include phone_number, date_of_birth, and check_strictness level. The tool returns duplicate checking results.",
+    "output_details": {
+      "is_duplicate": {
+        "type": "boolean",
+        "description": "Whether a potential duplicate was found"
+      },
+      "duplicate_count": {
+        "type": "integer",
+        "description": "Number of potential duplicate records found"
+      },
+      "matching_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of fields that matched existing records"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Recommendation for handling the duplicate check result"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Eligibility Assessor",
+    "tool_description": "Evaluates membership eligibility based on predefined criteria, membership type requirements, and organizational policies.",
+    "parameters": {
+      "applicant_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of applicant information fields",
+        "items": {"type": "string"},
+        "minItems": 3,
+        "maxItems": 20
+      },
+      "field_labels": {
+        "type": "array",
+        "required": true,
+        "description": "Array of field labels corresponding to applicant_data",
+        "items": {"type": "string"},
+        "minItems": 3,
+        "maxItems": 20
+      },
+      "membership_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of membership being assessed"
+      },
+      "organization_id": {
+        "type": "string",
+        "required": true,
+        "description": "Organization identifier for policy lookup"
+      },
+      "special_criteria": {
+        "type": "array",
+        "required": false,
+        "description": "Array of special criteria codes to check",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "override_reason": {
+        "type": "string",
+        "required": false,
+        "description": "Reason for manual eligibility override",
+        "default": "None"
+      },
+      "assessor_id": {
+        "type": "string",
+        "required": false,
+        "description": "ID of person conducting assessment",
+        "default": "system"
+      },
+      "assessment_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date of eligibility assessment",
+        "format": "date-time",
+        "default": "None"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Assessment priority (high, normal, low)",
+        "default": "normal"
+      },
+      "review_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether manual review is required",
+        "default": false
+      },
+      "compliance_flags": {
+        "type": "array",
+        "required": false,
+        "description": "Array of compliance requirement flags",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Data mismatch: applicant_data and field_labels arrays must have the same length.",
+      "Unknown membership type: Provide a valid membership type for the organization.",
+      "Invalid organization ID: Organization identifier not found in system.",
+      "Missing required criteria: Essential eligibility criteria are not met.",
+      "Invalid assessment date: Provide date in ISO date-time format.",
+      "Invalid priority level: Use high, normal, or low for priority_level.",
+      "Assessment policy error: Unable to retrieve eligibility policies for organization."
+    ],
+    "usage": "Provide applicant_data array with corresponding field_labels, membership_type, and organization_id. Configure assessment with optional special_criteria, override_reason, assessor_id, assessment_date, priority_level, review_required, and compliance_flags.",
+    "output_details": {
+      "eligibility_status": {
+        "type": "string",
+        "description": "Overall eligibility decision (eligible, ineligible, conditional, review_required)"
+      },
+      "criteria_met": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of eligibility criteria that were satisfied"
+      },
+      "criteria_failed": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of eligibility criteria that were not met"
+      },
+      "assessment_score": {
+        "type": "number",
+        "description": "Numerical score representing eligibility strength"
+      },
+      "recommendations": {
+        "type": "string",
+        "description": "Recommendations for next steps based on assessment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Application Status Tracker",
+    "tool_description": "Tracks and updates membership application status throughout the processing pipeline, maintaining status history and timestamps.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the membership application"
+      },
+      "new_status": {
+        "type": "string",
+        "required": false,
+        "description": "New status to set (submitted, reviewing, approved, rejected, pending_payment, completed)",
+        "default": "None"
+      },
+      "status_note": {
+        "type": "string",
+        "required": false,
+        "description": "Additional notes about the status change",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Application not found: The provided application_id does not exist in the system.",
+      "Invalid status transition: The requested status change is not allowed from current status.",
+      "Invalid status value: Use valid statuses like submitted, reviewing, approved, rejected, pending_payment, completed.",
+      "Status update failed: Unable to update application status due to system error."
+    ],
+    "usage": "Provide application_id to retrieve current status, or include new_status to update. Optionally add status_note for additional context.",
+    "output_details": {
+      "current_status": {
+        "type": "string",
+        "description": "Current status of the application"
+      },
+      "status_history": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of previous status values"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last status update"
+      },
+      "processing_time": {
+        "type": "string",
+        "description": "Total time spent in current status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Member ID Generator",
+    "tool_description": "Generates unique member identification numbers and codes based on organizational formatting rules and membership type.",
+    "parameters": {
+      "membership_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of membership for ID generation"
+      },
+      "organization_code": {
+        "type": "string",
+        "required": true,
+        "description": "Organization code prefix for member ID"
+      },
+      "member_category": {
+        "type": "string",
+        "required": false,
+        "description": "Member category code (individual, corporate, student, senior)",
+        "default": "individual"
+      }
+    },
+    "error_messages": [
+      "Invalid membership type: Provide a valid membership type for ID generation.",
+      "Invalid organization code: Organization code must be 2-6 characters long.",
+      "Invalid member category: Use individual, corporate, student, or senior.",
+      "ID generation failed: Unable to generate unique member ID due to system constraints."
+    ],
+    "usage": "Provide membership_type and organization_code as required parameters. Optionally specify member_category. The tool generates a unique member ID following organizational standards.",
+    "output_details": {
+      "member_id": {
+        "type": "string",
+        "description": "Generated unique member identification number"
+      },
+      "member_code": {
+        "type": "string",
+        "description": "Formatted member code for display purposes"
+      },
+      "generation_timestamp": {
+        "type": "string",
+        "description": "Timestamp when the ID was generated"
+      },
+      "id_format_used": {
+        "type": "string",
+        "description": "Description of the ID format pattern used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Welcome Email Sender",
+    "tool_description": "Sends personalized welcome emails to newly approved members with membership details, credentials, and next steps.",
+    "parameters": {
+      "member_email": {
+        "type": "string",
+        "required": true,
+        "description": "Email address of the new member"
+      },
+      "member_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of the new member"
+      },
+      "member_id": {
+        "type": "string",
+        "required": true,
+        "description": "Generated member ID number"
+      },
+      "membership_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of membership granted"
+      },
+      "organization_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the organization"
+      },
+      "welcome_template": {
+        "type": "string",
+        "required": false,
+        "description": "Email template identifier to use",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid email address: Provide a valid email address format for member_email.",
+      "Missing member information: member_name, member_id, and membership_type are required.",
+      "Email template not found: The specified welcome_template does not exist.",
+      "Email delivery failed: Unable to send welcome email to the specified address.",
+      "Organization not configured: Organization name not found in email system."
+    ],
+    "usage": "Provide member_email, member_name, member_id, membership_type, and organization_name. Optionally specify welcome_template. The tool sends a personalized welcome email.",
+    "output_details": {
+      "email_sent": {
+        "type": "boolean",
+        "description": "Whether the email was successfully sent"
+      },
+      "email_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent email"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "Timestamp when email was sent"
+      },
+      "template_used": {
+        "type": "string",
+        "description": "Name of the email template used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Digital Badge Creator",
+    "tool_description": "Creates digital membership badges and certificates for approved members with customizable design elements and verification codes.",
+    "parameters": {
+      "member_id": {
+        "type": "string",
+        "required": true,
+        "description": "Member ID for badge creation"
+      },
+      "member_name": {
+        "type": "string",
+        "required": true,
+        "description": "Member name to display on badge"
+      },
+      "membership_type": {
+        "type": "string",
+        "required": true,
+        "description": "Membership type for badge styling"
+      },
+      "badge_template": {
+        "type": "string",
+        "required": false,
+        "description": "Badge template design identifier",
+        "default": "default"
+      },
+      "include_qr_code": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include QR code for verification",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid member ID: Provide a valid member identifier for badge creation.",
+      "Missing member name: Member name is required for badge display.",
+      "Unknown membership type: Membership type not recognized for badge styling.",
+      "Template not available: The specified badge_template is not available.",
+      "Badge generation failed: Unable to create digital badge due to system error."
+    ],
+    "usage": "Provide member_id, member_name, and membership_type. Optionally specify badge_template and include_qr_code setting. The tool creates and returns digital badge information.",
+    "output_details": {
+      "badge_url": {
+        "type": "string",
+        "description": "URL to access the generated digital badge"
+      },
+      "badge_id": {
+        "type": "string",
+        "description": "Unique identifier for the digital badge"
+      },
+      "verification_code": {
+        "type": "string",
+        "description": "Code for badge authenticity verification"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "Timestamp when badge was created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Application Workflow Manager",
+    "tool_description": "Manages the overall workflow of membership applications, coordinating between different processing stages and handling routing decisions.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the membership application"
+      },
+      "current_stage": {
+        "type": "string",
+        "required": true,
+        "description": "Current processing stage of the application"
+      },
+      "action_requested": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform (advance, hold, reject, approve, return)"
+      },
+      "workflow_notes": {
+        "type": "string",
+        "required": false,
+        "description": "Notes about workflow decision",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Application not found: The specified application_id does not exist in the workflow system.",
+      "Invalid current stage: Provide a valid workflow stage identifier.",
+      "Invalid action: Use advance, hold, reject, approve, or return for action_requested.",
+      "Workflow transition error: The requested action is not valid from the current stage.",
+      "Workflow system error: Unable to process workflow action due to system issue."
+    ],
+    "usage": "Provide application_id, current_stage, and action_requested. Optionally include workflow_notes for documentation. The tool processes the workflow action and returns next steps.",
+    "output_details": {
+      "next_stage": {
+        "type": "string",
+        "description": "Next stage in the workflow process"
+      },
+      "required_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of actions required at the next stage"
+      },
+      "workflow_status": {
+        "type": "string",
+        "description": "Current overall status of the workflow"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated completion time for remaining workflow"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Member Database Writer",
+    "tool_description": "Writes verified member information to the permanent member database with proper data formatting and relationship management.",
+    "parameters": {
+      "member_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of member information values",
+        "items": {"type": "string"},
+        "minItems": 5,
+        "maxItems": 25
+      },
+      "data_fields": {
+        "type": "array",
+        "required": true,
+        "description": "Array of field names corresponding to member_data",
+        "items": {"type": "string"},
+        "minItems": 5,
+        "maxItems": 25
+      },
+      "member_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique member identifier"
+      },
+      "membership_effective_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when membership becomes effective",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Data array mismatch: member_data and data_fields arrays must have the same length.",
+      "Invalid member ID: Provide a valid unique member identifier.",
+      "Database write error: Unable to write member data to database.",
+      "Invalid effective date: Membership effective date must be in ISO date-time format.",
+      "Duplicate member ID: The provided member_id already exists in the database."
+    ],
+    "usage": "Provide member_data array with corresponding data_fields array, plus member_id and membership_effective_date. The tool writes the member record to the database.",
+    "output_details": {
+      "write_successful": {
+        "type": "boolean",
+        "description": "Whether the database write operation succeeded"
+      },
+      "database_record_id": {
+        "type": "string",
+        "description": "Database record identifier for the new member"
+      },
+      "write_timestamp": {
+        "type": "string",
+        "description": "Timestamp when record was written to database"
+      },
+      "fields_written": {
+        "type": "integer",
+        "description": "Number of data fields successfully written"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Dispatcher",
+    "tool_description": "Sends various types of notifications to applicants, members, and administrators through multiple communication channels.",
+    "parameters": {
+      "recipient_email": {
+        "type": "string",
+        "required": true,
+        "description": "Email address of the notification recipient"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification (approval, rejection, payment_due, document_required, status_update)"
+      },
+      "message_content": {
+        "type": "string",
+        "required": true,
+        "description": "Main content of the notification message"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Notification priority level (high, normal, low)",
+        "default": "normal"
+      },
+      "send_sms": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to also send SMS notification",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid recipient email: Provide a valid email address format.",
+      "Unknown notification type: Use approval, rejection, payment_due, document_required, or status_update.",
+      "Empty message content: Notification message content cannot be empty.",
+      "Invalid priority level: Use high, normal, or low for priority setting.",
+      "Notification delivery failed: Unable to deliver notification to recipient."
+    ],
+    "usage": "Provide recipient_email, notification_type, and message_content. Optionally set priority and send_sms flag. The tool dispatches the notification and returns delivery confirmation.",
+    "output_details": {
+      "notification_sent": {
+        "type": "boolean",
+        "description": "Whether the notification was successfully sent"
+      },
+      "delivery_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent notification"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "Timestamp when notification was dispatched"
+      },
+      "delivery_method": {
+        "type": "string",
+        "description": "Method used for notification delivery (email, sms, both)"
+      }
+    }
+  }
+  ```

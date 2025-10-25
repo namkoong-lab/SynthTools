@@ -1,0 +1,24 @@
+{
+  "Tool Call": {
+    "tool_name": "Data Impact Analyzer",
+    "migration_sql": "ALTER TABLE users DROP COLUMN middle_name; ALTER TABLE orders ADD COLUMN status_id INTEGER; UPDATE orders SET status_id = CASE WHEN status = 'pending' THEN 1 WHEN status = 'completed' THEN 2 ELSE 3 END; ALTER TABLE orders DROP COLUMN status;",
+    "table_metadata": "{\"users\": {\"rows\": 15000, \"columns\": [\"id\", \"first_name\", \"middle_name\", \"last_name\", \"email\"], \"middle_name_nulls\": 3500}, \"orders\": {\"rows\": 45000, \"columns\": [\"id\", \"user_id\", \"status\", \"total\", \"created_at\"], \"status_values\": {\"pending\": 12000, \"completed\": 30000, \"cancelled\": 3000}}}"
+  },
+  "Return Data": {
+    "risk_level": "medium",
+    "affected_tables": [
+      "users",
+      "orders"
+    ],
+    "data_loss_warnings": [
+      "Dropping column 'middle_name' from users table will permanently delete data for 11,500 non-null records",
+      "Column transformation from 'status' to 'status_id' in orders table may lose data if status values don't match expected cases"
+    ],
+    "estimated_affected_rows": 60000,
+    "backup_recommendations": [
+      "Create full backup of users table before dropping middle_name column",
+      "Export status column data from orders table before transformation",
+      "Create rollback script to restore original status column structure"
+    ]
+  }
+}

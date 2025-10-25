@@ -1,0 +1,813 @@
+field_name: anti_fraud_and_risk_scoring
+subfield: Identity Verification and Authentication
+task: Biometric identity matching and enrollment
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves complex biometric processing, identity matching algorithms, secure enrollment workflows, and high accuracy requirements for security-critical applications. The scope includes multiple biometric modalities, real-time processing constraints, privacy concerns, and stringent error tolerance requirements. **Difficulty: Hard**
+
+  ## STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'm targeting 17 tools within the 15-20 range to cover biometric capture, preprocessing, feature extraction, matching, enrollment, quality assessment, and security operations.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and Dependencies:**
+  1. **Biometric Image Capturer** → produces raw biometric images
+  2. **Image Quality Assessor** → consumes raw images → produces quality metrics
+  3. **Face Feature Extractor** → consumes face images → produces feature vectors
+  4. **Fingerprint Feature Extractor** → consumes fingerprint images → produces minutiae data
+  5. **Iris Feature Extractor** → consumes iris images → produces iris codes
+  6. **Feature Vector Normalizer** → consumes raw features → produces normalized features
+  7. **Biometric Template Generator** → consumes normalized features → produces enrollment templates
+  8. **Identity Matcher** → consumes templates and database → produces match scores
+  9. **Liveness Detector** → consumes biometric images → produces liveness scores
+  10. **Anti Spoofing Validator** → consumes multiple inputs → produces authenticity scores
+  11. **Enrollment Database Manager** → manages template storage and retrieval
+  12. **Match Score Aggregator** → consumes multiple match scores → produces final decision
+  13. **Biometric Encryptor** → secures biometric data
+  14. **Audit Logger** → tracks all operations
+  15. **Threshold Calibrator** → optimizes matching thresholds
+  16. **Identity Deduplicator** → prevents duplicate enrollments
+  17. **Verification Result Generator** → produces final verification results
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Face Verification:** Biometric Image Capturer → Face Feature Extractor → Identity Matcher → Verification Result Generator
+  2. **Quality Check:** Biometric Image Capturer → Image Quality Assessor → basic quality validation
+
+  **Medium Plans:**
+  1. **Secure Fingerprint Enrollment:** Biometric Image Capturer → Image Quality Assessor → Fingerprint Feature Extractor → Feature Vector Normalizer → Biometric Template Generator → Biometric Encryptor → Enrollment Database Manager → Audit Logger
+  2. **Multi-modal Verification:** Biometric Image Capturer → Face Feature Extractor + Fingerprint Feature Extractor → Match Score Aggregator → Verification Result Generator
+
+  **Complex Plans:**
+  1. **Complete Secure Enrollment:** Biometric Image Capturer → Image Quality Assessor → Liveness Detector → Anti Spoofing Validator → Face Feature Extractor → Feature Vector Normalizer → Identity Deduplicator → Biometric Template Generator → Biometric Encryptor → Enrollment Database Manager → Audit Logger
+  2. **High-Security Multi-modal Verification:** Biometric Image Capturer → Image Quality Assessor → Liveness Detector → Anti Spoofing Validator → Face Feature Extractor + Iris Feature Extractor + Fingerprint Feature Extractor → Feature Vector Normalizer → Identity Matcher → Match Score Aggregator → Verification Result Generator → Audit Logger
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Biometric Image Capturer",
+    "tool_description": "Captures biometric images from various sources including cameras, scanners, and mobile devices with configurable resolution and format settings.",
+    "parameters": {
+      "capture_mode": {
+        "type": "string",
+        "required": true,
+        "description": "Type of biometric to capture: face, fingerprint, iris, palm, voice"
+      },
+      "image_resolution": {
+        "type": "string",
+        "required": false,
+        "description": "Image resolution in format WIDTHxHEIGHT, e.g., 1920x1080",
+        "default": "1280x720"
+      },
+      "image_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output image format: PNG, JPEG, BMP",
+        "default": "PNG"
+      }
+    },
+    "error_messages": [
+      "Invalid capture mode: Use one of [face, fingerprint, iris, palm, voice].",
+      "Invalid resolution format: Use WIDTHxHEIGHT format with positive integers.",
+      "Unsupported image format: Use PNG, JPEG, or BMP.",
+      "Capture device unavailable: Ensure biometric capture device is connected and accessible.",
+      "Insufficient lighting conditions: Ensure adequate lighting for biometric capture."
+    ],
+    "usage": "Specify the capture_mode for the type of biometric needed. Optionally set image_resolution and image_format. The tool returns the captured biometric image data and metadata.",
+    "output_details": {
+      "image_data": {
+        "type": "string",
+        "description": "Base64 encoded biometric image data"
+      },
+      "capture_timestamp": {
+        "type": "string",
+        "description": "When the image was captured in ISO 8601 format"
+      },
+      "image_width": {
+        "type": "integer",
+        "description": "Width of captured image in pixels"
+      },
+      "image_height": {
+        "type": "integer",
+        "description": "Height of captured image in pixels"
+      },
+      "capture_device_id": {
+        "type": "string",
+        "description": "Identifier of the capture device used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Quality Assessor",
+    "tool_description": "Evaluates biometric image quality based on multiple criteria including sharpness, contrast, lighting, and biometric-specific quality metrics.",
+    "parameters": {
+      "image_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded biometric image data"
+      },
+      "biometric_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of biometric: face, fingerprint, iris, palm"
+      },
+      "quality_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum quality score threshold (0-100)",
+        "default": 70
+      },
+      "check_sharpness": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to assess image sharpness",
+        "default": true
+      },
+      "check_lighting": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to assess lighting conditions",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid image data: Provide valid base64 encoded image data.",
+      "Unsupported biometric type: Use one of [face, fingerprint, iris, palm].",
+      "Invalid quality threshold: Threshold must be between 0 and 100.",
+      "Image too small: Image dimensions must be at least 100x100 pixels.",
+      "Corrupted image data: Unable to decode or process the provided image data."
+    ],
+    "usage": "Provide image_data and biometric_type. Optionally set quality_threshold and quality check flags. The tool returns comprehensive quality metrics and pass/fail status.",
+    "output_details": {
+      "overall_quality_score": {
+        "type": "number",
+        "description": "Overall quality score from 0-100"
+      },
+      "quality_passed": {
+        "type": "boolean",
+        "description": "Whether image meets quality threshold"
+      },
+      "sharpness_score": {
+        "type": "number",
+        "description": "Image sharpness score from 0-100"
+      },
+      "lighting_score": {
+        "type": "number",
+        "description": "Lighting quality score from 0-100"
+      },
+      "contrast_score": {
+        "type": "number",
+        "description": "Image contrast score from 0-100"
+      },
+      "quality_issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of identified quality issues"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Face Feature Extractor",
+    "tool_description": "Extracts facial feature vectors from face images using deep learning models, including landmark detection and geometric feature analysis.",
+    "parameters": {
+      "face_image_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded face image data"
+      },
+      "extraction_model": {
+        "type": "string",
+        "required": false,
+        "description": "Feature extraction model: facenet, arcface, openface, eigenfaces",
+        "default": "facenet"
+      },
+      "include_landmarks": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include facial landmark coordinates",
+        "default": true
+      },
+      "face_detection_confidence": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence for face detection (0.1-1.0)",
+        "default": 0.8
+      },
+      "normalize_features": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply L2 normalization to features",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid face image data: Provide valid base64 encoded image data.",
+      "No face detected: Unable to detect a face in the provided image with specified confidence.",
+      "Unsupported extraction model: Use one of [facenet, arcface, openface, eigenfaces].",
+      "Invalid detection confidence: Confidence must be between 0.1 and 1.0.",
+      "Multiple faces detected: Image contains more than one face, provide single-face image.",
+      "Face too small: Detected face is too small for reliable feature extraction."
+    ],
+    "usage": "Provide face_image_data with optional parameters to customize extraction. The tool detects faces and extracts feature vectors suitable for matching and recognition.",
+    "output_details": {
+      "feature_vector": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Extracted facial feature vector"
+      },
+      "face_landmarks": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Facial landmark coordinates as flattened array"
+      },
+      "face_confidence": {
+        "type": "number",
+        "description": "Confidence score for face detection"
+      },
+      "face_bounding_box": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Face bounding box as [x, y, width, height]"
+      },
+      "feature_vector_size": {
+        "type": "integer",
+        "description": "Dimensionality of the extracted feature vector"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fingerprint Feature Extractor",
+    "tool_description": "Extracts minutiae points and ridge patterns from fingerprint images for identification and matching purposes.",
+    "parameters": {
+      "fingerprint_image": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded fingerprint image data"
+      },
+      "enhancement_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply image enhancement preprocessing",
+        "default": true
+      },
+      "minutiae_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum quality threshold for minutiae detection (0.1-1.0)",
+        "default": 0.3
+      },
+      "max_minutiae_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of minutiae points to extract",
+        "default": 100
+      }
+    },
+    "error_messages": [
+      "Invalid fingerprint image: Provide valid base64 encoded fingerprint image data.",
+      "Poor fingerprint quality: Image quality too low for reliable minutiae extraction.",
+      "Invalid minutiae threshold: Threshold must be between 0.1 and 1.0.",
+      "Invalid max minutiae count: Count must be between 10 and 200.",
+      "Insufficient ridge detail: Unable to extract sufficient ridge information from image."
+    ],
+    "usage": "Provide fingerprint_image with optional enhancement and extraction parameters. The tool extracts minutiae points and ridge characteristics for fingerprint matching.",
+    "output_details": {
+      "minutiae_points": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Flattened array of minutiae coordinates and angles"
+      },
+      "minutiae_count": {
+        "type": "integer",
+        "description": "Total number of extracted minutiae points"
+      },
+      "ridge_quality": {
+        "type": "number",
+        "description": "Overall ridge quality score from 0-100"
+      },
+      "core_point": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Core point coordinates [x, y] if detected"
+      },
+      "delta_points": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Delta point coordinates as flattened array"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Iris Feature Extractor",
+    "tool_description": "Extracts iris codes and texture patterns from iris images using Gabor wavelets and pattern analysis techniques.",
+    "parameters": {
+      "iris_image_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded iris image data"
+      },
+      "pupil_dilation_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum acceptable pupil dilation ratio (0.2-0.8)",
+        "default": 0.6
+      },
+      "segmentation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Iris segmentation method: circular_hough, active_contour, deep_learning",
+        "default": "circular_hough"
+      },
+      "code_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Length of iris code in bits",
+        "default": 2048
+      },
+      "noise_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum noise level threshold (0.1-0.5)",
+        "default": 0.3
+      }
+    },
+    "error_messages": [
+      "Invalid iris image: Provide valid base64 encoded iris image data.",
+      "Iris segmentation failed: Unable to segment iris from sclera and pupil.",
+      "Invalid dilation threshold: Threshold must be between 0.2 and 0.8.",
+      "Unsupported segmentation method: Use one of [circular_hough, active_contour, deep_learning].",
+      "Invalid code length: Code length must be between 512 and 4096 bits.",
+      "Excessive noise detected: Image noise level exceeds acceptable threshold.",
+      "Pupil dilation excessive: Pupil dilation ratio exceeds specified threshold."
+    ],
+    "usage": "Provide iris_image_data with optional segmentation and extraction parameters. The tool segments the iris region and extracts iris codes for matching.",
+    "output_details": {
+      "iris_code": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Binary iris code as array of integers"
+      },
+      "iris_mask": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Mask indicating valid iris regions"
+      },
+      "pupil_center": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Pupil center coordinates [x, y]"
+      },
+      "iris_radius": {
+        "type": "number",
+        "description": "Outer iris boundary radius"
+      },
+      "pupil_radius": {
+        "type": "number",
+        "description": "Pupil radius"
+      },
+      "segmentation_confidence": {
+        "type": "number",
+        "description": "Confidence score for iris segmentation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Feature Vector Normalizer",
+    "tool_description": "Normalizes biometric feature vectors using various normalization techniques to improve matching accuracy and reduce variability.",
+    "parameters": {
+      "feature_vector": {
+        "type": "array",
+        "required": true,
+        "description": "Raw feature vector to normalize",
+        "items": {
+          "type": "number"
+        }
+      },
+      "normalization_method": {
+        "type": "string",
+        "required": false,
+        "description": "Normalization technique: l2_norm, min_max, z_score, unit_vector",
+        "default": "l2_norm"
+      },
+      "feature_range_min": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum value for min_max normalization",
+        "default": 0
+      },
+      "feature_range_max": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum value for min_max normalization",
+        "default": 1
+      },
+      "clip_outliers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to clip outlier values",
+        "default": false
+      },
+      "outlier_std_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Standard deviations threshold for outlier clipping",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Empty feature vector: Provide a non-empty feature vector array.",
+      "Invalid normalization method: Use one of [l2_norm, min_max, z_score, unit_vector].",
+      "Invalid feature range: feature_range_min must be less than feature_range_max.",
+      "Invalid outlier threshold: outlier_std_threshold must be positive.",
+      "Zero variance detected: Cannot apply z_score normalization to constant feature vector.",
+      "Zero norm vector: Cannot apply L2 normalization to zero-magnitude vector."
+    ],
+    "usage": "Provide feature_vector with desired normalization_method. For min_max normalization, optionally specify feature range. Enable outlier clipping if needed.",
+    "output_details": {
+      "normalized_vector": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Normalized feature vector"
+      },
+      "normalization_stats": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Normalization statistics [mean, std, min, max]"
+      },
+      "outliers_clipped": {
+        "type": "integer",
+        "description": "Number of outlier values that were clipped"
+      },
+      "vector_magnitude": {
+        "type": "number",
+        "description": "Magnitude of the normalized vector"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Biometric Template Generator",
+    "tool_description": "Creates secure biometric templates from normalized features with privacy protection and template optimization for efficient storage and matching.",
+    "parameters": {
+      "normalized_features": {
+        "type": "array",
+        "required": true,
+        "description": "Normalized biometric feature vector",
+        "items": {
+          "type": "number"
+        }
+      },
+      "biometric_modality": {
+        "type": "string",
+        "required": true,
+        "description": "Biometric type: face, fingerprint, iris, palm, multimodal"
+      },
+      "template_format": {
+        "type": "string",
+        "required": false,
+        "description": "Template format: iso_standard, proprietary, compressed",
+        "default": "iso_standard"
+      },
+      "privacy_protection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply privacy protection transforms",
+        "default": true
+      },
+      "compression_level": {
+        "type": "integer",
+        "required": false,
+        "description": "Template compression level (0-9)",
+        "default": 5
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include extraction metadata in template",
+        "default": true
+      },
+      "template_version": {
+        "type": "string",
+        "required": false,
+        "description": "Template format version identifier",
+        "default": "1.0"
+      }
+    },
+    "error_messages": [
+      "Empty features array: Provide a non-empty normalized feature vector.",
+      "Invalid biometric modality: Use one of [face, fingerprint, iris, palm, multimodal].",
+      "Unsupported template format: Use one of [iso_standard, proprietary, compressed].",
+      "Invalid compression level: Compression level must be between 0 and 9.",
+      "Feature vector too small: Feature vector must contain at least 64 elements.",
+      "Privacy protection failed: Unable to apply privacy protection transforms to features."
+    ],
+    "usage": "Provide normalized_features and biometric_modality. Configure template format, privacy protection, and compression settings as needed. The tool generates optimized templates for storage and matching.",
+    "output_details": {
+      "biometric_template": {
+        "type": "string",
+        "description": "Base64 encoded biometric template"
+      },
+      "template_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated template"
+      },
+      "template_size": {
+        "type": "integer",
+        "description": "Size of template in bytes"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "Template creation time in ISO 8601 format"
+      },
+      "template_hash": {
+        "type": "string",
+        "description": "SHA-256 hash of template for integrity verification"
+      },
+      "compression_ratio": {
+        "type": "number",
+        "description": "Achieved compression ratio if compression was applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Identity Matcher",
+    "tool_description": "Performs biometric template matching against enrolled templates in the database, computing similarity scores and making identification decisions.",
+    "parameters": {
+      "query_template": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded query biometric template"
+      },
+      "database_templates": {
+        "type": "array",
+        "required": true,
+        "description": "Array of enrolled template IDs to match against",
+        "items": {
+          "type": "string"
+        }
+      },
+      "matching_algorithm": {
+        "type": "string",
+        "required": false,
+        "description": "Matching algorithm: cosine_similarity, euclidean_distance, hamming_distance",
+        "default": "cosine_similarity"
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum similarity score for positive match (0.1-1.0)",
+        "default": 0.7
+      },
+      "max_matches": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of matches to return",
+        "default": 10
+      },
+      "biometric_type": {
+        "type": "string",
+        "required": true,
+        "description": "Biometric modality: face, fingerprint, iris, palm"
+      },
+      "match_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Matching mode: identification, verification",
+        "default": "identification"
+      },
+      "rotation_tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Rotation tolerance in degrees for fingerprint/iris matching",
+        "default": 15
+      },
+      "quality_weighting": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to weight matches by template quality",
+        "default": true
+      },
+      "fast_reject_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Early rejection threshold for performance optimization",
+        "default": 0.3
+      }
+    },
+    "error_messages": [
+      "Invalid query template: Provide valid base64 encoded biometric template.",
+      "Empty database templates: Provide at least one enrolled template ID for matching.",
+      "Unsupported matching algorithm: Use one of [cosine_similarity, euclidean_distance, hamming_distance].",
+      "Invalid similarity threshold: Threshold must be between 0.1 and 1.0.",
+      "Invalid biometric type: Use one of [face, fingerprint, iris, palm].",
+      "Invalid match mode: Use either 'identification' or 'verification'.",
+      "Template format mismatch: Query and database templates have incompatible formats.",
+      "Database template not found: One or more specified template IDs do not exist.",
+      "Invalid rotation tolerance: Rotation tolerance must be between 0 and 45 degrees.",
+      "Invalid max matches: max_matches must be between 1 and 100."
+    ],
+    "usage": "Provide query_template, database_templates, and biometric_type. Configure matching parameters like algorithm, threshold, and matching mode. The tool returns ranked matches with similarity scores.",
+    "output_details": {
+      "matches": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of matched template IDs ranked by similarity"
+      },
+      "similarity_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Similarity scores corresponding to matched templates"
+      },
+      "best_match_id": {
+        "type": "string",
+        "description": "Template ID of highest scoring match"
+      },
+      "best_match_score": {
+        "type": "number",
+        "description": "Highest similarity score achieved"
+      },
+      "total_comparisons": {
+        "type": "integer",
+        "description": "Total number of template comparisons performed"
+      },
+      "matching_time_ms": {
+        "type": "number",
+        "description": "Time taken for matching in milliseconds"
+      },
+      "match_decision": {
+        "type": "boolean",
+        "description": "Whether a positive match was found above threshold"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Liveness Detector",
+    "tool_description": "Detects whether a biometric sample is from a live person rather than a photograph, video replay, or other spoof attempt.",
+    "parameters": {
+      "biometric_image": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded biometric image data"
+      },
+      "detection_method": {
+        "type": "string",
+        "required": false,
+        "description": "Liveness detection method: texture_analysis, motion_analysis, depth_analysis, challenge_response",
+        "default": "texture_analysis"
+      },
+      "liveness_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum liveness score threshold (0.1-1.0)",
+        "default": 0.8
+      },
+      "biometric_modality": {
+        "type": "string",
+        "required": true,
+        "description": "Biometric type: face, fingerprint, iris"
+      }
+    },
+    "error_messages": [
+      "Invalid biometric image: Provide valid base64 encoded image data.",
+      "Unsupported detection method: Use one of [texture_analysis, motion_analysis, depth_analysis, challenge_response].",
+      "Invalid liveness threshold: Threshold must be between 0.1 and 1.0.",
+      "Invalid biometric modality: Use one of [face, fingerprint, iris].",
+      "Insufficient image quality: Image quality too low for reliable liveness detection.",
+      "Detection method not available: Selected method not available for specified biometric modality."
+    ],
+    "usage": "Provide biometric_image and biometric_modality. Select appropriate detection_method and set liveness_threshold. The tool analyzes the sample for signs of liveness and returns confidence scores.",
+    "output_details": {
+      "liveness_score": {
+        "type": "number",
+        "description": "Liveness confidence score from 0-1"
+      },
+      "is_live": {
+        "type": "boolean",
+        "description": "Whether sample is determined to be from live person"
+      },
+      "spoof_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of detected spoof attempt indicators"
+      },
+      "detection_confidence": {
+        "type": "number",
+        "description": "Confidence in the liveness detection result"
+      },
+      "analysis_time_ms": {
+        "type": "number",
+        "description": "Time taken for liveness analysis in milliseconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Anti Spoofing Validator",
+    "tool_description": "Advanced anti-spoofing validation combining multiple detection techniques to identify sophisticated presentation attacks and synthetic biometrics.",
+    "parameters": {
+      "primary_image": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded primary biometric image"
+      },
+      "secondary_images": {
+        "type": "array",
+        "required": false,
+        "description": "Additional images for temporal analysis",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "biometric_type": {
+        "type": "string",
+        "required": true,
+        "description": "Biometric modality: face, fingerprint, iris"
+      },
+      "validation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Validation strictness: basic, enhanced, maximum",
+        "default": "enhanced"
+      },
+      "check_deepfake": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform deepfake detection for face images",
+        "default": true
+      },
+      "check_3d_mask": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check for 3D mask attacks",
+        "default": true
+      },
+      "temporal_consistency": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to analyze temporal consistency across frames",
+        "default": false
+      },
+      "synthetic_detection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to detect AI-generated synthetic

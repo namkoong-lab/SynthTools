@@ -1,0 +1,836 @@
+field_name: financial_trading
+subfield: market_data_analysis
+task: Historical market data retrieval and statistical analysis for backtesting strategies
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. It involves coordinating multiple data sources, handling various data formats and timeframes, performing statistical computations, and ensuring data quality for reliable backtesting. The scope includes data retrieval, cleaning, validation, and statistical analysis with moderate complexity in orchestrating these components.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target **12 tools** to cover data retrieval, preprocessing, statistical analysis, and backtesting support functionality.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Market Data Fetcher** - Consumes: ticker symbols, time ranges → Produces: raw market data
+  2. **Data Quality Validator** - Consumes: raw market data → Produces: validation reports
+  3. **Missing Data Handler** - Consumes: incomplete data → Produces: cleaned datasets
+  4. **Time Series Resampler** - Consumes: high-frequency data → Produces: resampled data
+  5. **Technical Indicator Calculator** - Consumes: OHLCV data → Produces: technical indicators
+  6. **Statistical Analyzer** - Consumes: time series data → Produces: statistical metrics
+  7. **Correlation Matrix Generator** - Consumes: multiple assets data → Produces: correlation matrices
+  8. **Volatility Calculator** - Consumes: price data → Produces: volatility measures
+  9. **Price Pattern Detector** - Consumes: OHLCV data → Produces: pattern signals
+  10. **Market Regime Classifier** - Consumes: market data → Produces: regime classifications
+  11. **Performance Metrics Calculator** - Consumes: returns data → Produces: performance statistics
+  12. **Data Export Formatter** - Consumes: processed data → Produces: formatted output files
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic data retrieval: Market Data Fetcher → Data Quality Validator → Data Export Formatter
+  - Quick volatility analysis: Market Data Fetcher → Volatility Calculator → Statistical Analyzer
+
+  **Medium Plans:**
+  - Standard preprocessing: Market Data Fetcher → Data Quality Validator → Missing Data Handler → Time Series Resampler → Technical Indicator Calculator
+  - Multi-asset correlation study: Market Data Fetcher → Missing Data Handler → Correlation Matrix Generator → Statistical Analyzer
+
+  **Complex Plans:**
+  - Complete backtesting preparation: Market Data Fetcher → Data Quality Validator → Missing Data Handler → Time Series Resampler → Technical Indicator Calculator → Price Pattern Detector → Market Regime Classifier → Performance Metrics Calculator → Data Export Formatter
+  - Advanced market analysis: Market Data Fetcher → Missing Data Handler → Technical Indicator Calculator → Volatility Calculator → Correlation Matrix Generator → Statistical Analyzer → Market Regime Classifier → Performance Metrics Calculator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Market Data Fetcher",
+    "tool_description": "Retrieves historical market data for specified instruments from financial data sources with configurable time ranges and frequencies.",
+    "parameters": {
+      "symbols": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of ticker symbols or instrument identifiers",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for data retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for data retrieval",
+        "format": "date-time"
+      },
+      "frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Data frequency: 1min, 5min, 15min, 1hour, 1day",
+        "default": "1day"
+      },
+      "data_source": {
+        "type": "string",
+        "required": false,
+        "description": "Data provider: yahoo, alpha_vantage, quandl, bloomberg",
+        "default": "yahoo"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date and both must be valid ISO 8601 datetime strings.",
+      "Unsupported frequency: Use one of [1min, 5min, 15min, 1hour, 1day].",
+      "Invalid symbols: Provide valid ticker symbols as strings in an array.",
+      "Data source error: Unable to connect to the specified data provider or provider returned no data.",
+      "Rate limit exceeded: Too many requests to data provider, please retry after delay."
+    ],
+    "usage": "Specify symbols array, start_date, end_date, and optionally frequency and data_source. Returns OHLCV data for each symbol with timestamps.",
+    "output_details": {
+      "symbols_retrieved": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of successfully retrieved symbols"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Total number of data points retrieved"
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of ISO 8601 datetime strings for each data point"
+      },
+      "open_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Opening prices for each timestamp"
+      },
+      "high_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "High prices for each timestamp"
+      },
+      "low_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Low prices for each timestamp"
+      },
+      "close_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Closing prices for each timestamp"
+      },
+      "volumes": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Trading volumes for each timestamp"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Quality Validator",
+    "tool_description": "Validates market data quality by checking for anomalies, gaps, and inconsistencies in OHLCV data.",
+    "parameters": {
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of timestamp strings in ISO 8601 format"
+      },
+      "open_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of opening prices"
+      },
+      "high_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of high prices"
+      },
+      "low_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of low prices"
+      },
+      "close_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of closing prices"
+      },
+      "volumes": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Array of trading volumes"
+      },
+      "outlier_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Z-score threshold for outlier detection",
+        "default": 3.0
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All price and volume arrays must have the same length as timestamps array.",
+      "Invalid price data: High prices must be >= low prices, and both must be positive.",
+      "Invalid volume data: Volumes must be non-negative integers.",
+      "Insufficient data: Need at least 10 data points for quality validation.",
+      "Invalid outlier threshold: Must be a positive number between 1 and 10."
+    ],
+    "usage": "Provide OHLCV arrays with corresponding timestamps and optionally set outlier_threshold. Returns validation report with identified issues.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Overall data quality status"
+      },
+      "missing_data_count": {
+        "type": "integer",
+        "description": "Number of missing or null data points"
+      },
+      "outlier_indices": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Indices of detected outlier data points"
+      },
+      "gap_indices": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Indices where time gaps exceed expected frequency"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Text summary of data quality issues found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Missing Data Handler",
+    "tool_description": "Handles missing values in time series market data using various interpolation and filling methods.",
+    "parameters": {
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of timestamp strings"
+      },
+      "values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of values that may contain missing data (represented as null or NaN)"
+      },
+      "method": {
+        "type": "string",
+        "required": false,
+        "description": "Filling method: forward_fill, backward_fill, linear_interpolation, mean_fill",
+        "default": "forward_fill"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: timestamps and values arrays must have the same length.",
+      "Invalid method: Use one of [forward_fill, backward_fill, linear_interpolation, mean_fill].",
+      "All values missing: Cannot perform interpolation when all values are missing.",
+      "Insufficient valid data: Need at least 2 valid data points for interpolation methods."
+    ],
+    "usage": "Provide timestamps and values arrays with missing data, specify filling method. Returns cleaned arrays with missing values handled.",
+    "output_details": {
+      "clean_timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Timestamps array after handling missing data"
+      },
+      "clean_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Values array with missing data filled"
+      },
+      "filled_count": {
+        "type": "integer",
+        "description": "Number of missing values that were filled"
+      },
+      "method_used": {
+        "type": "string",
+        "description": "The filling method that was applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Time Series Resampler",
+    "tool_description": "Resamples time series market data to different frequencies using various aggregation methods.",
+    "parameters": {
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Original timestamps in ISO 8601 format"
+      },
+      "open_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Opening prices for resampling"
+      },
+      "high_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "High prices for resampling"
+      },
+      "low_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Low prices for resampling"
+      },
+      "close_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Closing prices for resampling"
+      },
+      "volumes": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Trading volumes for resampling"
+      },
+      "target_frequency": {
+        "type": "string",
+        "required": true,
+        "description": "Target frequency: 5min, 15min, 30min, 1hour, 4hour, 1day, 1week"
+      },
+      "aggregation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Aggregation method for OHLC: standard, vwap_weighted",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All input arrays must have the same length.",
+      "Invalid target frequency: Use one of [5min, 15min, 30min, 1hour, 4hour, 1day, 1week].",
+      "Invalid aggregation method: Use one of [standard, vwap_weighted].",
+      "Insufficient data: Need at least 2 data points for resampling.",
+      "Invalid timestamp format: All timestamps must be valid ISO 8601 datetime strings."
+    ],
+    "usage": "Provide OHLCV data with timestamps and specify target_frequency. Optionally set aggregation_method. Returns resampled data at the new frequency.",
+    "output_details": {
+      "resampled_timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "New timestamps after resampling"
+      },
+      "resampled_open": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Resampled opening prices"
+      },
+      "resampled_high": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Resampled high prices"
+      },
+      "resampled_low": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Resampled low prices"
+      },
+      "resampled_close": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Resampled closing prices"
+      },
+      "resampled_volume": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Resampled trading volumes"
+      },
+      "original_points": {
+        "type": "integer",
+        "description": "Number of original data points"
+      },
+      "resampled_points": {
+        "type": "integer",
+        "description": "Number of resampled data points"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Technical Indicator Calculator",
+    "tool_description": "Calculates various technical indicators from OHLCV market data for strategy development and analysis.",
+    "parameters": {
+      "close_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of closing prices"
+      },
+      "high_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Array of high prices (required for some indicators)",
+        "default": "None"
+      },
+      "low_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Array of low prices (required for some indicators)",
+        "default": "None"
+      },
+      "volumes": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": false,
+        "description": "Array of volumes (required for volume-based indicators)",
+        "default": "None"
+      },
+      "indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of indicators to calculate: SMA, EMA, RSI, MACD, BB, ATR, OBV, STOCH",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "sma_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Period for Simple Moving Average",
+        "default": 20
+      },
+      "ema_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Period for Exponential Moving Average",
+        "default": 20
+      },
+      "rsi_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Period for RSI calculation",
+        "default": 14
+      },
+      "macd_fast": {
+        "type": "integer",
+        "required": false,
+        "description": "Fast period for MACD",
+        "default": 12
+      },
+      "macd_slow": {
+        "type": "integer",
+        "required": false,
+        "description": "Slow period for MACD",
+        "default": 26
+      },
+      "macd_signal": {
+        "type": "integer",
+        "required": false,
+        "description": "Signal period for MACD",
+        "default": 9
+      },
+      "bb_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Period for Bollinger Bands",
+        "default": 20
+      },
+      "bb_std": {
+        "type": "number",
+        "required": false,
+        "description": "Standard deviation multiplier for Bollinger Bands",
+        "default": 2.0
+      },
+      "atr_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Period for Average True Range",
+        "default": 14
+      },
+      "stoch_k": {
+        "type": "integer",
+        "required": false,
+        "description": "K period for Stochastic oscillator",
+        "default": 14
+      },
+      "stoch_d": {
+        "type": "integer",
+        "required": false,
+        "description": "D period for Stochastic oscillator",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least max(indicator_periods) data points for calculation.",
+      "Invalid indicator: Use one of [SMA, EMA, RSI, MACD, BB, ATR, OBV, STOCH].",
+      "Missing required data: High/low prices required for ATR and STOCH, volumes required for OBV.",
+      "Invalid period parameters: All period parameters must be positive integers between 1 and 200.",
+      "Array length mismatch: All provided price arrays must have the same length."
+    ],
+    "usage": "Provide close_prices and specify indicators to calculate. Include high_prices, low_prices, volumes as needed. Set period parameters for fine-tuning.",
+    "output_details": {
+      "calculated_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of successfully calculated indicators"
+      },
+      "sma_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Simple Moving Average values"
+      },
+      "ema_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Exponential Moving Average values"
+      },
+      "rsi_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "RSI values"
+      },
+      "macd_line": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "MACD line values"
+      },
+      "macd_signal": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "MACD signal line values"
+      },
+      "bb_upper": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Bollinger Bands upper band"
+      },
+      "bb_lower": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Bollinger Bands lower band"
+      },
+      "atr_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Average True Range values"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Statistical Analyzer",
+    "tool_description": "Performs comprehensive statistical analysis on time series market data including descriptive statistics, distribution analysis, and time series properties.",
+    "parameters": {
+      "data": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Time series data for statistical analysis"
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of analysis: descriptive, distribution, stationarity, all",
+        "default": "all"
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "Confidence level for statistical tests (0.90, 0.95, 0.99)",
+        "default": 0.95
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 30 data points for comprehensive statistical analysis.",
+      "Invalid analysis type: Use one of [descriptive, distribution, stationarity, all].",
+      "Invalid confidence level: Use one of [0.90, 0.95, 0.99].",
+      "Invalid data: All data values must be finite numbers."
+    ],
+    "usage": "Provide time series data array and specify analysis_type and confidence_level. Returns comprehensive statistical metrics and test results.",
+    "output_details": {
+      "mean": {
+        "type": "number",
+        "description": "Sample mean of the data"
+      },
+      "median": {
+        "type": "number",
+        "description": "Sample median of the data"
+      },
+      "std_dev": {
+        "type": "number",
+        "description": "Standard deviation of the data"
+      },
+      "skewness": {
+        "type": "number",
+        "description": "Skewness coefficient"
+      },
+      "kurtosis": {
+        "type": "number",
+        "description": "Kurtosis coefficient"
+      },
+      "min_value": {
+        "type": "number",
+        "description": "Minimum value in the dataset"
+      },
+      "max_value": {
+        "type": "number",
+        "description": "Maximum value in the dataset"
+      },
+      "is_normal": {
+        "type": "boolean",
+        "description": "Whether data passes normality test"
+      },
+      "is_stationary": {
+        "type": "boolean",
+        "description": "Whether data passes stationarity test"
+      },
+      "autocorrelation": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "First 10 autocorrelation coefficients"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Correlation Matrix Generator",
+    "tool_description": "Generates correlation matrices between multiple financial time series using various correlation measures.",
+    "parameters": {
+      "asset_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Names of assets for correlation analysis",
+        "minItems": 2,
+        "maxItems": 20
+      },
+      "asset_data": {
+        "type": "array",
+        "items": {"type": "array"},
+        "required": true,
+        "description": "Price time series data for each asset (array of arrays of numbers)",
+        "minItems": 2,
+        "maxItems": 20
+      },
+      "correlation_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of correlation: pearson, spearman, kendall",
+        "default": "pearson"
+      },
+      "min_periods": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of observations required for valid correlation",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Asset count mismatch: asset_names and asset_data arrays must have the same length.",
+      "Insufficient data: Each asset must have at least min_periods data points.",
+      "Invalid correlation type: Use one of [pearson, spearman, kendall].",
+      "Invalid min_periods: Must be a positive integer between 10 and 1000."
+    ],
+    "usage": "Provide asset_names and corresponding asset_data arrays. Specify correlation_type and min_periods as needed. Returns correlation matrix and statistics.",
+    "output_details": {
+      "correlation_matrix": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "Square correlation matrix as array of arrays"
+      },
+      "asset_pairs": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of asset pair names"
+      },
+      "correlation_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Flattened correlation values for each pair"
+      },
+      "strongest_correlation": {
+        "type": "number",
+        "description": "Highest absolute correlation coefficient"
+      },
+      "strongest_pair": {
+        "type": "string",
+        "description": "Asset pair with strongest correlation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Volatility Calculator",
+    "tool_description": "Calculates various volatility measures from price data including historical volatility, GARCH models, and volatility forecasts.",
+    "parameters": {
+      "prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Price time series for volatility calculation"
+      },
+      "volatility_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Types of volatility to calculate: historical, ewma, garch, parkinson, garman_klass",
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "window_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Rolling window size for historical volatility",
+        "default": 30
+      },
+      "ewma_lambda": {
+        "type": "number",
+        "required": false,
+        "description": "Lambda parameter for EWMA (0.9-0.99)",
+        "default": 0.94
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least window_size + 1 price observations.",
+      "Invalid volatility types: Use one of [historical, ewma, garch, parkinson, garman_klass].",
+      "Invalid window size: Must be between 5 and 252.",
+      "Invalid EWMA lambda: Must be between 0.9 and 0.99.",
+      "Invalid prices: All price values must be positive numbers."
+    ],
+    "usage": "Provide prices array and specify volatility_types to calculate. Adjust window_size and ewma_lambda as needed. Returns various volatility measures.",
+    "output_details": {
+      "historical_volatility": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Rolling historical volatility values"
+      },
+      "ewma_volatility": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "EWMA volatility values"
+      },
+      "current_volatility": {
+        "type": "number",
+        "description": "Most recent volatility estimate"
+      },
+      "volatility_forecast": {
+        "type": "number",
+        "description": "One-period ahead volatility forecast"
+      },
+      "volatility_regime": {
+        "type": "string",
+        "description": "Current volatility regime: low, medium, high"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price Pattern Detector",
+    "tool_description": "Detects common price patterns and chart formations in OHLCV market data for technical analysis.",
+    "parameters": {
+      "open_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Opening prices"
+      },
+      "high_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "High prices"
+      },
+      "low_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Low prices"
+      },
+      "close_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Closing prices"
+      },
+      "pattern_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Patterns to detect: doji, hammer, engulfing, triangle, head_shoulders, support_resistance",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Pattern detection sensitivity: low, medium, high",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All OHLC arrays must have the same length.",
+      "Insufficient data: Need at least 20 data points for pattern detection.",
+      "Invalid pattern types: Use valid pattern names from the supported list.",
+      "Invalid sensitivity: Use one of [low, medium, high].",
+      "Invalid OHLC data: High >= Low and all prices must be positive."
+    ],
+    "usage": "Provide OHLC price arrays and specify pattern_types to detect. Adjust sensitivity for pattern detection threshold. Returns detected patterns with locations.",
+    "output_details": {
+      "detected_patterns": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of detected pattern types"
+      },
+      "pattern_locations": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Array indices where patterns were detected"
+      },
+      "pattern_strengths": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Strength scores for detected patterns (0-1)"
+      },
+      "bullish_patterns": {
+        "type": "integer",
+        "description": "Count of bullish patterns detected"
+      },
+      "bearish_patterns": {
+        "type": "integer",
+        "description": "Count of bearish patterns detected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Market Regime Classifier",
+    "tool_description": "Classifies market conditions into different regimes base

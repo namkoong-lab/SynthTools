@@ -1,0 +1,839 @@
+field_name: ecommerce_and_retail
+subfield: Shipping and Logistics Coordination
+task: Handle shipping exceptions, delays, and customer delivery issue resolution
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to its broad scope covering multiple stakeholders (customers, carriers, warehouses), high ambiguity in exception types and resolution paths, complex dependencies between tracking systems and customer communications, significant impact of delivery failures on customer satisfaction, and requirements for real-time data integration across multiple logistics providers.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** to cover the comprehensive workflow from exception detection through resolution and customer communication.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Shipment Tracker** - Consumes: tracking numbers → Produces: delivery status, location data
+  2. **Exception Detector** - Consumes: shipment data → Produces: exception alerts, severity levels
+  3. **Carrier Status Checker** - Consumes: carrier info, tracking IDs → Produces: real-time carrier updates
+  4. **Customer Notifier** - Consumes: customer data, messages → Produces: notification confirmations
+  5. **Delivery Route Optimizer** - Consumes: addresses, constraints → Produces: optimized routes
+  6. **Warehouse Inventory Checker** - Consumes: SKUs, locations → Produces: stock availability
+  7. **Alternative Carrier Finder** - Consumes: shipping requirements → Produces: carrier options
+  8. **Refund Processor** - Consumes: order details, refund amounts → Produces: refund confirmations
+  9. **Replacement Order Creator** - Consumes: original order data → Produces: new order details
+  10. **Customer Service Ticket Manager** - Consumes: issue details → Produces: ticket statuses
+  11. **Delivery Time Estimator** - Consumes: routes, carrier data → Produces: time estimates
+  12. **Cost Calculator** - Consumes: shipping options → Produces: cost breakdowns
+  13. **Address Validator** - Consumes: addresses → Produces: validation results
+  14. **Exception Report Generator** - Consumes: exception data → Produces: analysis reports
+  15. **SLA Monitor** - Consumes: delivery commitments → Produces: compliance metrics
+  16. **Escalation Manager** - Consumes: issue severity → Produces: escalation workflows
+  17. **Resolution Tracker** - Consumes: resolution actions → Produces: outcome summaries
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Status Update**: Shipment Tracker → Customer Notifier (inform customer of delay)
+  2. **Address Fix**: Address Validator → Customer Notifier (correct delivery address)
+
+  **Medium Plans:**
+  1. **Standard Exception Response**: Exception Detector → Carrier Status Checker → Customer Service Ticket Manager → Customer Notifier (detect, investigate, create ticket, notify)
+  2. **Alternative Shipping**: Exception Detector → Alternative Carrier Finder → Cost Calculator → Replacement Order Creator (find new carrier and reship)
+
+  **Complex Plans:**
+  1. **Complete Resolution Workflow**: Exception Detector → Carrier Status Checker → Warehouse Inventory Checker → Alternative Carrier Finder → Delivery Route Optimizer → Cost Calculator → Customer Notifier → Customer Service Ticket Manager → Resolution Tracker (full exception handling with optimization)
+  2. **Escalated Issue Management**: Exception Detector → SLA Monitor → Escalation Manager → Refund Processor → Replacement Order Creator → Customer Notifier → Exception Report Generator (handle critical failures with compensation and analysis)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Shipment Tracker",
+    "tool_description": "Retrieves real-time tracking information for shipments across multiple carriers and provides delivery status updates.",
+    "parameters": {
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "The shipment tracking number to look up"
+      },
+      "carrier_code": {
+        "type": "string",
+        "required": true,
+        "description": "Carrier identifier (UPS, FEDEX, DHL, USPS, etc.)"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include full tracking history or just current status"
+      }
+    },
+    "error_messages": [
+      "Invalid tracking number: Ensure the tracking number format matches the carrier's requirements.",
+      "Unsupported carrier: Use a supported carrier code (UPS, FEDEX, DHL, USPS, etc.)",
+      "Tracking information unavailable: The carrier's tracking system may be down or the shipment may not be in the system yet."
+    ],
+    "usage": "Provide a valid tracking_number and carrier_code. Set include_history to false if you only need current status. The tool returns comprehensive tracking data including location and estimated delivery.",
+    "output_details": {
+      "status": {
+        "type": "string",
+        "description": "Current shipment status (in_transit, delivered, exception, etc.)"
+      },
+      "current_location": {
+        "type": "string",
+        "description": "Current shipment location or facility name"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Estimated delivery date and time"
+      },
+      "tracking_events": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of tracking event descriptions with timestamps"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Exception Detector",
+    "tool_description": "Analyzes shipment data to identify delivery exceptions, delays, and potential issues requiring intervention.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "The order identifier to analyze for exceptions"
+      },
+      "expected_delivery_date": {
+        "type": "string",
+        "required": true,
+        "format": "date-time",
+        "description": "Originally promised delivery date"
+      },
+      "tracking_status": {
+        "type": "string",
+        "required": true,
+        "description": "Current tracking status from carrier"
+      },
+      "customer_complaints": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "List of customer complaint descriptions"
+      },
+      "delivery_attempts": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": "Number of failed delivery attempts"
+      }
+    },
+    "error_messages": [
+      "Invalid order ID: Provide a valid order identifier that exists in the system.",
+      "Invalid date format: Use ISO 8601 format for expected_delivery_date.",
+      "Missing tracking status: Provide current tracking status from the carrier.",
+      "Invalid delivery attempts: Must be a non-negative integer."
+    ],
+    "usage": "Provide order_id, expected_delivery_date, and tracking_status. Optionally include customer_complaints and delivery_attempts for more accurate exception detection. The tool returns exception type and severity level.",
+    "output_details": {
+      "has_exception": {
+        "type": "boolean",
+        "description": "Whether an exception has been detected"
+      },
+      "exception_type": {
+        "type": "string",
+        "description": "Type of exception (delay, damaged, lost, address_issue, etc.)"
+      },
+      "severity_level": {
+        "type": "string",
+        "description": "Severity level (low, medium, high, critical)"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of recommended actions to resolve the exception"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Carrier Status Checker",
+    "tool_description": "Queries multiple carriers simultaneously to get comprehensive status updates and service availability information.",
+    "parameters": {
+      "tracking_numbers": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50,
+        "description": "Array of tracking numbers to check"
+      },
+      "carrier_codes": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50,
+        "description": "Corresponding carrier codes for each tracking number"
+      },
+      "priority_check": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to prioritize this check for faster response"
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: tracking_numbers and carrier_codes arrays must have the same length.",
+      "Too many requests: Maximum 50 tracking numbers allowed per request.",
+      "Invalid carrier codes: One or more carrier codes are not supported.",
+      "Rate limit exceeded: Too many requests sent too quickly, please wait before retrying."
+    ],
+    "usage": "Provide arrays of tracking_numbers and corresponding carrier_codes. Set priority_check to true for urgent shipments. The tool returns status information for all requested shipments.",
+    "output_details": {
+      "results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Status results for each tracking number in the same order as input"
+      },
+      "successful_checks": {
+        "type": "integer",
+        "description": "Number of successful status checks"
+      },
+      "failed_checks": {
+        "type": "integer",
+        "description": "Number of failed status checks"
+      },
+      "carrier_service_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Service availability status for each carrier"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Notifier",
+    "tool_description": "Sends notifications to customers via multiple channels about shipping updates, delays, and resolutions.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification (delay, exception, resolution, delivery_update)"
+      },
+      "message_content": {
+        "type": "string",
+        "required": true,
+        "description": "The notification message content"
+      },
+      "channels": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 5,
+        "description": "Communication channels to use (email, sms, push, phone, in_app)"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "default": "normal",
+        "description": "Notification urgency (low, normal, high, urgent)"
+      },
+      "order_id": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Related order ID for context"
+      },
+      "include_tracking_link": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include tracking link in notification"
+      }
+    },
+    "error_messages": [
+      "Invalid customer ID: Customer not found in the system.",
+      "Unsupported notification type: Use one of (delay, exception, resolution, delivery_update).",
+      "Invalid channels: Use supported channels (email, sms, push, phone, in_app).",
+      "Message too long: Message content must be under 1000 characters.",
+      "Customer preferences conflict: Customer has opted out of selected communication channels."
+    ],
+    "usage": "Provide customer_id, notification_type, message_content, and preferred channels. Set urgency_level for prioritization. The tool sends notifications and returns delivery status.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for this notification"
+      },
+      "delivery_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Delivery status for each channel (sent, failed, pending)"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the notification was sent"
+      },
+      "customer_response": {
+        "type": "string",
+        "description": "Customer response or acknowledgment if available"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Route Optimizer",
+    "tool_description": "Optimizes delivery routes to minimize delays and costs while considering traffic, weather, and delivery constraints.",
+    "parameters": {
+      "origin_address": {
+        "type": "string",
+        "required": true,
+        "description": "Starting point address for the delivery route"
+      },
+      "destination_addresses": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100,
+        "description": "List of delivery destination addresses"
+      },
+      "delivery_windows": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "Time windows for each destination in format 'HH:MM-HH:MM'"
+      },
+      "vehicle_type": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Type of delivery vehicle (bike, van, truck, standard)"
+      },
+      "avoid_tolls": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to avoid toll roads"
+      },
+      "priority_addresses": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "Addresses that should be prioritized in the route"
+      }
+    },
+    "error_messages": [
+      "Invalid address format: Ensure all addresses are complete and properly formatted.",
+      "Too many destinations: Maximum 100 destinations allowed per optimization.",
+      "Delivery window mismatch: Number of delivery windows must match number of destinations or be empty.",
+      "Invalid time window format: Use 'HH:MM-HH:MM' format for delivery windows.",
+      "Unreachable destination: One or more destinations cannot be reached from the origin.",
+      "Invalid vehicle type: Use one of (bike, van, truck, standard)."
+    ],
+    "usage": "Provide origin_address and destination_addresses. Optionally specify delivery_windows, vehicle_type, and other constraints. The tool returns an optimized route with timing and cost estimates.",
+    "output_details": {
+      "optimized_route": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Ordered list of addresses in optimal delivery sequence"
+      },
+      "total_distance": {
+        "type": "number",
+        "description": "Total route distance in miles"
+      },
+      "estimated_duration": {
+        "type": "integer",
+        "description": "Estimated total delivery time in minutes"
+      },
+      "route_efficiency_score": {
+        "type": "number",
+        "description": "Route efficiency score from 0-100"
+      },
+      "delivery_eta": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Estimated arrival times for each destination"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Warehouse Inventory Checker",
+    "tool_description": "Checks inventory availability across multiple warehouse locations for replacement orders and restocking decisions.",
+    "parameters": {
+      "sku_list": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 200,
+        "description": "List of SKUs to check inventory for"
+      },
+      "warehouse_locations": {
+        "type": "array",
+        "required": false,
+        "default": ["all"],
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific warehouse locations to check, or 'all' for all locations"
+      },
+      "minimum_quantity": {
+        "type": "integer",
+        "required": false,
+        "default": 1,
+        "description": "Minimum quantity required to consider item as available"
+      }
+    },
+    "error_messages": [
+      "Invalid SKU format: One or more SKUs are not in the correct format.",
+      "Warehouse not found: One or more specified warehouse locations do not exist.",
+      "Too many SKUs: Maximum 200 SKUs allowed per request.",
+      "Database connection error: Unable to connect to inventory system, please retry."
+    ],
+    "usage": "Provide sku_list with items to check. Optionally specify warehouse_locations and minimum_quantity thresholds. The tool returns availability data for all requested items across specified locations.",
+    "output_details": {
+      "inventory_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Inventory status for each SKU with quantities and locations"
+      },
+      "total_available_skus": {
+        "type": "integer",
+        "description": "Number of SKUs that meet minimum quantity requirements"
+      },
+      "warehouse_summary": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Summary of inventory levels by warehouse location"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alternative Carrier Finder",
+    "tool_description": "Finds alternative shipping carriers and service options when primary shipping fails or needs to be replaced.",
+    "parameters": {
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin ZIP code for shipping"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination ZIP code for shipping"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Package weight in pounds"
+      },
+      "package_dimensions": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "number"
+        },
+        "minItems": 3,
+        "maxItems": 3,
+        "description": "Package dimensions as [length, width, height] in inches"
+      },
+      "delivery_speed": {
+        "type": "string",
+        "required": true,
+        "description": "Required delivery speed (overnight, 2day, 3day, ground, economy)"
+      },
+      "exclude_carriers": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "Carriers to exclude from search"
+      },
+      "max_cost": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Maximum acceptable shipping cost"
+      },
+      "insurance_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether shipping insurance is required"
+      },
+      "signature_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether delivery signature is required"
+      }
+    },
+    "error_messages": [
+      "Invalid ZIP code: Provide valid 5-digit ZIP codes for origin and destination.",
+      "Invalid package specifications: Weight must be positive, dimensions must be positive numbers.",
+      "Unsupported delivery speed: Use one of (overnight, 2day, 3day, ground, economy).",
+      "No carriers available: No carriers meet the specified criteria and constraints.",
+      "Invalid cost limit: max_cost must be a positive number if specified."
+    ],
+    "usage": "Provide shipping details including ZIP codes, package specs, and delivery speed. Optionally exclude specific carriers or set cost limits. The tool returns available carrier options with pricing and delivery estimates.",
+    "output_details": {
+      "available_carriers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of available carrier options with service details"
+      },
+      "cost_estimates": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Shipping cost estimates for each carrier option"
+      },
+      "delivery_estimates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Delivery time estimates for each carrier option"
+      },
+      "recommended_option": {
+        "type": "string",
+        "description": "Best recommended carrier option based on criteria"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Refund Processor",
+    "tool_description": "Processes customer refunds for shipping issues, calculates refund amounts, and initiates payment reversals.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order ID for which refund is being processed"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer ID requesting the refund"
+      },
+      "refund_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of refund (full, partial, shipping_only, product_only)"
+      },
+      "refund_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for refund (damaged, lost, delayed, customer_request, etc.)"
+      },
+      "refund_amount": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Specific refund amount for partial refunds"
+      }
+    },
+    "error_messages": [
+      "Order not found: The specified order ID does not exist in the system.",
+      "Customer mismatch: The customer ID does not match the order owner.",
+      "Invalid refund type: Use one of (full, partial, shipping_only, product_only).",
+      "Refund amount required: Specify refund_amount for partial refund type.",
+      "Refund amount exceeds order total: Refund amount cannot exceed the original order value.",
+      "Refund already processed: A refund has already been processed for this order.",
+      "Payment method unavailable: Original payment method is no longer valid for refund."
+    ],
+    "usage": "Provide order_id, customer_id, refund_type, and refund_reason. For partial refunds, specify the refund_amount. The tool processes the refund and returns confirmation details.",
+    "output_details": {
+      "refund_id": {
+        "type": "string",
+        "description": "Unique identifier for the refund transaction"
+      },
+      "refund_amount_processed": {
+        "type": "number",
+        "description": "Actual amount refunded to customer"
+      },
+      "refund_status": {
+        "type": "string",
+        "description": "Status of the refund (processed, pending, failed)"
+      },
+      "expected_credit_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Expected date when customer will see refund credited"
+      },
+      "transaction_reference": {
+        "type": "string",
+        "description": "Payment processor transaction reference number"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Replacement Order Creator",
+    "tool_description": "Creates replacement orders for lost, damaged, or undelivered items with expedited shipping options.",
+    "parameters": {
+      "original_order_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the original order being replaced"
+      },
+      "items_to_replace": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50,
+        "description": "List of item SKUs or line item IDs to replace"
+      },
+      "expedited_shipping": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to use expedited shipping for replacement"
+      },
+      "shipping_address_override": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Alternative shipping address if different from original"
+      },
+      "waive_shipping_cost": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to waive shipping costs for replacement order"
+      }
+    },
+    "error_messages": [
+      "Original order not found: The specified original order ID does not exist.",
+      "Items unavailable: One or more items to replace are out of stock.",
+      "Invalid item list: One or more item SKUs are not valid or were not in the original order.",
+      "Address validation failed: The shipping address override is not valid.",
+      "Customer account issue: Customer account status prevents creating replacement orders."
+    ],
+    "usage": "Provide original_order_id and items_to_replace. Optionally specify expedited_shipping preferences and address overrides. The tool creates a new order and returns tracking information.",
+    "output_details": {
+      "replacement_order_id": {
+        "type": "string",
+        "description": "Unique ID for the newly created replacement order"
+      },
+      "tracking_number": {
+        "type": "string",
+        "description": "Tracking number for the replacement shipment"
+      },
+      "carrier": {
+        "type": "string",
+        "description": "Carrier handling the replacement shipment"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Estimated delivery date for replacement order"
+      },
+      "total_cost": {
+        "type": "number",
+        "description": "Total cost of replacement order including any shipping charges"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Service Ticket Manager",
+    "tool_description": "Creates, updates, and manages customer service tickets for shipping and delivery issues with priority routing.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer ID associated with the issue"
+      },
+      "issue_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of issue (delivery_delay, package_lost, package_damaged, address_issue, refund_request, replacement_request)"
+      },
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order ID related to the issue"
+      },
+      "issue_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the customer issue"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Priority level (low, medium, high, critical)"
+      },
+      "customer_contact_preference": {
+        "type": "string",
+        "required": false,
+        "default": "email",
+        "description": "Preferred contact method (email, phone, chat, sms)"
+      },
+      "assigned_agent": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Specific agent ID to assign ticket to"
+      },
+      "expected_resolution_time": {
+        "type": "integer",
+        "required": false,
+        "default": 24,
+        "description": "Expected resolution time in hours"
+      },
+      "attachments": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "List of attachment URLs or file references"
+      },
+      "customer_sentiment": {
+        "type": "string",
+        "required": false,
+        "default": "neutral",
+        "description": "Customer sentiment (positive, neutral, negative, angry)"
+      }
+    },
+    "error_messages": [
+      "Customer not found: The specified customer ID does not exist in the system.",
+      "Invalid issue type: Use one of (delivery_delay, package_lost, package_damaged, address_issue, refund_request, replacement_request).",
+      "Order not associated with customer: The order ID does not belong to the specified customer.",
+      "Invalid priority level: Use one of (low, medium, high, critical).",
+      "Agent not available: The assigned agent is not available or does not exist.",
+      "Description too short: Issue description must be at least 10 characters long.",
+      "Invalid contact preference: Use one of (email, phone, chat, sms).",
+      "Invalid sentiment: Use one of (positive, neutral, negative, angry)."
+    ],
+    "usage": "Provide customer_id, issue_type, order_id, and issue_description. Optionally set priority_level and other preferences. The tool creates a ticket and routes it appropriately based on issue type and priority.",
+    "output_details": {
+      "ticket_id": {
+        "type": "string",
+        "description": "Unique identifier for the created customer service ticket"
+      },
+      "ticket_status": {
+        "type": "string",
+        "description": "Current status of the ticket (open, assigned, in_progress, resolved, closed)"
+      },
+      "assigned_agent_id": {
+        "type": "string",
+        "description": "ID of the agent assigned to handle the ticket"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the ticket was created"
+      },
+      "estimated_resolution_date": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Estimated date and time for issue resolution"
+      },
+      "ticket_reference": {
+        "type": "string",
+        "description": "Customer-facing ticket reference number"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Time Estimator",
+    "tool_description": "Provides accurate delivery time estimates considering traffic, weather, carrier performance, and historical delivery data.",
+    "parameters": {
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin ZIP code for the shipment"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination ZIP code for delivery"
+      },
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping carrier (UPS, FEDEX, DHL, USPS, etc.)"
+      },
+      "service_type": {

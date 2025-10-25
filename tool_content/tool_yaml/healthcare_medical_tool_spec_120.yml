@@ -1,0 +1,863 @@
+field_name: healthcare_medical
+subfield: Electronic Health Records Management
+task: Patient registration and demographic data management
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. While patient registration involves well-established workflows, it requires careful handling of sensitive data with strict compliance requirements (HIPAA), coordination across multiple verification systems, and robust error handling to prevent data inconsistencies that could impact patient care.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover patient registration workflows, demographic management, verification processes, and compliance requirements.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Patient Identity Validator** - Consumes: personal identifiers → Produces: validated identity data
+  2. **Insurance Verification Tool** - Consumes: insurance details → Produces: coverage verification
+  3. **Duplicate Patient Checker** - Consumes: demographic data → Produces: potential duplicate matches
+  4. **Address Standardizer** - Consumes: raw address → Produces: standardized address
+  5. **Emergency Contact Validator** - Consumes: contact info → Produces: validated emergency contacts
+  6. **Patient Record Creator** - Consumes: validated data → Produces: new patient record
+  7. **Demographic Data Updater** - Consumes: patient ID + new data → Produces: updated record
+  8. **Medical History Importer** - Consumes: external records → Produces: structured medical history
+  9. **Consent Manager** - Consumes: consent preferences → Produces: consent documentation
+  10. **Patient Search Engine** - Consumes: search criteria → Produces: matching patient records
+  11. **Data Quality Auditor** - Consumes: patient records → Produces: quality assessment
+  12. **Registration Status Tracker** - Consumes: registration steps → Produces: completion status
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic Registration: Patient Identity Validator → Address Standardizer → Patient Record Creator
+  - Quick Search: Patient Search Engine → Demographic Data Updater
+
+  **Medium Plans:**
+  - Complete New Registration: Patient Identity Validator → Address Standardizer → Insurance Verification Tool → Duplicate Patient Checker → Emergency Contact Validator → Consent Manager → Patient Record Creator → Registration Status Tracker
+  - Record Update: Patient Search Engine → Data Quality Auditor → Demographic Data Updater → Registration Status Tracker
+
+  **Complex Plans:**
+  - Full Registration with History: Patient Identity Validator → Address Standardizer → Insurance Verification Tool → Duplicate Patient Checker → Emergency Contact Validator → Medical History Importer → Consent Manager → Patient Record Creator → Data Quality Auditor → Registration Status Tracker
+  - Comprehensive Data Migration: Patient Search Engine → Duplicate Patient Checker → Medical History Importer → Demographic Data Updater → Data Quality Auditor → Consent Manager
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Patient Identity Validator",
+    "tool_description": "Validates patient identity information against external databases and checks data format compliance for registration purposes.",
+    "parameters": {
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's last name"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's date of birth in YYYY-MM-DD format",
+        "format": "date-time"
+      },
+      "ssn": {
+        "type": "string",
+        "required": false,
+        "description": "Social Security Number (XXX-XX-XXXX format)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Date of birth must be in YYYY-MM-DD format and represent a valid past date.",
+      "Invalid SSN format: SSN must be in XXX-XX-XXXX format with valid digits.",
+      "Missing required fields: First name, last name, and date of birth are mandatory.",
+      "Identity verification failed: Unable to verify identity against external databases."
+    ],
+    "usage": "Provide patient's first_name, last_name, and date_of_birth. Optionally include ssn for enhanced verification. The tool validates format and cross-references with external identity databases.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Status of identity validation (verified, pending, failed)"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence score of identity match (0.0-1.0)"
+      },
+      "verified_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of successfully verified data fields"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Insurance Verification Tool",
+    "tool_description": "Verifies patient insurance coverage, benefits, and eligibility status with insurance providers.",
+    "parameters": {
+      "insurance_provider": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the insurance company"
+      },
+      "policy_number": {
+        "type": "string",
+        "required": true,
+        "description": "Insurance policy or member ID number"
+      },
+      "group_number": {
+        "type": "string",
+        "required": false,
+        "description": "Insurance group number",
+        "default": null
+      },
+      "subscriber_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the primary insurance holder"
+      },
+      "subscriber_dob": {
+        "type": "string",
+        "required": true,
+        "description": "Date of birth of primary insurance holder",
+        "format": "date-time"
+      },
+      "service_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date of intended service for eligibility check",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid policy number: Policy number format is not recognized by the insurance provider.",
+      "Coverage expired: Insurance coverage is no longer active for the specified date.",
+      "Provider not supported: Insurance provider is not in our verification network.",
+      "Eligibility verification timeout: Unable to connect to insurance verification service.",
+      "Invalid subscriber information: Subscriber name or date of birth does not match policy records."
+    ],
+    "usage": "Provide insurance_provider, policy_number, subscriber_name, and subscriber_dob. Optionally include group_number and service_date for detailed eligibility verification.",
+    "output_details": {
+      "coverage_status": {
+        "type": "string",
+        "description": "Active, inactive, or pending coverage status"
+      },
+      "copay_amount": {
+        "type": "number",
+        "description": "Patient copayment amount for services"
+      },
+      "deductible_remaining": {
+        "type": "number",
+        "description": "Remaining deductible amount"
+      },
+      "coverage_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of covered services and benefits"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Duplicate Patient Checker",
+    "tool_description": "Searches existing patient database to identify potential duplicate records based on demographic matching algorithms.",
+    "parameters": {
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's first name for duplicate checking"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's last name for duplicate checking"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's date of birth for matching",
+        "format": "date-time"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's phone number for additional matching",
+        "default": null
+      },
+      "address": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's address for location-based matching",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Database connection error: Unable to access patient records database for duplicate checking.",
+      "Invalid search criteria: Minimum required fields (first_name, last_name, date_of_birth) must be provided.",
+      "Search timeout: Duplicate checking process exceeded maximum allowed time.",
+      "Invalid date format: Date of birth must be a valid date in proper format."
+    ],
+    "usage": "Provide first_name, last_name, and date_of_birth as minimum requirements. Include phone_number and address for more accurate duplicate detection.",
+    "output_details": {
+      "duplicate_found": {
+        "type": "boolean",
+        "description": "Whether potential duplicates were identified"
+      },
+      "match_count": {
+        "type": "integer",
+        "description": "Number of potential duplicate records found"
+      },
+      "match_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each potential duplicate (0.0-1.0)"
+      },
+      "patient_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "IDs of potentially duplicate patient records"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Address Standardizer",
+    "tool_description": "Standardizes and validates patient addresses using postal service databases and geocoding services.",
+    "parameters": {
+      "street_address": {
+        "type": "string",
+        "required": true,
+        "description": "Street address including number and street name"
+      },
+      "city": {
+        "type": "string",
+        "required": true,
+        "description": "City name"
+      },
+      "state": {
+        "type": "string",
+        "required": true,
+        "description": "State or province code"
+      },
+      "zip_code": {
+        "type": "string",
+        "required": true,
+        "description": "Postal or ZIP code"
+      },
+      "country": {
+        "type": "string",
+        "required": false,
+        "description": "Country code (ISO 3166-1 alpha-2)",
+        "default": "US"
+      }
+    },
+    "error_messages": [
+      "Invalid address format: Street address format is not recognized or incomplete.",
+      "City not found: Specified city name cannot be validated against postal databases.",
+      "Invalid state code: State or province code is not valid for the specified country.",
+      "Invalid ZIP code: Postal code format is incorrect or does not exist in the specified area.",
+      "Address validation service unavailable: Unable to connect to address validation service."
+    ],
+    "usage": "Provide street_address, city, state, and zip_code for address standardization. Country defaults to US but can be specified for international addresses.",
+    "output_details": {
+      "standardized_address": {
+        "type": "string",
+        "description": "Complete standardized address string"
+      },
+      "validation_status": {
+        "type": "string",
+        "description": "Address validation result (valid, invalid, partial)"
+      },
+      "latitude": {
+        "type": "number",
+        "description": "Geographic latitude coordinate"
+      },
+      "longitude": {
+        "type": "number",
+        "description": "Geographic longitude coordinate"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Emergency Contact Validator",
+    "tool_description": "Validates and formats emergency contact information ensuring completeness and proper formatting for healthcare records.",
+    "parameters": {
+      "contact_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of emergency contact person"
+      },
+      "relationship": {
+        "type": "string",
+        "required": true,
+        "description": "Relationship to patient (spouse, parent, sibling, friend, etc.)"
+      },
+      "primary_phone": {
+        "type": "string",
+        "required": true,
+        "description": "Primary contact phone number"
+      },
+      "secondary_phone": {
+        "type": "string",
+        "required": false,
+        "description": "Alternative contact phone number",
+        "default": null
+      },
+      "email": {
+        "type": "string",
+        "required": false,
+        "description": "Emergency contact email address",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid phone number format: Phone numbers must be in valid format (e.g., (555) 123-4567 or 555-123-4567).",
+      "Invalid email format: Email address must be in valid format (user@domain.com).",
+      "Missing required information: Contact name, relationship, and primary phone are mandatory fields.",
+      "Invalid relationship type: Relationship must be a recognized category (family member, friend, guardian, etc.)."
+    ],
+    "usage": "Provide contact_name, relationship, and primary_phone as minimum requirements. Include secondary_phone and email for comprehensive contact information.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation status of contact information"
+      },
+      "formatted_primary_phone": {
+        "type": "string",
+        "description": "Standardized primary phone number format"
+      },
+      "formatted_secondary_phone": {
+        "type": "string",
+        "description": "Standardized secondary phone number format"
+      },
+      "contact_priority": {
+        "type": "integer",
+        "description": "Priority level for emergency contact (1=highest)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Patient Record Creator",
+    "tool_description": "Creates new patient records in the EHR system with validated demographic information and assigns unique patient identifiers.",
+    "parameters": {
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's validated first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's validated last name"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's date of birth",
+        "format": "date-time"
+      },
+      "gender": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's gender (Male, Female, Other, Prefer not to say)"
+      },
+      "address": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's standardized address"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's primary phone number"
+      },
+      "email": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's email address",
+        "default": null
+      },
+      "insurance_info": {
+        "type": "string",
+        "required": false,
+        "description": "Verified insurance information as JSON string",
+        "default": null
+      },
+      "emergency_contact": {
+        "type": "string",
+        "required": false,
+        "description": "Validated emergency contact information as JSON string",
+        "default": null
+      },
+      "preferred_language": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's preferred language for communication",
+        "default": "English"
+      },
+      "marital_status": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's marital status",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Duplicate record creation attempted: A patient record with similar demographics already exists.",
+      "Database insertion failed: Unable to create record due to system constraints or connectivity issues.",
+      "Invalid demographic data: One or more required fields contain invalid or improperly formatted data.",
+      "Patient ID generation failed: Unable to generate unique patient identifier.",
+      "Incomplete required information: All mandatory fields must be provided for record creation."
+    ],
+    "usage": "Provide all required demographic information including first_name, last_name, date_of_birth, gender, address, and phone_number. Optional fields enhance record completeness.",
+    "output_details": {
+      "patient_id": {
+        "type": "string",
+        "description": "Unique patient identifier assigned to new record"
+      },
+      "record_creation_status": {
+        "type": "string",
+        "description": "Status of record creation (success, failed, pending)"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "Timestamp when record was created",
+        "format": "date-time"
+      },
+      "assigned_provider": {
+        "type": "string",
+        "description": "Primary care provider assigned to patient"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Demographic Data Updater",
+    "tool_description": "Updates existing patient demographic information with data validation and change tracking for audit compliance.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier for record to update"
+      },
+      "field_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of demographic field to update (address, phone, email, etc.)"
+      },
+      "new_value": {
+        "type": "string",
+        "required": true,
+        "description": "New value for the specified field"
+      },
+      "update_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for the demographic update"
+      },
+      "updated_by": {
+        "type": "string",
+        "required": true,
+        "description": "User ID or name of person making the update"
+      }
+    },
+    "error_messages": [
+      "Patient record not found: No patient record exists with the specified patient_id.",
+      "Invalid field name: The specified field_name is not a valid demographic field that can be updated.",
+      "Data validation failed: The new_value does not meet validation requirements for the specified field.",
+      "Update permission denied: User does not have sufficient privileges to modify patient demographic data.",
+      "Concurrent update conflict: Another user has modified this record since it was last accessed."
+    ],
+    "usage": "Provide patient_id, field_name, new_value, update_reason, and updated_by. The system validates the new data and logs the change for audit purposes.",
+    "output_details": {
+      "update_status": {
+        "type": "string",
+        "description": "Status of update operation (success, failed, pending)"
+      },
+      "previous_value": {
+        "type": "string",
+        "description": "Previous value of the updated field"
+      },
+      "update_timestamp": {
+        "type": "string",
+        "description": "Timestamp when update was completed",
+        "format": "date-time"
+      },
+      "change_log_id": {
+        "type": "string",
+        "description": "Unique identifier for the change log entry"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Medical History Importer",
+    "tool_description": "Imports and structures medical history data from external sources, previous providers, or patient-provided documents into standardized EHR format.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier for medical history association"
+      },
+      "source_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of medical history source (previous_provider, patient_reported, external_system)"
+      },
+      "source_identifier": {
+        "type": "string",
+        "required": false,
+        "description": "Identifier of the source provider or system",
+        "default": null
+      },
+      "history_data": {
+        "type": "string",
+        "required": true,
+        "description": "Medical history data in supported format (HL7, CCD, or structured text)"
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date of medical history coverage",
+        "format": "date-time",
+        "default": null
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date of medical history coverage",
+        "format": "date-time",
+        "default": null
+      },
+      "verify_against_external": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to verify imported data against external medical databases",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Patient not found: No patient record exists with the specified patient_id.",
+      "Unsupported data format: Medical history data is not in a supported format (HL7, CCD, structured text).",
+      "Data parsing error: Unable to parse or extract medical information from provided history_data.",
+      "External verification failed: Unable to verify medical history against external databases.",
+      "Import permission denied: User lacks authorization to import medical history for this patient.",
+      "Data integrity violation: Imported data conflicts with existing medical records."
+    ],
+    "usage": "Provide patient_id, source_type, and history_data. Optionally specify source_identifier, date ranges, and external verification preferences for comprehensive import.",
+    "output_details": {
+      "import_status": {
+        "type": "string",
+        "description": "Status of medical history import (success, partial, failed)"
+      },
+      "imported_records_count": {
+        "type": "integer",
+        "description": "Number of medical history records successfully imported"
+      },
+      "import_warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of warnings or issues encountered during import"
+      },
+      "verification_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Results of external verification if requested"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Consent Manager",
+    "tool_description": "Manages patient consent preferences for data sharing, treatment options, research participation, and communication methods with legal compliance tracking.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier for consent management"
+      },
+      "consent_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of consent (data_sharing, research_participation, marketing_communications, treatment_options)"
+      },
+      "consent_status": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether consent is granted (true) or denied (false)"
+      },
+      "consent_scope": {
+        "type": "array",
+        "required": false,
+        "description": "Specific scope of consent if applicable",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "expiration_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date when consent expires",
+        "format": "date-time",
+        "default": null
+      },
+      "witness_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name of witness if consent requires witnessing",
+        "default": null
+      },
+      "digital_signature": {
+        "type": "string",
+        "required": false,
+        "description": "Digital signature or consent acknowledgment method",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Patient record not found: No patient exists with the specified patient_id.",
+      "Invalid consent type: Consent type must be one of the supported categories.",
+      "Missing required witness: This type of consent requires witness information.",
+      "Consent conflict detected: New consent conflicts with existing legal restrictions.",
+      "Digital signature validation failed: Unable to validate provided digital signature.",
+      "Expired consent modification: Cannot modify consent that has already expired."
+    ],
+    "usage": "Provide patient_id, consent_type, and consent_status. Include optional parameters like consent_scope, expiration_date, witness_name, and digital_signature based on consent requirements.",
+    "output_details": {
+      "consent_record_id": {
+        "type": "string",
+        "description": "Unique identifier for the consent record"
+      },
+      "consent_timestamp": {
+        "type": "string",
+        "description": "Timestamp when consent was recorded",
+        "format": "date-time"
+      },
+      "legal_compliance_status": {
+        "type": "string",
+        "description": "Legal compliance status of consent (compliant, requires_review, non_compliant)"
+      },
+      "active_consents": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of all active consent types for the patient"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Patient Search Engine",
+    "tool_description": "Searches patient database using various criteria with fuzzy matching capabilities and privacy-compliant result filtering.",
+    "parameters": {
+      "search_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of search (exact_match, fuzzy_search, phonetic_search, advanced_search)"
+      },
+      "first_name": {
+        "type": "string",
+        "required": false,
+        "description": "Patient first name for search",
+        "default": null
+      },
+      "last_name": {
+        "type": "string",
+        "required": false,
+        "description": "Patient last name for search",
+        "default": null
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": false,
+        "description": "Patient date of birth for search",
+        "format": "date-time",
+        "default": null
+      },
+      "patient_id": {
+        "type": "string",
+        "required": false,
+        "description": "Exact patient ID for direct lookup",
+        "default": null
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "Patient phone number for search",
+        "default": null
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of search results to return (1-100)",
+        "default": 20
+      }
+    },
+    "error_messages": [
+      "Invalid search criteria: At least one search parameter must be provided.",
+      "Invalid search type: Search type must be one of the supported options.",
+      "Database access denied: User lacks permission to search patient records.",
+      "Search timeout: Query exceeded maximum allowed execution time.",
+      "Invalid parameter combination: The combination of search parameters is not supported.",
+      "Max results exceeded: Requested max_results exceeds system limit of 100."
+    ],
+    "usage": "Specify search_type and at least one search criterion (first_name, last_name, date_of_birth, patient_id, or phone_number). Adjust max_results as needed for result set size.",
+    "output_details": {
+      "search_results_count": {
+        "type": "integer",
+        "description": "Total number of matching patient records found"
+      },
+      "patient_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of patient IDs matching search criteria"
+      },
+      "match_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Relevance scores for each search result (0.0-1.0)"
+      },
+      "search_execution_time": {
+        "type": "number",
+        "description": "Time taken to execute search in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Quality Auditor",
+    "tool_description": "Performs comprehensive data quality assessment on patient records checking for completeness, accuracy, consistency, and compliance with healthcare data standards.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": false,
+        "description": "Specific patient ID to audit (leave null for batch audit)",
+        "default": null
+      },
+      "audit_scope": {
+        "type": "array",
+        "required": true,
+        "description": "Areas to include in audit",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "quality_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum quality score threshold (0.0-1.0)",
+        "default": 0.85
+      },
+      "include_recommendations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include improvement recommendations",
+        "default": true
+      },
+      "audit_date_range_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for records to audit",
+        "format": "date-time",
+        "default": null
+      },
+      "audit_date_range_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date for records to audit",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid audit scope: Audit scope must contain valid data quality categories.",
+      "Patient not found: Specified patient_id does not exist in the database.",
+      "Audit permission denied: User lacks authorization to perform data quality audits.",
+      "Invalid quality threshold: Quality threshold must be between 0.0 and 1.0.",
+      "Date range error: End date must be after start date for audit date range.",
+      "Audit system unavailable: Data quality auditing service is temporarily unavailable."
+    ],
+    "usage": "Specify audit_scope with areas to evaluate. Optionally provide patient_id for single record audit or date ranges for batch processing. Set quality_threshold and include_recommendations as needed.",
+    "output_details": {
+      "overall_quality_score": {
+        "type": "number",
+        "description": "Overall data quality score (0.0-1.0)"
+      },
+      "records_audited": {
+        "type": "integer",
+        "description": "Total number of patient records audited"
+      },
+      "quality_issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of identified data quality issues"
+      },
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance with healthcare data standards"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended actions to improve data quality"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Registration Status Tracker",
+    "tool_description": "Tracks and manages patient registration process completion status across all required steps with workflow automation and notification capabilities.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",

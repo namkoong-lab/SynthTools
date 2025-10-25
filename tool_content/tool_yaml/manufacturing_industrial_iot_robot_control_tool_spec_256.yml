@@ -1,0 +1,878 @@
+field_name: manufacturing_industrial_iot_robot_control
+subfield: robotic_arm_programming_control
+task: Configure robotic arm joint parameters and kinematic constraints
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium-to-hard difficulty. It requires precise mathematical calculations for kinematics, safety-critical parameter validation, coordination between multiple joint types, and careful handling of physical constraints. Errors can result in equipment damage or safety hazards, and the task involves complex interdependencies between joint limits, workspace boundaries, and motion planning.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium-to-hard difficulty, I'm targeting 16 tools to handle the breadth of robotic arm configuration, kinematics validation, safety constraints, and motion planning requirements.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their dependencies:**
+  1. Joint Parameter Validator - consumes: joint specs → produces: validated parameters
+  2. Kinematic Chain Builder - consumes: joint parameters → produces: kinematic model
+  3. Forward Kinematics Solver - consumes: kinematic model, joint angles → produces: end-effector pose
+  4. Inverse Kinematics Solver - consumes: kinematic model, target pose → produces: joint angles
+  5. Workspace Calculator - consumes: kinematic model → produces: reachable workspace
+  6. Joint Limit Enforcer - consumes: joint parameters, motion commands → produces: constrained commands
+  7. Collision Detector - consumes: kinematic model, joint states → produces: collision status
+  8. Motion Profile Generator - consumes: start/end poses, constraints → produces: trajectory
+  9. Velocity Limit Checker - consumes: joint velocities, limits → produces: validation status
+  10. Acceleration Constraint Validator - consumes: motion profile → produces: feasibility check
+  11. Torque Calculator - consumes: joint states, loads → produces: required torques
+  12. Safety Zone Monitor - consumes: end-effector pose → produces: safety status
+  13. Configuration Optimizer - consumes: task requirements → produces: optimal joint config
+  14. Calibration Data Manager - consumes: measured positions → produces: calibration offsets
+  15. Path Planner - consumes: start/goal poses, obstacles → produces: collision-free path
+  16. Joint Controller Tuner - consumes: joint dynamics → produces: control parameters
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. Basic Setup: Joint Parameter Validator → Kinematic Chain Builder → Forward Kinematics Solver
+  2. Safety Check: Joint Limit Enforcer → Velocity Limit Checker → Safety Zone Monitor
+
+  **Medium Plans:**
+  1. Workspace Analysis: Kinematic Chain Builder → Forward Kinematics Solver → Workspace Calculator → Collision Detector
+  2. Motion Planning: Motion Profile Generator → Acceleration Constraint Validator → Joint Limit Enforcer → Path Planner
+
+  **Complex Plans:**
+  1. Complete Configuration: Joint Parameter Validator → Kinematic Chain Builder → Configuration Optimizer → Calibration Data Manager → Joint Controller Tuner → Safety Zone Monitor
+  2. Full Motion Pipeline: Path Planner → Motion Profile Generator → Inverse Kinematics Solver → Joint Limit Enforcer → Torque Calculator → Collision Detector → Safety Zone Monitor
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Joint Parameter Validator",
+    "tool_description": "Validates and processes joint configuration parameters including joint types, limits, and physical constraints for robotic arm setup.",
+    "parameters": {
+      "joint_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the joint"
+      },
+      "joint_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of joint: revolute, prismatic, spherical, or cylindrical"
+      },
+      "min_limit": {
+        "type": "number",
+        "required": true,
+        "description": "Minimum joint position limit (degrees for revolute, mm for prismatic)"
+      },
+      "max_limit": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum joint position limit (degrees for revolute, mm for prismatic)"
+      },
+      "max_velocity": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum joint velocity (deg/s or mm/s)"
+      }
+    },
+    "error_messages": [
+      "Invalid joint type: Must be one of [revolute, prismatic, spherical, cylindrical]",
+      "Invalid limits: min_limit must be less than max_limit",
+      "Invalid velocity: max_velocity must be positive",
+      "Range too large: Joint range exceeds manufacturer specifications",
+      "Empty joint_id: Joint identifier cannot be empty or null"
+    ],
+    "usage": "Provide joint_id, joint_type, position limits, and velocity constraints. The tool validates parameters against physical constraints and safety requirements.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether all joint parameters are valid"
+      },
+      "validated_parameters": {
+        "type": "string",
+        "description": "JSON string of validated joint configuration"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of warning messages for parameter values"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Kinematic Chain Builder",
+    "tool_description": "Constructs the kinematic chain model from joint parameters using Denavit-Hartenberg parameters for forward and inverse kinematics calculations.",
+    "parameters": {
+      "joint_configs": {
+        "type": "array",
+        "required": true,
+        "description": "Array of validated joint configuration strings",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "dh_a_params": {
+        "type": "array",
+        "required": true,
+        "description": "DH a parameters (link lengths) in mm",
+        "items": {
+          "type": "number"
+        }
+      },
+      "dh_alpha_params": {
+        "type": "array",
+        "required": true,
+        "description": "DH alpha parameters (link twists) in degrees",
+        "items": {
+          "type": "number"
+        }
+      },
+      "dh_d_params": {
+        "type": "array",
+        "required": true,
+        "description": "DH d parameters (link offsets) in mm",
+        "items": {
+          "type": "number"
+        }
+      },
+      "dh_theta_params": {
+        "type": "array",
+        "required": true,
+        "description": "DH theta parameters (joint angles) in degrees",
+        "items": {
+          "type": "number"
+        }
+      },
+      "base_position": {
+        "type": "array",
+        "required": false,
+        "description": "Base position coordinates [x, y, z] in mm",
+        "items": {
+          "type": "number"
+        },
+        "default": [0, 0, 0]
+      },
+      "base_orientation": {
+        "type": "array",
+        "required": false,
+        "description": "Base orientation [roll, pitch, yaw] in degrees",
+        "items": {
+          "type": "number"
+        },
+        "default": [0, 0, 0]
+      },
+      "tool_offset": {
+        "type": "array",
+        "required": false,
+        "description": "Tool center point offset [x, y, z] in mm",
+        "items": {
+          "type": "number"
+        },
+        "default": [0, 0, 0]
+      }
+    },
+    "error_messages": [
+      "Parameter length mismatch: All DH parameter arrays must have the same length as joint_configs",
+      "Invalid DH parameters: Alpha values must be between -180 and 180 degrees",
+      "Invalid base configuration: Position and orientation arrays must have exactly 3 elements",
+      "Insufficient joints: Minimum 2 joints required for kinematic chain",
+      "Excessive joints: Maximum 10 joints supported for computational efficiency"
+    ],
+    "usage": "Provide joint configurations and corresponding DH parameters. Optionally specify base pose and tool offset. The tool builds a complete kinematic model for the robotic arm.",
+    "output_details": {
+      "kinematic_model": {
+        "type": "string",
+        "description": "Serialized kinematic chain model"
+      },
+      "transformation_matrices": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of transformation matrix strings for each joint"
+      },
+      "degrees_of_freedom": {
+        "type": "integer",
+        "description": "Total degrees of freedom for the arm"
+      },
+      "reach_estimate": {
+        "type": "number",
+        "description": "Estimated maximum reach in mm"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Forward Kinematics Solver",
+    "tool_description": "Calculates end-effector position and orientation from joint angles using the kinematic chain model.",
+    "parameters": {
+      "kinematic_model": {
+        "type": "string",
+        "required": true,
+        "description": "Serialized kinematic chain model from Kinematic Chain Builder"
+      },
+      "joint_angles": {
+        "type": "array",
+        "required": true,
+        "description": "Current joint angles in degrees",
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "error_messages": [
+      "Invalid kinematic model: Model string is corrupted or incompatible",
+      "Joint angle count mismatch: Number of angles must match kinematic model DOF",
+      "Joint angles out of bounds: One or more angles exceed joint limits",
+      "Computation failed: Numerical error in transformation calculations"
+    ],
+    "usage": "Provide the kinematic model and array of joint angles. The tool computes the resulting end-effector pose in Cartesian coordinates.",
+    "output_details": {
+      "position": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "End-effector position [x, y, z] in mm"
+      },
+      "orientation": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "End-effector orientation [roll, pitch, yaw] in degrees"
+      },
+      "transformation_matrix": {
+        "type": "string",
+        "description": "Complete transformation matrix as string"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inverse Kinematics Solver",
+    "tool_description": "Calculates joint angles required to achieve a target end-effector pose using iterative numerical methods.",
+    "parameters": {
+      "kinematic_model": {
+        "type": "string",
+        "required": true,
+        "description": "Serialized kinematic chain model"
+      },
+      "target_position": {
+        "type": "array",
+        "required": true,
+        "description": "Target position [x, y, z] in mm",
+        "items": {
+          "type": "number"
+        }
+      },
+      "target_orientation": {
+        "type": "array",
+        "required": true,
+        "description": "Target orientation [roll, pitch, yaw] in degrees",
+        "items": {
+          "type": "number"
+        }
+      },
+      "initial_guess": {
+        "type": "array",
+        "required": false,
+        "description": "Initial joint angle guess in degrees",
+        "items": {
+          "type": "number"
+        },
+        "default": null
+      },
+      "tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Solution tolerance in mm",
+        "default": 0.1
+      }
+    },
+    "error_messages": [
+      "Target unreachable: Specified pose is outside robot workspace",
+      "Solution did not converge: Try different initial guess or increase tolerance",
+      "Invalid target pose: Position or orientation arrays must have 3 elements",
+      "Initial guess mismatch: Initial guess length must match kinematic model DOF",
+      "Tolerance too strict: Minimum tolerance is 0.01mm"
+    ],
+    "usage": "Provide kinematic model and target pose. Optionally specify initial joint angle guess and convergence tolerance. The tool returns joint angles to achieve the target pose.",
+    "output_details": {
+      "joint_angles": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Calculated joint angles in degrees"
+      },
+      "achieved_position": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Actual achieved position [x, y, z] in mm"
+      },
+      "position_error": {
+        "type": "number",
+        "description": "Position error magnitude in mm"
+      },
+      "converged": {
+        "type": "boolean",
+        "description": "Whether the solution converged"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Workspace Calculator",
+    "tool_description": "Computes the reachable workspace envelope and identifies workspace boundaries and singularities for the robotic arm.",
+    "parameters": {
+      "kinematic_model": {
+        "type": "string",
+        "required": true,
+        "description": "Serialized kinematic chain model"
+      },
+      "resolution": {
+        "type": "integer",
+        "required": false,
+        "description": "Workspace sampling resolution (10-100)",
+        "default": 20
+      }
+    },
+    "error_messages": [
+      "Invalid kinematic model: Cannot parse the provided kinematic model",
+      "Resolution out of range: Resolution must be between 10 and 100",
+      "Computation timeout: Workspace calculation exceeded time limit, try lower resolution",
+      "Memory insufficient: Reduce resolution for complex kinematic chains"
+    ],
+    "usage": "Provide the kinematic model and optionally specify sampling resolution. The tool generates workspace boundaries and reachability analysis.",
+    "output_details": {
+      "workspace_volume": {
+        "type": "number",
+        "description": "Total reachable workspace volume in cubic meters"
+      },
+      "max_reach": {
+        "type": "number",
+        "description": "Maximum reach distance in mm"
+      },
+      "min_reach": {
+        "type": "number",
+        "description": "Minimum reach distance in mm"
+      },
+      "workspace_bounds": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Workspace bounding box [x_min, x_max, y_min, y_max, z_min, z_max] in mm"
+      },
+      "singularity_count": {
+        "type": "integer",
+        "description": "Number of identified singularity regions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Joint Limit Enforcer",
+    "tool_description": "Enforces joint position, velocity, and acceleration limits by clamping or scaling motion commands to stay within safe operating bounds.",
+    "parameters": {
+      "joint_configs": {
+        "type": "array",
+        "required": true,
+        "description": "Array of joint configuration strings with limits",
+        "items": {
+          "type": "string"
+        }
+      },
+      "commanded_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Desired joint positions in degrees or mm",
+        "items": {
+          "type": "number"
+        }
+      },
+      "commanded_velocities": {
+        "type": "array",
+        "required": false,
+        "description": "Desired joint velocities",
+        "items": {
+          "type": "number"
+        },
+        "default": null
+      },
+      "enforcement_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Enforcement strategy: clamp, scale, or reject",
+        "default": "clamp"
+      }
+    },
+    "error_messages": [
+      "Configuration mismatch: Number of positions must match number of joint configurations",
+      "Invalid enforcement mode: Must be one of [clamp, scale, reject]",
+      "Command rejected: Commanded values violate limits and enforcement_mode is reject",
+      "Velocity mismatch: If provided, velocity array length must match position array length"
+    ],
+    "usage": "Provide joint configurations and commanded positions/velocities. Choose enforcement strategy to handle limit violations. The tool returns safe, limit-compliant commands.",
+    "output_details": {
+      "safe_positions": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Limit-compliant joint positions"
+      },
+      "safe_velocities": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Limit-compliant joint velocities"
+      },
+      "violations_detected": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of limit violation descriptions"
+      },
+      "modifications_applied": {
+        "type": "boolean",
+        "description": "Whether commands were modified to enforce limits"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Collision Detector",
+    "tool_description": "Detects potential collisions between robot links, with obstacles, or workspace boundaries using geometric collision checking.",
+    "parameters": {
+      "kinematic_model": {
+        "type": "string",
+        "required": true,
+        "description": "Serialized kinematic chain model with link geometries"
+      },
+      "current_joint_angles": {
+        "type": "array",
+        "required": true,
+        "description": "Current joint positions in degrees",
+        "items": {
+          "type": "number"
+        }
+      },
+      "obstacle_positions": {
+        "type": "array",
+        "required": false,
+        "description": "Obstacle center positions [x1,y1,z1,x2,y2,z2,...] in mm",
+        "items": {
+          "type": "number"
+        },
+        "default": []
+      },
+      "obstacle_sizes": {
+        "type": "array",
+        "required": false,
+        "description": "Obstacle dimensions [w1,h1,d1,w2,h2,d2,...] in mm",
+        "items": {
+          "type": "number"
+        },
+        "default": []
+      },
+      "safety_margin": {
+        "type": "number",
+        "required": false,
+        "description": "Additional safety margin in mm",
+        "default": 10.0
+      }
+    },
+    "error_messages": [
+      "Joint angles mismatch: Number of angles must match kinematic model DOF",
+      "Obstacle data mismatch: Obstacle positions and sizes arrays must have compatible lengths",
+      "Invalid safety margin: Safety margin must be non-negative",
+      "Kinematic model invalid: Cannot extract link geometry information",
+      "Computation error: Collision detection failed due to numerical issues"
+    ],
+    "usage": "Provide kinematic model, current joint angles, and optionally obstacle information. The tool checks for collisions and returns collision status with details.",
+    "output_details": {
+      "collision_detected": {
+        "type": "boolean",
+        "description": "Whether any collision was detected"
+      },
+      "collision_type": {
+        "type": "string",
+        "description": "Type of collision: self, obstacle, boundary, or none"
+      },
+      "collision_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed collision information for each detected collision"
+      },
+      "minimum_distance": {
+        "type": "number",
+        "description": "Minimum distance to nearest collision in mm"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Motion Profile Generator",
+    "tool_description": "Generates smooth motion profiles with trapezoidal or S-curve velocity profiles for joint movements between start and end positions.",
+    "parameters": {
+      "start_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Starting joint positions in degrees or mm",
+        "items": {
+          "type": "number"
+        }
+      },
+      "end_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Target joint positions in degrees or mm",
+        "items": {
+          "type": "number"
+        }
+      },
+      "max_velocities": {
+        "type": "array",
+        "required": true,
+        "description": "Maximum velocities for each joint",
+        "items": {
+          "type": "number"
+        }
+      },
+      "max_accelerations": {
+        "type": "array",
+        "required": true,
+        "description": "Maximum accelerations for each joint",
+        "items": {
+          "type": "number"
+        }
+      },
+      "profile_type": {
+        "type": "string",
+        "required": false,
+        "description": "Motion profile type: trapezoidal or scurve",
+        "default": "trapezoidal"
+      },
+      "sample_time": {
+        "type": "number",
+        "required": false,
+        "description": "Sampling time interval in seconds",
+        "default": 0.01
+      },
+      "synchronize_joints": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to synchronize all joints to finish simultaneously",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All joint parameter arrays must have the same length",
+      "Invalid profile type: Must be either trapezoidal or scurve",
+      "Invalid sample time: Sample time must be positive and less than 0.1 seconds",
+      "Zero motion detected: Start and end positions are identical for all joints",
+      "Invalid constraints: Max velocities and accelerations must be positive"
+    ],
+    "usage": "Provide start/end positions, velocity/acceleration limits, and profile preferences. The tool generates time-optimal motion profiles for smooth robot movement.",
+    "output_details": {
+      "trajectory_time": {
+        "type": "number",
+        "description": "Total trajectory execution time in seconds"
+      },
+      "position_profile": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Position trajectory as array of time-stamped position strings"
+      },
+      "velocity_profile": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Velocity trajectory as array of time-stamped velocity strings"
+      },
+      "sample_count": {
+        "type": "integer",
+        "description": "Number of trajectory samples generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Velocity Limit Checker",
+    "tool_description": "Validates joint velocities against configured limits and provides scaling recommendations for velocity constraint compliance.",
+    "parameters": {
+      "joint_velocities": {
+        "type": "array",
+        "required": true,
+        "description": "Current or commanded joint velocities",
+        "items": {
+          "type": "number"
+        }
+      },
+      "velocity_limits": {
+        "type": "array",
+        "required": true,
+        "description": "Maximum velocity limits for each joint",
+        "items": {
+          "type": "number"
+        }
+      },
+      "check_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Checking mode: strict or advisory",
+        "default": "strict"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: Velocities and limits arrays must have the same length",
+      "Invalid check mode: Must be either strict or advisory",
+      "Zero or negative limits: All velocity limits must be positive",
+      "Empty arrays: Both velocity and limit arrays must contain at least one element"
+    ],
+    "usage": "Provide joint velocities and their corresponding limits. Choose checking mode for strict enforcement or advisory warnings. The tool validates compliance and suggests corrections.",
+    "output_details": {
+      "all_within_limits": {
+        "type": "boolean",
+        "description": "Whether all velocities are within limits"
+      },
+      "violation_indices": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Indices of joints exceeding velocity limits"
+      },
+      "scaling_factor": {
+        "type": "number",
+        "description": "Recommended scaling factor to bring all velocities within limits"
+      },
+      "max_violation_ratio": {
+        "type": "number",
+        "description": "Ratio of maximum violation to its limit"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Acceleration Constraint Validator",
+    "tool_description": "Validates motion profiles against acceleration constraints and identifies segments that may cause excessive joint stress or vibration.",
+    "parameters": {
+      "motion_profile": {
+        "type": "string",
+        "required": true,
+        "description": "Motion profile string from Motion Profile Generator"
+      },
+      "acceleration_limits": {
+        "type": "array",
+        "required": true,
+        "description": "Maximum acceleration limits for each joint",
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "error_messages": [
+      "Invalid motion profile: Cannot parse the provided motion profile string",
+      "Profile-limits mismatch: Number of acceleration limits must match profile joint count",
+      "Invalid acceleration limits: All limits must be positive values",
+      "Profile analysis failed: Unable to compute accelerations from motion profile"
+    ],
+    "usage": "Provide a motion profile and corresponding acceleration limits. The tool analyzes the profile for constraint violations and recommends modifications if needed.",
+    "output_details": {
+      "profile_valid": {
+        "type": "boolean",
+        "description": "Whether the motion profile satisfies all acceleration constraints"
+      },
+      "violation_count": {
+        "type": "integer",
+        "description": "Number of constraint violations found"
+      },
+      "max_acceleration_ratios": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Peak acceleration ratio to limit for each joint"
+      },
+      "recommended_time_scaling": {
+        "type": "number",
+        "description": "Recommended time scaling factor to satisfy constraints"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Torque Calculator",
+    "tool_description": "Calculates required joint torques based on robot dynamics, payload, and motion requirements using recursive Newton-Euler dynamics.",
+    "parameters": {
+      "kinematic_model": {
+        "type": "string",
+        "required": true,
+        "description": "Kinematic model with inertial parameters"
+      },
+      "joint_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Current joint positions in degrees",
+        "items": {
+          "type": "number"
+        }
+      },
+      "joint_velocities": {
+        "type": "array",
+        "required": true,
+        "description": "Current joint velocities",
+        "items": {
+          "type": "number"
+        }
+      },
+      "joint_accelerations": {
+        "type": "array",
+        "required": true,
+        "description": "Desired joint accelerations",
+        "items": {
+          "type": "number"
+        }
+      },
+      "payload_mass": {
+        "type": "number",
+        "required": false,
+        "description": "Payload mass in kg",
+        "default": 0.0
+      },
+      "external_forces": {
+        "type": "array",
+        "required": false,
+        "description": "External forces [fx, fy, fz] in Newtons",
+        "items": {
+          "type": "number"
+        },
+        "default": [0, 0, 0]
+      },
+      "gravity_vector": {
+        "type": "array",
+        "required": false,
+        "description": "Gravity vector [gx, gy, gz] in m/s²",
+        "items": {
+          "type": "number"
+        },
+        "default": [0, 0, -9.81]
+      }
+    },
+    "error_messages": [
+      "Kinematic model missing dynamics: Model must include link masses and inertias",
+      "Joint arrays length mismatch: Position, velocity, and acceleration arrays must have same length",
+      "Invalid payload mass: Payload mass cannot be negative",
+      "Invalid force/gravity vectors: Force and gravity vectors must have exactly 3 elements",
+      "Dynamics computation failed: Numerical error in torque calculations"
+    ],
+    "usage": "Provide kinematic model with dynamics, joint states, and motion requirements. Optionally specify payload and external forces. The tool computes required joint torques.",
+    "output_details": {
+      "joint_torques": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Required torques for each joint in Nm"
+      },
+      "gravity_torques": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Gravity compensation torques in Nm"
+      },
+      "max_torque_ratio": {
+        "type": "number",
+        "description": "Maximum ratio of required to available torque"
+      },
+      "torque_feasible": {
+        "type": "boolean",
+        "description": "Whether all torques are within actuator limits"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Safety Zone Monitor",
+    "tool_description": "Monitors end-effector position relative to defined safety zones and workspace boundaries, providing real-time safety status and warnings.",
+    "parameters": {
+      "current_position": {
+        "type": "array",
+        "required": true,
+        "description": "Current end-effector position [x, y, z] in mm",
+        "items": {
+          "type": "number"
+        }
+      },
+      "safe_zones": {
+        "type": "array",
+        "required": true,
+        "description": "Safe zone boundaries [x_min, x_max, y_min, y_max, z_min, z_max, ...] in mm",
+        "items": {
+          "type": "number"
+        }
+      },
+      "forbidden_zones": {
+        "type": "array",
+        "required": false,
+        "description": "Forbidden zone boundaries in same format as safe_zones",
+        "items": {
+          "type": "number"
+        },
+        "default": []
+      },
+      "warning_margin": {
+        "type": "number",
+        "required": false,
+        "description": "Warning distance margin in mm",
+        "default": 50.0
+      }
+    },
+    "error_messages": [
+      "Invalid position: Position array must have exactly 3 elements [x, y, z]",
+      "Invalid zone format: Zone boundaries must be multiples of 6 elements (x_min, x_max, y_min, y_max, z_min, z_max)",
+      "Invalid margin: Warning margin must be non-negative",
+      "No safe zones defined: At least one safe zone must be specified",
+      "Zone boundary error: Zone minimum values

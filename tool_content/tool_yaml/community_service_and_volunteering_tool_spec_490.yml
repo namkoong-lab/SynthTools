@@ -1,0 +1,928 @@
+field_name: community_service_and_volunteering
+subfield: volunteer_recruitment_and_onboarding
+task: Screen and evaluate volunteer applications and background checks
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium-high difficulty due to the need for systematic evaluation of multiple data sources (applications, references, background checks), coordination between screening stages, compliance with legal requirements, and the significant impact of poor screening decisions on community safety and organizational reputation.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium-high complexity, I'll target 14 tools to handle the multi-stage screening process, document verification, background checks, reference validation, and decision coordination.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  - Application Parser → extracts structured data from volunteer applications
+  - Eligibility Checker → validates basic requirements using parsed data
+  - Document Verifier → authenticates submitted documents
+  - Background Check Initiator → requests criminal/employment history checks
+  - Background Check Processor → analyzes returned background check results
+  - Reference Contact Manager → manages outreach to provided references
+  - Reference Evaluator → scores and analyzes reference feedback
+  - Interview Scheduler → coordinates screening interviews
+  - Interview Evaluator → processes interview results and scores
+  - Risk Assessor → evaluates overall candidate risk profile
+  - Compliance Validator → ensures screening meets legal/policy requirements
+  - Decision Generator → makes final acceptance/rejection recommendations
+  - Communication Builder → creates status update messages for applicants
+  - Screening Reporter → generates summary reports for administrators
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  1. Basic eligibility screening: Application Parser → Eligibility Checker → Communication Builder
+  2. Document validation: Application Parser → Document Verifier → Communication Builder
+
+  Medium plans:
+  1. Reference check workflow: Application Parser → Reference Contact Manager → Reference Evaluator → Decision Generator → Communication Builder
+  2. Background screening: Application Parser → Background Check Initiator → Background Check Processor → Risk Assessor → Decision Generator
+
+  Complex plans:
+  1. Full screening pipeline: Application Parser → Eligibility Checker → Document Verifier → Background Check Initiator → Reference Contact Manager → Interview Scheduler → Background Check Processor → Reference Evaluator → Interview Evaluator → Risk Assessor → Compliance Validator → Decision Generator → Communication Builder → Screening Reporter
+  2. Risk assessment workflow: Application Parser → Document Verifier → Background Check Processor → Reference Evaluator → Interview Evaluator → Risk Assessor → Compliance Validator → Decision Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Application Parser",
+    "tool_description": "Extracts and structures key information from volunteer application forms and documents into standardized fields for further processing.",
+    "parameters": {
+      "application_text": {
+        "type": "string",
+        "required": true,
+        "description": "Raw text content from the volunteer application form"
+      },
+      "application_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format of the application (pdf, word, web_form, handwritten)"
+      },
+      "organization_code": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the volunteer organization"
+      }
+    },
+    "error_messages": [
+      "Invalid application format: Use one of [pdf, word, web_form, handwritten]",
+      "Empty application text: Provide non-empty application content",
+      "Organization code not found: Provide a valid organization identifier"
+    ],
+    "usage": "Provide the raw application content, specify the format type, and include the organization code to extract structured applicant information.",
+    "output_details": {
+      "applicant_id": {
+        "type": "string",
+        "description": "Generated unique identifier for the applicant"
+      },
+      "full_name": {
+        "type": "string",
+        "description": "Applicant's full name"
+      },
+      "contact_info": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Phone numbers, email addresses, and mailing address"
+      },
+      "experience_years": {
+        "type": "integer",
+        "description": "Years of relevant volunteer or work experience"
+      },
+      "skills": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of relevant skills and qualifications"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Eligibility Checker",
+    "tool_description": "Validates that volunteer applicants meet basic organizational requirements including age, location, time commitment, and role-specific qualifications.",
+    "parameters": {
+      "applicant_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Age of the volunteer applicant in years"
+      },
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Applicant's city and state/province"
+      },
+      "availability_hours": {
+        "type": "integer",
+        "required": true,
+        "description": "Weekly hours applicant can commit to volunteering"
+      },
+      "role_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of volunteer role (youth_services, elderly_care, administration, fundraising, events)"
+      },
+      "has_transport": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether applicant has reliable transportation"
+      },
+      "special_skills": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "List of special skills or certifications"
+      }
+    },
+    "error_messages": [
+      "Invalid age: Age must be between 16 and 100 years",
+      "Invalid role type: Use one of [youth_services, elderly_care, administration, fundraising, events]",
+      "Insufficient availability: Minimum 2 hours per week required for most roles",
+      "Location outside service area: Applicant must be within the organization's geographic service region"
+    ],
+    "usage": "Input applicant demographics and preferences to determine if they meet basic eligibility criteria for volunteer positions.",
+    "output_details": {
+      "eligible": {
+        "type": "boolean",
+        "description": "Whether the applicant meets eligibility requirements"
+      },
+      "eligibility_score": {
+        "type": "number",
+        "description": "Numerical score from 0-100 indicating degree of eligibility"
+      },
+      "disqualifying_factors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of factors that prevent eligibility"
+      },
+      "recommended_roles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Volunteer roles best suited for this applicant"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document Verifier",
+    "tool_description": "Authenticates and validates submitted documents such as identification, certifications, and proof of address against known standards and requirements.",
+    "parameters": {
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document to verify (drivers_license, passport, certification, proof_of_address, resume)"
+      },
+      "document_number": {
+        "type": "string",
+        "required": true,
+        "description": "Document identification or serial number"
+      },
+      "issuing_authority": {
+        "type": "string",
+        "required": true,
+        "description": "Organization or agency that issued the document"
+      },
+      "expiration_date": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Document expiration date if applicable",
+        "format": "date-time"
+      },
+      "applicant_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name on the document being verified"
+      }
+    },
+    "error_messages": [
+      "Invalid document type: Use one of [drivers_license, passport, certification, proof_of_address, resume]",
+      "Document number format invalid: Provide a valid document identifier",
+      "Expired document: Document has passed its expiration date",
+      "Name mismatch: Name on document does not match applicant information",
+      "Unrecognized issuing authority: Provide a valid issuing organization"
+    ],
+    "usage": "Submit document details including type, number, and issuing authority to verify authenticity and validity for volunteer screening.",
+    "output_details": {
+      "verified": {
+        "type": "boolean",
+        "description": "Whether the document passed verification"
+      },
+      "verification_score": {
+        "type": "number",
+        "description": "Confidence score from 0-100 for document authenticity"
+      },
+      "issues_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of problems or discrepancies identified"
+      },
+      "verification_date": {
+        "type": "string",
+        "description": "Date when verification was completed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Background Check Initiator",
+    "tool_description": "Initiates background check requests with external screening services for criminal history, employment verification, and other required checks based on volunteer role requirements.",
+    "parameters": {
+      "applicant_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the volunteer applicant"
+      },
+      "full_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full legal name of the applicant"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Applicant's date of birth",
+        "format": "date-time"
+      },
+      "social_security_number": {
+        "type": "string",
+        "required": true,
+        "description": "SSN or national identifier for background check"
+      },
+      "address_history": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "List of addresses where applicant has lived in past 7 years"
+      },
+      "check_types": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Types of checks needed (criminal, employment, education, reference, driving_record)"
+      },
+      "role_level": {
+        "type": "string",
+        "required": true,
+        "description": "Risk level of volunteer role (low, medium, high)"
+      },
+      "rush_processing": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to request expedited processing"
+      },
+      "consent_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date applicant provided consent for background check",
+        "format": "date-time"
+      },
+      "screening_service": {
+        "type": "string",
+        "required": false,
+        "default": "primary",
+        "description": "Preferred background check service provider"
+      }
+    },
+    "error_messages": [
+      "Missing required personal information: Provide complete name, DOB, and SSN",
+      "Invalid check types: Use combinations of [criminal, employment, education, reference, driving_record]",
+      "Invalid role level: Use one of [low, medium, high]",
+      "Expired consent: Consent date must be within last 30 days",
+      "Insufficient address history: Provide at least current address"
+    ],
+    "usage": "Submit applicant personal information and specify required background check types based on volunteer role to initiate screening process with external services.",
+    "output_details": {
+      "request_id": {
+        "type": "string",
+        "description": "Unique identifier for the background check request"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Expected date when results will be available",
+        "format": "date-time"
+      },
+      "cost": {
+        "type": "number",
+        "description": "Total cost for requested background checks"
+      },
+      "status": {
+        "type": "string",
+        "description": "Current status of the background check request"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Background Check Processor",
+    "tool_description": "Analyzes completed background check results to identify potential red flags, policy violations, and risk factors for volunteer placement decisions.",
+    "parameters": {
+      "request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Background check request identifier"
+      },
+      "criminal_results": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "List of criminal history findings"
+      },
+      "employment_results": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "Employment verification results"
+      },
+      "driving_record": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "Driving record violations or incidents"
+      },
+      "role_type": {
+        "type": "string",
+        "required": true,
+        "description": "Volunteer role type for risk assessment"
+      },
+      "organization_policies": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Organizational policies for volunteer screening"
+      }
+    },
+    "error_messages": [
+      "Invalid request ID: Provide a valid background check request identifier",
+      "Missing role type: Specify the volunteer position for proper risk assessment",
+      "Empty policies list: Provide organizational screening policies for evaluation",
+      "Malformed results data: Background check results must be in proper format"
+    ],
+    "usage": "Input completed background check results along with role type and organizational policies to receive risk assessment and compliance evaluation.",
+    "output_details": {
+      "overall_status": {
+        "type": "string",
+        "description": "Overall background check result (clear, conditional, failed)"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Assessed risk level (low, medium, high)"
+      },
+      "red_flags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Identified concerning findings"
+      },
+      "policy_violations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Violations of organizational screening policies"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Recommended action based on background check results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reference Contact Manager",
+    "tool_description": "Manages outreach to volunteer applicant references including scheduling calls, sending questionnaires, and tracking response status across multiple reference contacts.",
+    "parameters": {
+      "applicant_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the volunteer applicant"
+      },
+      "reference_contacts": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 5,
+        "description": "List of reference contact information (name, phone, email, relationship)"
+      },
+      "contact_method": {
+        "type": "string",
+        "required": true,
+        "description": "Preferred method of reference contact (phone, email, online_form)"
+      },
+      "reference_questions": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "List of questions to ask references"
+      },
+      "deadline": {
+        "type": "string",
+        "required": true,
+        "description": "Deadline for completing reference checks",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Insufficient references: Provide at least 2 reference contacts",
+      "Invalid contact method: Use one of [phone, email, online_form]",
+      "Missing contact information: Each reference must include name, phone/email, and relationship",
+      "Deadline in past: Reference deadline must be a future date",
+      "Empty questions list: Provide at least one question for references"
+    ],
+    "usage": "Submit applicant reference contacts with preferred contact method and questions to initiate systematic reference checking process.",
+    "output_details": {
+      "outreach_id": {
+        "type": "string",
+        "description": "Unique identifier for this reference outreach campaign"
+      },
+      "contacts_attempted": {
+        "type": "integer",
+        "description": "Number of references contacted"
+      },
+      "expected_completion": {
+        "type": "string",
+        "description": "Estimated date for reference collection completion",
+        "format": "date-time"
+      },
+      "contact_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Status of each reference contact attempt"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reference Evaluator",
+    "tool_description": "Analyzes and scores completed reference responses to assess applicant suitability, reliability, and fit for volunteer roles.",
+    "parameters": {
+      "outreach_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reference outreach campaign identifier"
+      },
+      "reference_responses": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Completed reference responses and feedback"
+      },
+      "evaluation_criteria": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Criteria for evaluating references (reliability, communication, teamwork, etc.)"
+      }
+    },
+    "error_messages": [
+      "Invalid outreach ID: Provide a valid reference outreach identifier",
+      "No reference responses: At least one completed reference response required",
+      "Empty evaluation criteria: Provide criteria for assessing reference feedback"
+    ],
+    "usage": "Submit completed reference responses with evaluation criteria to receive scored assessment of applicant suitability based on reference feedback.",
+    "output_details": {
+      "overall_score": {
+        "type": "number",
+        "description": "Overall reference score from 0-100"
+      },
+      "response_count": {
+        "type": "integer",
+        "description": "Number of references that provided feedback"
+      },
+      "positive_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Positive qualities mentioned by references"
+      },
+      "concerns_raised": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any concerns or issues mentioned by references"
+      },
+      "recommendation_strength": {
+        "type": "string",
+        "description": "Strength of reference recommendations (strong, moderate, weak)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Interview Scheduler",
+    "tool_description": "Coordinates and schedules screening interviews between volunteer applicants and organizational representatives, managing calendar availability and logistics.",
+    "parameters": {
+      "applicant_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the volunteer applicant"
+      },
+      "interviewer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier for the staff member conducting interview"
+      },
+      "interview_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of interview (phone, video, in_person)"
+      },
+      "applicant_availability": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "List of date-time slots when applicant is available"
+      },
+      "interviewer_availability": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "List of date-time slots when interviewer is available"
+      },
+      "interview_duration": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Expected interview duration in minutes"
+      },
+      "role_type": {
+        "type": "string",
+        "required": true,
+        "description": "Volunteer role being interviewed for"
+      }
+    },
+    "error_messages": [
+      "No matching availability: Applicant and interviewer schedules do not align",
+      "Invalid interview type: Use one of [phone, video, in_person]",
+      "Invalid duration: Interview duration must be between 15-120 minutes",
+      "Insufficient availability slots: Provide at least 3 time options for scheduling",
+      "Invalid date format: Use proper date-time format for availability slots"
+    ],
+    "usage": "Provide applicant and interviewer availability along with interview preferences to find optimal scheduling match and coordinate screening interview.",
+    "output_details": {
+      "scheduled_time": {
+        "type": "string",
+        "description": "Confirmed interview date and time",
+        "format": "date-time"
+      },
+      "interview_id": {
+        "type": "string",
+        "description": "Unique identifier for the scheduled interview"
+      },
+      "confirmation_sent": {
+        "type": "boolean",
+        "description": "Whether confirmation messages were sent to participants"
+      },
+      "interview_details": {
+        "type": "string",
+        "description": "Interview logistics and connection information"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Interview Evaluator",
+    "tool_description": "Processes screening interview results and provides standardized scoring of applicant responses, communication skills, and overall suitability for volunteer positions.",
+    "parameters": {
+      "interview_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the completed interview"
+      },
+      "interviewer_notes": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed notes from the screening interview"
+      },
+      "applicant_responses": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Key responses provided by the applicant during interview"
+      },
+      "evaluation_categories": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Categories to evaluate (communication, motivation, availability, experience, culture_fit)"
+      },
+      "role_requirements": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Key requirements for the volunteer role"
+      }
+    },
+    "error_messages": [
+      "Invalid interview ID: Provide a valid interview identifier",
+      "Empty interviewer notes: Interview notes are required for evaluation",
+      "Insufficient responses: At least 3 applicant responses needed for evaluation",
+      "Invalid evaluation categories: Use valid categories like communication, motivation, availability, experience, culture_fit",
+      "Missing role requirements: Provide role requirements for fit assessment"
+    ],
+    "usage": "Submit completed interview notes and applicant responses along with evaluation criteria to receive standardized assessment of interview performance.",
+    "output_details": {
+      "overall_score": {
+        "type": "number",
+        "description": "Overall interview score from 0-100"
+      },
+      "category_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Scores for each evaluation category"
+      },
+      "strengths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Identified strengths from the interview"
+      },
+      "concerns": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Areas of concern identified during interview"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Interview-based recommendation (proceed, conditional, reject)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Risk Assessor",
+    "tool_description": "Conducts comprehensive risk assessment by analyzing background checks, references, interviews, and other screening data to determine volunteer placement safety and suitability.",
+    "parameters": {
+      "applicant_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the volunteer applicant"
+      },
+      "background_status": {
+        "type": "string",
+        "required": true,
+        "description": "Background check result status"
+      },
+      "reference_score": {
+        "type": "number",
+        "required": true,
+        "description": "Overall reference evaluation score (0-100)"
+      },
+      "interview_score": {
+        "type": "number",
+        "required": true,
+        "description": "Overall interview evaluation score (0-100)"
+      },
+      "role_risk_level": {
+        "type": "string",
+        "required": true,
+        "description": "Risk level of volunteer role (low, medium, high)"
+      },
+      "vulnerable_population": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether role involves working with vulnerable populations"
+      },
+      "red_flags": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "Any red flags identified during screening process"
+      },
+      "mitigating_factors": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "Positive factors that may offset concerns"
+      },
+      "supervision_available": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether adequate supervision will be available for this role"
+      },
+      "organization_risk_tolerance": {
+        "type": "string",
+        "required": true,
+        "description": "Organization's risk tolerance level (conservative, moderate, liberal)"
+      }
+    },
+    "error_messages": [
+      "Invalid background status: Provide clear, conditional, or failed background check status",
+      "Invalid scores: Reference and interview scores must be between 0-100",
+      "Invalid role risk level: Use one of [low, medium, high]",
+      "Invalid risk tolerance: Use one of [conservative, moderate, liberal]",
+      "Missing applicant ID: Provide valid applicant identifier"
+    ],
+    "usage": "Input all screening results including background checks, references, interviews, and role details to receive comprehensive risk assessment for volunteer placement decision.",
+    "output_details": {
+      "risk_level": {
+        "type": "string",
+        "description": "Overall assessed risk level (low, medium, high, critical)"
+      },
+      "placement_recommendation": {
+        "type": "string",
+        "description": "Recommended action (approve, conditional_approval, reject, further_review)"
+      },
+      "risk_factors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Identified risk factors"
+      },
+      "mitigation_strategies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended risk mitigation approaches"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence level in risk assessment (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Validator",
+    "tool_description": "Ensures volunteer screening process meets legal requirements, organizational policies, and industry standards for volunteer management and liability protection.",
+    "parameters": {
+      "applicant_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the volunteer applicant"
+      },
+      "screening_steps_completed": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "List of completed screening steps"
+      },
+      "required_steps": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required screening steps for this role"
+      },
+      "consent_forms": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "List of consent forms signed by applicant"
+      },
+      "documentation_complete": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether all required documentation has been collected"
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Legal jurisdiction for compliance requirements"
+      },
+      "role_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of volunteer role for compliance assessment"
+      },
+      "retention_period": {
+        "type": "integer",
+        "required": false,
+        "default": 7,
+        "description": "Required record retention period in years"
+      }
+    },
+    "error_messages": [
+      "Incomplete required steps: All mandatory screening steps must be completed",
+      "Missing consent forms: Required consent documentation not provided",
+      "Invalid jurisdiction: Provide valid legal jurisdiction for compliance check",
+      "Documentation incomplete: All required documents must be collected and verified",
+      "Invalid retention period: Retention period must be between 1-25 years"
+    ],
+    "usage": "Submit completed screening steps and documentation to verify compliance with legal and organizational requirements before finalizing volunteer approval.",
+    "output_details": {
+      "compliant": {
+        "type": "boolean",
+        "description": "Whether screening process meets all compliance requirements"
+      },
+      "missing_requirements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of incomplete compliance requirements"
+      },
+      "legal_risks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Identified legal or liability risks"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended actions to achieve full compliance"
+      },
+      "audit_ready": {
+        "type": "boolean",
+        "description": "Whether documentation is sufficient for audit purposes"
+      }
+    }
+  }
+  ```
+
+  ```json

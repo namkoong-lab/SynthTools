@@ -1,0 +1,807 @@
+field_name: transportation_logistics
+subfield: freight_and_cargo_management
+task: Cargo tracking and real-time shipment monitoring
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task is medium difficulty. It involves coordinating multiple data sources (GPS, carrier systems, customs databases), handling real-time data streams with varying update frequencies, managing complex logistics workflows across different transportation modes, and ensuring data accuracy for time-sensitive cargo operations with significant financial implications.
+
+  STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools to handle the various aspects of cargo tracking, real-time monitoring, alerts, reporting, and integration with different carrier and logistics systems.
+
+  STEP 3 — List all tool names and dependencies
+
+  Tools and their data flow:
+  1. **Shipment Data Retriever** - Consumes: shipment IDs, carrier info → Produces: basic shipment details
+  2. **Real-time Location Tracker** - Consumes: tracking numbers, carrier APIs → Produces: GPS coordinates, timestamps
+  3. **Carrier API Connector** - Consumes: carrier credentials, shipment refs → Produces: carrier-specific tracking data
+  4. **Customs Status Checker** - Consumes: shipment IDs, customs codes → Produces: clearance status, delays
+  5. **Route Optimizer** - Consumes: origin/destination, constraints → Produces: optimal routes, ETAs
+  6. **Alert Rule Manager** - Consumes: shipment data, thresholds → Produces: alert configurations
+  7. **Notification Dispatcher** - Consumes: alert conditions, contact lists → Produces: notifications sent
+  8. **Delivery Scheduler** - Consumes: shipment status, recipient info → Produces: delivery appointments
+  9. **Exception Handler** - Consumes: tracking anomalies, rules → Produces: exception reports, recommendations
+  10. **Performance Analytics** - Consumes: historical data, KPIs → Produces: performance metrics, trends
+  11. **Document Manager** - Consumes: shipment IDs, document types → Produces: shipping documents, compliance status
+  12. **Multi-modal Coordinator** - Consumes: shipment legs, transport modes → Produces: coordinated tracking across modes
+
+  STEP 4 — Multi-tool plans
+
+  Simple plans:
+  - Basic tracking: Shipment Data Retriever → Real-time Location Tracker → Notification Dispatcher
+  - Document compliance: Shipment Data Retriever → Document Manager → Customs Status Checker
+
+  Medium plans:
+  - Proactive monitoring: Carrier API Connector → Real-time Location Tracker → Alert Rule Manager → Exception Handler → Notification Dispatcher
+  - Delivery coordination: Shipment Data Retriever → Route Optimizer → Delivery Scheduler → Notification Dispatcher
+
+  Complex plans:
+  - End-to-end shipment management: Carrier API Connector → Multi-modal Coordinator → Real-time Location Tracker → Customs Status Checker → Exception Handler → Alert Rule Manager → Notification Dispatcher → Performance Analytics
+  - Full logistics optimization: Shipment Data Retriever → Route Optimizer → Multi-modal Coordinator → Document Manager → Customs Status Checker → Delivery Scheduler → Performance Analytics → Exception Handler
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Shipment Data Retriever",
+    "tool_description": "Retrieves comprehensive shipment information including origin, destination, cargo details, and current status from logistics databases.",
+    "parameters": {
+      "shipment_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the shipment"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include historical tracking events",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Shipment not found: The provided shipment_id does not exist in the system. Verify the ID format and existence.",
+      "Access denied: Insufficient permissions to access this shipment. Ensure proper authorization credentials.",
+      "Database connection error: Unable to connect to shipment database. Check network connectivity and try again."
+    ],
+    "usage": "Provide a valid shipment_id to retrieve basic shipment details. Set include_history to true if you need historical tracking events.",
+    "output_details": {
+      "shipment_id": {
+        "type": "string",
+        "description": "The shipment identifier"
+      },
+      "origin": {
+        "type": "string",
+        "description": "Origin location of the shipment"
+      },
+      "destination": {
+        "type": "string",
+        "description": "Destination location of the shipment"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "Current shipment status"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery date and time",
+        "format": "date-time"
+      },
+      "cargo_weight": {
+        "type": "number",
+        "description": "Total weight of cargo in kilograms"
+      },
+      "carrier_name": {
+        "type": "string",
+        "description": "Name of the shipping carrier"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Real-time Location Tracker",
+    "tool_description": "Provides real-time GPS coordinates and location updates for tracked shipments using various positioning technologies.",
+    "parameters": {
+      "tracking_numbers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of tracking numbers to monitor",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "update_frequency": {
+        "type": "integer",
+        "required": false,
+        "description": "Update frequency in minutes (1-60)",
+        "default": 15
+      },
+      "include_speed": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include speed and direction data",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid tracking number: One or more tracking numbers are not recognized. Verify the format and validity.",
+      "GPS signal unavailable: Unable to obtain location data for some shipments. This may be due to poor signal coverage.",
+      "Update frequency out of range: Frequency must be between 1 and 60 minutes. Adjust the value accordingly.",
+      "Too many tracking requests: Maximum 50 tracking numbers allowed per request. Split into smaller batches."
+    ],
+    "usage": "Provide an array of tracking_numbers to monitor. Optionally set update_frequency (1-60 minutes) and enable speed data with include_speed.",
+    "output_details": {
+      "tracking_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of tracking status strings for each shipment"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last location update",
+        "format": "date-time"
+      },
+      "active_shipments": {
+        "type": "integer",
+        "description": "Number of shipments currently being tracked"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Carrier API Connector",
+    "tool_description": "Connects to multiple carrier APIs to retrieve standardized tracking information and shipment updates across different logistics providers.",
+    "parameters": {
+      "carrier_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the shipping carrier (FedEx, UPS, DHL, etc.)"
+      },
+      "api_key": {
+        "type": "string",
+        "required": true,
+        "description": "API authentication key for the carrier"
+      },
+      "shipment_references": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of carrier-specific shipment reference numbers",
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "data_format": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred data format: standard or detailed",
+        "default": "standard"
+      },
+      "include_events": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include detailed tracking events",
+        "default": true
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "API request timeout in seconds (5-120)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Unsupported carrier: The specified carrier is not supported. Check available carrier list.",
+      "Invalid API credentials: Authentication failed with provided api_key. Verify credentials and permissions.",
+      "API rate limit exceeded: Too many requests to carrier API. Wait before retrying or reduce request frequency.",
+      "Invalid shipment reference: One or more references are not recognized by the carrier system.",
+      "Connection timeout: Request exceeded timeout_seconds limit. Check network connectivity or increase timeout.",
+      "Data format not supported: Use either 'standard' or 'detailed' for data_format parameter."
+    ],
+    "usage": "Provide carrier_name, valid api_key, and shipment_references array. Optionally specify data_format, include_events, and timeout_seconds for customized responses.",
+    "output_details": {
+      "carrier_response": {
+        "type": "string",
+        "description": "Raw response data from carrier API"
+      },
+      "parsed_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Standardized tracking information for each shipment"
+      },
+      "api_status": {
+        "type": "string",
+        "description": "Status of API connection and response"
+      },
+      "response_time_ms": {
+        "type": "integer",
+        "description": "API response time in milliseconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customs Status Checker",
+    "tool_description": "Monitors customs clearance status, duties, and potential delays for international shipments across different countries and ports.",
+    "parameters": {
+      "shipment_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique shipment identifier"
+      },
+      "origin_country": {
+        "type": "string",
+        "required": true,
+        "description": "ISO country code of origin"
+      },
+      "destination_country": {
+        "type": "string",
+        "required": true,
+        "description": "ISO country code of destination"
+      },
+      "customs_code": {
+        "type": "string",
+        "required": false,
+        "description": "Customs declaration or entry number",
+        "default": null
+      },
+      "check_duties": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check duty calculations",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid country code: Origin or destination country code is not recognized. Use valid ISO 3166-1 alpha-2 codes.",
+      "Customs database unavailable: Unable to connect to customs system. This may be due to system maintenance.",
+      "Shipment not in customs: The shipment has not yet entered customs processing or customs_code is invalid.",
+      "Restricted access: Insufficient permissions to access customs data for this route or shipment type."
+    ],
+    "usage": "Provide shipment_id, origin_country, and destination_country codes. Optionally include customs_code if available and set check_duties to false if duty information is not needed.",
+    "output_details": {
+      "clearance_status": {
+        "type": "string",
+        "description": "Current customs clearance status"
+      },
+      "estimated_clearance_time": {
+        "type": "string",
+        "description": "Estimated customs clearance completion time",
+        "format": "date-time"
+      },
+      "duties_owed": {
+        "type": "number",
+        "description": "Total duties and taxes owed in destination currency"
+      },
+      "delay_risk": {
+        "type": "string",
+        "description": "Risk level of customs delays (low, medium, high)"
+      },
+      "required_documents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of documents required for clearance"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Route Optimizer",
+    "tool_description": "Calculates optimal shipping routes considering distance, cost, delivery time, and various constraints for single or multi-modal transportation.",
+    "parameters": {
+      "origin_location": {
+        "type": "string",
+        "required": true,
+        "description": "Starting location (address, city, or coordinates)"
+      },
+      "destination_location": {
+        "type": "string",
+        "required": true,
+        "description": "Destination location (address, city, or coordinates)"
+      },
+      "optimization_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Primary optimization goal: cost, time, or distance",
+        "default": "time"
+      },
+      "transport_modes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Allowed transport modes: road, rail, air, sea",
+        "default": ["road"]
+      },
+      "max_stops": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of intermediate stops (0-10)",
+        "default": 3
+      },
+      "avoid_regions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Regions or countries to avoid in routing",
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid location: Origin or destination location cannot be resolved. Provide valid addresses or coordinates.",
+      "Unsupported transport mode: Use only supported modes: road, rail, air, sea.",
+      "No viable route found: Unable to find a route with specified constraints. Try relaxing restrictions.",
+      "Optimization priority invalid: Use one of: cost, time, or distance.",
+      "Max stops out of range: Maximum stops must be between 0 and 10."
+    ],
+    "usage": "Provide origin_location and destination_location. Optionally specify optimization_priority, allowed transport_modes, max_stops, and regions to avoid.",
+    "output_details": {
+      "optimal_route": {
+        "type": "string",
+        "description": "Description of the recommended route"
+      },
+      "estimated_duration": {
+        "type": "string",
+        "description": "Estimated total travel time"
+      },
+      "estimated_cost": {
+        "type": "number",
+        "description": "Estimated shipping cost in USD"
+      },
+      "total_distance": {
+        "type": "number",
+        "description": "Total route distance in kilometers"
+      },
+      "transport_legs": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Breakdown of route segments by transport mode"
+      },
+      "alternative_routes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative route options with basic details"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Rule Manager",
+    "tool_description": "Creates, manages, and evaluates alert rules for shipment monitoring based on customizable conditions like delays, location deviations, and status changes.",
+    "parameters": {
+      "rule_name": {
+        "type": "string",
+        "required": true,
+        "description": "Unique name for the alert rule"
+      },
+      "shipment_filters": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Shipment IDs or patterns this rule applies to",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "condition_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of condition: delay, location_deviation, status_change, customs_hold, temperature"
+      },
+      "threshold_value": {
+        "type": "number",
+        "required": true,
+        "description": "Threshold value for triggering alert"
+      },
+      "threshold_unit": {
+        "type": "string",
+        "required": true,
+        "description": "Unit for threshold: hours, kilometers, degrees, percentage"
+      },
+      "alert_severity": {
+        "type": "string",
+        "required": false,
+        "description": "Alert severity level: low, medium, high, critical",
+        "default": "medium"
+      },
+      "notification_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Channels for alerts: email, sms, webhook, dashboard",
+        "default": ["email"]
+      },
+      "suppress_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to suppress duplicate alerts within timeframe",
+        "default": true
+      },
+      "suppression_window_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Hours to suppress duplicate alerts (1-72)",
+        "default": 4
+      },
+      "auto_resolve": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to auto-resolve alerts when conditions normalize",
+        "default": true
+      },
+      "escalation_delay_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Hours before escalating unacknowledged alerts (1-168)",
+        "default": 24
+      },
+      "active": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this rule is currently active",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid condition type: Use one of: delay, location_deviation, status_change, customs_hold, temperature.",
+      "Threshold unit mismatch: Ensure threshold_unit is compatible with condition_type (e.g., hours for delay).",
+      "Invalid severity level: Use one of: low, medium, high, critical.",
+      "Unsupported notification channel: Use supported channels: email, sms, webhook, dashboard.",
+      "Suppression window out of range: Must be between 1 and 72 hours.",
+      "Escalation delay out of range: Must be between 1 and 168 hours.",
+      "Duplicate rule name: A rule with this name already exists. Use a unique rule_name.",
+      "Too many shipment filters: Maximum 100 shipment patterns allowed per rule."
+    ],
+    "usage": "Provide rule_name, shipment_filters array, condition_type, threshold_value, and threshold_unit. Optionally configure alert_severity, notification_channels, and timing parameters for suppression and escalation.",
+    "output_details": {
+      "rule_id": {
+        "type": "string",
+        "description": "Unique identifier for the created rule"
+      },
+      "rule_status": {
+        "type": "string",
+        "description": "Status of rule creation or update"
+      },
+      "matching_shipments": {
+        "type": "integer",
+        "description": "Number of current shipments matching the rule filters"
+      },
+      "estimated_alerts_per_day": {
+        "type": "number",
+        "description": "Estimated daily alert volume based on historical data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Dispatcher",
+    "tool_description": "Sends notifications through multiple channels when alert conditions are met or shipment status updates occur.",
+    "parameters": {
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification: alert, update, reminder, escalation"
+      },
+      "message_content": {
+        "type": "string",
+        "required": true,
+        "description": "Main notification message content"
+      },
+      "recipients": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of recipient identifiers (emails, phone numbers, webhook URLs)",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Delivery channels: email, sms, webhook, push",
+        "minItems": 1,
+        "maxItems": 4
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Message priority: low, normal, high, urgent",
+        "default": "normal"
+      },
+      "retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of retry attempts for failed deliveries (0-5)",
+        "default": 3
+      },
+      "delivery_delay_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Minutes to delay delivery (0-1440)",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid notification type: Use one of: alert, update, reminder, escalation.",
+      "Empty message content: Message content cannot be empty or null.",
+      "No valid recipients: At least one valid recipient must be provided.",
+      "Unsupported delivery channel: Use supported channels: email, sms, webhook, push.",
+      "Invalid priority level: Use one of: low, normal, high, urgent.",
+      "Retry attempts out of range: Must be between 0 and 5 attempts.",
+      "Delivery delay too long: Maximum delay is 1440 minutes (24 hours).",
+      "Too many recipients: Maximum 50 recipients allowed per notification."
+    ],
+    "usage": "Provide notification_type, message_content, recipients array, and delivery channels array. Optionally set priority, retry_attempts, and delivery_delay_minutes for customized delivery behavior.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent notification"
+      },
+      "delivery_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Delivery status for each recipient and channel combination"
+      },
+      "successful_deliveries": {
+        "type": "integer",
+        "description": "Number of successful deliveries"
+      },
+      "failed_deliveries": {
+        "type": "integer",
+        "description": "Number of failed deliveries"
+      },
+      "estimated_delivery_time": {
+        "type": "string",
+        "description": "Estimated delivery completion time",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Scheduler",
+    "tool_description": "Coordinates delivery appointments and schedules based on shipment status, recipient availability, and carrier capacity.",
+    "parameters": {
+      "shipment_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique shipment identifier to schedule delivery for"
+      },
+      "recipient_contact": {
+        "type": "string",
+        "required": true,
+        "description": "Recipient contact information (email or phone)"
+      },
+      "delivery_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete delivery address"
+      },
+      "preferred_time_slots": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Preferred delivery time windows in ISO format",
+        "default": []
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "description": "Special delivery instructions or requirements",
+        "default": null
+      },
+      "signature_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether signature confirmation is required",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Shipment not ready: Shipment is not yet available for delivery scheduling. Check shipment status.",
+      "Invalid delivery address: The provided address cannot be validated or is incomplete.",
+      "Recipient contact invalid: Contact information format is incorrect or unreachable.",
+      "No available time slots: No delivery slots available for preferred times. Try alternative windows.",
+      "Address not serviceable: The delivery address is outside the carrier's service area."
+    ],
+    "usage": "Provide shipment_id, recipient_contact, and delivery_address. Optionally specify preferred_time_slots, special_instructions, and signature requirements for customized scheduling.",
+    "output_details": {
+      "scheduled_delivery_time": {
+        "type": "string",
+        "description": "Confirmed delivery appointment time",
+        "format": "date-time"
+      },
+      "delivery_window": {
+        "type": "string",
+        "description": "Delivery time window (e.g., '2-4 PM')"
+      },
+      "confirmation_code": {
+        "type": "string",
+        "description": "Delivery appointment confirmation code"
+      },
+      "driver_contact": {
+        "type": "string",
+        "description": "Driver or delivery team contact information"
+      },
+      "alternative_slots": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative available delivery time slots"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Exception Handler",
+    "tool_description": "Identifies, categorizes, and provides recommendations for handling shipping exceptions, delays, and anomalies in cargo tracking.",
+    "parameters": {
+      "shipment_id": {
+        "type": "string",
+        "required": true,
+        "description": "Shipment identifier experiencing the exception"
+      },
+      "exception_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of exception: delay, damage, loss, customs_hold, weather, mechanical"
+      },
+      "severity_level": {
+        "type": "string",
+        "required": true,
+        "description": "Exception severity: minor, moderate, severe, critical"
+      },
+      "current_location": {
+        "type": "string",
+        "required": false,
+        "description": "Current shipment location when exception occurred",
+        "default": null
+      },
+      "exception_details": {
+        "type": "string",
+        "required": false,
+        "description": "Additional details about the exception",
+        "default": null
+      },
+      "customer_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Customer priority level: standard, premium, vip",
+        "default": "standard"
+      },
+      "auto_resolve": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to attempt automatic resolution where possible",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid exception type: Use one of: delay, damage, loss, customs_hold, weather, mechanical.",
+      "Invalid severity level: Use one of: minor, moderate, severe, critical.",
+      "Shipment not found: The specified shipment_id does not exist or is not accessible.",
+      "Invalid customer priority: Use one of: standard, premium, vip.",
+      "Insufficient exception data: More details required to properly categorize and handle this exception type."
+    ],
+    "usage": "Provide shipment_id, exception_type, and severity_level. Optionally include current_location, exception_details, customer_priority, and auto_resolve preference for comprehensive exception handling.",
+    "output_details": {
+      "exception_id": {
+        "type": "string",
+        "description": "Unique identifier for this exception case"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of recommended actions to resolve the exception"
+      },
+      "estimated_resolution_time": {
+        "type": "string",
+        "description": "Estimated time to resolve the exception",
+        "format": "date-time"
+      },
+      "impact_assessment": {
+        "type": "string",
+        "description": "Assessment of exception impact on delivery timeline"
+      },
+      "escalation_required": {
+        "type": "boolean",
+        "description": "Whether this exception requires management escalation"
+      },
+      "alternative_solutions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative solutions if primary recommendations fail"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Analytics",
+    "tool_description": "Analyzes logistics performance metrics, generates trends, and provides insights on carrier performance, delivery times, and operational efficiency.",
+    "parameters": {
+      "analysis_period_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period",
+        "format": "date-time"
+      },
+      "analysis_period_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period",
+        "format": "date-time"
+      },
+      "metrics_to_analyze": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Metrics to include: on_time_delivery, cost_efficiency, exception_rate, transit_time, customer_satisfaction",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "carrier_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Specific carriers to analyze (leave empty for all)",
+        "default": []
+      },
+      "route_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Specific routes to analyze (origin-destination pairs)",
+        "default": []
+      },
+      "aggregation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Data aggregation level: daily, weekly, monthly",
+        "default": "weekly"
+      },
+      "include_benchmarks": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include industry benchmark comparisons",
+        "default": true
+      },
+      "export_format": {
+        "type": "string",
+        "required": false,
+        "description": "Format for detailed data export: json, csv, none",
+        "default": "none"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: End date must be after start date and within the last 2 years of available data.",
+      "Unsupported metric: Use supported metrics: on_time_delivery, cost_efficiency, exception_rate, transit_time, customer_satisfaction.",
+      "Insufficient data: Not enough data available for the specified period and filters to generate meaningful analytics.",
+      "Invalid aggregation level: Use one of: daily, weekly, monthly.",
+      "Invalid export format: Use one of: json, csv, none.",
+      "Analysis period too long: Maximum analysis period is 1 year. Reduce the date range."
+    ],
+    "usage": "Provide analysis_period_start, analysis_period_end, and metrics_to_analyze array. Optionally filter by carriers and routes, set aggregation_level, and enable benchmarks and data export.",
+    "output_details": {
+      "performance_summary": {
+        "type": "string",
+        "description": "Executive summary of performance during the analysis period"
+      },
+      "metric_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "

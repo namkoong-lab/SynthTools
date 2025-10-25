@@ -1,0 +1,838 @@
+field_name: rag_systems
+subfield: text_chunking_and_segmentation
+task: Semantic text segmentation based on content similarity and topic boundaries
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  The task of semantic text segmentation based on content similarity and topic boundaries is **medium** difficulty. It involves moderate complexity in natural language processing with multiple interdependent subtasks including text preprocessing, similarity computation, boundary detection, and validation. The task requires handling ambiguous topic transitions and coordinating multiple NLP techniques, but follows established workflows with measurable outputs.
+
+  ## STEP 2 — Set a tool budget
+
+  For a medium difficulty task, I'll target 12 tools within the 10-15 range to provide comprehensive coverage of the semantic segmentation workflow while maintaining tool orthogonality.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Text Preprocessor** - Consumes: raw text → Produces: cleaned, normalized text
+  2. **Sentence Boundary Detector** - Consumes: preprocessed text → Produces: sentence boundaries
+  3. **Embedding Generator** - Consumes: text segments → Produces: vector embeddings
+  4. **Similarity Calculator** - Consumes: embeddings → Produces: similarity scores
+  5. **Topic Boundary Detector** - Consumes: similarity scores → Produces: boundary positions
+  6. **Sliding Window Analyzer** - Consumes: text + window size → Produces: windowed segments
+  7. **Coherence Scorer** - Consumes: text segments → Produces: coherence metrics
+  8. **Segment Merger** - Consumes: segments + merge criteria → Produces: consolidated segments
+  9. **Segment Splitter** - Consumes: large segments + split criteria → Produces: smaller segments
+  10. **Topic Labeler** - Consumes: text segments → Produces: topic labels
+  11. **Boundary Validator** - Consumes: segments + boundaries → Produces: validation metrics
+  12. **Segmentation Optimizer** - Consumes: segments + quality metrics → Produces: optimized segments
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Basic segmentation: Text Preprocessor → Sentence Boundary Detector → Topic Boundary Detector
+  - Quick validation: Coherence Scorer → Boundary Validator
+
+  **Medium Plans:**
+  - Similarity-based segmentation: Text Preprocessor → Embedding Generator → Similarity Calculator → Topic Boundary Detector → Segment Merger
+  - Window-based analysis: Sliding Window Analyzer → Coherence Scorer → Segment Splitter → Topic Labeler
+
+  **Complex Plans:**
+  - Full pipeline with optimization: Text Preprocessor → Sentence Boundary Detector → Sliding Window Analyzer → Embedding Generator → Similarity Calculator → Topic Boundary Detector → Coherence Scorer → Segment Merger → Boundary Validator → Segmentation Optimizer
+  - Iterative refinement: Multiple cycles of Topic Boundary Detector → Boundary Validator → Segment Splitter/Merger → Coherence Scorer until optimal segmentation
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Text Preprocessor",
+    "tool_description": "Cleans and normalizes input text by removing unwanted characters, standardizing whitespace, and applying basic text transformations for semantic segmentation preparation.",
+    "parameters": {
+      "input_text": {
+        "type": "string",
+        "required": true,
+        "description": "Raw text content to be preprocessed"
+      },
+      "remove_special_chars": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to remove special characters and symbols",
+        "default": true
+      },
+      "normalize_whitespace": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to normalize whitespace and line breaks",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Empty input text: Provide non-empty text content for preprocessing.",
+      "Text too large: Input text exceeds maximum processing limit of 1M characters.",
+      "Invalid encoding: Text contains unsupported character encoding."
+    ],
+    "usage": "Provide input_text and optionally configure preprocessing options. Returns cleaned text ready for further processing.",
+    "output_details": {
+      "processed_text": {
+        "type": "string",
+        "description": "Cleaned and normalized text content"
+      },
+      "character_count": {
+        "type": "integer",
+        "description": "Number of characters in processed text"
+      },
+      "modifications_applied": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of preprocessing operations applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sentence Boundary Detector",
+    "tool_description": "Identifies sentence boundaries in text using linguistic rules and machine learning models to establish fundamental segmentation units.",
+    "parameters": {
+      "input_text": {
+        "type": "string",
+        "required": true,
+        "description": "Preprocessed text for sentence boundary detection"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Language code for language-specific rules (en, es, fr, de, etc.)",
+        "default": "en"
+      },
+      "detection_method": {
+        "type": "string",
+        "required": false,
+        "description": "Detection approach: rule_based, ml_model, or hybrid",
+        "default": "hybrid"
+      },
+      "min_sentence_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum characters required for valid sentence",
+        "default": 10
+      },
+      "handle_abbreviations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to handle common abbreviations",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Unsupported language: Language code not supported by the detection models.",
+      "Invalid detection method: Use rule_based, ml_model, or hybrid.",
+      "Text too short: Input text must contain at least one complete sentence.",
+      "Invalid min_sentence_length: Must be a positive integer between 1 and 1000."
+    ],
+    "usage": "Provide input_text and configure detection parameters. Returns sentence boundaries and individual sentences.",
+    "output_details": {
+      "sentence_count": {
+        "type": "integer",
+        "description": "Total number of sentences detected"
+      },
+      "boundary_positions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Character positions of sentence boundaries"
+      },
+      "sentences": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Individual sentences extracted from text"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each detected boundary"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Embedding Generator",
+    "tool_description": "Generates dense vector embeddings for text segments using various pre-trained language models to capture semantic content for similarity analysis.",
+    "parameters": {
+      "text_segments": {
+        "type": "array",
+        "required": true,
+        "description": "Array of text segments to embed",
+        "items": {"type": "string"}
+      },
+      "model_name": {
+        "type": "string",
+        "required": false,
+        "description": "Embedding model: sentence-transformers, bert-base, roberta-base, distilbert",
+        "default": "sentence-transformers"
+      },
+      "embedding_dimension": {
+        "type": "integer",
+        "required": false,
+        "description": "Target embedding dimension (128, 256, 384, 512, 768)",
+        "default": 384
+      },
+      "normalize_embeddings": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to L2 normalize embedding vectors",
+        "default": true
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Processing batch size for efficiency",
+        "default": 32
+      },
+      "max_sequence_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum token length per segment",
+        "default": 512
+      }
+    },
+    "error_messages": [
+      "Empty segments array: Provide at least one text segment for embedding.",
+      "Unsupported model: Use sentence-transformers, bert-base, roberta-base, or distilbert.",
+      "Invalid embedding dimension: Must be one of 128, 256, 384, 512, 768.",
+      "Segment too long: One or more segments exceed max_sequence_length.",
+      "Invalid batch_size: Must be a positive integer between 1 and 128."
+    ],
+    "usage": "Provide text_segments array and configure model parameters. Returns embedding vectors for semantic similarity computation.",
+    "output_details": {
+      "embeddings": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "Array of embedding vectors (each vector is array of numbers)"
+      },
+      "embedding_dimension": {
+        "type": "integer",
+        "description": "Actual dimension of generated embeddings"
+      },
+      "model_used": {
+        "type": "string",
+        "description": "Name of the embedding model used"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Time taken to generate embeddings in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Similarity Calculator",
+    "tool_description": "Computes pairwise semantic similarity scores between text embeddings using various distance metrics to identify content similarity patterns.",
+    "parameters": {
+      "embeddings": {
+        "type": "array",
+        "required": true,
+        "description": "Array of embedding vectors for similarity computation",
+        "items": {"type": "array"}
+      },
+      "similarity_metric": {
+        "type": "string",
+        "required": false,
+        "description": "Similarity metric: cosine, euclidean, manhattan, or dot_product",
+        "default": "cosine"
+      },
+      "comparison_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Comparison type: pairwise, adjacent_only, or sliding_window",
+        "default": "adjacent_only"
+      },
+      "window_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Window size for sliding_window mode",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Empty embeddings array: Provide at least 2 embedding vectors for comparison.",
+      "Inconsistent embedding dimensions: All embeddings must have the same dimension.",
+      "Invalid similarity metric: Use cosine, euclidean, manhattan, or dot_product.",
+      "Invalid comparison mode: Use pairwise, adjacent_only, or sliding_window.",
+      "Invalid window_size: Must be between 2 and embedding array length."
+    ],
+    "usage": "Provide embeddings array and specify similarity computation parameters. Returns similarity matrix or scores based on comparison mode.",
+    "output_details": {
+      "similarity_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Similarity scores between embeddings"
+      },
+      "similarity_matrix": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "Full similarity matrix for pairwise comparisons"
+      },
+      "metric_used": {
+        "type": "string",
+        "description": "Similarity metric applied"
+      },
+      "comparison_pairs": {
+        "type": "integer",
+        "description": "Number of similarity pairs computed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Topic Boundary Detector",
+    "tool_description": "Identifies topic boundaries in text by analyzing similarity score patterns and detecting significant transitions between semantic segments.",
+    "parameters": {
+      "similarity_scores": {
+        "type": "array",
+        "required": true,
+        "description": "Array of similarity scores between adjacent segments",
+        "items": {"type": "number"}
+      },
+      "detection_method": {
+        "type": "string",
+        "required": false,
+        "description": "Boundary detection algorithm: threshold, statistical, gradient, or peak_detection",
+        "default": "statistical"
+      },
+      "threshold_value": {
+        "type": "number",
+        "required": false,
+        "description": "Similarity threshold for boundary detection (0.0 to 1.0)",
+        "default": 0.5
+      },
+      "min_segment_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of sentences per segment",
+        "default": 2
+      },
+      "sensitivity": {
+        "type": "number",
+        "required": false,
+        "description": "Detection sensitivity factor (0.1 to 2.0)",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Empty similarity scores: Provide non-empty array of similarity scores.",
+      "Invalid detection method: Use threshold, statistical, gradient, or peak_detection.",
+      "Invalid threshold_value: Must be between 0.0 and 1.0.",
+      "Invalid min_segment_size: Must be positive integer greater than 0.",
+      "Invalid sensitivity: Must be between 0.1 and 2.0.",
+      "Insufficient data: Need at least 3 similarity scores for boundary detection."
+    ],
+    "usage": "Provide similarity_scores and configure detection parameters. Returns detected topic boundaries and confidence scores.",
+    "output_details": {
+      "boundary_positions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Positions of detected topic boundaries"
+      },
+      "boundary_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each detected boundary"
+      },
+      "num_segments": {
+        "type": "integer",
+        "description": "Number of topic segments identified"
+      },
+      "detection_method_used": {
+        "type": "string",
+        "description": "Boundary detection method applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sliding Window Analyzer",
+    "tool_description": "Analyzes text using sliding windows of configurable size to identify local coherence patterns and potential segmentation points.",
+    "parameters": {
+      "sentences": {
+        "type": "array",
+        "required": true,
+        "description": "Array of sentences to analyze with sliding windows",
+        "items": {"type": "string"}
+      },
+      "window_size": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of sentences per window"
+      },
+      "step_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Step size for window movement",
+        "default": 1
+      },
+      "overlap_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum overlap ratio for window comparison (0.0 to 1.0)",
+        "default": 0.3
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of analysis: coherence, diversity, or transition",
+        "default": "coherence"
+      }
+    },
+    "error_messages": [
+      "Insufficient sentences: Need at least as many sentences as window_size.",
+      "Invalid window_size: Must be positive integer between 1 and sentence count.",
+      "Invalid step_size: Must be positive integer less than or equal to window_size.",
+      "Invalid overlap_threshold: Must be between 0.0 and 1.0.",
+      "Invalid analysis_type: Use coherence, diversity, or transition."
+    ],
+    "usage": "Provide sentences array, window_size, and analysis parameters. Returns windowed segments with analysis scores.",
+    "output_details": {
+      "windowed_segments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Text content for each window"
+      },
+      "window_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Analysis scores for each window"
+      },
+      "window_positions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Starting positions of each window"
+      },
+      "total_windows": {
+        "type": "integer",
+        "description": "Total number of windows analyzed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Coherence Scorer",
+    "tool_description": "Evaluates the internal coherence and topical consistency of text segments using various linguistic and semantic metrics.",
+    "parameters": {
+      "text_segments": {
+        "type": "array",
+        "required": true,
+        "description": "Array of text segments to evaluate for coherence",
+        "items": {"type": "string"}
+      },
+      "coherence_metrics": {
+        "type": "array",
+        "required": false,
+        "description": "Coherence measures to compute",
+        "items": {"type": "string"},
+        "default": ["semantic", "lexical", "syntactic"]
+      },
+      "reference_corpus": {
+        "type": "string",
+        "required": false,
+        "description": "Reference corpus for statistical comparisons",
+        "default": "general"
+      },
+      "aggregate_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method to aggregate multiple metrics: mean, weighted, or max",
+        "default": "weighted"
+      },
+      "normalize_scores": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to normalize scores to 0-1 range",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Empty segments array: Provide at least one text segment for coherence evaluation.",
+      "Invalid coherence metrics: Use combinations of semantic, lexical, syntactic, discourse.",
+      "Unsupported reference corpus: Use general, domain_specific, or custom.",
+      "Invalid aggregate method: Use mean, weighted, or max.",
+      "Segments too short: Each segment should contain at least 2 sentences for reliable scoring."
+    ],
+    "usage": "Provide text_segments and configure coherence evaluation parameters. Returns coherence scores and detailed metrics.",
+    "output_details": {
+      "coherence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Overall coherence score for each segment"
+      },
+      "metric_breakdown": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed breakdown of coherence metrics"
+      },
+      "average_coherence": {
+        "type": "number",
+        "description": "Average coherence across all segments"
+      },
+      "coherence_variance": {
+        "type": "number",
+        "description": "Variance in coherence scores"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Segment Merger",
+    "tool_description": "Merges adjacent text segments based on similarity criteria and coherence thresholds to create optimal semantic units.",
+    "parameters": {
+      "segments": {
+        "type": "array",
+        "required": true,
+        "description": "Array of text segments to potentially merge",
+        "items": {"type": "string"}
+      },
+      "coherence_scores": {
+        "type": "array",
+        "required": true,
+        "description": "Coherence scores for each segment",
+        "items": {"type": "number"}
+      },
+      "merge_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum similarity for merging adjacent segments (0.0 to 1.0)",
+        "default": 0.7
+      },
+      "max_merged_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum character length for merged segments",
+        "default": 2000
+      },
+      "preserve_boundaries": {
+        "type": "array",
+        "required": false,
+        "description": "Positions where merging should be avoided",
+        "items": {"type": "integer"},
+        "default": []
+      },
+      "merge_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Merging approach: greedy, optimal, or conservative",
+        "default": "greedy"
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: segments and coherence_scores must have the same length.",
+      "Invalid merge_threshold: Must be between 0.0 and 1.0.",
+      "Invalid max_merged_length: Must be positive integer greater than 100.",
+      "Invalid preserve_boundaries: Positions must be valid segment indices.",
+      "Invalid merge_strategy: Use greedy, optimal, or conservative.",
+      "Insufficient segments: Need at least 2 segments for merging operation."
+    ],
+    "usage": "Provide segments, coherence_scores, and merging criteria. Returns merged segments with merge operations log.",
+    "output_details": {
+      "merged_segments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Text segments after merging operation"
+      },
+      "merge_operations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Log of merge operations performed"
+      },
+      "segments_before": {
+        "type": "integer",
+        "description": "Number of segments before merging"
+      },
+      "segments_after": {
+        "type": "integer",
+        "description": "Number of segments after merging"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Segment Splitter",
+    "tool_description": "Splits large or incoherent text segments into smaller, more focused semantic units based on internal topic boundaries.",
+    "parameters": {
+      "segments": {
+        "type": "array",
+        "required": true,
+        "description": "Array of text segments to potentially split",
+        "items": {"type": "string"}
+      },
+      "max_segment_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum character length before splitting",
+        "default": 1500
+      },
+      "min_coherence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum coherence score before splitting (0.0 to 1.0)",
+        "default": 0.4
+      },
+      "split_method": {
+        "type": "string",
+        "required": false,
+        "description": "Splitting approach: length_based, coherence_based, or hybrid",
+        "default": "hybrid"
+      },
+      "min_split_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum character length for split segments",
+        "default": 200
+      }
+    },
+    "error_messages": [
+      "Empty segments array: Provide at least one segment for splitting analysis.",
+      "Invalid max_segment_length: Must be positive integer greater than min_split_size.",
+      "Invalid min_coherence_threshold: Must be between 0.0 and 1.0.",
+      "Invalid split_method: Use length_based, coherence_based, or hybrid.",
+      "Invalid min_split_size: Must be positive integer less than max_segment_length.",
+      "Conflicting parameters: max_segment_length must be at least 2x min_split_size."
+    ],
+    "usage": "Provide segments array and splitting criteria. Returns split segments with splitting rationale.",
+    "output_details": {
+      "split_segments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Text segments after splitting operation"
+      },
+      "split_operations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Log of split operations performed"
+      },
+      "segments_before": {
+        "type": "integer",
+        "description": "Number of segments before splitting"
+      },
+      "segments_after": {
+        "type": "integer",
+        "description": "Number of segments after splitting"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Topic Labeler",
+    "tool_description": "Generates descriptive topic labels for text segments using keyword extraction, topic modeling, and summarization techniques.",
+    "parameters": {
+      "text_segments": {
+        "type": "array",
+        "required": true,
+        "description": "Array of text segments to label with topics",
+        "items": {"type": "string"}
+      },
+      "labeling_method": {
+        "type": "string",
+        "required": false,
+        "description": "Labeling approach: keywords, topic_model, summarization, or hybrid",
+        "default": "hybrid"
+      },
+      "max_label_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum characters in generated labels",
+        "default": 50
+      },
+      "num_keywords": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of keywords to extract per segment",
+        "default": 5
+      },
+      "label_style": {
+        "type": "string",
+        "required": false,
+        "description": "Label format: phrase, keywords, or sentence",
+        "default": "phrase"
+      },
+      "domain_context": {
+        "type": "string",
+        "required": false,
+        "description": "Domain context for specialized labeling",
+        "default": "general"
+      }
+    },
+    "error_messages": [
+      "Empty segments array: Provide at least one text segment for topic labeling.",
+      "Invalid labeling_method: Use keywords, topic_model, summarization, or hybrid.",
+      "Invalid max_label_length: Must be positive integer between 10 and 200.",
+      "Invalid num_keywords: Must be positive integer between 1 and 20.",
+      "Invalid label_style: Use phrase, keywords, or sentence.",
+      "Segments too short: Each segment should have sufficient content for meaningful labeling."
+    ],
+    "usage": "Provide text_segments and configure labeling parameters. Returns topic labels with confidence scores.",
+    "output_details": {
+      "topic_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Generated topic labels for each segment"
+      },
+      "label_confidence": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each generated label"
+      },
+      "extracted_keywords": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "Keywords extracted from each segment"
+      },
+      "labeling_method_used": {
+        "type": "string",
+        "description": "Actual labeling method applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Boundary Validator",
+    "tool_description": "Validates the quality of detected topic boundaries by analyzing segment coherence, boundary sharpness, and overall segmentation effectiveness.",
+    "parameters": {
+      "original_text": {
+        "type": "string",
+        "required": true,
+        "description": "Complete original text that was segmented"
+      },
+      "boundary_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Array of detected boundary positions",
+        "items": {"type": "integer"}
+      },
+      "validation_metrics": {
+        "type": "array",
+        "required": false,
+        "description": "Validation measures to compute",
+        "items": {"type": "string"},
+        "default": ["coherence", "separation", "consistency"]
+      },
+      "reference_boundaries": {
+        "type": "array",
+        "required": false,
+        "description": "Reference boundary positions for comparison",
+        "items": {"type": "integer"},
+        "default": []
+      },
+      "tolerance_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Character tolerance for boundary matching",
+        "default": 50
+      }
+    },
+    "error_messages": [
+      "Empty original_text: Provide the complete text that was segmented.",
+      "Invalid boundary_positions: Positions must be valid character indices within text.",
+      "Invalid validation_metrics: Use combinations of coherence, separation, consistency, precision, recall.",
+      "Mismatched reference_boundaries: Reference positions must be within original text bounds.",
+      "Invalid tolerance_window: Must be positive integer between 1 and 500.",
+      "Insufficient boundaries: Need at least 1 boundary position for validation."
+    ],
+    "usage": "Provide original_text, boundary_positions, and validation configuration. Returns validation scores and boundary quality metrics.",
+    "output_details": {
+      "overall_quality_score": {
+        "type": "number",
+        "description": "Overall boundary quality score (0.0 to 1.0)"
+      },
+      "metric_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Individual scores for each validation metric"
+      },
+      "boundary_precision": {
+        "type": "number",
+        "description": "Precision score if reference boundaries provided"
+      },
+      "boundary_recall": {
+        "type": "number",
+        "description": "Recall score if reference boundaries provided"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Summary of validation results and recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Segmentation Optimizer",
+    "tool_description": "Optimizes text segmentation by iteratively adjusting boundaries based on multiple quality metrics and user-defined optimization objectives.",
+    "parameters": {
+      "original_text": {
+        "type": "string",
+        "required": true,
+        "description": "Complete original text to optimize segmentation for"
+      },
+      "initial_segments": {
+        "type": "array",
+        "required": true,
+        "description": "Initial segmentation to optimize",
+        "items": {"type": "string"}
+      },
+      "quality_metrics": {
+        "type": "array",
+        "required": true,
+        "description": "Quality scores for initial segments",
+        "items": {"type": "number"}
+      },
+      "optimization_objective": {
+        "type": "string",
+        "required": false,
+        "description": "Primary objective: coherence, balance, granularity, or composite",
+        "default": "composite"
+      },
+      "max_iterations": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum optimization iterations",
+        "default": 10
+      },
+      "convergence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Improvement threshold for convergence (0.001 to 0.1)",
+        "default": 0.01
+      },
+      "preserve_structure": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to maintain paragraph structure",
+        "default": true
+      },
+      "target_segment_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Target number of segments (0 for automatic)",
+        "default": 0
+      },
+      "min_segment_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum characters per segment",

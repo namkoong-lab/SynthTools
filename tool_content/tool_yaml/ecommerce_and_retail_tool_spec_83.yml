@@ -1,0 +1,799 @@
+field_name: ecommerce_and_retail
+subfield: Price Management and Dynamic Pricing
+task: Inventory-driven pricing adjustments based on stock levels and turnover rates
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves medium complexity due to the need to balance multiple dynamic factors (stock levels, turnover rates, competitor pricing, demand forecasting) while managing risk of overpricing or underpricing inventory. The coordination between inventory data, pricing algorithms, and market conditions creates moderate dependencies and requires real-time data processing capabilities.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'll target 12 tools to cover inventory analysis, pricing calculations, market monitoring, and adjustment implementation with appropriate granularity.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  - **Inventory Data Fetcher** → produces current stock levels
+  - **Turnover Rate Calculator** → consumes sales history, produces turnover metrics
+  - **Stock Level Classifier** → consumes inventory data, produces stock categories
+  - **Demand Forecaster** → consumes historical sales, produces demand predictions
+  - **Competitor Price Monitor** → produces market pricing data
+  - **Price Elasticity Analyzer** → consumes sales/price history, produces elasticity metrics
+  - **Pricing Rule Engine** → consumes stock data/rules, produces base price adjustments
+  - **Dynamic Price Calculator** → consumes multiple inputs, produces optimized prices
+  - **Price Impact Simulator** → consumes pricing scenarios, produces impact predictions
+  - **Pricing Strategy Validator** → consumes pricing decisions, produces validation results
+  - **Price Change Implementer** → consumes approved prices, produces implementation status
+  - **Pricing Performance Monitor** → consumes post-implementation data, produces performance metrics
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Stock-Level Pricing** (3 tools): Inventory Data Fetcher → Stock Level Classifier → Pricing Rule Engine
+  2. **Turnover-Based Adjustments** (3 tools): Turnover Rate Calculator → Stock Level Classifier → Dynamic Price Calculator
+
+  **Medium Plans:**
+  1. **Market-Aware Inventory Pricing** (6 tools): Inventory Data Fetcher → Stock Level Classifier → Competitor Price Monitor → Price Elasticity Analyzer → Dynamic Price Calculator → Price Change Implementer
+  2. **Demand-Driven Pricing** (5 tools): Demand Forecaster → Turnover Rate Calculator → Pricing Rule Engine → Price Impact Simulator → Pricing Strategy Validator
+
+  **Complex Plans:**
+  1. **Comprehensive Inventory Optimization** (10 tools): Inventory Data Fetcher → Turnover Rate Calculator → Stock Level Classifier → Demand Forecaster → Competitor Price Monitor → Price Elasticity Analyzer → Dynamic Price Calculator → Price Impact Simulator → Price Change Implementer → Pricing Performance Monitor
+  2. **Full-Cycle Pricing Management** (8 tools): Inventory Data Fetcher → Stock Level Classifier → Demand Forecaster → Pricing Rule Engine → Dynamic Price Calculator → Pricing Strategy Validator → Price Change Implementer → Pricing Performance Monitor
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Inventory Data Fetcher",
+    "tool_description": "Retrieves current inventory levels, costs, and basic product information for specified items from inventory management systems.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of product IDs to fetch inventory data for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "warehouse_locations": {
+        "type": "array",
+        "required": false,
+        "description": "Specific warehouse locations to query",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "include_costs": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include cost data in the response",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid product ID: One or more product IDs in the list are not found in the inventory system.",
+      "Warehouse location not found: Specified warehouse location does not exist in the system.",
+      "Access denied: Insufficient permissions to access cost data for the requested products.",
+      "System unavailable: Inventory management system is currently unavailable, try again later."
+    ],
+    "usage": "Provide an array of product_ids to fetch their current inventory status. Optionally specify warehouse_locations to limit the search scope and set include_costs to control cost data inclusion.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of product IDs that were successfully queried"
+      },
+      "stock_levels": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Current stock quantities for each product"
+      },
+      "unit_costs": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Cost per unit for each product"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of when inventory data was last updated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Turnover Rate Calculator",
+    "tool_description": "Calculates inventory turnover rates and velocity metrics based on historical sales data and current stock levels.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of product IDs to calculate turnover rates for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "analysis_period_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days to analyze for turnover calculation (7-365)",
+        "default": 90
+      },
+      "current_stock_levels": {
+        "type": "array",
+        "required": true,
+        "description": "Current inventory quantities for each product",
+        "items": {"type": "integer"},
+        "minItems": 1
+      },
+      "sales_data": {
+        "type": "array",
+        "required": true,
+        "description": "Historical sales quantities for each product in the analysis period",
+        "items": {"type": "integer"},
+        "minItems": 1
+      }
+    },
+    "error_messages": [
+      "Data length mismatch: product_ids, current_stock_levels, and sales_data arrays must have the same length.",
+      "Invalid analysis period: analysis_period_days must be between 7 and 365.",
+      "Negative values detected: Stock levels and sales data cannot contain negative numbers.",
+      "Insufficient sales data: Unable to calculate turnover rate with zero or minimal sales history."
+    ],
+    "usage": "Provide product_ids with corresponding current_stock_levels and sales_data arrays. Set analysis_period_days to define the historical window for turnover calculation.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs processed for turnover analysis"
+      },
+      "turnover_rates": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Calculated turnover rates (sales/average inventory) for each product"
+      },
+      "days_on_hand": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Estimated days of inventory remaining at current sales velocity"
+      },
+      "velocity_category": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Velocity classification for each product (fast, medium, slow, dead)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Level Classifier",
+    "tool_description": "Classifies products into stock level categories (overstock, optimal, understocked, critical) based on inventory quantities and turnover data.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of product IDs to classify",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "current_stock": {
+        "type": "array",
+        "required": true,
+        "description": "Current inventory levels for each product",
+        "items": {"type": "integer"},
+        "minItems": 1
+      },
+      "days_on_hand": {
+        "type": "array",
+        "required": true,
+        "description": "Days of inventory remaining for each product",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "optimal_days_min": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum days for optimal stock level (1-30)",
+        "default": 15
+      },
+      "optimal_days_max": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum days for optimal stock level (30-90)",
+        "default": 45
+      },
+      "critical_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Days threshold for critical stock level (1-14)",
+        "default": 7
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: product_ids, current_stock, and days_on_hand must have equal lengths.",
+      "Invalid threshold values: optimal_days_min must be less than optimal_days_max, and critical_threshold must be less than optimal_days_min.",
+      "Negative stock values: Current stock and days on hand cannot be negative.",
+      "Threshold out of range: Ensure optimal_days_min (1-30), optimal_days_max (30-90), critical_threshold (1-14) are within valid ranges."
+    ],
+    "usage": "Provide product_ids with corresponding current_stock and days_on_hand arrays. Optionally adjust optimal_days_min, optimal_days_max, and critical_threshold to customize classification boundaries.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that were classified"
+      },
+      "stock_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Stock level classification for each product (overstock, optimal, understocked, critical)"
+      },
+      "urgency_scores": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Urgency scores (1-10) indicating priority for pricing action"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Demand Forecaster",
+    "tool_description": "Generates demand forecasts for products using historical sales patterns, seasonality, and trend analysis to support pricing decisions.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Product IDs to generate forecasts for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "historical_sales": {
+        "type": "array",
+        "required": true,
+        "description": "Historical daily sales data for each product",
+        "items": {"type": "integer"},
+        "minItems": 30
+      },
+      "forecast_horizon_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days to forecast ahead (1-90)",
+        "default": 30
+      },
+      "seasonality_pattern": {
+        "type": "string",
+        "required": false,
+        "description": "Expected seasonality pattern (weekly, monthly, quarterly, none)",
+        "default": "none"
+      },
+      "trend_adjustment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply trend adjustment to the forecast",
+        "default": true
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "Confidence level for forecast intervals (0.8-0.99)",
+        "default": 0.95
+      }
+    },
+    "error_messages": [
+      "Insufficient historical data: At least 30 days of sales history required for meaningful forecasting.",
+      "Invalid forecast horizon: forecast_horizon_days must be between 1 and 90.",
+      "Invalid seasonality pattern: Use one of [weekly, monthly, quarterly, none].",
+      "Invalid confidence level: confidence_level must be between 0.8 and 0.99.",
+      "Data quality issue: Historical sales data contains too many zeros or negative values for reliable forecasting."
+    ],
+    "usage": "Provide product_ids and corresponding historical_sales data. Set forecast_horizon_days for the prediction window and adjust seasonality_pattern and confidence_level as needed.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs for which forecasts were generated"
+      },
+      "forecasted_demand": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Predicted daily demand for each product over the forecast horizon"
+      },
+      "demand_trend": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Demand trend direction for each product (increasing, stable, decreasing)"
+      },
+      "forecast_confidence": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores (0-1) for each forecast"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Competitor Price Monitor",
+    "tool_description": "Monitors competitor pricing for specified products and provides market positioning analysis to inform pricing decisions.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Internal product IDs to monitor",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "competitor_list": {
+        "type": "array",
+        "required": false,
+        "description": "Specific competitors to monitor",
+        "items": {"type": "string"},
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Product not found: One or more product IDs could not be matched to competitor products.",
+      "No competitor data available: No pricing data found for the specified products and competitors.",
+      "Rate limit exceeded: Too many requests to competitor price sources, try again later.",
+      "Invalid competitor name: One or more competitors in the list are not recognized."
+    ],
+    "usage": "Provide product_ids to monitor competitor prices. Optionally specify competitor_list to focus on particular competitors, otherwise all available competitors will be monitored.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that were successfully monitored"
+      },
+      "average_competitor_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Average competitor price for each product"
+      },
+      "min_competitor_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Lowest competitor price found for each product"
+      },
+      "max_competitor_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Highest competitor price found for each product"
+      },
+      "market_position": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current market position for each product (premium, competitive, discount)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price Elasticity Analyzer",
+    "tool_description": "Analyzes price elasticity of demand for products based on historical price changes and corresponding sales volumes to optimize pricing sensitivity.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Product IDs to analyze for price elasticity",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "historical_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Historical price points for each product",
+        "items": {"type": "number"},
+        "minItems": 10
+      },
+      "historical_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Corresponding sales quantities for each price point",
+        "items": {"type": "integer"},
+        "minItems": 10
+      },
+      "analysis_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for elasticity calculation (linear, log-linear, arc)",
+        "default": "log-linear"
+      },
+      "outlier_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Threshold for removing outliers (1.5-3.0 standard deviations)",
+        "default": 2.0
+      }
+    },
+    "error_messages": [
+      "Insufficient data points: At least 10 price-quantity pairs required for elasticity analysis.",
+      "Data length mismatch: historical_prices and historical_quantities arrays must have the same length.",
+      "Invalid analysis method: Use one of [linear, log-linear, arc].",
+      "Invalid outlier threshold: outlier_threshold must be between 1.5 and 3.0.",
+      "Zero or negative prices: Price data cannot contain zero or negative values."
+    ],
+    "usage": "Provide product_ids with corresponding historical_prices and historical_quantities arrays. Choose analysis_method based on data characteristics and set outlier_threshold to control data cleaning.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs analyzed for elasticity"
+      },
+      "elasticity_coefficients": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Price elasticity of demand coefficients for each product"
+      },
+      "elasticity_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Elasticity classification (elastic, inelastic, unitary) for each product"
+      },
+      "r_squared": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "R-squared values indicating model fit quality for each product"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pricing Rule Engine",
+    "tool_description": "Applies business rules and constraints to generate pricing recommendations based on stock categories, costs, and business objectives.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Product IDs to apply pricing rules to",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "stock_categories": {
+        "type": "array",
+        "required": true,
+        "description": "Stock level category for each product",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "current_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Current selling prices for each product",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "unit_costs": {
+        "type": "array",
+        "required": true,
+        "description": "Cost per unit for each product",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "min_margin_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum acceptable margin percentage (0-50)",
+        "default": 15.0
+      },
+      "overstock_discount_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum discount for overstocked items (5-40)",
+        "default": 20.0
+      },
+      "understock_premium_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum premium for understocked items (0-25)",
+        "default": 10.0
+      },
+      "critical_discount_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum discount for critical stock clearance (10-60)",
+        "default": 35.0
+      },
+      "max_price_change_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum price change in single adjustment (1-30)",
+        "default": 15.0
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All input arrays must have the same length.",
+      "Invalid stock category: Stock categories must be one of [overstock, optimal, understocked, critical].",
+      "Invalid margin constraint: min_margin_percent must be between 0 and 50.",
+      "Invalid discount/premium range: Discount and premium percentages must be within specified ranges.",
+      "Pricing constraint violation: Resulting price would violate minimum margin requirements.",
+      "Zero or negative costs: Unit costs must be positive values."
+    ],
+    "usage": "Provide product_ids with corresponding stock_categories, current_prices, and unit_costs. Adjust percentage parameters to control pricing aggressiveness while maintaining margin constraints.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs processed by pricing rules"
+      },
+      "recommended_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Recommended new prices based on applied rules"
+      },
+      "price_changes": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Price change amounts (positive for increases, negative for decreases)"
+      },
+      "applied_rules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Description of pricing rule applied to each product"
+      },
+      "resulting_margins": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Margin percentages that would result from recommended prices"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dynamic Price Calculator",
+    "tool_description": "Calculates optimal prices by integrating multiple factors including inventory status, demand forecasts, competitor prices, and elasticity to maximize revenue or profit objectives.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Product IDs for price optimization",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "current_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Current selling prices",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "stock_urgency_scores": {
+        "type": "array",
+        "required": true,
+        "description": "Urgency scores from stock classification (1-10)",
+        "items": {"type": "integer"},
+        "minItems": 1
+      },
+      "demand_forecasts": {
+        "type": "array",
+        "required": true,
+        "description": "Forecasted demand levels",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "elasticity_coefficients": {
+        "type": "array",
+        "required": true,
+        "description": "Price elasticity coefficients",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "competitor_avg_prices": {
+        "type": "array",
+        "required": false,
+        "description": "Average competitor prices for reference",
+        "items": {"type": "number"},
+        "default": null
+      },
+      "optimization_objective": {
+        "type": "string",
+        "required": false,
+        "description": "Optimization goal (revenue, profit, inventory_turnover)",
+        "default": "profit"
+      },
+      "competitor_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Weight given to competitor pricing (0-1)",
+        "default": 0.3
+      },
+      "inventory_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Weight given to inventory factors (0-1)",
+        "default": 0.4
+      },
+      "demand_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Weight given to demand factors (0-1)",
+        "default": 0.3
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All required input arrays must have equal lengths.",
+      "Invalid optimization objective: Use one of [revenue, profit, inventory_turnover].",
+      "Weight sum error: competitor_weight + inventory_weight + demand_weight should sum to 1.0.",
+      "Invalid urgency scores: Stock urgency scores must be integers between 1 and 10.",
+      "Invalid weight values: All weight parameters must be between 0 and 1.",
+      "Missing competitor data: competitor_avg_prices required when competitor_weight > 0."
+    ],
+    "usage": "Provide all required arrays with corresponding data for each product. Set optimization_objective based on business goals and adjust weight parameters to control factor importance in price calculation.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs for which prices were calculated"
+      },
+      "optimized_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Calculated optimal prices for each product"
+      },
+      "expected_demand_impact": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Expected change in demand due to price changes"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores (0-1) for each price recommendation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price Impact Simulator",
+    "tool_description": "Simulates the potential impact of proposed pricing changes on sales volume, revenue, and inventory turnover using predictive models.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Product IDs to simulate pricing impact for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "current_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Current prices before changes",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "proposed_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Proposed new prices to simulate",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "elasticity_coefficients": {
+        "type": "array",
+        "required": true,
+        "description": "Price elasticity coefficients for demand modeling",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "baseline_demand": {
+        "type": "array",
+        "required": true,
+        "description": "Current demand levels as baseline",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "simulation_period_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days to simulate impact over (7-90)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All input arrays must have the same length.",
+      "Invalid simulation period: simulation_period_days must be between 7 and 90.",
+      "Zero or negative prices: Both current and proposed prices must be positive values.",
+      "Invalid baseline demand: Baseline demand values must be non-negative.",
+      "Extreme price changes: Price changes greater than 50% may produce unreliable simulation results."
+    ],
+    "usage": "Provide product_ids with current_prices, proposed_prices, elasticity_coefficients, and baseline_demand arrays. Set simulation_period_days to define the forecast horizon for impact analysis.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs included in the simulation"
+      },
+      "projected_volume_changes": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Projected percentage change in sales volume for each product"
+      },
+      "projected_revenue_changes": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Projected percentage change in revenue for each product"
+      },
+      "inventory_turnover_impact": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Expected change in inventory turnover rate"
+      },
+      "risk_assessment": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Risk level assessment for each pricing change (low, medium, high)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pricing Strategy Validator",
+    "tool_description": "Validates proposed pricing strategies against business constraints, market conditions, and risk thresholds to ensure pricing decisions align with business objectives.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Product IDs to validate pricing for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "proposed_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Proposed prices to validate",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "unit_costs": {
+        "type": "array",
+        "required": true,
+        "description": "Unit costs for margin validation",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "projected_impacts": {
+        "type": "array",
+        "required": true,
+        "description": "Projected revenue impact percentages",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "min_margin_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum acceptable margin percentage (0-50)",
+        "default": 10.0
+      },
+      "max_revenue_risk_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum acceptable revenue risk percentage (1-30)",
+        "default": 15.0
+      },
+      "require_approval_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Price change percentage requiring manual approval (5-50)",
+        "default": 20.0
+      }

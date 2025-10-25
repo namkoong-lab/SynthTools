@@ -1,0 +1,836 @@
+field_name: ecommerce_and_retail
+subfield: Payment Processing and Financial Transactions
+task: Manage subscription billing and recurring payment automation
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task is **medium** difficulty. It involves moderate complexity across multiple dimensions: coordinating payment schedules, handling various subscription models, managing payment failures and retries, ensuring compliance with financial regulations, and maintaining data consistency across billing cycles. The scope includes subscription lifecycle management, payment gateway integration, and automated retry logic, with significant risk from payment failures and compliance violations.
+
+  ## STEP 2 — Set a tool budget
+
+  Based on medium difficulty, I'll target **12 tools** within the 10-15 range. This allows for comprehensive coverage of subscription management, payment processing, retry logic, notifications, and reporting without excessive overlap.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Subscription Plan Creator** - Consumes: plan parameters → Produces: subscription plan configuration
+  2. **Customer Subscription Manager** - Consumes: customer data, plan ID → Produces: active subscription record
+  3. **Payment Method Validator** - Consumes: payment details → Produces: validation status
+  4. **Billing Cycle Calculator** - Consumes: subscription details, billing frequency → Produces: payment schedule
+  5. **Payment Processor** - Consumes: payment details, amount → Produces: transaction result
+  6. **Payment Retry Manager** - Consumes: failed payment data → Produces: retry schedule and results
+  7. **Subscription Status Updater** - Consumes: subscription ID, status change → Produces: updated subscription state
+  8. **Invoice Generator** - Consumes: billing data → Produces: formatted invoice
+  9. **Payment Notification Sender** - Consumes: payment events → Produces: customer notifications
+  10. **Dunning Process Manager** - Consumes: overdue accounts → Produces: dunning actions and timelines
+  11. **Subscription Analytics Reporter** - Consumes: subscription data → Produces: billing metrics and insights
+  12. **Refund and Credit Processor** - Consumes: refund requests → Produces: processed refund transactions
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic subscription setup**: Subscription Plan Creator → Customer Subscription Manager → Billing Cycle Calculator
+  2. **Single payment processing**: Payment Method Validator → Payment Processor → Invoice Generator
+
+  **Medium Plans:**
+  1. **Failed payment handling**: Payment Processor → Payment Retry Manager → Subscription Status Updater → Payment Notification Sender
+  2. **Monthly billing cycle**: Billing Cycle Calculator → Payment Processor → Invoice Generator → Payment Notification Sender → Subscription Analytics Reporter
+
+  **Complex Plans:**
+  1. **Complete subscription lifecycle**: Subscription Plan Creator → Customer Subscription Manager → Payment Method Validator → Billing Cycle Calculator → Payment Processor → Invoice Generator → Payment Notification Sender
+  2. **Advanced payment recovery**: Payment Processor → Payment Retry Manager → Dunning Process Manager → Subscription Status Updater → Payment Notification Sender → Refund and Credit Processor
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Subscription Plan Creator",
+    "tool_description": "Creates and configures subscription billing plans with pricing, billing frequency, and feature specifications.",
+    "parameters": {
+      "plan_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the subscription plan"
+      },
+      "billing_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Billing amount in cents (minimum 100)"
+      },
+      "billing_frequency": {
+        "type": "string",
+        "required": true,
+        "description": "Billing frequency: daily, weekly, monthly, quarterly, annually"
+      },
+      "currency_code": {
+        "type": "string",
+        "required": false,
+        "description": "ISO 4217 currency code",
+        "default": "USD"
+      },
+      "trial_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of trial days (0-365)",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid billing amount: Amount must be at least 100 cents (1.00 in currency units).",
+      "Invalid billing frequency: Use one of [daily, weekly, monthly, quarterly, annually].",
+      "Invalid currency code: Provide a valid ISO 4217 currency code like USD, EUR, GBP.",
+      "Invalid trial period: Trial days must be between 0 and 365.",
+      "Plan name already exists: Choose a unique plan name."
+    ],
+    "usage": "Provide plan_name, billing_amount, and billing_frequency. Optionally set currency_code and trial_days. The tool creates a reusable subscription plan configuration.",
+    "output_details": {
+      "plan_id": {
+        "type": "string",
+        "description": "Unique identifier for the created plan"
+      },
+      "plan_status": {
+        "type": "string",
+        "description": "Status of the plan creation (active, pending, failed)"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "When the plan was created",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Subscription Manager",
+    "tool_description": "Creates and manages customer subscription instances, linking customers to billing plans with customizable parameters.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "plan_id": {
+        "type": "string",
+        "required": true,
+        "description": "Subscription plan identifier"
+      },
+      "payment_method_id": {
+        "type": "string",
+        "required": true,
+        "description": "Valid payment method identifier"
+      },
+      "start_date": {
+        "type": "string",
+        "required": false,
+        "description": "Subscription start date (ISO 8601)",
+        "format": "date-time",
+        "default": "None"
+      },
+      "custom_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Override plan amount in cents",
+        "default": "None"
+      },
+      "metadata": {
+        "type": "array",
+        "required": false,
+        "description": "Custom key-value metadata pairs",
+        "items": {"type": "string"},
+        "maxItems": 20,
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Customer not found: Verify the customer_id exists in the system.",
+      "Invalid plan: The specified plan_id does not exist or is inactive.",
+      "Invalid payment method: The payment_method_id is not valid or expired.",
+      "Invalid start date: Provide a valid ISO 8601 date-time or leave empty for immediate start.",
+      "Custom amount too low: If provided, custom_amount must be at least 100 cents.",
+      "Customer already has active subscription: Cancel existing subscription before creating a new one."
+    ],
+    "usage": "Provide customer_id, plan_id, and payment_method_id. Optionally set start_date, custom_amount, and metadata. Creates an active subscription instance for the customer.",
+    "output_details": {
+      "subscription_id": {
+        "type": "string",
+        "description": "Unique subscription identifier"
+      },
+      "subscription_status": {
+        "type": "string",
+        "description": "Current subscription status"
+      },
+      "next_billing_date": {
+        "type": "string",
+        "description": "Next scheduled billing date",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Method Validator",
+    "tool_description": "Validates payment methods including credit cards, bank accounts, and digital wallets before processing transactions.",
+    "parameters": {
+      "payment_type": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method type: credit_card, debit_card, bank_account, paypal, apple_pay, google_pay"
+      },
+      "payment_token": {
+        "type": "string",
+        "required": true,
+        "description": "Tokenized payment method identifier"
+      },
+      "verify_funds": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to verify available funds",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid payment type: Use one of [credit_card, debit_card, bank_account, paypal, apple_pay, google_pay].",
+      "Invalid payment token: The provided token is malformed or expired.",
+      "Payment method expired: The payment method has expired and needs to be updated.",
+      "Insufficient funds: The payment method does not have sufficient funds available.",
+      "Payment method declined: The payment method was declined by the issuing bank."
+    ],
+    "usage": "Provide payment_type and payment_token. Optionally set verify_funds to check available balance. Returns validation status and payment method details.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the payment method is valid"
+      },
+      "validation_code": {
+        "type": "string",
+        "description": "Validation result code"
+      },
+      "last_four_digits": {
+        "type": "string",
+        "description": "Last four digits of payment method"
+      },
+      "expiry_date": {
+        "type": "string",
+        "description": "Payment method expiry date",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Billing Cycle Calculator",
+    "tool_description": "Calculates billing schedules, due dates, and prorated amounts for subscription billing cycles with various frequencies and timing requirements.",
+    "parameters": {
+      "subscription_id": {
+        "type": "string",
+        "required": true,
+        "description": "Subscription identifier"
+      },
+      "billing_frequency": {
+        "type": "string",
+        "required": true,
+        "description": "Billing frequency: daily, weekly, monthly, quarterly, annually"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Billing cycle start date",
+        "format": "date-time"
+      },
+      "base_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Base billing amount in cents"
+      },
+      "prorate_partial_periods": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to prorate partial billing periods",
+        "default": true
+      },
+      "grace_period_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Grace period in days (0-30)",
+        "default": 3
+      },
+      "cycles_to_calculate": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of future cycles to calculate (1-12)",
+        "default": 3
+      },
+      "timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Timezone for billing calculations",
+        "default": "UTC"
+      },
+      "custom_billing_day": {
+        "type": "integer",
+        "required": false,
+        "description": "Custom billing day of month (1-31)",
+        "default": "None"
+      },
+      "tax_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Tax rate as decimal (0.0-1.0)",
+        "default": 0.0
+      },
+      "discount_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Discount amount in cents",
+        "default": 0
+      },
+      "discount_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Discount percentage (0-100)",
+        "default": 0.0
+      }
+    },
+    "error_messages": [
+      "Invalid subscription: The subscription_id does not exist or is inactive.",
+      "Invalid billing frequency: Use one of [daily, weekly, monthly, quarterly, annually].",
+      "Invalid date format: Provide start_date in ISO 8601 format.",
+      "Invalid amount: base_amount must be greater than 0.",
+      "Invalid grace period: grace_period_days must be between 0 and 30.",
+      "Invalid calculation range: cycles_to_calculate must be between 1 and 12.",
+      "Invalid billing day: custom_billing_day must be between 1 and 31.",
+      "Invalid tax rate: tax_rate must be between 0.0 and 1.0.",
+      "Invalid discount: discount_percentage must be between 0 and 100; discount_amount cannot be negative."
+    ],
+    "usage": "Provide subscription_id, billing_frequency, start_date, and base_amount. Configure prorating, grace periods, and calculation range as needed. Returns detailed billing schedule with amounts and dates.",
+    "output_details": {
+      "billing_schedule": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of billing dates in ISO format"
+      },
+      "billing_amounts": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Corresponding billing amounts in cents"
+      },
+      "next_billing_date": {
+        "type": "string",
+        "description": "Next scheduled billing date",
+        "format": "date-time"
+      },
+      "next_billing_amount": {
+        "type": "number",
+        "description": "Next billing amount in cents"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Processor",
+    "tool_description": "Processes subscription payments through various payment gateways with real-time transaction handling and result reporting.",
+    "parameters": {
+      "subscription_id": {
+        "type": "string",
+        "required": true,
+        "description": "Subscription identifier"
+      },
+      "payment_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Payment amount in cents"
+      },
+      "payment_method_id": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method identifier"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "ISO 4217 currency code",
+        "default": "USD"
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "description": "Payment description",
+        "default": "Subscription payment"
+      }
+    },
+    "error_messages": [
+      "Invalid subscription: The subscription_id does not exist or is not active.",
+      "Invalid payment amount: Amount must be greater than 0.",
+      "Payment method unavailable: The payment method is expired, invalid, or declined.",
+      "Insufficient funds: The payment method does not have sufficient funds.",
+      "Gateway error: The payment gateway is temporarily unavailable.",
+      "Currency mismatch: The currency does not match the subscription currency."
+    ],
+    "usage": "Provide subscription_id, payment_amount, and payment_method_id. Optionally specify currency and description. Processes the payment and returns transaction details.",
+    "output_details": {
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique transaction identifier"
+      },
+      "payment_status": {
+        "type": "string",
+        "description": "Payment status: succeeded, failed, pending"
+      },
+      "gateway_response": {
+        "type": "string",
+        "description": "Payment gateway response message"
+      },
+      "processed_amount": {
+        "type": "number",
+        "description": "Actual amount processed in cents"
+      },
+      "processing_timestamp": {
+        "type": "string",
+        "description": "When the payment was processed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Retry Manager",
+    "tool_description": "Manages automated retry logic for failed payments with configurable retry schedules, intervals, and escalation rules.",
+    "parameters": {
+      "failed_payment_id": {
+        "type": "string",
+        "required": true,
+        "description": "Failed payment transaction identifier"
+      },
+      "subscription_id": {
+        "type": "string",
+        "required": true,
+        "description": "Associated subscription identifier"
+      },
+      "retry_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Retry strategy: immediate, exponential, fixed_interval, smart",
+        "default": "smart"
+      },
+      "max_retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum retry attempts (1-10)",
+        "default": 3
+      },
+      "retry_intervals": {
+        "type": "array",
+        "required": false,
+        "description": "Custom retry intervals in hours",
+        "items": {"type": "integer"},
+        "maxItems": 10,
+        "default": "None"
+      },
+      "notify_customer": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to notify customer of retry attempts",
+        "default": true
+      },
+      "update_payment_method": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to allow payment method updates",
+        "default": true
+      },
+      "escalation_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Failed attempts before escalation (1-5)",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Payment not found: The failed_payment_id does not exist.",
+      "Invalid subscription: The subscription_id does not exist or is cancelled.",
+      "Invalid retry strategy: Use one of [immediate, exponential, fixed_interval, smart].",
+      "Invalid retry configuration: max_retry_attempts must be between 1 and 10.",
+      "Invalid retry intervals: Provide intervals in hours as positive integers.",
+      "Retry limit exceeded: The payment has already reached maximum retry attempts."
+    ],
+    "usage": "Provide failed_payment_id and subscription_id. Configure retry strategy, attempts, and intervals. The tool schedules and manages retry attempts automatically.",
+    "output_details": {
+      "retry_schedule_id": {
+        "type": "string",
+        "description": "Unique retry schedule identifier"
+      },
+      "retry_attempts_remaining": {
+        "type": "integer",
+        "description": "Number of retry attempts remaining"
+      },
+      "next_retry_time": {
+        "type": "string",
+        "description": "Next scheduled retry time",
+        "format": "date-time"
+      },
+      "retry_status": {
+        "type": "string",
+        "description": "Current retry status: scheduled, in_progress, completed, failed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Subscription Status Updater",
+    "tool_description": "Updates subscription status and lifecycle states with proper validation and history tracking for billing automation.",
+    "parameters": {
+      "subscription_id": {
+        "type": "string",
+        "required": true,
+        "description": "Subscription identifier to update"
+      },
+      "new_status": {
+        "type": "string",
+        "required": true,
+        "description": "New status: active, paused, cancelled, expired, past_due, trial, suspended"
+      },
+      "reason_code": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for status change"
+      },
+      "effective_date": {
+        "type": "string",
+        "required": false,
+        "description": "When the status change takes effect",
+        "format": "date-time",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Subscription not found: The subscription_id does not exist.",
+      "Invalid status transition: Cannot change from current status to new_status.",
+      "Invalid status: Use one of [active, paused, cancelled, expired, past_due, trial, suspended].",
+      "Missing reason code: Provide a valid reason for the status change.",
+      "Invalid effective date: Provide a valid ISO 8601 date-time or leave empty for immediate effect."
+    ],
+    "usage": "Provide subscription_id, new_status, and reason_code. Optionally set effective_date for future status changes. Updates subscription status with proper validation.",
+    "output_details": {
+      "update_success": {
+        "type": "boolean",
+        "description": "Whether the status update succeeded"
+      },
+      "previous_status": {
+        "type": "string",
+        "description": "Previous subscription status"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "Current subscription status after update"
+      },
+      "status_change_timestamp": {
+        "type": "string",
+        "description": "When the status was changed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Generator",
+    "tool_description": "Generates detailed invoices for subscription payments with itemized billing, tax calculations, and customizable formatting.",
+    "parameters": {
+      "subscription_id": {
+        "type": "string",
+        "required": true,
+        "description": "Subscription identifier for invoice generation"
+      },
+      "billing_period_start": {
+        "type": "string",
+        "required": true,
+        "description": "Billing period start date",
+        "format": "date-time"
+      },
+      "billing_period_end": {
+        "type": "string",
+        "required": true,
+        "description": "Billing period end date",
+        "format": "date-time"
+      },
+      "invoice_template": {
+        "type": "string",
+        "required": false,
+        "description": "Invoice template: standard, detailed, minimal",
+        "default": "standard"
+      },
+      "include_tax": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include tax calculations",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Subscription not found: The subscription_id does not exist or is inactive.",
+      "Invalid billing period: billing_period_start must be before billing_period_end.",
+      "Invalid date format: Provide dates in ISO 8601 format.",
+      "Invalid template: Use one of [standard, detailed, minimal].",
+      "No billable items: No charges found for the specified billing period."
+    ],
+    "usage": "Provide subscription_id, billing_period_start, and billing_period_end. Optionally customize template and tax inclusion. Generates a formatted invoice for the billing period.",
+    "output_details": {
+      "invoice_id": {
+        "type": "string",
+        "description": "Unique invoice identifier"
+      },
+      "invoice_number": {
+        "type": "string",
+        "description": "Human-readable invoice number"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Total invoice amount in cents"
+      },
+      "invoice_url": {
+        "type": "string",
+        "description": "URL to view the generated invoice"
+      },
+      "due_date": {
+        "type": "string",
+        "description": "Invoice due date",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Notification Sender",
+    "tool_description": "Sends automated notifications to customers for payment events including successes, failures, reminders, and status updates.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for notification recipient"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type: payment_success, payment_failed, payment_retry, payment_reminder, subscription_cancelled, invoice_available"
+      },
+      "subscription_id": {
+        "type": "string",
+        "required": false,
+        "description": "Related subscription identifier",
+        "default": "None"
+      },
+      "payment_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Payment amount in cents",
+        "default": "None"
+      },
+      "delivery_method": {
+        "type": "string",
+        "required": false,
+        "description": "Delivery method: email, sms, push, all",
+        "default": "email"
+      }
+    },
+    "error_messages": [
+      "Customer not found: The customer_id does not exist.",
+      "Invalid notification type: Use one of [payment_success, payment_failed, payment_retry, payment_reminder, subscription_cancelled, invoice_available].",
+      "Invalid delivery method: Use one of [email, sms, push, all].",
+      "Missing customer contact: Customer does not have valid contact information for selected delivery method.",
+      "Notification delivery failed: Unable to deliver notification via selected method."
+    ],
+    "usage": "Provide customer_id and notification_type. Include relevant subscription_id and payment_amount for payment-related notifications. Choose delivery method for notification routing.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique notification identifier"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Delivery status: sent, delivered, failed, pending"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "When the notification was sent",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dunning Process Manager",
+    "tool_description": "Manages dunning processes for overdue accounts with escalation workflows, grace periods, and automated collection actions.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for dunning process"
+      },
+      "subscription_id": {
+        "type": "string",
+        "required": true,
+        "description": "Overdue subscription identifier"
+      },
+      "overdue_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total overdue amount in cents"
+      },
+      "days_overdue": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days payment is overdue"
+      },
+      "dunning_level": {
+        "type": "string",
+        "required": false,
+        "description": "Dunning level: gentle, firm, final, legal",
+        "default": "gentle"
+      },
+      "auto_escalate": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to automatically escalate dunning levels",
+        "default": true
+      },
+      "suspension_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Days overdue before service suspension (7-90)",
+        "default": 15
+      }
+    },
+    "error_messages": [
+      "Customer not found: The customer_id does not exist.",
+      "Subscription not found: The subscription_id does not exist or is not overdue.",
+      "Invalid overdue amount: Amount must be greater than 0.",
+      "Invalid days overdue: Must be a positive integer.",
+      "Invalid dunning level: Use one of [gentle, firm, final, legal].",
+      "Invalid suspension threshold: Must be between 7 and 90 days."
+    ],
+    "usage": "Provide customer_id, subscription_id, overdue_amount, and days_overdue. Configure dunning level and escalation settings. Initiates appropriate collection workflow.",
+    "output_details": {
+      "dunning_process_id": {
+        "type": "string",
+        "description": "Unique dunning process identifier"
+      },
+      "current_dunning_level": {
+        "type": "string",
+        "description": "Current dunning level applied"
+      },
+      "next_escalation_date": {
+        "type": "string",
+        "description": "Next scheduled escalation date",
+        "format": "date-time"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended collection actions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Subscription Analytics Reporter",
+    "tool_description": "Generates comprehensive analytics and reports on subscription billing performance, customer metrics, and revenue insights.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Report type: revenue, churn, retention, payment_health, customer_lifetime_value, subscription_growth"
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": true,
+        "description": "Report period start date",
+        "format": "date-time"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": true,
+        "description": "Report period end date",
+        "format": "date-time"
+      },
+      "customer_segments": {
+        "type": "array",
+        "required": false,
+        "description": "Customer segments to include",
+        "items": {"type": "string"},
+        "maxItems": 10,
+        "default": "None"
+      },
+      "subscription_plans": {
+        "type": "array",
+        "required": false,
+        "description": "Specific plans to analyze",
+        "items": {"type": "string"},
+        "maxItems": 20,
+        "default": "None"
+      },
+      "granularity": {
+        "type": "string",
+        "required": false,
+        "description": "Data granularity: daily, weekly, monthly, quarterly",
+        "default": "monthly"
+      }
+    },
+    "error_messages": [
+      "Invalid report type: Use one of [revenue, churn, retention, payment_health, customer_lifetime_value, subscription_growth].",
+      "Invalid date range: date_range_start must be before date_range_end.",
+      "Date range too large: Maximum report period is 2 years.",
+      "Invalid granularity: Use one of [daily, weekly, monthly, quarterly].",
+      "Insufficient data: Not enough data available for the specified parameters.",
+      "Invalid segments: One or more customer segments do not exist."
+    ],
+    "usage": "Provide report_type, date_range_start, and date_range_end. Optionally filter by customer segments and subscription plans. Configure granularity for data aggregation.",
+    "output_details": {
+      "report_id": {
+        "type": "string",
+        "description": "Unique report identifier"
+      },
+      "total_revenue": {
+        "type": "number",
+        "description": "Total revenue for the period in cents"
+      },
+      "active_subscriptions": {
+        "type": "integer",
+        "description": "Number of active subscriptions"
+      },
+      "churn_rate": {
+        "type": "number",
+        "description": "Churn rate as percentage"
+      },
+      "key_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key performance indicators for the report type"
+      },
+      "report_url": {
+        "type": "string",
+        "description": "URL to access the full report"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {

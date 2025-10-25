@@ -1,0 +1,817 @@
+field_name: open_data_and_statistics
+subfield: Census and Demographic Analysis
+task: Population data retrieval and filtering by geographic boundaries and demographic characteristics
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task requires handling complex geographic boundary definitions, multiple demographic filter combinations, data validation across various census sources, and ensuring data consistency across different temporal and spatial scales. The task is **medium** difficulty due to moderate coordination between geographic and demographic filtering systems, potential data quality issues, and the need to handle diverse census data formats and APIs.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target **12 tools** to cover geographic boundary handling, demographic filtering, data retrieval, validation, and analysis workflows.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Geographic Boundary Validator** - Consumes: boundary definitions → Produces: validated geographic parameters
+  2. **Census Data Retriever** - Consumes: geographic parameters, time ranges → Produces: raw census datasets
+  3. **Demographic Filter Engine** - Consumes: demographic criteria, datasets → Produces: filtered population data
+  4. **Population Statistics Calculator** - Consumes: filtered datasets → Produces: statistical summaries
+  5. **Geographic Aggregator** - Consumes: multiple geographic datasets → Produces: aggregated regional data
+  6. **Data Quality Validator** - Consumes: census datasets → Produces: quality assessment reports
+  7. **Temporal Data Aligner** - Consumes: multi-year datasets → Produces: time-aligned data series
+  8. **Boundary Intersection Finder** - Consumes: overlapping boundaries → Produces: intersection mappings
+  9. **Demographics Classifier** - Consumes: raw demographic data → Produces: standardized demographic categories
+  10. **Population Density Calculator** - Consumes: population counts, area data → Produces: density metrics
+  11. **Census Metadata Extractor** - Consumes: census sources → Produces: metadata schemas
+  12. **Export Formatter** - Consumes: processed data, format specifications → Produces: formatted output files
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  - Basic population lookup: Census Data Retriever → Export Formatter
+  - Demographic filtering: Census Data Retriever → Demographic Filter Engine → Population Statistics Calculator
+
+  **Medium plans:**
+  - Regional analysis: Geographic Boundary Validator → Census Data Retriever → Geographic Aggregator → Population Statistics Calculator → Export Formatter
+  - Quality-assured filtering: Census Data Retriever → Data Quality Validator → Demographic Filter Engine → Population Statistics Calculator
+
+  **Complex plans:**
+  - Multi-year demographic trend analysis: Geographic Boundary Validator → Census Data Retriever → Temporal Data Aligner → Demographic Filter Engine → Demographics Classifier → Population Statistics Calculator → Export Formatter
+  - Cross-boundary population analysis: Geographic Boundary Validator → Boundary Intersection Finder → Census Data Retriever → Geographic Aggregator → Demographic Filter Engine → Population Density Calculator → Export Formatter
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Geographic Boundary Validator",
+    "tool_description": "Validates and standardizes geographic boundary specifications including coordinates, administrative divisions, and custom polygon definitions for census data retrieval.",
+    "parameters": {
+      "boundary_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of geographic boundary: state, county, city, zip_code, tract, block_group, custom_polygon"
+      },
+      "boundary_identifiers": {
+        "type": "array",
+        "required": true,
+        "description": "List of boundary identifiers (FIPS codes, names, or coordinates)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "coordinate_system": {
+        "type": "string",
+        "required": false,
+        "description": "Coordinate reference system for spatial data",
+        "default": "WGS84"
+      }
+    },
+    "error_messages": [
+      "Invalid boundary type: Use one of [state, county, city, zip_code, tract, block_group, custom_polygon]",
+      "Boundary identifiers not found: One or more provided identifiers do not exist in the census geography database",
+      "Invalid coordinate format: Custom polygon coordinates must be in decimal degrees format",
+      "Coordinate system not supported: Use a standard coordinate reference system like WGS84 or NAD83"
+    ],
+    "usage": "Specify the boundary_type and provide corresponding boundary_identifiers. For custom polygons, provide coordinate pairs. The tool validates and standardizes the geographic specifications.",
+    "output_details": {
+      "validated_boundaries": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validated boundary identifiers"
+      },
+      "boundary_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Standardized FIPS or geographic codes"
+      },
+      "total_area_sq_miles": {
+        "type": "number",
+        "description": "Total area covered by all boundaries in square miles"
+      },
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: valid, partial, or invalid"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Census Data Retriever",
+    "tool_description": "Retrieves population and demographic data from census APIs and databases for specified geographic boundaries and time periods.",
+    "parameters": {
+      "data_source": {
+        "type": "string",
+        "required": true,
+        "description": "Census data source: acs5, acs1, decennial, pep, or custom"
+      },
+      "geographic_codes": {
+        "type": "array",
+        "required": true,
+        "description": "List of validated geographic boundary codes",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "year": {
+        "type": "integer",
+        "required": true,
+        "description": "Data year (1990-2023)"
+      },
+      "data_tables": {
+        "type": "array",
+        "required": true,
+        "description": "Census table codes or categories to retrieve",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "include_margins_of_error": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include statistical margins of error in results",
+        "default": false
+      },
+      "api_key": {
+        "type": "string",
+        "required": false,
+        "description": "Census API key for enhanced rate limits",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid data source: Use one of [acs5, acs1, decennial, pep, custom]",
+      "Year not available: The specified year is not available for the selected data source",
+      "Geographic codes invalid: One or more geographic codes are not recognized",
+      "Table codes not found: Specified census table codes do not exist or are not available for the selected geography",
+      "API rate limit exceeded: Reduce the number of geographic areas or table codes per request",
+      "API authentication failed: Provide a valid Census API key"
+    ],
+    "usage": "Provide data_source, geographic_codes from boundary validation, year, and data_tables. Optionally include margins of error and API key for better performance.",
+    "output_details": {
+      "retrieved_records": {
+        "type": "integer",
+        "description": "Number of data records successfully retrieved"
+      },
+      "data_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of census data values"
+      },
+      "geographic_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Geographic area names corresponding to data"
+      },
+      "table_metadata": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Descriptions of retrieved census tables"
+      },
+      "data_vintage": {
+        "type": "string",
+        "description": "Official vintage/release date of the data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Demographic Filter Engine",
+    "tool_description": "Applies demographic filters to census data based on age, race, ethnicity, income, education, and other characteristics.",
+    "parameters": {
+      "age_range_min": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum age for filtering (0-120)",
+        "default": "None"
+      },
+      "age_range_max": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum age for filtering (0-120)",
+        "default": "None"
+      },
+      "race_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Race categories to include: white, black, asian, native_american, pacific_islander, other, two_or_more",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "ethnicity": {
+        "type": "string",
+        "required": false,
+        "description": "Ethnicity filter: hispanic, non_hispanic, or all",
+        "default": "all"
+      },
+      "income_range_min": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum household income in dollars",
+        "default": "None"
+      },
+      "income_range_max": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum household income in dollars",
+        "default": "None"
+      },
+      "education_levels": {
+        "type": "array",
+        "required": false,
+        "description": "Education levels: less_than_hs, high_school, some_college, bachelors, graduate",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "gender": {
+        "type": "string",
+        "required": false,
+        "description": "Gender filter: male, female, or all",
+        "default": "all"
+      },
+      "housing_type": {
+        "type": "string",
+        "required": false,
+        "description": "Housing type: owner_occupied, renter_occupied, or all",
+        "default": "all"
+      },
+      "employment_status": {
+        "type": "string",
+        "required": false,
+        "description": "Employment status: employed, unemployed, not_in_labor_force, or all",
+        "default": "all"
+      }
+    },
+    "error_messages": [
+      "Invalid age range: age_range_min must be less than age_range_max and both must be between 0-120",
+      "Invalid race categories: Use valid race category names from the predefined list",
+      "Invalid income range: income_range_min must be less than income_range_max and both must be non-negative",
+      "Invalid education levels: Use valid education level names from the predefined list",
+      "Invalid filter values: gender, ethnicity, housing_type, and employment_status must use predefined options",
+      "No matching data: The combination of filters results in no matching demographic records"
+    ],
+    "usage": "Specify demographic criteria using the available parameters. All filters are optional and will be applied as logical AND conditions. Use 'all' or leave parameters unset to avoid filtering on that dimension.",
+    "output_details": {
+      "filtered_population": {
+        "type": "integer",
+        "description": "Total population count after applying filters"
+      },
+      "filter_summary": {
+        "type": "string",
+        "description": "Summary of applied demographic filters"
+      },
+      "geographic_breakdown": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Population counts by geographic area after filtering"
+      },
+      "percentage_of_total": {
+        "type": "number",
+        "description": "Filtered population as percentage of total population"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Population Statistics Calculator",
+    "tool_description": "Calculates descriptive statistics, distributions, and summary metrics for filtered population datasets.",
+    "parameters": {
+      "population_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of population counts by geographic area",
+        "items": {"type": "integer"},
+        "minItems": 1
+      },
+      "calculate_percentiles": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to calculate percentile distributions",
+        "default": true
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "Confidence level for interval estimates (0.90-0.99)",
+        "default": 0.95
+      }
+    },
+    "error_messages": [
+      "Empty population data: Provide at least one population count value",
+      "Invalid confidence level: Must be between 0.90 and 0.99",
+      "Non-numeric data: All population values must be non-negative integers"
+    ],
+    "usage": "Provide an array of population_data values. Optionally specify whether to calculate percentiles and set the confidence level for statistical intervals.",
+    "output_details": {
+      "total_population": {
+        "type": "integer",
+        "description": "Sum of all population counts"
+      },
+      "mean_population": {
+        "type": "number",
+        "description": "Average population per geographic area"
+      },
+      "median_population": {
+        "type": "number",
+        "description": "Median population per geographic area"
+      },
+      "standard_deviation": {
+        "type": "number",
+        "description": "Population standard deviation"
+      },
+      "min_population": {
+        "type": "integer",
+        "description": "Minimum population in any area"
+      },
+      "max_population": {
+        "type": "integer",
+        "description": "Maximum population in any area"
+      },
+      "percentile_25": {
+        "type": "number",
+        "description": "25th percentile of population distribution"
+      },
+      "percentile_75": {
+        "type": "number",
+        "description": "75th percentile of population distribution"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Geographic Aggregator",
+    "tool_description": "Aggregates population data across multiple geographic boundaries to create regional summaries and hierarchical rollups.",
+    "parameters": {
+      "source_geographic_codes": {
+        "type": "array",
+        "required": true,
+        "description": "Geographic codes of source areas to aggregate",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 1000
+      },
+      "target_geographic_level": {
+        "type": "string",
+        "required": true,
+        "description": "Target aggregation level: state, county, msa, region, custom"
+      },
+      "aggregation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Aggregation method: sum, weighted_average, median",
+        "default": "sum"
+      },
+      "population_weights": {
+        "type": "array",
+        "required": false,
+        "description": "Population weights for weighted aggregation",
+        "items": {"type": "number"},
+        "default": "None"
+      },
+      "include_source_detail": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include detailed breakdown of source areas in output",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Insufficient source areas: Provide at least 2 geographic codes for aggregation",
+      "Invalid target level: Use one of [state, county, msa, region, custom]",
+      "Mismatched weights: population_weights array must match source_geographic_codes length when provided",
+      "Invalid aggregation method: Use one of [sum, weighted_average, median]",
+      "Geographic mismatch: Source areas cannot be aggregated to the specified target level"
+    ],
+    "usage": "Provide source_geographic_codes and target_geographic_level. Optionally specify aggregation_method and population_weights for weighted calculations.",
+    "output_details": {
+      "aggregated_areas": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Names of aggregated geographic areas"
+      },
+      "aggregated_population": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Population counts for each aggregated area"
+      },
+      "source_area_count": {
+        "type": "integer",
+        "description": "Number of source areas included in aggregation"
+      },
+      "aggregation_summary": {
+        "type": "string",
+        "description": "Summary of the aggregation process and methods used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Quality Validator",
+    "tool_description": "Validates census data quality by checking for missing values, statistical anomalies, and consistency across related demographic variables.",
+    "parameters": {
+      "data_records": {
+        "type": "array",
+        "required": true,
+        "description": "Array of census data values to validate",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "expected_range_min": {
+        "type": "number",
+        "required": false,
+        "description": "Expected minimum value for range validation",
+        "default": "None"
+      },
+      "expected_range_max": {
+        "type": "number",
+        "required": false,
+        "description": "Expected maximum value for range validation",
+        "default": "None"
+      },
+      "outlier_detection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable statistical outlier detection",
+        "default": true
+      },
+      "completeness_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum acceptable data completeness rate (0.0-1.0)",
+        "default": 0.95
+      }
+    },
+    "error_messages": [
+      "No data provided: data_records array cannot be empty",
+      "Invalid range parameters: expected_range_min must be less than expected_range_max",
+      "Invalid completeness threshold: Must be between 0.0 and 1.0",
+      "Data format error: All data_records must be numeric values"
+    ],
+    "usage": "Provide data_records array for validation. Optionally set expected value ranges and completeness thresholds. The tool identifies quality issues and provides recommendations.",
+    "output_details": {
+      "quality_score": {
+        "type": "number",
+        "description": "Overall data quality score from 0.0 to 1.0"
+      },
+      "missing_values": {
+        "type": "integer",
+        "description": "Count of missing or null values"
+      },
+      "outliers_detected": {
+        "type": "integer",
+        "description": "Number of statistical outliers identified"
+      },
+      "completeness_rate": {
+        "type": "number",
+        "description": "Percentage of complete data records"
+      },
+      "quality_issues": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of identified data quality problems"
+      },
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Whether data meets quality thresholds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Temporal Data Aligner",
+    "tool_description": "Aligns and synchronizes population data from multiple years, handling changes in geographic boundaries and survey methodologies.",
+    "parameters": {
+      "data_years": {
+        "type": "array",
+        "required": true,
+        "description": "Years of census data to align",
+        "items": {"type": "integer"},
+        "minItems": 2,
+        "maxItems": 20
+      },
+      "alignment_method": {
+        "type": "string",
+        "required": false,
+        "description": "Temporal alignment method: interpolation, boundary_adjustment, direct_comparison",
+        "default": "boundary_adjustment"
+      },
+      "base_year": {
+        "type": "integer",
+        "required": false,
+        "description": "Reference year for boundary definitions",
+        "default": "None"
+      },
+      "handle_boundary_changes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Automatically handle geographic boundary changes between years",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Insufficient years: Provide at least 2 years for temporal alignment",
+      "Invalid alignment method: Use one of [interpolation, boundary_adjustment, direct_comparison]",
+      "Base year not found: Specified base_year is not in the data_years array",
+      "Temporal gaps too large: Years span too wide a range for reliable alignment",
+      "Boundary data unavailable: Cannot perform boundary adjustment for specified years"
+    ],
+    "usage": "Provide data_years array with at least 2 years. Choose appropriate alignment_method based on analysis needs. Optionally specify base_year for consistent boundary definitions.",
+    "output_details": {
+      "aligned_years": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Years successfully aligned"
+      },
+      "alignment_summary": {
+        "type": "string",
+        "description": "Description of alignment process and adjustments made"
+      },
+      "boundary_adjustments": {
+        "type": "integer",
+        "description": "Number of geographic areas requiring boundary adjustments"
+      },
+      "temporal_consistency_score": {
+        "type": "number",
+        "description": "Data consistency score across years (0.0-1.0)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Boundary Intersection Finder",
+    "tool_description": "Identifies geographic intersections and overlaps between different boundary types and calculates population apportionment.",
+    "parameters": {
+      "primary_boundaries": {
+        "type": "array",
+        "required": true,
+        "description": "Primary boundary codes or identifiers",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "secondary_boundaries": {
+        "type": "array",
+        "required": true,
+        "description": "Secondary boundary codes for intersection analysis",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "intersection_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for calculating intersections: area_weighted, population_weighted, block_based",
+        "default": "area_weighted"
+      }
+    },
+    "error_messages": [
+      "Empty boundary arrays: Both primary_boundaries and secondary_boundaries must contain at least one element",
+      "Invalid intersection method: Use one of [area_weighted, population_weighted, block_based]",
+      "Boundary type mismatch: Cannot calculate intersections between incompatible boundary types",
+      "Geometric processing error: Unable to calculate spatial intersections for provided boundaries"
+    ],
+    "usage": "Provide arrays of primary_boundaries and secondary_boundaries to find intersections. Choose appropriate intersection_method based on analysis requirements.",
+    "output_details": {
+      "intersection_pairs": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Pairs of intersecting boundaries"
+      },
+      "intersection_areas": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Area of each intersection in square miles"
+      },
+      "population_apportionment": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Apportioned population for each intersection"
+      },
+      "total_intersections": {
+        "type": "integer",
+        "description": "Total number of boundary intersections found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Demographics Classifier",
+    "tool_description": "Standardizes and classifies demographic data into consistent categories across different census sources and survey years.",
+    "parameters": {
+      "raw_demographic_data": {
+        "type": "array",
+        "required": true,
+        "description": "Raw demographic values to classify",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10000
+      },
+      "classification_schema": {
+        "type": "string",
+        "required": true,
+        "description": "Target classification schema: standard_census, simplified, custom"
+      },
+      "target_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Specific categories to map data into",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "include_confidence_scores": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include classification confidence scores in output",
+        "default": false
+      },
+      "handle_missing_categories": {
+        "type": "string",
+        "required": false,
+        "description": "How to handle unmappable categories: ignore, other, error",
+        "default": "other"
+      }
+    },
+    "error_messages": [
+      "Empty demographic data: raw_demographic_data array cannot be empty",
+      "Invalid classification schema: Use one of [standard_census, simplified, custom]",
+      "Custom schema missing targets: target_categories required when using custom classification schema",
+      "Invalid missing category handling: Use one of [ignore, other, error]",
+      "Classification mapping failed: Unable to map some demographic categories to target schema"
+    ],
+    "usage": "Provide raw_demographic_data and specify classification_schema. For custom schemas, include target_categories. Configure how to handle unmappable categories.",
+    "output_details": {
+      "classified_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Demographic data mapped to target categories"
+      },
+      "category_counts": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Count of records in each target category"
+      },
+      "unmapped_items": {
+        "type": "integer",
+        "description": "Number of items that could not be classified"
+      },
+      "classification_summary": {
+        "type": "string",
+        "description": "Summary of the classification process and results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Population Density Calculator",
+    "tool_description": "Calculates population density metrics including persons per square mile, housing unit density, and comparative density rankings.",
+    "parameters": {
+      "population_counts": {
+        "type": "array",
+        "required": true,
+        "description": "Population counts for each geographic area",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 5000
+      },
+      "area_square_miles": {
+        "type": "array",
+        "required": true,
+        "description": "Area in square miles for each geographic area",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 5000
+      },
+      "housing_units": {
+        "type": "array",
+        "required": false,
+        "description": "Housing unit counts for housing density calculation",
+        "items": {"type": "integer"},
+        "default": "None"
+      },
+      "calculate_rankings": {
+        "type": "boolean",
+        "required": false,
+        "description": "Calculate density rankings across all areas",
+        "default": true
+      },
+      "density_categories": {
+        "type": "boolean",
+        "required": false,
+        "description": "Classify areas into density categories (urban, suburban, rural)",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: population_counts and area_square_miles must have the same length",
+      "Invalid area values: All area values must be greater than zero",
+      "Invalid population values: All population counts must be non-negative integers",
+      "Housing units mismatch: housing_units array must match length of population_counts when provided",
+      "Zero area detected: Cannot calculate density for areas with zero square miles"
+    ],
+    "usage": "Provide population_counts and corresponding area_square_miles arrays. Optionally include housing_units for housing density calculations and enable rankings and categorization.",
+    "output_details": {
+      "population_density": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Population density per square mile for each area"
+      },
+      "housing_density": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Housing units per square mile for each area"
+      },
+      "density_rankings": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Density ranking (1=highest) for each area"
+      },
+      "density_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Density category classification for each area"
+      },
+      "average_density": {
+        "type": "number",
+        "description": "Average population density across all areas"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Census Metadata Extractor",
+    "tool_description": "Extracts and parses metadata from census data sources including table definitions, variable descriptions, and survey methodologies.",
+    "parameters": {
+      "data_source": {
+        "type": "string",
+        "required": true,
+        "description": "Census data source: acs5, acs1, decennial, pep"
+      },
+      "table_codes": {
+        "type": "array",
+        "required": true,
+        "description": "Census table codes to extract metadata for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      }
+    },
+    "error_messages": [
+      "Invalid data source: Use one of [acs5, acs1, decennial, pep]",
+      "Table codes not found: One or more table codes do not exist in the specified data source",
+      "Metadata unavailable: Metadata is not available for some of the specified tables",
+      "API access error: Unable to retrieve metadata from census API"
+    ],
+    "usage": "Specify the data_source and provide table_codes array to extract comprehensive metadata for census tables and variables.",
+    "output_details": {
+      "table_titles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Full titles of census tables"
+      },
+      "variable_definitions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Definitions of variables within tables"
+      },
+      "survey_years": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Years covered by each table"
+      },
+      "geographic_coverage": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Geographic levels available for each table"
+      },
+      "methodology_notes": {
+        "type": "string",
+        "description": "Survey methodology and data collection notes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Export Formatter",
+    "tool_description": "Formats processed census and demographic data into various output formats including CSV, JSON, and statistical software formats.",
+    "parameters": {

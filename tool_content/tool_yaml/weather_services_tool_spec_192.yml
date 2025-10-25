@@ -1,0 +1,590 @@
+field_name: weather_services
+subfield: Weather Data Collection and Monitoring
+task: Retrieve current weather conditions for specific locations
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is relatively easy. It involves straightforward data retrieval from weather APIs, basic location handling, and simple data formatting. The main complexities are handling different location formats, managing API rate limits, and parsing various weather data types, but these are well-established patterns with minimal ambiguity.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the easy difficulty rating, I'll target 8 tools within the 5-10 range. This allows for proper separation of concerns: location handling, data retrieval, filtering, formatting, caching, and validation without over-engineering.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Location Resolver** - Consumes: location strings → Produces: standardized coordinates/location data
+  2. **Weather API Client** - Consumes: coordinates, API parameters → Produces: raw weather data
+  3. **Weather Data Parser** - Consumes: raw API responses → Produces: structured weather objects
+  4. **Condition Filter** - Consumes: weather data, filter criteria → Produces: filtered weather subsets
+  5. **Multi Location Fetcher** - Consumes: multiple locations, fetch parameters → Produces: batch weather results
+  6. **Weather Cache Manager** - Consumes: location, cache settings → Produces: cached/fresh weather data
+  7. **Weather Data Validator** - Consumes: weather data → Produces: validation results and cleaned data
+  8. **Weather Report Formatter** - Consumes: weather data, format preferences → Produces: formatted reports
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Single location lookup: Location Resolver → Weather API Client → Weather Data Parser
+  - Cached weather retrieval: Location Resolver → Weather Cache Manager → Weather Report Formatter
+
+  **Medium Plans:**
+  - Filtered multi-location weather: Multi Location Fetcher → Weather Data Parser → Condition Filter → Weather Report Formatter
+  - Validated weather reporting: Location Resolver → Weather API Client → Weather Data Parser → Weather Data Validator → Weather Report Formatter
+
+  **Complex Plans:**
+  - Comprehensive weather service: Multi Location Fetcher → Weather Data Parser → Weather Data Validator → Condition Filter → Weather Cache Manager → Weather Report Formatter
+  - Real-time monitoring setup: Location Resolver → Weather API Client → Weather Data Parser → Weather Data Validator → Condition Filter → Weather Cache Manager
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Location Resolver",
+    "tool_description": "Resolves various location inputs (city names, addresses, coordinates) into standardized geographic coordinates and location metadata for weather API calls.",
+    "parameters": {
+      "location_input": {
+        "type": "string",
+        "required": true,
+        "description": "Location as city name, address, or coordinates (lat,lng)"
+      },
+      "country_code": {
+        "type": "string",
+        "required": false,
+        "description": "ISO 3166-1 alpha-2 country code to disambiguate locations",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Location not found: The provided location could not be resolved. Verify spelling or try a more specific location name.",
+      "Invalid coordinates format: Coordinates must be in 'latitude,longitude' format with valid decimal degrees.",
+      "Invalid country code: Use ISO 3166-1 alpha-2 format (e.g., 'US', 'GB', 'FR').",
+      "Ambiguous location: Multiple locations found. Provide country_code or more specific location details."
+    ],
+    "usage": "Provide location_input as city name, address, or coordinates. Optionally specify country_code for disambiguation. Returns standardized coordinates and location metadata.",
+    "output_details": {
+      "latitude": {
+        "type": "number",
+        "description": "Decimal degrees latitude"
+      },
+      "longitude": {
+        "type": "number",
+        "description": "Decimal degrees longitude"
+      },
+      "display_name": {
+        "type": "string",
+        "description": "Formatted location name"
+      },
+      "country": {
+        "type": "string",
+        "description": "Country name"
+      },
+      "region": {
+        "type": "string",
+        "description": "State/province/region name"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weather API Client",
+    "tool_description": "Fetches current weather data from weather service APIs using coordinates and specified parameters.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Latitude in decimal degrees (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Longitude in decimal degrees (-180 to 180)"
+      },
+      "api_provider": {
+        "type": "string",
+        "required": false,
+        "description": "Weather API provider (openweather, weatherapi, noaa)",
+        "default": "openweather"
+      },
+      "units": {
+        "type": "string",
+        "required": false,
+        "description": "Temperature units (metric, imperial, kelvin)",
+        "default": "metric"
+      },
+      "include_forecast": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include hourly forecast data",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be -90 to 90, longitude must be -180 to 180.",
+      "API provider unavailable: The specified provider is not supported or temporarily unavailable.",
+      "Rate limit exceeded: Too many requests. Wait before making additional API calls.",
+      "Invalid units: Use 'metric', 'imperial', or 'kelvin'.",
+      "API authentication failed: Check API key configuration."
+    ],
+    "usage": "Provide latitude and longitude coordinates. Optionally specify api_provider, units, and include_forecast. Returns raw weather data from the chosen provider.",
+    "output_details": {
+      "raw_data": {
+        "type": "string",
+        "description": "JSON string containing raw API response"
+      },
+      "api_provider": {
+        "type": "string",
+        "description": "Provider used for the request"
+      },
+      "request_timestamp": {
+        "type": "string",
+        "description": "UTC timestamp of the API request"
+      },
+      "status_code": {
+        "type": "integer",
+        "description": "HTTP status code of the API response"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weather Data Parser",
+    "tool_description": "Parses raw weather API responses into standardized structured weather data with consistent field names and formats.",
+    "parameters": {
+      "raw_data": {
+        "type": "string",
+        "required": true,
+        "description": "Raw JSON response from weather API"
+      },
+      "api_provider": {
+        "type": "string",
+        "required": true,
+        "description": "Source API provider (openweather, weatherapi, noaa)"
+      },
+      "extract_fields": {
+        "type": "array",
+        "required": false,
+        "description": "Specific fields to extract (temperature, humidity, pressure, wind, visibility)",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid JSON format: The raw_data is not valid JSON. Check API response integrity.",
+      "Unsupported API provider: Provider must be one of 'openweather', 'weatherapi', 'noaa'.",
+      "Missing required fields: API response lacks essential weather data fields.",
+      "Invalid field names: extract_fields contains unsupported field names. Use temperature, humidity, pressure, wind, visibility."
+    ],
+    "usage": "Provide raw_data JSON string and api_provider name. Optionally specify extract_fields to limit output. Returns structured weather data with standardized field names.",
+    "output_details": {
+      "temperature": {
+        "type": "number",
+        "description": "Temperature in specified units"
+      },
+      "humidity": {
+        "type": "number",
+        "description": "Relative humidity percentage"
+      },
+      "pressure": {
+        "type": "number",
+        "description": "Atmospheric pressure in hPa"
+      },
+      "wind_speed": {
+        "type": "number",
+        "description": "Wind speed in specified units"
+      },
+      "wind_direction": {
+        "type": "number",
+        "description": "Wind direction in degrees"
+      },
+      "visibility": {
+        "type": "number",
+        "description": "Visibility in kilometers"
+      },
+      "condition": {
+        "type": "string",
+        "description": "Weather condition description"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Data observation timestamp"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Condition Filter",
+    "tool_description": "Filters weather data based on specified conditions and thresholds, useful for alerts or specific weather monitoring.",
+    "parameters": {
+      "weather_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing structured weather data"
+      },
+      "temperature_min": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum temperature threshold",
+        "default": "None"
+      },
+      "temperature_max": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum temperature threshold",
+        "default": "None"
+      },
+      "humidity_max": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum humidity percentage threshold",
+        "default": "None"
+      },
+      "wind_speed_max": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum wind speed threshold",
+        "default": "None"
+      },
+      "conditions_include": {
+        "type": "array",
+        "required": false,
+        "description": "Weather conditions to include (rain, snow, clear, cloudy)",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "conditions_exclude": {
+        "type": "array",
+        "required": false,
+        "description": "Weather conditions to exclude",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid weather data format: weather_data must be valid JSON with required weather fields.",
+      "Invalid threshold values: Temperature thresholds must be numeric, humidity 0-100, wind speed >= 0.",
+      "Conflicting conditions: Cannot include and exclude the same weather condition.",
+      "Unknown condition types: Use recognized weather conditions (rain, snow, clear, cloudy, fog, storm)."
+    ],
+    "usage": "Provide weather_data JSON and set threshold parameters to filter conditions. Use temperature_min/max, humidity_max, wind_speed_max, and conditions_include/exclude arrays to define criteria.",
+    "output_details": {
+      "matches_criteria": {
+        "type": "boolean",
+        "description": "Whether weather data meets all filter criteria"
+      },
+      "filtered_data": {
+        "type": "string",
+        "description": "JSON string of weather data that meets criteria"
+      },
+      "failed_criteria": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of criteria that were not met"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi Location Fetcher",
+    "tool_description": "Fetches current weather conditions for multiple locations simultaneously with batch processing and error handling.",
+    "parameters": {
+      "locations": {
+        "type": "array",
+        "required": true,
+        "description": "Array of location strings (city names, coordinates, addresses)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "api_provider": {
+        "type": "string",
+        "required": false,
+        "description": "Weather API provider for all locations",
+        "default": "openweather"
+      },
+      "units": {
+        "type": "string",
+        "required": false,
+        "description": "Temperature units for all locations",
+        "default": "metric"
+      },
+      "max_concurrent": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum concurrent API requests (1-10)",
+        "default": 5
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Request timeout in seconds (5-60)",
+        "default": 30
+      },
+      "retry_failed": {
+        "type": "boolean",
+        "required": false,
+        "description": "Retry failed location requests once",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Too many locations: Maximum 50 locations allowed per batch request.",
+      "Empty locations array: Provide at least one location to fetch weather data.",
+      "Invalid concurrent limit: max_concurrent must be between 1 and 10.",
+      "Invalid timeout: timeout_seconds must be between 5 and 60.",
+      "Rate limit exceeded: Reduce request frequency or max_concurrent setting.",
+      "API quota exceeded: Daily or hourly API limits reached for the provider."
+    ],
+    "usage": "Provide locations array with location strings. Configure api_provider, units, max_concurrent, timeout_seconds, and retry_failed as needed. Returns weather data for all successfully processed locations.",
+    "output_details": {
+      "successful_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Locations that returned weather data successfully"
+      },
+      "failed_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Locations that failed to return weather data"
+      },
+      "weather_results": {
+        "type": "string",
+        "description": "JSON string containing array of weather data objects"
+      },
+      "total_processed": {
+        "type": "integer",
+        "description": "Total number of locations processed"
+      },
+      "success_rate": {
+        "type": "number",
+        "description": "Percentage of successful location requests"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weather Cache Manager",
+    "tool_description": "Manages caching of weather data to reduce API calls and improve response times, with configurable cache duration and refresh policies.",
+    "parameters": {
+      "location_key": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the location (coordinates or location name)"
+      },
+      "cache_duration_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Cache validity duration in minutes (5-1440)",
+        "default": 60
+      },
+      "force_refresh": {
+        "type": "boolean",
+        "required": false,
+        "description": "Force cache refresh regardless of expiry",
+        "default": false
+      },
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Cache operation: 'get', 'set', 'delete', 'clear_all'"
+      },
+      "weather_data": {
+        "type": "string",
+        "required": false,
+        "description": "Weather data JSON for 'set' operation",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid cache duration: Duration must be between 5 and 1440 minutes (24 hours).",
+      "Invalid operation: Use 'get', 'set', 'delete', or 'clear_all'.",
+      "Missing weather data: 'set' operation requires weather_data parameter.",
+      "Invalid weather data format: weather_data must be valid JSON for caching.",
+      "Cache storage full: Unable to store new cache entries. Consider clearing old entries."
+    ],
+    "usage": "Specify location_key and operation. For 'get' operations, optionally set cache_duration_minutes and force_refresh. For 'set' operations, provide weather_data. Returns cached data or operation status.",
+    "output_details": {
+      "cache_hit": {
+        "type": "boolean",
+        "description": "Whether data was found in cache"
+      },
+      "cached_data": {
+        "type": "string",
+        "description": "JSON string of cached weather data (if available)"
+      },
+      "cache_age_minutes": {
+        "type": "number",
+        "description": "Age of cached data in minutes"
+      },
+      "operation_success": {
+        "type": "boolean",
+        "description": "Whether cache operation completed successfully"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weather Data Validator",
+    "tool_description": "Validates weather data for completeness, accuracy, and reasonable value ranges, identifying and flagging anomalous readings.",
+    "parameters": {
+      "weather_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing weather data to validate"
+      },
+      "strict_validation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply strict validation rules for all fields",
+        "default": false
+      },
+      "required_fields": {
+        "type": "array",
+        "required": false,
+        "description": "Fields that must be present (temperature, humidity, pressure, wind)",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid JSON format: weather_data is not valid JSON.",
+      "Missing required fields: One or more fields from required_fields are missing.",
+      "Temperature out of range: Temperature values exceed reasonable limits (-100°C to 60°C).",
+      "Humidity out of range: Humidity must be between 0 and 100 percent.",
+      "Pressure out of range: Atmospheric pressure must be between 800 and 1200 hPa.",
+      "Wind speed out of range: Wind speed cannot be negative or exceed 500 km/h."
+    ],
+    "usage": "Provide weather_data JSON string for validation. Set strict_validation for comprehensive checks and specify required_fields array if certain fields are mandatory. Returns validation results and cleaned data.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Overall validation result"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation errors found"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of warnings for unusual but acceptable values"
+      },
+      "cleaned_data": {
+        "type": "string",
+        "description": "JSON string of validated and cleaned weather data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weather Report Formatter",
+    "tool_description": "Formats weather data into various output formats including human-readable summaries, structured reports, and API-friendly JSON with customizable styling and content selection.",
+    "parameters": {
+      "weather_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing structured weather data"
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output format: 'summary', 'detailed', 'json', 'csv', 'xml'",
+        "default": "summary"
+      },
+      "temperature_unit": {
+        "type": "string",
+        "required": false,
+        "description": "Temperature display unit: 'celsius', 'fahrenheit', 'kelvin'",
+        "default": "celsius"
+      },
+      "include_timestamp": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include observation timestamp in output",
+        "default": true
+      },
+      "include_location": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include location information in output",
+        "default": true
+      },
+      "precision_digits": {
+        "type": "integer",
+        "required": false,
+        "description": "Decimal places for numeric values (0-3)",
+        "default": 1
+      },
+      "custom_fields": {
+        "type": "array",
+        "required": false,
+        "description": "Specific fields to include in output",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Output language: 'en', 'es', 'fr', 'de', 'it'",
+        "default": "en"
+      },
+      "style": {
+        "type": "string",
+        "required": false,
+        "description": "Output style: 'plain', 'formal', 'casual', 'technical'",
+        "default": "plain"
+      },
+      "include_alerts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include weather alerts and warnings",
+        "default": false
+      },
+      "time_format": {
+        "type": "string",
+        "required": false,
+        "description": "Timestamp format: '12hour', '24hour', 'iso8601'",
+        "default": "24hour"
+      }
+    },
+    "error_messages": [
+      "Invalid weather data: weather_data must be valid JSON with weather fields.",
+      "Unsupported output format: Use 'summary', 'detailed', 'json', 'csv', or 'xml'.",
+      "Invalid temperature unit: Use 'celsius', 'fahrenheit', or 'kelvin'.",
+      "Invalid precision: precision_digits must be between 0 and 3.",
+      "Unsupported language: Use 'en', 'es', 'fr', 'de', or 'it'.",
+      "Invalid style: Use 'plain', 'formal', 'casual', or 'technical'.",
+      "Invalid time format: Use '12hour', '24hour', or 'iso8601'.",
+      "Unknown custom fields: One or more fields in custom_fields are not available in weather data."
+    ],
+    "usage": "Provide weather_data JSON and configure output preferences using format, units, styling, and content parameters. The tool returns formatted weather information according to specifications.",
+    "output_details": {
+      "formatted_report": {
+        "type": "string",
+        "description": "Weather data formatted according to specified parameters"
+      },
+      "report_type": {
+        "type": "string",
+        "description": "Type of report generated"
+      },
+      "character_count": {
+        "type": "integer",
+        "description": "Length of formatted report in characters"
+      }
+    }
+  }
+  ```

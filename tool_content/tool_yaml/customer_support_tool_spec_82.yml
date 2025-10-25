@@ -1,0 +1,807 @@
+field_name: customer_support
+subfield: ticket_management
+task: Track and update ticket status throughout resolution lifecycle
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium complexity due to multiple interconnected workflows (status transitions, assignment management, escalation handling), coordination between different stakeholders (agents, supervisors, customers), and the need for audit trails and compliance tracking. The task requires managing dependencies between ticket updates, notifications, and reporting systems.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the comprehensive ticket lifecycle management workflow, including status tracking, assignment, escalation, communication, and reporting functions.
+
+  **STEP 3 — Tool names and dependencies**
+
+  1. **Ticket Status Updater** - Consumes: ticket ID, new status, agent ID | Produces: updated ticket record
+  2. **Assignment Manager** - Consumes: ticket ID, agent ID, priority | Produces: assignment confirmation
+  3. **Escalation Handler** - Consumes: ticket ID, escalation reason, target level | Produces: escalation record
+  4. **SLA Monitor** - Consumes: ticket ID, current status | Produces: SLA compliance status
+  5. **Status Validator** - Consumes: current status, proposed status | Produces: validation result
+  6. **Notification Dispatcher** - Consumes: ticket ID, recipients, message type | Produces: notification confirmations
+  7. **Ticket History Tracker** - Consumes: ticket ID, action, timestamp | Produces: audit trail entry
+  8. **Priority Adjuster** - Consumes: ticket ID, new priority, justification | Produces: priority change record
+  9. **Bulk Status Processor** - Consumes: ticket IDs array, target status | Produces: batch update results
+  10. **Resolution Validator** - Consumes: ticket ID, resolution details | Produces: resolution approval status
+  11. **Status Report Generator** - Consumes: date range, filters | Produces: status analytics report
+  12. **Dependency Tracker** - Consumes: ticket ID, dependent ticket IDs | Produces: dependency map
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Status Update**: Status Validator → Ticket Status Updater → Notification Dispatcher (updates single ticket status and notifies stakeholders)
+  2. **Priority Adjustment**: Priority Adjuster → Ticket History Tracker → Notification Dispatcher (changes ticket priority with audit trail)
+
+  **Medium Plans:**
+  1. **Assignment with SLA Check**: Assignment Manager → SLA Monitor → Ticket Status Updater → Notification Dispatcher (assigns ticket while checking SLA compliance)
+  2. **Escalation Workflow**: Escalation Handler → Priority Adjuster → Assignment Manager → Notification Dispatcher → Ticket History Tracker (full escalation process with priority bump and reassignment)
+
+  **Complex Plans:**
+  1. **Bulk Resolution Process**: Status Validator → Resolution Validator → Bulk Status Processor → Ticket History Tracker → Status Report Generator → Notification Dispatcher (processes multiple ticket resolutions with validation and reporting)
+  2. **Dependency Resolution Chain**: Dependency Tracker → Status Validator → Ticket Status Updater → SLA Monitor → Assignment Manager → Notification Dispatcher (manages complex ticket dependencies and cascading status updates)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Ticket Status Updater",
+    "tool_description": "Updates the status of a support ticket and validates the status transition according to business rules.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the support ticket"
+      },
+      "new_status": {
+        "type": "string",
+        "required": true,
+        "description": "Target status: open, in_progress, pending_customer, pending_internal, resolved, closed, cancelled"
+      },
+      "agent_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the agent making the status change"
+      },
+      "update_reason": {
+        "type": "string",
+        "required": false,
+        "description": "Optional reason for the status change",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid ticket ID: The provided ticket_id does not exist in the system. Verify the ticket number and try again.",
+      "Invalid status transition: The requested status change is not allowed from the current status. Check valid transitions in the workflow rules.",
+      "Agent authorization failed: The specified agent_id does not have permission to update this ticket. Ensure the agent has proper access rights.",
+      "Ticket is locked: The ticket is currently being modified by another user. Wait a moment and retry the operation."
+    ],
+    "usage": "Provide ticket_id, new_status, and agent_id to update ticket status. Optionally include update_reason for audit purposes. The tool validates the transition before applying changes.",
+    "output_details": {
+      "success": {
+        "type": "boolean",
+        "description": "Indicates if the status update was successful"
+      },
+      "previous_status": {
+        "type": "string",
+        "description": "The status before the update"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "The new status after the update"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the status change occurred"
+      },
+      "updated_by": {
+        "type": "string",
+        "description": "Agent ID who made the change"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Assignment Manager",
+    "tool_description": "Assigns or reassigns support tickets to agents or teams based on workload, skills, and availability.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the support ticket"
+      },
+      "assignee_id": {
+        "type": "string",
+        "required": false,
+        "description": "ID of the agent or team to assign the ticket to",
+        "default": null
+      },
+      "assignment_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of assignment: agent, team, or auto"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Priority level: low, medium, high, critical",
+        "default": "medium"
+      },
+      "skill_requirements": {
+        "type": "array",
+        "required": false,
+        "description": "Required skills for handling this ticket",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "reassignment_reason": {
+        "type": "string",
+        "required": false,
+        "description": "Reason for reassignment if applicable",
+        "default": null
+      },
+      "notify_assignee": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to send notification to the new assignee",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid ticket ID: The specified ticket does not exist. Verify the ticket number.",
+      "Assignee not found: The specified assignee_id is not valid. Check agent or team IDs.",
+      "Assignee unavailable: The target assignee is currently unavailable or over capacity. Try another assignee or use auto assignment.",
+      "Skill mismatch: The assignee does not have the required skills for this ticket type. Review skill requirements or choose a different assignee.",
+      "Invalid assignment type: Use one of [agent, team, auto] for assignment_type.",
+      "Invalid priority level: Use one of [low, medium, high, critical] for priority_level."
+    ],
+    "usage": "Provide ticket_id and assignment_type. For manual assignment, include assignee_id. For auto assignment, optionally specify skill_requirements and priority_level. The tool will find the best available assignee based on current workload and skills.",
+    "output_details": {
+      "assignment_success": {
+        "type": "boolean",
+        "description": "Whether the assignment was successful"
+      },
+      "assigned_to": {
+        "type": "string",
+        "description": "ID of the agent or team assigned"
+      },
+      "assigned_name": {
+        "type": "string",
+        "description": "Name of the assigned agent or team"
+      },
+      "assignment_timestamp": {
+        "type": "string",
+        "description": "When the assignment occurred"
+      },
+      "workload_after_assignment": {
+        "type": "integer",
+        "description": "Number of tickets assigned to the assignee after this assignment"
+      },
+      "notification_sent": {
+        "type": "boolean",
+        "description": "Whether notification was sent to the assignee"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Escalation Handler",
+    "tool_description": "Manages ticket escalations to higher support tiers or management levels based on predefined escalation rules.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the support ticket to escalate"
+      },
+      "escalation_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for escalation: sla_breach, customer_request, technical_complexity, management_request"
+      },
+      "escalation_level": {
+        "type": "string",
+        "required": true,
+        "description": "Target escalation level: tier2, tier3, management, executive"
+      },
+      "escalated_by": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the agent initiating the escalation"
+      },
+      "urgency_override": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to override normal escalation timelines",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid ticket ID: The specified ticket does not exist in the system.",
+      "Invalid escalation reason: Use one of [sla_breach, customer_request, technical_complexity, management_request].",
+      "Invalid escalation level: Use one of [tier2, tier3, management, executive].",
+      "Escalation not permitted: The current ticket state or agent permissions do not allow escalation.",
+      "Already escalated: This ticket has already been escalated to the requested level or higher.",
+      "Agent authorization failed: The escalating agent does not have permission to perform this escalation."
+    ],
+    "usage": "Provide ticket_id, escalation_reason, escalation_level, and escalated_by to escalate a ticket. Set urgency_override to true for immediate escalation bypassing normal timelines.",
+    "output_details": {
+      "escalation_id": {
+        "type": "string",
+        "description": "Unique identifier for this escalation event"
+      },
+      "escalation_successful": {
+        "type": "boolean",
+        "description": "Whether the escalation was processed successfully"
+      },
+      "escalated_to_team": {
+        "type": "string",
+        "description": "Name of the team the ticket was escalated to"
+      },
+      "escalation_timestamp": {
+        "type": "string",
+        "description": "When the escalation occurred"
+      },
+      "new_priority": {
+        "type": "string",
+        "description": "Updated priority level after escalation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SLA Monitor",
+    "tool_description": "Monitors Service Level Agreement compliance for tickets and provides alerts for potential or actual SLA breaches.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the support ticket"
+      },
+      "check_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of SLA check: response_time, resolution_time, escalation_time, overall_compliance"
+      }
+    },
+    "error_messages": [
+      "Invalid ticket ID: The specified ticket does not exist in the system.",
+      "Invalid check type: Use one of [response_time, resolution_time, escalation_time, overall_compliance].",
+      "No SLA defined: No SLA parameters are defined for this ticket type or customer tier.",
+      "Insufficient data: Not enough ticket data available to perform SLA calculation."
+    ],
+    "usage": "Provide ticket_id and check_type to monitor SLA compliance. The tool calculates time remaining or breach status based on ticket priority and customer SLA tier.",
+    "output_details": {
+      "sla_status": {
+        "type": "string",
+        "description": "Current SLA status: compliant, warning, breached"
+      },
+      "time_remaining_hours": {
+        "type": "number",
+        "description": "Hours remaining until SLA breach (negative if already breached)"
+      },
+      "sla_target_hours": {
+        "type": "number",
+        "description": "Total SLA target time in hours"
+      },
+      "elapsed_hours": {
+        "type": "number",
+        "description": "Hours elapsed since ticket creation or last status change"
+      },
+      "breach_risk": {
+        "type": "string",
+        "description": "Risk level of SLA breach: low, medium, high, imminent"
+      },
+      "next_milestone": {
+        "type": "string",
+        "description": "Next SLA milestone or deadline"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Status Validator",
+    "tool_description": "Validates whether a proposed ticket status transition is allowed according to workflow rules and business logic.",
+    "parameters": {
+      "current_status": {
+        "type": "string",
+        "required": true,
+        "description": "Current status of the ticket"
+      },
+      "proposed_status": {
+        "type": "string",
+        "required": true,
+        "description": "Proposed new status for the ticket"
+      },
+      "ticket_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of ticket: incident, request, problem, change",
+        "default": "incident"
+      },
+      "bypass_validation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to bypass standard validation rules (requires admin privileges)",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid current status: The current_status is not a recognized ticket status.",
+      "Invalid proposed status: The proposed_status is not a recognized ticket status.",
+      "Invalid ticket type: Use one of [incident, request, problem, change] for ticket_type.",
+      "Transition not allowed: The status transition from current_status to proposed_status is not permitted by workflow rules."
+    ],
+    "usage": "Provide current_status and proposed_status to validate if the transition is allowed. Optionally specify ticket_type for type-specific validation rules.",
+    "output_details": {
+      "transition_valid": {
+        "type": "boolean",
+        "description": "Whether the proposed status transition is valid"
+      },
+      "validation_message": {
+        "type": "string",
+        "description": "Explanation of the validation result"
+      },
+      "allowed_transitions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of valid status transitions from the current status"
+      },
+      "requires_approval": {
+        "type": "boolean",
+        "description": "Whether this transition requires supervisor approval"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Dispatcher",
+    "tool_description": "Sends notifications to relevant stakeholders when ticket status changes occur, with support for multiple notification channels.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the support ticket"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification: status_update, assignment, escalation, sla_warning, resolution"
+      },
+      "recipients": {
+        "type": "array",
+        "required": true,
+        "description": "List of recipient IDs to notify",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "channels": {
+        "type": "array",
+        "required": false,
+        "description": "Notification channels to use",
+        "items": {"type": "string"},
+        "default": ["email"]
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Notification priority: low, normal, high, urgent",
+        "default": "normal"
+      },
+      "custom_message": {
+        "type": "string",
+        "required": false,
+        "description": "Custom message to include in notification",
+        "default": null
+      },
+      "suppress_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to suppress duplicate notifications within a time window",
+        "default": true
+      },
+      "schedule_delay_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Minutes to delay notification sending (0 for immediate)",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid ticket ID: The specified ticket does not exist in the system.",
+      "Invalid notification type: Use one of [status_update, assignment, escalation, sla_warning, resolution].",
+      "No valid recipients: At least one valid recipient ID must be provided.",
+      "Invalid channels: Supported channels are [email, sms, slack, teams, webhook].",
+      "Invalid priority: Use one of [low, normal, high, urgent] for priority.",
+      "Schedule delay too long: Maximum schedule delay is 1440 minutes (24 hours).",
+      "Notification service unavailable: The notification service is temporarily unavailable. Notifications will be queued for retry."
+    ],
+    "usage": "Provide ticket_id, notification_type, and recipients array. Optionally specify channels, priority, custom_message, and scheduling options. The tool will send notifications through the specified channels.",
+    "output_details": {
+      "notifications_sent": {
+        "type": "integer",
+        "description": "Number of notifications successfully sent"
+      },
+      "failed_notifications": {
+        "type": "integer",
+        "description": "Number of notifications that failed to send"
+      },
+      "notification_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of notification tracking IDs"
+      },
+      "delivery_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Delivery status for each recipient"
+      },
+      "scheduled_timestamp": {
+        "type": "string",
+        "description": "When notifications are scheduled to be sent"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ticket History Tracker",
+    "tool_description": "Records and maintains a complete audit trail of all actions performed on a support ticket throughout its lifecycle.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the support ticket"
+      },
+      "action_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of action: created, status_changed, assigned, escalated, commented, resolved, closed"
+      },
+      "performed_by": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the user who performed the action"
+      },
+      "action_details": {
+        "type": "string",
+        "required": false,
+        "description": "Detailed description of the action performed",
+        "default": null
+      },
+      "previous_value": {
+        "type": "string",
+        "required": false,
+        "description": "Previous value before the change (if applicable)",
+        "default": null
+      },
+      "new_value": {
+        "type": "string",
+        "required": false,
+        "description": "New value after the change (if applicable)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid ticket ID: The specified ticket does not exist in the system.",
+      "Invalid action type: Use one of [created, status_changed, assigned, escalated, commented, resolved, closed].",
+      "Invalid user ID: The performed_by user ID is not valid or does not exist.",
+      "History entry failed: Unable to record history entry due to database constraints."
+    ],
+    "usage": "Provide ticket_id, action_type, and performed_by to record an action. Include action_details, previous_value, and new_value for comprehensive audit trails.",
+    "output_details": {
+      "history_id": {
+        "type": "string",
+        "description": "Unique identifier for this history entry"
+      },
+      "recorded_successfully": {
+        "type": "boolean",
+        "description": "Whether the history entry was recorded successfully"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the history entry was recorded"
+      },
+      "entry_sequence": {
+        "type": "integer",
+        "description": "Sequence number of this entry in the ticket's history"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Priority Adjuster",
+    "tool_description": "Adjusts the priority level of support tickets based on business impact, customer tier, or escalation requirements.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the support ticket"
+      },
+      "new_priority": {
+        "type": "string",
+        "required": true,
+        "description": "New priority level: low, medium, high, critical"
+      },
+      "adjustment_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for priority change: business_impact, customer_escalation, technical_complexity, management_directive"
+      },
+      "adjusted_by": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the agent making the priority adjustment"
+      },
+      "justification": {
+        "type": "string",
+        "required": false,
+        "description": "Additional justification for the priority change",
+        "default": null
+      },
+      "notify_team": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to notify the assigned team of the priority change",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid ticket ID: The specified ticket does not exist in the system.",
+      "Invalid priority level: Use one of [low, medium, high, critical] for new_priority.",
+      "Invalid adjustment reason: Use one of [business_impact, customer_escalation, technical_complexity, management_directive].",
+      "Agent authorization failed: The specified agent does not have permission to adjust ticket priority.",
+      "Priority unchanged: The ticket already has the specified priority level."
+    ],
+    "usage": "Provide ticket_id, new_priority, adjustment_reason, and adjusted_by to change ticket priority. Optionally include justification and set notify_team preferences.",
+    "output_details": {
+      "priority_updated": {
+        "type": "boolean",
+        "description": "Whether the priority was successfully updated"
+      },
+      "previous_priority": {
+        "type": "string",
+        "description": "Priority level before the adjustment"
+      },
+      "current_priority": {
+        "type": "string",
+        "description": "Priority level after the adjustment"
+      },
+      "adjustment_timestamp": {
+        "type": "string",
+        "description": "When the priority adjustment occurred"
+      },
+      "sla_impact": {
+        "type": "string",
+        "description": "How the priority change affects SLA timelines"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bulk Status Processor",
+    "tool_description": "Processes status changes for multiple tickets simultaneously, with validation and rollback capabilities for batch operations.",
+    "parameters": {
+      "ticket_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of ticket IDs to process",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 100
+      },
+      "target_status": {
+        "type": "string",
+        "required": true,
+        "description": "Target status to apply to all tickets"
+      },
+      "processed_by": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the agent performing the bulk operation"
+      },
+      "batch_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for bulk processing: maintenance, system_update, mass_resolution, data_cleanup"
+      },
+      "validate_transitions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate each status transition before processing",
+        "default": true
+      },
+      "continue_on_error": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to continue processing if some tickets fail",
+        "default": true
+      },
+      "send_notifications": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to send notifications for each status change",
+        "default": false
+      },
+      "batch_comment": {
+        "type": "string",
+        "required": false,
+        "description": "Comment to add to all processed tickets",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Too many tickets: Maximum 100 tickets can be processed in a single batch operation.",
+      "Too few tickets: At least 2 tickets are required for bulk processing.",
+      "Invalid target status: The specified target status is not valid.",
+      "Invalid batch reason: Use one of [maintenance, system_update, mass_resolution, data_cleanup].",
+      "Agent authorization failed: The specified agent does not have permission for bulk operations.",
+      "Validation errors: Some tickets have invalid status transitions. Review the results array for details."
+    ],
+    "usage": "Provide ticket_ids array, target_status, processed_by, and batch_reason. Configure validation and error handling options as needed. The tool processes tickets in batches and provides detailed results.",
+    "output_details": {
+      "total_tickets": {
+        "type": "integer",
+        "description": "Total number of tickets in the batch"
+      },
+      "successful_updates": {
+        "type": "integer",
+        "description": "Number of tickets successfully updated"
+      },
+      "failed_updates": {
+        "type": "integer",
+        "description": "Number of tickets that failed to update"
+      },
+      "processing_time_seconds": {
+        "type": "number",
+        "description": "Time taken to process the batch in seconds"
+      },
+      "batch_id": {
+        "type": "string",
+        "description": "Unique identifier for this batch operation"
+      },
+      "failed_ticket_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of ticket IDs that failed to process"
+      },
+      "success_rate": {
+        "type": "number",
+        "description": "Percentage of tickets successfully processed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Resolution Validator",
+    "tool_description": "Validates ticket resolution details, ensures completeness of resolution information, and confirms resolution meets quality standards.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the support ticket"
+      },
+      "resolution_summary": {
+        "type": "string",
+        "required": true,
+        "description": "Summary of how the ticket was resolved"
+      },
+      "resolution_category": {
+        "type": "string",
+        "required": true,
+        "description": "Category of resolution: fixed, workaround, duplicate, no_action_required, customer_resolved"
+      },
+      "validated_by": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the agent validating the resolution"
+      },
+      "customer_confirmation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether customer has confirmed the resolution",
+        "default": false
+      },
+      "testing_completed": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether resolution has been tested",
+        "default": false
+      },
+      "knowledge_base_updated": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether knowledge base has been updated with this resolution",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid ticket ID: The specified ticket does not exist in the system.",
+      "Invalid resolution category: Use one of [fixed, workaround, duplicate, no_action_required, customer_resolved].",
+      "Resolution summary required: A detailed resolution summary must be provided.",
+      "Ticket not ready for resolution: The ticket status does not allow resolution validation.",
+      "Validation incomplete: Resolution does not meet minimum quality standards for the ticket type.",
+      "Agent authorization failed: The validating agent does not have permission to validate resolutions."
+    ],
+    "usage": "Provide ticket_id, resolution_summary, resolution_category, and validated_by. Set boolean flags for customer_confirmation, testing_completed, and knowledge_base_updated as appropriate.",
+    "output_details": {
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Whether the resolution passes validation"
+      },
+      "validation_score": {
+        "type": "integer",
+        "description": "Quality score of the resolution (0-100)"
+      },
+      "missing_elements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of missing resolution elements"
+      },
+      "approval_status": {
+        "type": "string",
+        "description": "Resolution approval status: approved, pending, rejected"
+      },
+      "validation_timestamp": {
+        "type": "string",
+        "description": "When the validation was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Status Report Generator",
+    "tool_description": "Generates comprehensive reports on ticket status distribution, trends, and performance metrics for specified time periods and filters.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Report start date",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "Report end date",
+        "format": "date-time"
+      },
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: status_summary, trend_analysis, sla_performance, agent_performance, escalation_report"
+      },
+      "filters": {
+        "type": "array",
+        "required": false,
+        "description": "Report filters: priority levels, ticket types, teams, etc.",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "group_by": {
+        "type": "string",
+        "required": false,
+        "description": "Grouping dimension: agent, team, priority, status, customer",
+        "default": "status"
+      },
+      "include_trends": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include trend analysis in the report",
+        "default

@@ -1,0 +1,898 @@
+field_name: financial_trading
+subfield: trade_execution_and_order_management
+task: Position reconciliation and portfolio balance verification
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves complex coordination between multiple data sources, real-time position tracking, discrepancy resolution, and risk management across different trading venues and timeframes. The high stakes of financial accuracy and regulatory compliance, combined with the need to handle various data formats and timing issues, makes this a **hard** difficulty task.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** within the 15-20 range to handle the comprehensive workflow of position reconciliation and portfolio balance verification.
+
+  **STEP 3 — Tool dependencies and affordances**
+
+  Core data retrieval tools provide position snapshots, trade records, and account balances. Processing tools handle data normalization, discrepancy detection, and reconciliation logic. Verification tools cross-check positions against multiple sources and validate portfolio integrity. Reporting tools generate audit trails and compliance documentation. Risk management tools monitor exposure limits and flag anomalies.
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  - Basic position check: fetch_broker_positions → normalize_position_data → generate_position_report
+  - Daily balance verification: fetch_account_balances → calculate_portfolio_value → validate_cash_positions
+
+  **Medium plans:**
+  - Standard reconciliation: fetch_trade_records → fetch_broker_positions → detect_position_discrepancies → reconcile_trade_breaks → generate_reconciliation_report
+  - Portfolio validation: fetch_account_balances → calculate_portfolio_value → cross_validate_positions → check_margin_requirements → flag_risk_violations
+
+  **Complex plans:**
+  - Full end-of-day reconciliation: fetch_trade_records → fetch_broker_positions → fetch_clearing_data → normalize_position_data → detect_position_discrepancies → reconcile_trade_breaks → cross_validate_positions → validate_corporate_actions → calculate_portfolio_value → check_margin_requirements → generate_audit_trail → generate_reconciliation_report
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "fetch_broker_positions",
+    "tool_description": "Retrieves current position data from specified broker or trading platform, including quantities, market values, and timestamps.",
+    "parameters": {
+      "broker_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier for the broker or trading platform"
+      },
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier for position retrieval"
+      },
+      "as_of_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date for position snapshot in ISO 8601 format",
+        "format": "date-time",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid broker_id: Provided broker identifier is not recognized or accessible",
+      "Account not found: The specified account_id does not exist or is not accessible",
+      "Connection failed: Unable to connect to broker system - check network connectivity and credentials",
+      "Invalid date format: as_of_date must be in ISO 8601 format"
+    ],
+    "usage": "Provide broker_id and account_id to fetch current positions. Optionally specify as_of_date for historical positions. Returns position data with symbols, quantities, and market values.",
+    "output_details": {
+      "positions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of position records in format 'symbol:quantity:market_value'"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp when positions were retrieved"
+      },
+      "total_positions": {
+        "type": "integer",
+        "description": "Number of positions returned"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "fetch_trade_records",
+    "tool_description": "Retrieves trade execution records from order management system or trade database for specified time period and filters.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for trade record retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for trade record retrieval",
+        "format": "date-time"
+      },
+      "account_filter": {
+        "type": "array",
+        "required": false,
+        "description": "List of account IDs to filter trades",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "symbol_filter": {
+        "type": "array",
+        "required": false,
+        "description": "List of symbols to filter trades",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "trade_status": {
+        "type": "string",
+        "required": false,
+        "description": "Filter by trade status: executed, pending, cancelled, rejected",
+        "default": "executed"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date and both must be valid ISO 8601 dates",
+      "Database connection failed: Unable to connect to trade database - check connection settings",
+      "Invalid trade_status: Must be one of [executed, pending, cancelled, rejected]",
+      "Query timeout: Request took too long - try reducing date range or adding more filters"
+    ],
+    "usage": "Specify start_date and end_date for trade retrieval period. Optionally filter by accounts, symbols, or trade status. Returns detailed trade execution records.",
+    "output_details": {
+      "trades": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of trade records in format 'trade_id:symbol:quantity:price:timestamp:status'"
+      },
+      "total_trades": {
+        "type": "integer",
+        "description": "Total number of trades retrieved"
+      },
+      "query_timestamp": {
+        "type": "string",
+        "description": "When the query was executed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "fetch_clearing_data",
+    "tool_description": "Retrieves settlement and clearing data from clearinghouses for trade confirmation and position validation.",
+    "parameters": {
+      "clearing_firm": {
+        "type": "string",
+        "required": true,
+        "description": "Clearing firm or clearinghouse identifier"
+      },
+      "settlement_date": {
+        "type": "string",
+        "required": true,
+        "description": "Settlement date for clearing data",
+        "format": "date-time"
+      },
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier for clearing data"
+      },
+      "data_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of clearing data: settlements, confirmations, fails, corporate_actions",
+        "default": "settlements"
+      }
+    },
+    "error_messages": [
+      "Invalid clearing_firm: Clearing firm identifier not recognized",
+      "Settlement date invalid: Must be a valid business day in ISO 8601 format",
+      "Account not authorized: Account does not have access to clearing data",
+      "Invalid data_type: Must be one of [settlements, confirmations, fails, corporate_actions]",
+      "Clearing system unavailable: Unable to connect to clearing system during maintenance window"
+    ],
+    "usage": "Provide clearing_firm, settlement_date, and account_id to retrieve clearing data. Specify data_type for specific clearing information. Used for independent trade confirmation.",
+    "output_details": {
+      "clearing_records": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of clearing records with settlement details"
+      },
+      "settlement_status": {
+        "type": "string",
+        "description": "Overall settlement status for the date"
+      },
+      "record_count": {
+        "type": "integer",
+        "description": "Number of clearing records returned"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "normalize_position_data",
+    "tool_description": "Standardizes position data from multiple sources into consistent format for comparison and reconciliation.",
+    "parameters": {
+      "position_data": {
+        "type": "array",
+        "required": true,
+        "description": "Raw position data from various sources",
+        "items": {
+          "type": "string"
+        }
+      },
+      "source_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format of input data: broker_standard, clearing_format, csv_custom, json_api"
+      },
+      "target_currency": {
+        "type": "string",
+        "required": false,
+        "description": "Target currency for position values (USD, EUR, GBP, etc.)",
+        "default": "USD"
+      },
+      "price_source": {
+        "type": "string",
+        "required": false,
+        "description": "Price source for market value calculation: live, close, custom",
+        "default": "close"
+      }
+    },
+    "error_messages": [
+      "Invalid source_format: Must be one of [broker_standard, clearing_format, csv_custom, json_api]",
+      "Empty position_data: Input array cannot be empty",
+      "Currency conversion failed: Unable to convert to target_currency - check currency code",
+      "Price lookup failed: Unable to retrieve prices from specified price_source",
+      "Data parsing error: Input data does not match specified source_format"
+    ],
+    "usage": "Provide position_data array and specify source_format. Optionally set target_currency and price_source. Returns standardized position records for reconciliation.",
+    "output_details": {
+      "normalized_positions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Standardized position records in format 'symbol:quantity:market_value:currency'"
+      },
+      "conversion_rate": {
+        "type": "number",
+        "description": "Currency conversion rate applied"
+      },
+      "normalization_timestamp": {
+        "type": "string",
+        "description": "When normalization was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "detect_position_discrepancies",
+    "tool_description": "Compares position data from different sources to identify discrepancies in quantities, values, or holdings.",
+    "parameters": {
+      "source1_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Position data from first source",
+        "items": {
+          "type": "string"
+        }
+      },
+      "source2_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Position data from second source",
+        "items": {
+          "type": "string"
+        }
+      },
+      "source1_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name or identifier for first data source"
+      },
+      "source2_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name or identifier for second data source"
+      },
+      "tolerance_pct": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage tolerance for value differences (0-10)",
+        "default": 0.01
+      },
+      "quantity_tolerance": {
+        "type": "integer",
+        "required": false,
+        "description": "Absolute tolerance for quantity differences",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid tolerance values: tolerance_pct must be 0-10, quantity_tolerance must be non-negative integer",
+      "Empty position arrays: Both source arrays must contain position data",
+      "Invalid position format: Position data must be in standardized format",
+      "Source names required: Both source1_name and source2_name must be provided"
+    ],
+    "usage": "Provide position arrays from two sources with source names. Set tolerance levels for acceptable differences. Returns detailed discrepancy analysis.",
+    "output_details": {
+      "discrepancies_found": {
+        "type": "boolean",
+        "description": "Whether any discrepancies were detected"
+      },
+      "quantity_breaks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Symbols with quantity mismatches"
+      },
+      "value_breaks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Symbols with value discrepancies"
+      },
+      "missing_positions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Positions present in one source but not the other"
+      },
+      "total_discrepancies": {
+        "type": "integer",
+        "description": "Total number of discrepancies found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "reconcile_trade_breaks",
+    "tool_description": "Analyzes and resolves trade-level discrepancies by matching trades across systems and identifying settlement issues.",
+    "parameters": {
+      "trade_records": {
+        "type": "array",
+        "required": true,
+        "description": "Trade execution records to reconcile",
+        "items": {
+          "type": "string"
+        }
+      },
+      "clearing_records": {
+        "type": "array",
+        "required": true,
+        "description": "Clearing/settlement records for matching",
+        "items": {
+          "type": "string"
+        }
+      },
+      "match_tolerance_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Time tolerance for trade matching in seconds",
+        "default": 300
+      },
+      "price_tolerance_bps": {
+        "type": "number",
+        "required": false,
+        "description": "Price tolerance in basis points for matching",
+        "default": 1.0
+      },
+      "auto_resolve": {
+        "type": "boolean",
+        "required": false,
+        "description": "Automatically resolve minor discrepancies within tolerance",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid tolerance values: match_tolerance_seconds must be positive, price_tolerance_bps must be 0-100",
+      "Empty record arrays: Both trade_records and clearing_records must contain data",
+      "Invalid record format: Records must be in proper trade/clearing format",
+      "Matching failed: Unable to process trade matching algorithm"
+    ],
+    "usage": "Provide trade_records and clearing_records for reconciliation. Set tolerance levels for matching criteria. Enable auto_resolve for minor discrepancies.",
+    "output_details": {
+      "matched_trades": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Successfully matched trade pairs"
+      },
+      "unmatched_trades": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Trades without matching clearing records"
+      },
+      "breaks_resolved": {
+        "type": "integer",
+        "description": "Number of discrepancies automatically resolved"
+      },
+      "breaks_remaining": {
+        "type": "integer",
+        "description": "Number of unresolved trade breaks"
+      },
+      "reconciliation_rate": {
+        "type": "number",
+        "description": "Percentage of trades successfully reconciled"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "fetch_account_balances",
+    "tool_description": "Retrieves cash balances, margin information, and account-level financial data from trading accounts.",
+    "parameters": {
+      "account_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of account identifiers to query",
+        "items": {
+          "type": "string"
+        }
+      },
+      "balance_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of balances to retrieve: cash, margin, buying_power, net_liquidation",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "as_of_time": {
+        "type": "string",
+        "required": false,
+        "description": "Timestamp for balance snapshot",
+        "format": "date-time",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid account_ids: One or more account identifiers not found",
+      "Invalid balance_types: Must be from [cash, margin, buying_power, net_liquidation]",
+      "Account access denied: Insufficient permissions for specified accounts",
+      "Invalid timestamp: as_of_time must be valid ISO 8601 format",
+      "System unavailable: Account system temporarily unavailable"
+    ],
+    "usage": "Provide account_ids array to retrieve balances. Optionally specify balance_types and as_of_time for historical data. Returns comprehensive account balance information.",
+    "output_details": {
+      "account_balances": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Account balance records in format 'account:balance_type:amount:currency'"
+      },
+      "query_timestamp": {
+        "type": "string",
+        "description": "When balance query was executed"
+      },
+      "accounts_processed": {
+        "type": "integer",
+        "description": "Number of accounts successfully processed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "calculate_portfolio_value",
+    "tool_description": "Computes total portfolio value, asset allocation, and performance metrics from position and price data.",
+    "parameters": {
+      "positions": {
+        "type": "array",
+        "required": true,
+        "description": "Position data with symbols and quantities",
+        "items": {
+          "type": "string"
+        }
+      },
+      "cash_balances": {
+        "type": "array",
+        "required": true,
+        "description": "Cash balance data by currency",
+        "items": {
+          "type": "string"
+        }
+      },
+      "pricing_source": {
+        "type": "string",
+        "required": false,
+        "description": "Source for security pricing: market, close, bid_ask, custom",
+        "default": "market"
+      },
+      "base_currency": {
+        "type": "string",
+        "required": false,
+        "description": "Base currency for portfolio valuation",
+        "default": "USD"
+      },
+      "include_accrued": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include accrued interest and dividends in valuation",
+        "default": true
+      },
+      "exclude_restricted": {
+        "type": "boolean",
+        "required": false,
+        "description": "Exclude restricted or illiquid positions from calculation",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Empty position data: positions array cannot be empty",
+      "Invalid pricing_source: Must be one of [market, close, bid_ask, custom]",
+      "Currency conversion failed: Unable to convert to base_currency",
+      "Pricing data unavailable: Cannot retrieve prices for one or more positions",
+      "Invalid balance format: cash_balances must be in proper format"
+    ],
+    "usage": "Provide positions and cash_balances arrays. Specify pricing_source and base_currency for valuation. Control inclusion of accrued items and restricted positions.",
+    "output_details": {
+      "total_portfolio_value": {
+        "type": "number",
+        "description": "Total portfolio value in base currency"
+      },
+      "equity_value": {
+        "type": "number",
+        "description": "Value of equity positions"
+      },
+      "cash_value": {
+        "type": "number",
+        "description": "Total cash value in base currency"
+      },
+      "unrealized_pnl": {
+        "type": "number",
+        "description": "Unrealized profit/loss for the portfolio"
+      },
+      "valuation_timestamp": {
+        "type": "string",
+        "description": "When portfolio was valued"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "cross_validate_positions",
+    "tool_description": "Performs multi-source validation of positions against custodian, prime broker, and internal records for accuracy verification.",
+    "parameters": {
+      "internal_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Internal system position records",
+        "items": {
+          "type": "string"
+        }
+      },
+      "custodian_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Custodian-reported position records",
+        "items": {
+          "type": "string"
+        }
+      },
+      "prime_broker_positions": {
+        "type": "array",
+        "required": false,
+        "description": "Prime broker position records",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "validation_rules": {
+        "type": "array",
+        "required": false,
+        "description": "Validation rule names to apply: quantity_match, value_tolerance, custody_segregation",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "critical_symbols": {
+        "type": "array",
+        "required": false,
+        "description": "Symbols requiring stricter validation",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "tolerance_override": {
+        "type": "number",
+        "required": false,
+        "description": "Override default tolerance for critical positions",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Insufficient position data: internal_positions and custodian_positions are required",
+      "Invalid validation_rules: Must be from [quantity_match, value_tolerance, custody_segregation]",
+      "Format mismatch: Position records must be in standardized format across all sources",
+      "Validation timeout: Cross-validation process exceeded time limit",
+      "Critical symbol validation failed: One or more critical_symbols failed validation"
+    ],
+    "usage": "Provide internal_positions and custodian_positions for validation. Optionally include prime_broker_positions and specify validation_rules. Set critical_symbols for enhanced checking.",
+    "output_details": {
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Overall validation status"
+      },
+      "mismatched_positions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Positions with validation failures"
+      },
+      "critical_failures": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Critical symbols that failed validation"
+      },
+      "validation_score": {
+        "type": "number",
+        "description": "Percentage of positions passing validation"
+      },
+      "sources_compared": {
+        "type": "integer",
+        "description": "Number of data sources used in validation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "validate_corporate_actions",
+    "tool_description": "Verifies that corporate actions like dividends, splits, and mergers are properly reflected in position records.",
+    "parameters": {
+      "positions_before": {
+        "type": "array",
+        "required": true,
+        "description": "Position records before corporate action date",
+        "items": {
+          "type": "string"
+        }
+      },
+      "positions_after": {
+        "type": "array",
+        "required": true,
+        "description": "Position records after corporate action date",
+        "items": {
+          "type": "string"
+        }
+      },
+      "corporate_actions": {
+        "type": "array",
+        "required": true,
+        "description": "Corporate action records to validate",
+        "items": {
+          "type": "string"
+        }
+      },
+      "action_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of corporate action",
+        "format": "date-time"
+      },
+      "validation_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of validation: dividend, split, merger, spinoff, rights",
+        "default": "dividend"
+      }
+    },
+    "error_messages": [
+      "Invalid action_date: Must be valid ISO 8601 date format",
+      "Invalid validation_type: Must be one of [dividend, split, merger, spinoff, rights]",
+      "Missing position data: Both positions_before and positions_after are required",
+      "Corporate action data invalid: corporate_actions array format is incorrect",
+      "Date inconsistency: Corporate action date does not align with position dates"
+    ],
+    "usage": "Provide positions_before and positions_after arrays along with corporate_actions data. Specify action_date and validation_type for appropriate checking.",
+    "output_details": {
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Whether corporate action validation passed"
+      },
+      "affected_symbols": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Symbols affected by corporate actions"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific validation errors found"
+      },
+      "expected_adjustments": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Expected position adjustments from corporate actions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "check_margin_requirements",
+    "tool_description": "Validates margin requirements and compliance against position values, account equity, and regulatory limits.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Account identifier for margin checking"
+      },
+      "positions": {
+        "type": "array",
+        "required": true,
+        "description": "Current position data for margin calculation",
+        "items": {
+          "type": "string"
+        }
+      },
+      "cash_balance": {
+        "type": "number",
+        "required": true,
+        "description": "Current cash balance for the account"
+      },
+      "margin_requirements": {
+        "type": "array",
+        "required": true,
+        "description": "Margin requirement rules and percentages",
+        "items": {
+          "type": "string"
+        }
+      },
+      "regulatory_regime": {
+        "type": "string",
+        "required": false,
+        "description": "Regulatory framework: reg_t, portfolio_margin, cross_margin",
+        "default": "reg_t"
+      },
+      "overnight_margin": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply overnight margin requirements instead of intraday",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid account_id: Account not found or accessible",
+      "Invalid regulatory_regime: Must be one of [reg_t, portfolio_margin, cross_margin]",
+      "Insufficient margin data: margin_requirements array cannot be empty",
+      "Cash balance invalid: cash_balance must be a valid number",
+      "Margin calculation error: Unable to compute margin requirements"
+    ],
+    "usage": "Provide account_id, positions, cash_balance, and margin_requirements. Specify regulatory_regime and overnight_margin settings for appropriate margin calculation.",
+    "output_details": {
+      "margin_compliant": {
+        "type": "boolean",
+        "description": "Whether account meets margin requirements"
+      },
+      "required_margin": {
+        "type": "number",
+        "description": "Total margin requirement amount"
+      },
+      "excess_liquidity": {
+        "type": "number",
+        "description": "Available excess liquidity above requirements"
+      },
+      "margin_violations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific margin requirement violations"
+      },
+      "maintenance_calls": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Positions requiring maintenance margin calls"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "flag_risk_violations",
+    "tool_description": "Identifies portfolio risk violations including concentration limits, leverage ratios, and exposure thresholds.",
+    "parameters": {
+      "portfolio_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Portfolio position data for risk analysis",
+        "items": {
+          "type": "string"
+        }
+      },
+      "risk_limits": {
+        "type": "array",
+        "required": true,
+        "description": "Risk limit definitions and thresholds",
+        "items": {
+          "type": "string"
+        }
+      },
+      "portfolio_value": {
+        "type": "number",
+        "required": true,
+        "description": "Total portfolio value for percentage calculations"
+      },
+      "risk_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Risk categories to check: concentration, leverage, sector, liquidity, var",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "alert_threshold": {
+        "type": "string",
+        "required": false,
+        "description": "Alert severity level: warning, critical, breach",
+        "default": "warning"
+      }
+    },
+    "error_messages": [
+      "Invalid portfolio data: portfolio_positions cannot be empty",
+      "Invalid risk_limits: Risk limits must be properly formatted",
+      "Invalid portfolio_value: Must be a positive number",
+      "Invalid risk_categories: Must be from [concentration, leverage, sector, liquidity, var]",
+      "Invalid alert_threshold: Must be one of [warning, critical, breach]"
+    ],
+    "usage": "Provide portfolio_positions, risk_limits, and portfolio_value for risk analysis. Optionally specify risk_categories and alert_threshold for targeted checking.",
+    "output_details": {
+      "violations_found": {
+        "type": "boolean",
+        "description": "Whether any risk violations were detected"
+      },
+      "risk_alerts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific risk violations and alerts"
+      },
+      "concentration_issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Position concentration limit violations"
+      },
+      "leverage_ratio": {
+        "type": "number",
+        "description": "Current portfolio leverage ratio"
+      },
+      "risk_score": {
+        "type": "number",
+        "description": "Overall portfolio risk score (0-

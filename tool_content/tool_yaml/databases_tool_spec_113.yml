@@ -1,0 +1,815 @@
+field_name: databases
+subfield: Backup and Disaster Recovery
+task: Monitor backup job status and generate alerts for failed or incomplete backups
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium complexity. It involves monitoring multiple backup jobs across potentially different systems, tracking their completion status, detecting failures, and generating appropriate alerts. The task requires coordination between monitoring systems and alerting mechanisms, with moderate risk since backup failures can lead to data loss if not addressed promptly.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover backup job monitoring, status tracking, failure detection, alert generation, and reporting functionalities.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Backup Job Scanner** - Consumes: database connections, job schedules → Produces: job inventory, metadata
+  2. **Job Status Checker** - Consumes: job identifiers, connection details → Produces: current status, progress info
+  3. **Backup Validation Tool** - Consumes: backup file paths, validation criteria → Produces: integrity status, size verification
+  4. **Failure Pattern Analyzer** - Consumes: job logs, error messages → Produces: failure categories, root cause suggestions
+  5. **Alert Rule Engine** - Consumes: status data, thresholds, rules → Produces: alert triggers, severity levels
+  6. **Notification Dispatcher** - Consumes: alert data, contact lists → Produces: sent notifications, delivery status
+  7. **Schedule Compliance Monitor** - Consumes: job schedules, execution times → Produces: compliance reports, delay metrics
+  8. **Storage Space Monitor** - Consumes: backup locations, space thresholds → Produces: space utilization, capacity alerts
+  9. **Recovery Time Estimator** - Consumes: backup metadata, system specs → Produces: RTO/RPO estimates, performance metrics
+  10. **Dashboard Generator** - Consumes: status data, metrics → Produces: visual reports, trend analysis
+  11. **Escalation Manager** - Consumes: unresolved alerts, escalation rules → Produces: escalated notifications, priority updates
+  12. **Audit Log Tracker** - Consumes: backup activities, compliance requirements → Produces: audit trails, compliance status
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Status Check**: Job Status Checker → Alert Rule Engine → Notification Dispatcher (monitors single job and sends alerts)
+  2. **Storage Monitoring**: Storage Space Monitor → Alert Rule Engine → Notification Dispatcher (tracks backup storage capacity)
+
+  **Medium Plans:**
+  1. **Complete Job Monitoring**: Backup Job Scanner → Job Status Checker → Backup Validation Tool → Alert Rule Engine → Notification Dispatcher (full job lifecycle monitoring)
+  2. **Compliance Tracking**: Schedule Compliance Monitor → Failure Pattern Analyzer → Dashboard Generator → Audit Log Tracker (ensures backup schedule adherence)
+
+  **Complex Plans:**
+  1. **Enterprise Monitoring Suite**: Backup Job Scanner → Job Status Checker → Backup Validation Tool → Failure Pattern Analyzer → Alert Rule Engine → Escalation Manager → Notification Dispatcher → Dashboard Generator (comprehensive monitoring with escalation)
+  2. **Performance & Recovery Planning**: Job Status Checker → Storage Space Monitor → Recovery Time Estimator → Schedule Compliance Monitor → Dashboard Generator → Audit Log Tracker (performance optimization and disaster recovery planning)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Backup Job Scanner",
+    "tool_description": "Scans database systems to discover and inventory all backup jobs, collecting metadata about job configurations, schedules, and target systems.",
+    "parameters": {
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Database system type (mysql, postgresql, oracle, sqlserver, mongodb)"
+      },
+      "connection_string": {
+        "type": "string",
+        "required": true,
+        "description": "Database connection string with authentication details"
+      },
+      "include_system_jobs": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include system-generated backup jobs"
+      }
+    },
+    "error_messages": [
+      "Connection failed: Verify database connection string format and network accessibility.",
+      "Authentication error: Check username/password or certificate validity in connection string.",
+      "Unsupported database type: Use one of [mysql, postgresql, oracle, sqlserver, mongodb].",
+      "Insufficient permissions: Database user must have backup job read permissions."
+    ],
+    "usage": "Provide database_type and connection_string to discover all backup jobs. Set include_system_jobs to false to exclude automatically generated jobs.",
+    "output_details": {
+      "job_count": {
+        "type": "integer",
+        "description": "Total number of backup jobs discovered"
+      },
+      "job_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of backup job names found"
+      },
+      "job_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Types of backup jobs (full, differential, incremental, log)"
+      },
+      "scan_timestamp": {
+        "type": "string",
+        "description": "When the scan was completed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Job Status Checker",
+    "tool_description": "Checks the current execution status of specific backup jobs, including progress, completion state, and basic error information.",
+    "parameters": {
+      "job_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the backup job to check"
+      },
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Database system type (mysql, postgresql, oracle, sqlserver, mongodb)"
+      },
+      "connection_string": {
+        "type": "string",
+        "required": true,
+        "description": "Database connection string with authentication details"
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Maximum time to wait for status response"
+      }
+    },
+    "error_messages": [
+      "Job not found: Verify the job_name exists in the specified database system.",
+      "Connection timeout: Check network connectivity and increase timeout_seconds if needed.",
+      "Status query failed: Database system may be unresponsive or job metadata corrupted.",
+      "Access denied: Insufficient permissions to query job status information."
+    ],
+    "usage": "Provide job_name, database_type, and connection_string to get current job status. Adjust timeout_seconds for slow-responding systems.",
+    "output_details": {
+      "status": {
+        "type": "string",
+        "description": "Current job status (running, completed, failed, waiting, unknown)"
+      },
+      "progress_percentage": {
+        "type": "integer",
+        "description": "Completion percentage for running jobs (0-100)"
+      },
+      "start_time": {
+        "type": "string",
+        "description": "When the job started execution",
+        "format": "date-time"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last status update",
+        "format": "date-time"
+      },
+      "error_message": {
+        "type": "string",
+        "description": "Error message if job failed, empty string otherwise"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Validation Tool",
+    "tool_description": "Validates backup file integrity by checking file existence, size constraints, checksums, and basic readability tests for backup artifacts.",
+    "parameters": {
+      "backup_path": {
+        "type": "string",
+        "required": true,
+        "description": "Full path to backup file or directory"
+      },
+      "expected_min_size_mb": {
+        "type": "number",
+        "required": true,
+        "description": "Minimum expected backup size in megabytes"
+      },
+      "expected_max_size_mb": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum expected backup size in megabytes"
+      },
+      "checksum_algorithm": {
+        "type": "string",
+        "required": false,
+        "default": "sha256",
+        "description": "Checksum algorithm to use (md5, sha1, sha256, sha512)"
+      },
+      "validate_content": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to perform deep content validation (slower)"
+      },
+      "expected_checksum": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Expected checksum value for comparison, if available"
+      }
+    },
+    "error_messages": [
+      "File not found: The backup_path does not exist or is inaccessible.",
+      "Size validation failed: Backup file size is outside the expected range [expected_min_size_mb, expected_max_size_mb].",
+      "Checksum mismatch: Calculated checksum does not match expected_checksum value.",
+      "Content validation failed: Backup file appears corrupted or unreadable during deep validation.",
+      "Invalid algorithm: Use one of [md5, sha1, sha256, sha512] for checksum_algorithm.",
+      "Access permissions error: Insufficient file system permissions to read backup file."
+    ],
+    "usage": "Provide backup_path and size constraints. Optionally enable validate_content for thorough checks or provide expected_checksum for verification.",
+    "output_details": {
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Whether all validation checks passed"
+      },
+      "file_size_mb": {
+        "type": "number",
+        "description": "Actual backup file size in megabytes"
+      },
+      "calculated_checksum": {
+        "type": "string",
+        "description": "Computed checksum of the backup file"
+      },
+      "validation_time": {
+        "type": "string",
+        "description": "When validation was performed",
+        "format": "date-time"
+      },
+      "failed_checks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation checks that failed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Failure Pattern Analyzer",
+    "tool_description": "Analyzes backup job failure logs and error messages to identify common failure patterns, categorize errors, and suggest potential root causes and remediation steps.",
+    "parameters": {
+      "error_messages": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100,
+        "description": "Array of error messages from failed backup jobs"
+      },
+      "job_names": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100,
+        "description": "Corresponding job names for each error message"
+      },
+      "failure_timestamps": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100,
+        "description": "Timestamps when each failure occurred",
+        "format": "date-time"
+      },
+      "analysis_depth": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Analysis depth level (basic, standard, comprehensive)"
+      },
+      "include_suggestions": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include remediation suggestions"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: error_messages, job_names, and failure_timestamps must have the same length.",
+      "Invalid timestamp format: All failure_timestamps must be valid ISO 8601 date-time strings.",
+      "Empty error messages: At least one error message must be non-empty for analysis.",
+      "Invalid analysis depth: Use one of [basic, standard, comprehensive] for analysis_depth.",
+      "Too many errors: Maximum 100 error messages can be analyzed in a single request."
+    ],
+    "usage": "Provide arrays of error_messages, job_names, and failure_timestamps of equal length. Set analysis_depth to comprehensive for detailed pattern analysis.",
+    "output_details": {
+      "primary_failure_category": {
+        "type": "string",
+        "description": "Most common category of failures (storage, network, permissions, timeout, corruption)"
+      },
+      "failure_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "All identified failure categories in order of frequency"
+      },
+      "pattern_confidence": {
+        "type": "number",
+        "description": "Confidence score for pattern identification (0.0-1.0)"
+      },
+      "suggested_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended remediation steps based on failure patterns"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Human-readable summary of the failure pattern analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Rule Engine",
+    "tool_description": "Evaluates backup job status and metrics against configurable rules to determine when alerts should be generated and at what severity level.",
+    "parameters": {
+      "job_status": {
+        "type": "string",
+        "required": true,
+        "description": "Current job status (running, completed, failed, waiting, unknown)"
+      },
+      "job_duration_minutes": {
+        "type": "integer",
+        "required": true,
+        "description": "How long the job has been running or took to complete"
+      },
+      "expected_duration_minutes": {
+        "type": "integer",
+        "required": true,
+        "description": "Expected duration for this job in minutes"
+      },
+      "backup_size_mb": {
+        "type": "number",
+        "required": true,
+        "description": "Size of backup produced or expected"
+      },
+      "storage_utilization_percent": {
+        "type": "number",
+        "required": true,
+        "description": "Current storage utilization percentage (0-100)"
+      },
+      "consecutive_failures": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of consecutive failures for this job"
+      },
+      "critical_failure_threshold": {
+        "type": "integer",
+        "required": false,
+        "default": 3,
+        "description": "Number of consecutive failures before critical alert"
+      },
+      "duration_warning_multiplier": {
+        "type": "number",
+        "required": false,
+        "default": 2.0,
+        "description": "Duration multiplier for warning alerts"
+      },
+      "storage_warning_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 85.0,
+        "description": "Storage utilization percentage for warning alerts"
+      },
+      "storage_critical_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 95.0,
+        "description": "Storage utilization percentage for critical alerts"
+      }
+    },
+    "error_messages": [
+      "Invalid job status: Use one of [running, completed, failed, waiting, unknown].",
+      "Invalid duration: job_duration_minutes and expected_duration_minutes must be positive integers.",
+      "Invalid size: backup_size_mb must be a positive number.",
+      "Invalid storage percentage: storage_utilization_percent must be between 0 and 100.",
+      "Invalid threshold values: All threshold parameters must be positive numbers within reasonable ranges.",
+      "Inconsistent thresholds: storage_critical_threshold must be greater than storage_warning_threshold."
+    ],
+    "usage": "Provide current job metrics and status. Adjust threshold parameters to customize alert sensitivity. The engine evaluates all conditions and returns appropriate alert level.",
+    "output_details": {
+      "alert_required": {
+        "type": "boolean",
+        "description": "Whether an alert should be generated"
+      },
+      "alert_severity": {
+        "type": "string",
+        "description": "Alert severity level (info, warning, critical, none)"
+      },
+      "triggered_rules": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of rule conditions that triggered the alert"
+      },
+      "alert_message": {
+        "type": "string",
+        "description": "Human-readable alert message describing the issue"
+      },
+      "recommended_priority": {
+        "type": "integer",
+        "description": "Recommended priority level for handling (1-5, with 1 being highest)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Dispatcher",
+    "tool_description": "Sends backup monitoring alerts through multiple channels including email, SMS, and webhook notifications based on severity level and recipient preferences.",
+    "parameters": {
+      "alert_message": {
+        "type": "string",
+        "required": true,
+        "description": "The alert message content to send"
+      },
+      "severity_level": {
+        "type": "string",
+        "required": true,
+        "description": "Alert severity (info, warning, critical)"
+      },
+      "email_recipients": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of email addresses to notify"
+      },
+      "sms_recipients": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of phone numbers for SMS notifications"
+      },
+      "webhook_urls": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of webhook URLs for integrations"
+      }
+    },
+    "error_messages": [
+      "Invalid severity level: Use one of [info, warning, critical].",
+      "No recipients specified: At least one of email_recipients, sms_recipients, or webhook_urls must be provided.",
+      "Invalid email format: One or more email addresses are not properly formatted.",
+      "Invalid phone number: SMS recipients must be valid phone numbers with country codes.",
+      "Invalid webhook URL: All webhook URLs must be valid HTTP/HTTPS endpoints.",
+      "Notification delivery failed: One or more notifications could not be delivered, check recipient details."
+    ],
+    "usage": "Provide alert_message and severity_level, then specify recipients through email_recipients, sms_recipients, or webhook_urls arrays based on your notification requirements.",
+    "output_details": {
+      "notifications_sent": {
+        "type": "integer",
+        "description": "Total number of notifications successfully sent"
+      },
+      "email_success_count": {
+        "type": "integer",
+        "description": "Number of successful email notifications"
+      },
+      "sms_success_count": {
+        "type": "integer",
+        "description": "Number of successful SMS notifications"
+      },
+      "webhook_success_count": {
+        "type": "integer",
+        "description": "Number of successful webhook notifications"
+      },
+      "failed_deliveries": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of recipient addresses/URLs where delivery failed"
+      },
+      "dispatch_timestamp": {
+        "type": "string",
+        "description": "When notifications were sent",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Compliance Monitor",
+    "tool_description": "Monitors backup job execution against scheduled times, tracks delays and missed executions, and calculates schedule compliance metrics.",
+    "parameters": {
+      "job_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the backup job to monitor"
+      },
+      "scheduled_time": {
+        "type": "string",
+        "required": true,
+        "description": "When the job was scheduled to run",
+        "format": "date-time"
+      },
+      "actual_start_time": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "When the job actually started",
+        "format": "date-time"
+      },
+      "completion_time": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "When the job completed",
+        "format": "date-time"
+      },
+      "tolerance_minutes": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Acceptable delay tolerance in minutes"
+      }
+    },
+    "error_messages": [
+      "Invalid datetime format: All time parameters must be valid ISO 8601 date-time strings.",
+      "Logical time error: actual_start_time cannot be before scheduled_time by more than tolerance_minutes.",
+      "Completion before start: completion_time cannot be before actual_start_time.",
+      "Negative tolerance: tolerance_minutes must be a positive integer.",
+      "Missing job name: job_name cannot be empty."
+    ],
+    "usage": "Provide job_name and scheduled_time as minimum requirements. Include actual_start_time and completion_time when available to get comprehensive compliance metrics.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Compliance status (compliant, delayed, missed, unknown)"
+      },
+      "delay_minutes": {
+        "type": "integer",
+        "description": "Minutes delayed from scheduled time (0 if on time)"
+      },
+      "within_tolerance": {
+        "type": "boolean",
+        "description": "Whether the delay is within acceptable tolerance"
+      },
+      "execution_duration_minutes": {
+        "type": "integer",
+        "description": "Total execution time in minutes (0 if not completed)"
+      },
+      "compliance_score": {
+        "type": "number",
+        "description": "Compliance score from 0.0 to 1.0 based on delay"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Storage Space Monitor",
+    "tool_description": "Monitors storage space utilization for backup destinations, tracks available capacity, and predicts when storage limits will be reached based on growth trends.",
+    "parameters": {
+      "storage_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to backup storage location to monitor"
+      },
+      "warning_threshold_percent": {
+        "type": "number",
+        "required": false,
+        "default": 80.0,
+        "description": "Storage utilization percentage to trigger warnings"
+      },
+      "critical_threshold_percent": {
+        "type": "number",
+        "required": false,
+        "default": 90.0,
+        "description": "Storage utilization percentage to trigger critical alerts"
+      },
+      "trend_analysis_days": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Number of days of historical data to analyze for trends"
+      },
+      "include_projections": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to calculate future capacity projections"
+      }
+    },
+    "error_messages": [
+      "Storage path not found: The specified storage_path does not exist or is inaccessible.",
+      "Invalid threshold values: warning_threshold_percent must be less than critical_threshold_percent.",
+      "Threshold out of range: Threshold percentages must be between 0 and 100.",
+      "Invalid trend period: trend_analysis_days must be a positive integer between 1 and 365.",
+      "Insufficient permissions: Unable to read storage information from the specified path."
+    ],
+    "usage": "Provide storage_path to monitor. Adjust threshold percentages and trend_analysis_days as needed. Enable include_projections for capacity planning insights.",
+    "output_details": {
+      "total_space_gb": {
+        "type": "number",
+        "description": "Total storage capacity in gigabytes"
+      },
+      "used_space_gb": {
+        "type": "number",
+        "description": "Currently used storage space in gigabytes"
+      },
+      "available_space_gb": {
+        "type": "number",
+        "description": "Available storage space in gigabytes"
+      },
+      "utilization_percent": {
+        "type": "number",
+        "description": "Current storage utilization percentage"
+      },
+      "status": {
+        "type": "string",
+        "description": "Storage status (normal, warning, critical)"
+      },
+      "projected_full_date": {
+        "type": "string",
+        "description": "Estimated date when storage will be full based on trends",
+        "format": "date-time"
+      },
+      "daily_growth_rate_gb": {
+        "type": "number",
+        "description": "Average daily storage growth rate in gigabytes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Recovery Time Estimator",
+    "tool_description": "Estimates recovery time objectives (RTO) and recovery point objectives (RPO) based on backup characteristics, system specifications, and historical recovery performance data.",
+    "parameters": {
+      "backup_size_gb": {
+        "type": "number",
+        "required": true,
+        "description": "Size of backup to recover in gigabytes"
+      },
+      "backup_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of backup (full, differential, incremental, log)"
+      },
+      "storage_type": {
+        "type": "string",
+        "required": true,
+        "description": "Storage medium (ssd, hdd, tape, cloud, network)"
+      },
+      "network_bandwidth_mbps": {
+        "type": "number",
+        "required": true,
+        "description": "Available network bandwidth in megabits per second"
+      },
+      "target_system_cpu_cores": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of CPU cores on target recovery system"
+      },
+      "target_system_ram_gb": {
+        "type": "number",
+        "required": true,
+        "description": "Available RAM on target system in gigabytes"
+      },
+      "compression_ratio": {
+        "type": "number",
+        "required": false,
+        "default": 1.0,
+        "description": "Backup compression ratio (1.0 = no compression, 2.0 = 50% compressed)"
+      },
+      "parallel_streams": {
+        "type": "integer",
+        "required": false,
+        "default": 1,
+        "description": "Number of parallel recovery streams to use"
+      },
+      "include_verification": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include verification time in estimates"
+      },
+      "historical_performance_factor": {
+        "type": "number",
+        "required": false,
+        "default": 1.0,
+        "description": "Performance adjustment factor based on historical data"
+      }
+    },
+    "error_messages": [
+      "Invalid backup size: backup_size_gb must be a positive number.",
+      "Invalid backup type: Use one of [full, differential, incremental, log].",
+      "Invalid storage type: Use one of [ssd, hdd, tape, cloud, network].",
+      "Invalid bandwidth: network_bandwidth_mbps must be positive.",
+      "Invalid system specs: CPU cores must be positive integer, RAM must be positive number.",
+      "Invalid compression ratio: Must be between 0.1 and 10.0.",
+      "Invalid parallel streams: Must be between 1 and 32.",
+      "Invalid performance factor: Must be between 0.1 and 5.0."
+    ],
+    "usage": "Provide backup characteristics and target system specifications. Adjust compression_ratio, parallel_streams, and historical_performance_factor based on your environment for more accurate estimates.",
+    "output_details": {
+      "estimated_rto_minutes": {
+        "type": "integer",
+        "description": "Estimated Recovery Time Objective in minutes"
+      },
+      "estimated_rpo_minutes": {
+        "type": "integer",
+        "description": "Estimated Recovery Point Objective in minutes"
+      },
+      "transfer_time_minutes": {
+        "type": "integer",
+        "description": "Estimated time to transfer backup data"
+      },
+      "restoration_time_minutes": {
+        "type": "integer",
+        "description": "Estimated time to restore and apply backup"
+      },
+      "verification_time_minutes": {
+        "type": "integer",
+        "description": "Estimated time for post-recovery verification"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence level of estimates (high, medium, low)"
+      },
+      "bottleneck_component": {
+        "type": "string",
+        "description": "Primary bottleneck limiting recovery speed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dashboard Generator",
+    "tool_description": "Generates comprehensive backup monitoring dashboards with visual metrics, trends, and summary statistics for backup job performance and system health.",
+    "parameters": {
+      "report_period_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days to include in the dashboard report"
+      },
+      "job_names": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50,
+        "description": "List of backup job names to include in dashboard"
+      },
+      "include_success_rate": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include success rate metrics"
+      },
+      "include_performance_trends": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include performance trend analysis"
+      },
+      "include_storage_metrics": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include storage utilization metrics"
+      },
+      "dashboard_format": {
+        "type": "string",
+        "required": false,
+        "default": "summary",
+        "description": "Dashboard detail level (summary, detailed, comprehensive)"
+      }
+    },
+    "error_messages": [
+      "Invalid report period: report_period_days must be between 1 and 365.",
+      "Empty job list: At least one job name must be provided in job_names array.",
+      "Too many jobs: Maximum 50 jobs can be included in a single dashboard.",
+      "Invalid dashboard format: Use one of [summary, detailed, comprehensive].",
+      "Job data insufficient: Not enough historical data available for the specified report period."
+    ],
+    "usage": "Provide report_period_days and job_names array. Enable desired metric categories and choose appropriate dashboard_format based on your reporting needs.",
+    "output_details": {
+      "dashboard_title": {
+        "type": "string",

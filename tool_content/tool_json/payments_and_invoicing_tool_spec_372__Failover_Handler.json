@@ -1,0 +1,76 @@
+{
+  "tool_name": "Failover Handler",
+  "tool_description": "Manages payment failover scenarios by automatically retrying failed transactions through backup gateways with intelligent retry logic and circuit breaker patterns.",
+  "parameters": {
+    "failed_transaction_data": {
+      "type": "string",
+      "required": true,
+      "description": "JSON string containing original transaction data"
+    },
+    "original_gateway": {
+      "type": "string",
+      "required": true,
+      "description": "Gateway that originally failed the transaction"
+    },
+    "failure_reason": {
+      "type": "string",
+      "required": true,
+      "description": "Reason for original transaction failure"
+    },
+    "backup_gateways": {
+      "type": "array",
+      "required": true,
+      "description": "Ordered list of backup gateways to try",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "maxItems": 5
+    },
+    "retry_strategy": {
+      "type": "string",
+      "required": false,
+      "description": "Retry strategy: immediate, exponential_backoff, linear_delay",
+      "default": "exponential_backoff"
+    },
+    "max_attempts": {
+      "type": "integer",
+      "required": false,
+      "description": "Maximum retry attempts across backup gateways",
+      "default": 3
+    }
+  },
+  "error_messages": [
+    "Invalid transaction data: failed_transaction_data must be valid JSON format.",
+    "No backup gateways: At least one backup gateway must be provided.",
+    "Invalid retry strategy: Use one of [immediate, exponential_backoff, linear_delay].",
+    "Max attempts exceeded: max_attempts must be between 1 and 10.",
+    "All backup gateways failed: No backup gateway could process the transaction."
+  ],
+  "usage": "Provide failed transaction details and backup gateways to attempt recovery. Choose appropriate retry_strategy based on failure type and set max_attempts to balance success probability with processing time.",
+  "output_details": {
+    "recovery_result": {
+      "type": "string",
+      "description": "Failover result: success, failed, partial_success"
+    },
+    "successful_gateway": {
+      "type": "string",
+      "description": "Backup gateway that successfully processed transaction"
+    },
+    "attempts_summary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Summary of each failover attempt made"
+    },
+    "total_failover_time": {
+      "type": "integer",
+      "description": "Total time spent on failover processing in milliseconds"
+    },
+    "final_transaction_id": {
+      "type": "string",
+      "description": "New transaction ID if recovery was successful"
+    }
+  }
+}

@@ -1,0 +1,819 @@
+field_name: astrology_and_esoterica
+subfield: Horoscope Creation and Forecasting
+task: Calculate planetary positions and aspects for specific dates and locations
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task is **medium** difficulty. It requires precise astronomical calculations, coordinate transformations, and aspect angle computations, but follows well-established mathematical formulas. The main complexities involve handling multiple coordinate systems, time zone conversions, and the interdependencies between planetary position calculations and aspect determinations.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'm targeting **12 tools** within the 10-15 range. This allows for proper separation of astronomical calculations, coordinate transformations, aspect computations, and data formatting while maintaining composability.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tool Names and Dependencies:**
+  1. **Julian Date Converter** - Consumes: date, time, location → Produces: Julian Day Number
+  2. **Planetary Position Calculator** - Consumes: Julian date, planet name → Produces: heliocentric coordinates
+  3. **Geocentric Coordinate Converter** - Consumes: heliocentric coordinates, Earth position → Produces: geocentric coordinates
+  4. **Ecliptic to Equatorial Converter** - Consumes: ecliptic coordinates → Produces: equatorial coordinates
+  5. **Zodiac Sign Mapper** - Consumes: ecliptic longitude → Produces: zodiac sign and degree
+  6. **House Position Calculator** - Consumes: coordinates, birth time, location → Produces: house positions
+  7. **Aspect Angle Calculator** - Consumes: two planetary positions → Produces: angular separation
+  8. **Major Aspect Identifier** - Consumes: angular separations → Produces: aspect types and orbs
+  9. **Retrograde Motion Detector** - Consumes: planetary positions over time → Produces: retrograde status
+  10. **Transit Event Finder** - Consumes: natal chart, date range → Produces: transit events
+  11. **Ephemeris Data Generator** - Consumes: date range, location → Produces: daily planetary positions
+  12. **Astrological Chart Formatter** - Consumes: all planetary data → Produces: formatted chart data
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Basic planetary positions: Julian Date Converter → Planetary Position Calculator → Zodiac Sign Mapper
+  - Quick aspect check: Planetary Position Calculator (×2) → Aspect Angle Calculator → Major Aspect Identifier
+
+  **Medium Plans:**
+  - Complete natal chart: Julian Date Converter → Planetary Position Calculator → Geocentric Coordinate Converter → Zodiac Sign Mapper → House Position Calculator → Astrological Chart Formatter
+  - Transit analysis: Ephemeris Data Generator → Transit Event Finder → Major Aspect Identifier
+
+  **Complex Plans:**
+  - Full astrological analysis: Julian Date Converter → Planetary Position Calculator → Geocentric Coordinate Converter → Ecliptic to Equatorial Converter → Zodiac Sign Mapper → House Position Calculator → Aspect Angle Calculator → Major Aspect Identifier → Retrograde Motion Detector → Astrological Chart Formatter
+  - Comprehensive forecasting: Ephemeris Data Generator → Transit Event Finder → Retrograde Motion Detector → Aspect Angle Calculator → Major Aspect Identifier → Astrological Chart Formatter
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Julian Date Converter",
+    "tool_description": "Converts calendar dates and times to Julian Day Numbers for astronomical calculations, accounting for time zones and geographic locations.",
+    "parameters": {
+      "date": {
+        "type": "string",
+        "required": true,
+        "description": "Date in YYYY-MM-DD format",
+        "format": "date-time"
+      },
+      "time": {
+        "type": "string",
+        "required": true,
+        "description": "Time in HH:MM:SS format",
+        "format": "date-time"
+      },
+      "timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Timezone identifier (e.g., UTC, EST, PST)",
+        "default": "UTC"
+      },
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Geographic latitude in decimal degrees (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Geographic longitude in decimal degrees (-180 to 180)"
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Use YYYY-MM-DD format for date parameter",
+      "Invalid time format: Use HH:MM:SS format for time parameter",
+      "Coordinates out of range: Latitude must be between -90 and 90, longitude between -180 and 180",
+      "Unsupported timezone: Provide a valid timezone identifier"
+    ],
+    "usage": "Provide date, time, latitude, and longitude. Optionally specify timezone (defaults to UTC). Returns Julian Day Number and related astronomical time values.",
+    "output_details": {
+      "julian_day": {
+        "type": "number",
+        "description": "Julian Day Number for the specified date/time"
+      },
+      "sidereal_time": {
+        "type": "number",
+        "description": "Local sidereal time in hours"
+      },
+      "utc_offset": {
+        "type": "number",
+        "description": "UTC offset in hours"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Planetary Position Calculator",
+    "tool_description": "Calculates the precise heliocentric or geocentric position of planets using astronomical ephemeris data for a given Julian date.",
+    "parameters": {
+      "julian_day": {
+        "type": "number",
+        "required": true,
+        "description": "Julian Day Number for calculation"
+      },
+      "planet": {
+        "type": "string",
+        "required": true,
+        "description": "Planet name: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto"
+      },
+      "coordinate_system": {
+        "type": "string",
+        "required": false,
+        "description": "Either heliocentric or geocentric",
+        "default": "geocentric"
+      },
+      "precision": {
+        "type": "string",
+        "required": false,
+        "description": "Calculation precision: low, medium, high",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Invalid planet name: Use Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, or Pluto",
+      "Invalid coordinate system: Use either heliocentric or geocentric",
+      "Julian day out of range: Provide Julian day between 1800000 and 2900000",
+      "Invalid precision level: Use low, medium, or high"
+    ],
+    "usage": "Provide julian_day and planet name. Optionally specify coordinate_system and precision. Returns the planet's position in ecliptic coordinates.",
+    "output_details": {
+      "longitude": {
+        "type": "number",
+        "description": "Ecliptic longitude in decimal degrees"
+      },
+      "latitude": {
+        "type": "number",
+        "description": "Ecliptic latitude in decimal degrees"
+      },
+      "distance": {
+        "type": "number",
+        "description": "Distance from reference point in AU"
+      },
+      "velocity": {
+        "type": "number",
+        "description": "Angular velocity in degrees per day"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Geocentric Coordinate Converter",
+    "tool_description": "Converts heliocentric planetary coordinates to geocentric coordinates by accounting for Earth's position and motion.",
+    "parameters": {
+      "planet_longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Planet's heliocentric longitude in degrees"
+      },
+      "planet_latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Planet's heliocentric latitude in degrees"
+      },
+      "planet_distance": {
+        "type": "number",
+        "required": true,
+        "description": "Planet's distance from Sun in AU"
+      },
+      "earth_longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Earth's heliocentric longitude in degrees"
+      },
+      "earth_latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Earth's heliocentric latitude in degrees"
+      },
+      "earth_distance": {
+        "type": "number",
+        "required": true,
+        "description": "Earth's distance from Sun in AU"
+      }
+    },
+    "error_messages": [
+      "Invalid coordinate values: Longitude must be 0-360, latitude must be -90 to 90",
+      "Invalid distance values: Distance must be positive and less than 100 AU",
+      "Calculation error: Unable to perform coordinate transformation with given values"
+    ],
+    "usage": "Provide heliocentric coordinates for both the planet and Earth. Returns the planet's position as seen from Earth.",
+    "output_details": {
+      "geocentric_longitude": {
+        "type": "number",
+        "description": "Geocentric ecliptic longitude in degrees"
+      },
+      "geocentric_latitude": {
+        "type": "number",
+        "description": "Geocentric ecliptic latitude in degrees"
+      },
+      "earth_distance": {
+        "type": "number",
+        "description": "Distance from Earth in AU"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ecliptic to Equatorial Converter",
+    "tool_description": "Transforms ecliptic coordinates to equatorial coordinates using the obliquity of the ecliptic for the given date.",
+    "parameters": {
+      "ecliptic_longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Ecliptic longitude in decimal degrees (0-360)"
+      },
+      "ecliptic_latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Ecliptic latitude in decimal degrees (-90 to 90)"
+      },
+      "julian_day": {
+        "type": "number",
+        "required": true,
+        "description": "Julian Day Number to calculate obliquity"
+      }
+    },
+    "error_messages": [
+      "Invalid ecliptic longitude: Must be between 0 and 360 degrees",
+      "Invalid ecliptic latitude: Must be between -90 and 90 degrees",
+      "Invalid Julian day: Must be a valid Julian Day Number"
+    ],
+    "usage": "Provide ecliptic coordinates and Julian day. Returns right ascension and declination in equatorial coordinate system.",
+    "output_details": {
+      "right_ascension": {
+        "type": "number",
+        "description": "Right ascension in hours (0-24)"
+      },
+      "declination": {
+        "type": "number",
+        "description": "Declination in degrees (-90 to 90)"
+      },
+      "obliquity": {
+        "type": "number",
+        "description": "Obliquity of ecliptic in degrees"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Zodiac Sign Mapper",
+    "tool_description": "Maps ecliptic longitude coordinates to zodiac signs and calculates precise degrees and minutes within each sign.",
+    "parameters": {
+      "ecliptic_longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Ecliptic longitude in decimal degrees (0-360)"
+      },
+      "coordinate_precision": {
+        "type": "integer",
+        "required": false,
+        "description": "Decimal places for degree precision (0-4)",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Invalid longitude: Ecliptic longitude must be between 0 and 360 degrees",
+      "Invalid precision: Coordinate precision must be between 0 and 4 decimal places"
+    ],
+    "usage": "Provide ecliptic longitude and optionally specify precision. Returns zodiac sign, degrees, and minutes within the sign.",
+    "output_details": {
+      "zodiac_sign": {
+        "type": "string",
+        "description": "Name of the zodiac sign"
+      },
+      "degrees": {
+        "type": "integer",
+        "description": "Degrees within the sign (0-29)"
+      },
+      "minutes": {
+        "type": "integer",
+        "description": "Minutes within the degree (0-59)"
+      },
+      "decimal_position": {
+        "type": "number",
+        "description": "Precise decimal position within the sign"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "House Position Calculator",
+    "tool_description": "Calculates astrological house positions using various house systems and determines which house each planetary position occupies.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Geographic latitude in decimal degrees (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Geographic longitude in decimal degrees (-180 to 180)"
+      },
+      "sidereal_time": {
+        "type": "number",
+        "required": true,
+        "description": "Local sidereal time in hours"
+      },
+      "house_system": {
+        "type": "string",
+        "required": false,
+        "description": "House system: Placidus, Koch, Equal, Whole_Sign, Campanus",
+        "default": "Placidus"
+      },
+      "planet_longitudes": {
+        "type": "array",
+        "required": true,
+        "description": "Array of planetary ecliptic longitudes",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "planet_names": {
+        "type": "array",
+        "required": true,
+        "description": "Array of planet names corresponding to longitudes",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 15
+      }
+    },
+    "error_messages": [
+      "Coordinate range error: Latitude must be -90 to 90, longitude must be -180 to 180",
+      "Invalid house system: Use Placidus, Koch, Equal, Whole_Sign, or Campanus",
+      "Array mismatch: planet_longitudes and planet_names arrays must have same length",
+      "Invalid sidereal time: Must be between 0 and 24 hours",
+      "Invalid longitude values: All planet longitudes must be between 0 and 360 degrees"
+    ],
+    "usage": "Provide geographic coordinates, sidereal time, and arrays of planet positions. Optionally specify house system. Returns house cusps and planetary house positions.",
+    "output_details": {
+      "house_cusps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of 12 house cusp positions in degrees"
+      },
+      "midheaven": {
+        "type": "number",
+        "description": "Midheaven position in degrees"
+      },
+      "ascendant": {
+        "type": "number",
+        "description": "Ascendant position in degrees"
+      },
+      "planetary_houses": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Array of house numbers (1-12) for each planet"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Aspect Angle Calculator",
+    "tool_description": "Calculates the angular separation between two celestial bodies and determines if they form any major or minor astrological aspects.",
+    "parameters": {
+      "planet1_longitude": {
+        "type": "number",
+        "required": true,
+        "description": "First planet's ecliptic longitude in degrees (0-360)"
+      },
+      "planet2_longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Second planet's ecliptic longitude in degrees (0-360)"
+      },
+      "orb_tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum orb tolerance in degrees (0.5-10)",
+        "default": 6.0
+      }
+    },
+    "error_messages": [
+      "Invalid longitude values: Both longitudes must be between 0 and 360 degrees",
+      "Invalid orb tolerance: Must be between 0.5 and 10 degrees",
+      "Calculation error: Unable to compute angular separation"
+    ],
+    "usage": "Provide ecliptic longitudes for two planets and optionally set orb tolerance. Returns angular separation and whether it forms a recognized aspect.",
+    "output_details": {
+      "angular_separation": {
+        "type": "number",
+        "description": "Angular separation in degrees (0-180)"
+      },
+      "shortest_arc": {
+        "type": "number",
+        "description": "Shortest arc between planets in degrees"
+      },
+      "is_separating": {
+        "type": "boolean",
+        "description": "Whether the aspect is separating (true) or applying (false)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Major Aspect Identifier",
+    "tool_description": "Identifies major and minor astrological aspects from angular separations and calculates exact orbs and aspect strength.",
+    "parameters": {
+      "angular_separation": {
+        "type": "number",
+        "required": true,
+        "description": "Angular separation between planets in degrees (0-180)"
+      },
+      "planet1_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of first planet"
+      },
+      "planet2_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of second planet"
+      },
+      "orb_tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum orb for aspect recognition in degrees",
+        "default": 6.0
+      },
+      "include_minor_aspects": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include minor aspects in analysis",
+        "default": false
+      },
+      "aspect_strength_weights": {
+        "type": "array",
+        "required": false,
+        "description": "Custom weights for different planets (10 values: Sun through Pluto)",
+        "items": {"type": "number"},
+        "minItems": 10,
+        "maxItems": 10,
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid angular separation: Must be between 0 and 180 degrees",
+      "Invalid planet names: Use standard planet names (Sun, Moon, Mercury, etc.)",
+      "Invalid orb tolerance: Must be between 0.1 and 15 degrees",
+      "Invalid aspect weights: Array must contain exactly 10 positive numbers",
+      "No valid aspect found: Angular separation does not match any recognized aspect within orb tolerance"
+    ],
+    "usage": "Provide angular separation and planet names. Optionally configure orb tolerance, minor aspects inclusion, and custom planet weights. Returns identified aspects with strength ratings.",
+    "output_details": {
+      "aspect_name": {
+        "type": "string",
+        "description": "Name of the identified aspect (conjunction, opposition, etc.)"
+      },
+      "exact_orb": {
+        "type": "number",
+        "description": "Exact orb from perfect aspect in degrees"
+      },
+      "aspect_strength": {
+        "type": "number",
+        "description": "Calculated strength of aspect (0-100 scale)"
+      },
+      "aspect_type": {
+        "type": "string",
+        "description": "Classification: major, minor, or none"
+      },
+      "is_exact": {
+        "type": "boolean",
+        "description": "Whether aspect is within 1 degree of exactness"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Retrograde Motion Detector",
+    "tool_description": "Analyzes planetary motion over time to determine retrograde periods and calculates apparent motion speeds for celestial bodies.",
+    "parameters": {
+      "planet_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of planet to analyze"
+      },
+      "start_julian_day": {
+        "type": "number",
+        "required": true,
+        "description": "Starting Julian Day for analysis period"
+      },
+      "end_julian_day": {
+        "type": "number",
+        "required": true,
+        "description": "Ending Julian Day for analysis period"
+      },
+      "sampling_interval": {
+        "type": "integer",
+        "required": false,
+        "description": "Days between position samples (1-30)",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Invalid planet name: Use Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, or Pluto",
+      "Invalid date range: End Julian day must be greater than start Julian day",
+      "Date range too large: Maximum analysis period is 3650 days (10 years)",
+      "Invalid sampling interval: Must be between 1 and 30 days"
+    ],
+    "usage": "Provide planet name and Julian day range for analysis. Optionally set sampling interval. Returns retrograde status and motion characteristics.",
+    "output_details": {
+      "is_retrograde_start": {
+        "type": "boolean",
+        "description": "Whether planet is retrograde at start of period"
+      },
+      "is_retrograde_end": {
+        "type": "boolean",
+        "description": "Whether planet is retrograde at end of period"
+      },
+      "retrograde_periods": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of date ranges when planet is retrograde"
+      },
+      "average_daily_motion": {
+        "type": "number",
+        "description": "Average daily motion in degrees per day"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transit Event Finder",
+    "tool_description": "Identifies significant astrological transit events by comparing current planetary positions against natal chart positions over a specified time period.",
+    "parameters": {
+      "natal_planet_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Array of natal planet longitudes in degrees",
+        "items": {"type": "number"},
+        "minItems": 10,
+        "maxItems": 15
+      },
+      "natal_planet_names": {
+        "type": "array",
+        "required": true,
+        "description": "Array of natal planet names",
+        "items": {"type": "string"},
+        "minItems": 10,
+        "maxItems": 15
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for transit search",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for transit search",
+        "format": "date-time"
+      },
+      "transiting_planets": {
+        "type": "array",
+        "required": false,
+        "description": "Planets to include in transit search",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "orb_tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Orb tolerance for transit aspects in degrees",
+        "default": 3.0
+      },
+      "aspect_types": {
+        "type": "array",
+        "required": false,
+        "description": "Aspect types to search for",
+        "items": {"type": "string"},
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: natal_planet_positions and natal_planet_names must have same length",
+      "Invalid date range: End date must be after start date",
+      "Date range too large: Maximum search period is 2 years",
+      "Invalid natal positions: All positions must be between 0 and 360 degrees",
+      "Invalid orb tolerance: Must be between 0.5 and 10 degrees",
+      "Invalid transiting planets: Use standard planet names only",
+      "Invalid aspect types: Use conjunction, opposition, trine, square, sextile, or quincunx"
+    ],
+    "usage": "Provide natal chart data and date range for transit search. Optionally specify which planets and aspects to include. Returns chronological list of significant transit events.",
+    "output_details": {
+      "transit_events": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of transit event descriptions with dates"
+      },
+      "event_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of exact event dates in ISO format"
+      },
+      "event_count": {
+        "type": "integer",
+        "description": "Total number of transit events found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ephemeris Data Generator",
+    "tool_description": "Generates comprehensive daily ephemeris data showing positions of all major celestial bodies for a specified date range and location.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for ephemeris generation",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for ephemeris generation",
+        "format": "date-time"
+      },
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Observer latitude in decimal degrees (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Observer longitude in decimal degrees (-180 to 180)"
+      },
+      "timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Timezone identifier for local times",
+        "default": "UTC"
+      },
+      "celestial_bodies": {
+        "type": "array",
+        "required": false,
+        "description": "List of celestial bodies to include",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "coordinate_system": {
+        "type": "string",
+        "required": false,
+        "description": "Coordinate system: geocentric or topocentric",
+        "default": "geocentric"
+      },
+      "include_aspects": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include daily aspect information",
+        "default": false
+      },
+      "data_precision": {
+        "type": "string",
+        "required": false,
+        "description": "Precision level: standard, high, or ultra",
+        "default": "standard"
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output format: decimal_degrees or degrees_minutes",
+        "default": "decimal_degrees"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: End date must be after start date and range cannot exceed 1 year",
+      "Invalid coordinates: Latitude must be -90 to 90, longitude must be -180 to 180",
+      "Invalid timezone: Provide a valid timezone identifier",
+      "Invalid celestial bodies: Use standard names (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto)",
+      "Invalid coordinate system: Use geocentric or topocentric",
+      "Invalid precision level: Use standard, high, or ultra",
+      "Invalid output format: Use decimal_degrees or degrees_minutes"
+    ],
+    "usage": "Provide date range and observer location. Optionally configure celestial bodies, coordinate system, precision, and output format. Returns comprehensive daily ephemeris data.",
+    "output_details": {
+      "dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of dates in ISO format"
+      },
+      "planetary_positions": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "2D array of daily planetary positions [date][planet]"
+      },
+      "moon_phases": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of moon phase names for each date"
+      },
+      "daily_aspects": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "2D array of daily aspects [date][aspect_list]"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Astrological Chart Formatter",
+    "tool_description": "Formats comprehensive planetary data, aspects, and house information into a standardized astrological chart format with interpretation notes.",
+    "parameters": {
+      "planetary_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Array of planetary longitude positions",
+        "items": {"type": "number"},
+        "minItems": 10,
+        "maxItems": 15
+      },
+      "planet_names": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding planet names",
+        "items": {"type": "string"},
+        "minItems": 10,
+        "maxItems": 15
+      },
+      "zodiac_signs": {
+        "type": "array",
+        "required": true,
+        "description": "Array of zodiac signs for each planet",
+        "items": {"type": "string"},
+        "minItems": 10,
+        "maxItems": 15
+      },
+      "house_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Array of house numbers (1-12) for each planet",
+        "items": {"type": "integer"},
+        "minItems": 10,
+        "maxItems": 15
+      },
+      "aspects": {
+        "type": "array",
+        "required": false,
+        "description": "Array of aspect descriptions",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "house_cusps": {
+        "type": "array",
+        "required": false,
+        "description": "Array of 12 house cusp positions",
+        "items": {"type": "number"},
+        "minItems": 12,
+        "maxItems": 12,
+        "default": null
+      },
+      "chart_type": {
+        "type": "string",
+        "required": false,
+        "description": "Chart type: natal, transit, synastry, or composite",
+        "default": "natal"
+      },
+      "include_interpretations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include basic interpretations",
+        "default": false
+      },
+      "date_time": {
+        "type": "string",
+        "required": false,
+        "description": "Chart date and time for reference",
+        "format": "date-time",
+        "default": null
+      },
+      "location_name": {
+        "type": "string",
+        "required": false,
+        "description": "Location name for chart header",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All planetary data arrays must have the same length",
+      "Invalid planetary

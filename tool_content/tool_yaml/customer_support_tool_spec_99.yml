@@ -1,0 +1,826 @@
+field_name: customer_support
+subfield: call_center_operations
+task: Handle call escalations and transfers between departments
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves coordinating between multiple departments, managing real-time customer interactions, tracking escalation protocols, and ensuring proper handoffs without losing context. The scope includes understanding escalation criteria, routing logic, and maintaining service quality during transfers.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to handle the various aspects of call escalation and transfer workflows, including call routing, context management, department coordination, and quality tracking.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Call Context Extractor** - Consumes: call_id → Produces: customer info, call history, issue details
+  2. **Escalation Criteria Evaluator** - Consumes: call context, issue type → Produces: escalation decision, priority level
+  3. **Department Availability Checker** - Consumes: department names, time → Produces: availability status, wait times
+  4. **Transfer Request Generator** - Consumes: call details, target department → Produces: transfer request with context
+  5. **Agent Skill Matcher** - Consumes: issue type, department → Produces: qualified agent list
+  6. **Call Queue Manager** - Consumes: transfer requests, priorities → Produces: queue position, estimated wait time
+  7. **Context Handoff Packager** - Consumes: call history, customer data → Produces: structured handoff package
+  8. **Transfer Execution Monitor** - Consumes: transfer request → Produces: transfer status, success confirmation
+  9. **Customer Communication Updater** - Consumes: transfer status, wait time → Produces: customer notification messages
+  10. **Escalation Path Resolver** - Consumes: issue complexity, previous attempts → Produces: optimal escalation route
+  11. **Department Notification Sender** - Consumes: incoming transfer, urgency → Produces: department alerts
+  12. **Transfer Quality Tracker** - Consumes: transfer outcomes, timing → Produces: performance metrics
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic Transfer: Call Context Extractor → Department Availability Checker → Transfer Request Generator → Transfer Execution Monitor
+  - Queue Management: Call Queue Manager → Customer Communication Updater → Department Notification Sender
+
+  **Medium Plans:**
+  - Standard Escalation: Call Context Extractor → Escalation Criteria Evaluator → Escalation Path Resolver → Agent Skill Matcher → Context Handoff Packager → Transfer Execution Monitor
+  - Departmental Routing: Department Availability Checker → Agent Skill Matcher → Call Queue Manager → Transfer Request Generator → Customer Communication Updater
+
+  **Complex Plans:**
+  - Full Escalation Workflow: Call Context Extractor → Escalation Criteria Evaluator → Escalation Path Resolver → Department Availability Checker → Agent Skill Matcher → Context Handoff Packager → Transfer Request Generator → Call Queue Manager → Department Notification Sender → Transfer Execution Monitor → Customer Communication Updater → Transfer Quality Tracker
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Call Context Extractor",
+    "tool_description": "Extracts comprehensive context information from an active call including customer details, call history, and current issue summary.",
+    "parameters": {
+      "call_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the current call session"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include previous call history for this customer"
+      },
+      "history_days": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Number of days of call history to retrieve (1-90)"
+      }
+    },
+    "error_messages": [
+      "Invalid call_id: The provided call ID does not exist or is not currently active. Verify the call is in progress.",
+      "History range error: history_days must be between 1 and 90. Adjust the value within this range.",
+      "Access denied: Insufficient permissions to access call context data. Contact system administrator."
+    ],
+    "usage": "Provide the call_id of an active call to retrieve customer information, issue details, and optionally historical context. Use this as the first step in escalation workflows.",
+    "output_details": {
+      "customer_id": {
+        "type": "string",
+        "description": "Unique customer identifier"
+      },
+      "customer_tier": {
+        "type": "string",
+        "description": "Customer service tier (basic, premium, enterprise)"
+      },
+      "current_issue": {
+        "type": "string",
+        "description": "Summary of the current issue being addressed"
+      },
+      "issue_category": {
+        "type": "string",
+        "description": "Category classification of the issue"
+      },
+      "call_duration": {
+        "type": "integer",
+        "description": "Current call duration in minutes"
+      },
+      "previous_attempts": {
+        "type": "integer",
+        "description": "Number of previous calls for this issue"
+      },
+      "sentiment_score": {
+        "type": "number",
+        "description": "Customer sentiment score (-1 to 1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Escalation Criteria Evaluator",
+    "tool_description": "Evaluates whether a call meets escalation criteria based on issue complexity, customer tier, call duration, and sentiment analysis.",
+    "parameters": {
+      "issue_category": {
+        "type": "string",
+        "required": true,
+        "description": "Category of the customer issue"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service tier (basic, premium, enterprise)"
+      },
+      "call_duration": {
+        "type": "integer",
+        "required": true,
+        "description": "Current call duration in minutes"
+      },
+      "sentiment_score": {
+        "type": "number",
+        "required": true,
+        "description": "Customer sentiment score (-1 to 1)"
+      },
+      "previous_attempts": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of previous calls for this issue"
+      },
+      "agent_level": {
+        "type": "string",
+        "required": false,
+        "default": "tier1",
+        "description": "Current agent tier (tier1, tier2, tier3)"
+      },
+      "urgency_override": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Manual urgency override flag"
+      }
+    },
+    "error_messages": [
+      "Invalid customer_tier: Must be one of [basic, premium, enterprise]. Check customer tier classification.",
+      "Invalid sentiment_score: Must be between -1 and 1. Verify sentiment analysis output.",
+      "Invalid agent_level: Must be one of [tier1, tier2, tier3]. Check agent classification.",
+      "Negative values error: call_duration and previous_attempts cannot be negative."
+    ],
+    "usage": "Input call context parameters to determine if escalation is warranted. The tool applies business rules to recommend escalation priority and target department.",
+    "output_details": {
+      "requires_escalation": {
+        "type": "boolean",
+        "description": "Whether the call should be escalated"
+      },
+      "escalation_priority": {
+        "type": "string",
+        "description": "Priority level (low, medium, high, urgent)"
+      },
+      "recommended_department": {
+        "type": "string",
+        "description": "Recommended target department for escalation"
+      },
+      "escalation_reason": {
+        "type": "string",
+        "description": "Primary reason triggering escalation"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence in escalation recommendation (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Department Availability Checker",
+    "tool_description": "Checks real-time availability status and current queue lengths for specified departments to optimize transfer routing.",
+    "parameters": {
+      "department_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "minItems": 1,
+        "maxItems": 10,
+        "description": "List of department names to check availability for"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Priority level for queue estimation (low, medium, high, urgent)"
+      }
+    },
+    "error_messages": [
+      "Invalid department names: One or more department names are not recognized. Use valid department identifiers.",
+      "Invalid priority_level: Must be one of [low, medium, high, urgent]. Check priority classification.",
+      "System unavailable: Department availability system is currently offline. Try again in a few minutes."
+    ],
+    "usage": "Provide a list of target departments to check their current availability, agent count, and estimated wait times based on priority level.",
+    "output_details": {
+      "department_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Status for each department (available, busy, offline)"
+      },
+      "available_agents": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Number of available agents in each department"
+      },
+      "queue_lengths": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Current queue length for each department"
+      },
+      "estimated_wait_times": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Estimated wait time in minutes for each department"
+      },
+      "recommended_department": {
+        "type": "string",
+        "description": "Department with best availability for immediate transfer"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Agent Skill Matcher",
+    "tool_description": "Matches customer issues with agents who have the appropriate skills and experience level within a target department.",
+    "parameters": {
+      "issue_category": {
+        "type": "string",
+        "required": true,
+        "description": "Category of the customer issue requiring resolution"
+      },
+      "issue_complexity": {
+        "type": "string",
+        "required": true,
+        "description": "Complexity level (simple, moderate, complex, expert)"
+      },
+      "target_department": {
+        "type": "string",
+        "required": true,
+        "description": "Department where agent matching should occur"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service tier (basic, premium, enterprise)"
+      },
+      "language_preference": {
+        "type": "string",
+        "required": false,
+        "default": "english",
+        "description": "Preferred language for customer communication"
+      },
+      "previous_agent_id": {
+        "type": "string",
+        "required": false,
+        "default": "none",
+        "description": "ID of previous agent who handled this customer (to avoid if possible)"
+      }
+    },
+    "error_messages": [
+      "Invalid issue_complexity: Must be one of [simple, moderate, complex, expert]. Check complexity classification.",
+      "Department not found: The specified target_department does not exist or is not available.",
+      "No qualified agents: No agents in the target department have the required skills for this issue type.",
+      "Invalid customer_tier: Must be one of [basic, premium, enterprise]. Verify customer tier."
+    ],
+    "usage": "Provide issue details and target department to find the best-matched available agents based on skills, experience, and customer tier requirements.",
+    "output_details": {
+      "qualified_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of agent IDs qualified to handle this issue"
+      },
+      "agent_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Skill match scores for each qualified agent (0-1)"
+      },
+      "recommended_agent": {
+        "type": "string",
+        "description": "Top recommended agent ID for this transfer"
+      },
+      "agent_specialties": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Primary specialties of each qualified agent"
+      },
+      "availability_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current availability status of each qualified agent"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transfer Request Generator",
+    "tool_description": "Generates formal transfer requests with all necessary context and routing information for seamless call handoffs between departments.",
+    "parameters": {
+      "call_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the call being transferred"
+      },
+      "source_department": {
+        "type": "string",
+        "required": true,
+        "description": "Department initiating the transfer"
+      },
+      "target_department": {
+        "type": "string",
+        "required": true,
+        "description": "Department receiving the transfer"
+      },
+      "transfer_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Primary reason for the transfer"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": true,
+        "description": "Transfer priority (low, medium, high, urgent)"
+      },
+      "customer_context": {
+        "type": "string",
+        "required": true,
+        "description": "Brief summary of customer situation and issue"
+      },
+      "preferred_agent": {
+        "type": "string",
+        "required": false,
+        "default": "none",
+        "description": "Specific agent ID if requesting particular agent"
+      },
+      "callback_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether customer should be called back if no immediate availability"
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "default": "none",
+        "description": "Any special handling instructions for the receiving agent"
+      }
+    },
+    "error_messages": [
+      "Invalid department names: Source or target department does not exist. Verify department identifiers.",
+      "Invalid priority_level: Must be one of [low, medium, high, urgent]. Check priority classification.",
+      "Transfer to same department: Source and target departments cannot be identical. Choose different target.",
+      "Missing required context: customer_context cannot be empty. Provide issue summary.",
+      "Call not found: The specified call_id does not exist or is not active."
+    ],
+    "usage": "Create a structured transfer request by providing call details, departments, and context. The request will be formatted for the target department's queue system.",
+    "output_details": {
+      "transfer_request_id": {
+        "type": "string",
+        "description": "Unique identifier for this transfer request"
+      },
+      "request_timestamp": {
+        "type": "string",
+        "description": "When the transfer request was created"
+      },
+      "estimated_processing_time": {
+        "type": "integer",
+        "description": "Estimated time to process transfer in minutes"
+      },
+      "transfer_summary": {
+        "type": "string",
+        "description": "Formatted summary of the transfer request"
+      },
+      "routing_instructions": {
+        "type": "string",
+        "description": "Technical routing information for call systems"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Call Queue Manager",
+    "tool_description": "Manages call queue positioning, priorities, and wait time estimates across multiple departments with dynamic reordering capabilities.",
+    "parameters": {
+      "transfer_request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Transfer request identifier to queue"
+      },
+      "target_department": {
+        "type": "string",
+        "required": true,
+        "description": "Department queue to manage"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": true,
+        "description": "Queue priority (low, medium, high, urgent)"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service tier (basic, premium, enterprise)"
+      },
+      "queue_action": {
+        "type": "string",
+        "required": false,
+        "default": "add",
+        "description": "Queue action (add, update_priority, remove, get_status)"
+      },
+      "callback_number": {
+        "type": "string",
+        "required": false,
+        "default": "none",
+        "description": "Customer callback number if queue is full"
+      },
+      "max_wait_time": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Maximum acceptable wait time in minutes before callback"
+      },
+      "special_handling": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether call requires special handling protocols"
+      }
+    },
+    "error_messages": [
+      "Transfer request not found: The specified transfer_request_id does not exist. Verify the request was created.",
+      "Invalid queue_action: Must be one of [add, update_priority, remove, get_status]. Check action parameter.",
+      "Queue full: Target department queue is at capacity. Consider callback option or alternative department.",
+      "Invalid priority_level: Must be one of [low, medium, high, urgent]. Verify priority classification.",
+      "Department queue unavailable: The target department queue system is currently offline."
+    ],
+    "usage": "Add transfer requests to department queues with appropriate prioritization. Monitor queue status and manage wait times with callback options when needed.",
+    "output_details": {
+      "queue_position": {
+        "type": "integer",
+        "description": "Current position in the queue"
+      },
+      "estimated_wait_time": {
+        "type": "integer",
+        "description": "Estimated wait time in minutes"
+      },
+      "queue_length": {
+        "type": "integer",
+        "description": "Total number of calls in queue"
+      },
+      "callback_scheduled": {
+        "type": "boolean",
+        "description": "Whether a callback was scheduled due to long wait"
+      },
+      "next_available_slot": {
+        "type": "string",
+        "description": "Timestamp of next expected availability"
+      },
+      "queue_status": {
+        "type": "string",
+        "description": "Current queue status (normal, busy, critical)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Context Handoff Packager",
+    "tool_description": "Packages complete call context, customer history, and interaction details into a structured format for seamless agent handoffs.",
+    "parameters": {
+      "call_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique call identifier for context packaging"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for history retrieval"
+      },
+      "current_issue_summary": {
+        "type": "string",
+        "required": true,
+        "description": "Summary of the current issue and actions taken"
+      },
+      "transfer_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for transferring the call"
+      },
+      "previous_agent_notes": {
+        "type": "string",
+        "required": true,
+        "description": "Notes from the current/previous agent handling the call"
+      },
+      "resolution_attempts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "minItems": 0,
+        "maxItems": 10,
+        "description": "List of resolution attempts already made"
+      },
+      "customer_mood": {
+        "type": "string",
+        "required": true,
+        "description": "Current customer emotional state (calm, frustrated, angry, satisfied)"
+      },
+      "priority_flag": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether this is a high-priority customer or issue"
+      },
+      "preferred_contact_method": {
+        "type": "string",
+        "required": false,
+        "default": "phone",
+        "description": "Customer's preferred communication method"
+      },
+      "include_purchase_history": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include customer purchase history in package"
+      },
+      "context_level": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Level of context detail (minimal, standard, comprehensive)"
+      }
+    },
+    "error_messages": [
+      "Call context unavailable: Cannot retrieve context for the specified call_id. Verify call is active.",
+      "Invalid customer_mood: Must be one of [calm, frustrated, angry, satisfied]. Check mood assessment.",
+      "Invalid context_level: Must be one of [minimal, standard, comprehensive]. Verify context level parameter.",
+      "Missing required information: current_issue_summary, transfer_reason, and previous_agent_notes cannot be empty.",
+      "Context packaging failed: Unable to compile complete context package due to system error."
+    ],
+    "usage": "Provide comprehensive call details to create a structured handoff package that ensures the receiving agent has all necessary context to continue the customer interaction effectively.",
+    "output_details": {
+      "handoff_package_id": {
+        "type": "string",
+        "description": "Unique identifier for the context package"
+      },
+      "package_summary": {
+        "type": "string",
+        "description": "Executive summary of the customer situation"
+      },
+      "recommended_approach": {
+        "type": "string",
+        "description": "Suggested approach for the receiving agent"
+      },
+      "key_talking_points": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Important points to address with customer"
+      },
+      "escalation_history": {
+        "type": "string",
+        "description": "Previous escalation attempts and outcomes"
+      },
+      "customer_value_score": {
+        "type": "number",
+        "description": "Customer lifetime value score (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transfer Execution Monitor",
+    "tool_description": "Monitors and executes call transfers between departments, ensuring successful handoffs and tracking transfer completion status.",
+    "parameters": {
+      "transfer_request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Transfer request identifier to execute"
+      },
+      "execution_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of transfer (warm, cold, conference, callback)"
+      },
+      "target_agent_id": {
+        "type": "string",
+        "required": false,
+        "default": "auto_assign",
+        "description": "Specific target agent ID or auto_assign for system selection"
+      }
+    },
+    "error_messages": [
+      "Transfer request not found: The specified transfer_request_id does not exist or has expired.",
+      "Invalid execution_type: Must be one of [warm, cold, conference, callback]. Check transfer type.",
+      "Target agent unavailable: The specified target agent is not available for transfer.",
+      "Transfer system error: Technical failure occurred during transfer execution. Retry required.",
+      "Call connection lost: Original call was disconnected before transfer could complete."
+    ],
+    "usage": "Execute approved transfer requests by specifying the request ID and transfer type. Monitor the process to ensure successful completion and proper handoff.",
+    "output_details": {
+      "transfer_status": {
+        "type": "string",
+        "description": "Current transfer status (initiated, connecting, completed, failed)"
+      },
+      "completion_time": {
+        "type": "string",
+        "description": "Timestamp when transfer was completed"
+      },
+      "receiving_agent_id": {
+        "type": "string",
+        "description": "ID of agent who received the transfer"
+      },
+      "transfer_success": {
+        "type": "boolean",
+        "description": "Whether the transfer completed successfully"
+      },
+      "connection_quality": {
+        "type": "string",
+        "description": "Quality of the transfer connection (excellent, good, fair, poor)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Communication Updater",
+    "tool_description": "Sends automated updates to customers about transfer status, wait times, and next steps to maintain transparency during escalation processes.",
+    "parameters": {
+      "customer_contact_info": {
+        "type": "string",
+        "required": true,
+        "description": "Customer phone number or email for communication"
+      },
+      "communication_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of update (transfer_notification, wait_time_update, callback_scheduling, resolution_update)"
+      },
+      "message_content": {
+        "type": "string",
+        "required": true,
+        "description": "Main message content to communicate to customer"
+      },
+      "estimated_time": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": "Estimated time in minutes (for wait time updates)"
+      },
+      "callback_time": {
+        "type": "string",
+        "required": false,
+        "default": "none",
+        "description": "Scheduled callback time in ISO 8601 format"
+      }
+    },
+    "error_messages": [
+      "Invalid contact information: Customer contact info is invalid or unreachable. Verify phone number or email.",
+      "Invalid communication_type: Must be one of [transfer_notification, wait_time_update, callback_scheduling, resolution_update].",
+      "Message delivery failed: Unable to deliver message to customer. Check contact information and try alternative method.",
+      "Invalid callback_time format: Use ISO 8601 date-time format for callback scheduling."
+    ],
+    "usage": "Send timely updates to customers about their call status, transfers, and expected resolution times. Specify the communication type and relevant timing information.",
+    "output_details": {
+      "delivery_status": {
+        "type": "string",
+        "description": "Message delivery status (sent, delivered, failed)"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "When the message was delivered"
+      },
+      "communication_method": {
+        "type": "string",
+        "description": "Method used for communication (sms, email, voice)"
+      },
+      "customer_response": {
+        "type": "string",
+        "description": "Any immediate customer response received"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Escalation Path Resolver",
+    "tool_description": "Determines the optimal escalation path based on issue complexity, previous escalation attempts, and organizational hierarchy to ensure efficient resolution.",
+    "parameters": {
+      "issue_category": {
+        "type": "string",
+        "required": true,
+        "description": "Primary category of the customer issue"
+      },
+      "current_department": {
+        "type": "string",
+        "required": true,
+        "description": "Department currently handling the call"
+      },
+      "escalation_level": {
+        "type": "integer",
+        "required": true,
+        "description": "Current escalation level (1-5, where 1 is first level)"
+      },
+      "previous_departments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "minItems": 0,
+        "maxItems": 10,
+        "description": "List of departments that previously handled this issue"
+      },
+      "issue_complexity": {
+        "type": "string",
+        "required": true,
+        "description": "Issue complexity level (simple, moderate, complex, expert)"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service tier (basic, premium, enterprise)"
+      },
+      "business_impact": {
+        "type": "string",
+        "required": true,
+        "description": "Business impact level (low, medium, high, critical)"
+      },
+      "time_sensitivity": {
+        "type": "string",
+        "required": true,
+        "description": "Time sensitivity (low, medium, high, urgent)"
+      },
+      "specialist_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether a specialist is specifically required"
+      },
+      "bypass_normal_flow": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to bypass normal escalation hierarchy"
+      },
+      "regulatory_implications": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether issue has regulatory or compliance implications"
+      }
+    },
+    "error_messages": [
+      "Invalid escalation_level: Must be between 1 and 5. Higher numbers indicate more senior escalation levels.",
+      "Invalid issue_complexity: Must be one of [simple, moderate, complex, expert]. Check complexity assessment.",
+      "Invalid business_impact: Must be one of [low, medium, high, critical]. Verify impact classification.",
+      "Invalid time_sensitivity: Must be one of [low, medium, high, urgent]. Check urgency assessment.",
+      "Circular escalation detected: The suggested path would return to a previously tried department.",
+      "No valid escalation path: Unable to determine appropriate escalation route based on current parameters."
+    ],
+    "usage": "Provide comprehensive issue details and escalation history to determine the most effective next steps. The tool considers organizational structure, expertise requirements, and business rules.",
+    "output_details": {
+      "recommended_department": {
+        "type": "string",
+        "description": "Next department in the optimal escalation path"
+      },
+      "escalation_rationale": {
+        "type": "string",
+        "description": "Explanation for the recommended escalation path"
+      },
+      "estimated_resolution_time": {
+        "type": "integer",
+        "description": "Estimated time to resolution in hours"
+      },
+      "required_approvals": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Any approvals needed before escalation"
+      },
+      "alternative_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative escalation options if primary path unavailable"
+      },
+      "success_probability": {
+        "type": "number",
+        "description": "Estimated probability of successful resolution (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Department Notification Sender",
+    "tool_description": "Sends targeted notifications to receiving departments about incoming transfers, including urgency indicators and preparation instructions.",
+    "parameters": {
+      "target_department": {
+        "type": "string",
+        "required": true,
+        "description": "Department to notify about incoming transfer"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification (incoming_transfer, urgent_escalation, specialist_needed, callback_request)"
+      },
+      "priority

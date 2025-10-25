@@ -1,0 +1,795 @@
+field_name: photography_and_imaging_services
+subfield: portrait_photography_services
+task: Client consultation and booking management for portrait sessions
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves moderate complexity with multiple interconnected workflows including client communication, scheduling coordination, service customization, and business process management. The scope covers consultation processes, booking logistics, pricing structures, and client relationship management with dependencies between scheduling, pricing, and service delivery coordination. **Difficulty: Medium**
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium complexity involving client management, scheduling, pricing, service configuration, and consultation workflows, I'll target **12 tools** to cover the comprehensive booking and consultation process.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Client Profile Creator** → produces client records for other tools
+  2. **Session Availability Checker** → consumes date ranges, produces available slots
+  3. **Service Package Builder** → produces customized service offerings
+  4. **Quote Generator** → consumes service packages, produces pricing estimates
+  5. **Consultation Scheduler** → consumes availability data, produces scheduled appointments
+  6. **Client Questionnaire Processor** → produces structured client preferences
+  7. **Location Validator** → consumes location data, produces venue confirmations
+  8. **Contract Generator** → consumes booking details, produces legal agreements
+  9. **Payment Tracker** → consumes financial data, produces payment status
+  10. **Session Reminder System** → consumes booking data, produces notification schedules
+  11. **Booking Status Manager** → consumes/produces booking state changes
+  12. **Client Communication Logger** → produces communication history records
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - **Basic Inquiry Response**: Client Profile Creator → Service Package Builder → Quote Generator
+  - **Quick Availability Check**: Session Availability Checker → Consultation Scheduler
+
+  **Medium Plans:**
+  - **Full Consultation Workflow**: Client Profile Creator → Client Questionnaire Processor → Service Package Builder → Quote Generator → Location Validator → Consultation Scheduler
+  - **Booking Confirmation Process**: Contract Generator → Payment Tracker → Booking Status Manager → Session Reminder System
+
+  **Complex Plans:**
+  - **Complete Client Onboarding**: Client Profile Creator → Client Questionnaire Processor → Session Availability Checker → Service Package Builder → Quote Generator → Location Validator → Consultation Scheduler → Contract Generator → Payment Tracker → Booking Status Manager → Client Communication Logger
+  - **Full Service Management**: All tools working together to manage multiple clients through complete booking lifecycle from initial inquiry to session completion
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Client Profile Creator",
+    "tool_description": "Creates and stores comprehensive client profiles with contact information, preferences, and session requirements for portrait photography bookings.",
+    "parameters": {
+      "client_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of the client requesting portrait services"
+      },
+      "email": {
+        "type": "string",
+        "required": true,
+        "description": "Primary email address for client communication"
+      },
+      "phone": {
+        "type": "string",
+        "required": true,
+        "description": "Primary phone number including area code"
+      },
+      "session_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of portrait session: individual, couple, family, corporate, maternity, engagement"
+      },
+      "budget_range": {
+        "type": "string",
+        "required": false,
+        "description": "Client's budget range: under_500, 500_1000, 1000_2000, 2000_plus",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid email format: Provide a valid email address with @ symbol and domain.",
+      "Invalid session type: Use one of [individual, couple, family, corporate, maternity, engagement].",
+      "Invalid budget range: Use one of [under_500, 500_1000, 1000_2000, 2000_plus].",
+      "Missing required contact info: Both email and phone must be provided."
+    ],
+    "usage": "Provide client_name, email, phone, and session_type to create a new client profile. Optionally include budget_range for better service matching.",
+    "output_details": {
+      "client_id": {
+        "type": "string",
+        "description": "Unique identifier for the created client profile"
+      },
+      "profile_status": {
+        "type": "string",
+        "description": "Status of profile creation: created, updated, or duplicate"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "When the profile was created in ISO 8601 format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Session Availability Checker",
+    "tool_description": "Checks photographer availability and returns open time slots for portrait sessions within specified date ranges and duration requirements.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Earliest acceptable session date in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "Latest acceptable session date in ISO 8601 format",
+        "format": "date-time"
+      },
+      "session_duration_hours": {
+        "type": "number",
+        "required": true,
+        "description": "Required session duration in hours (0.5 to 8.0)"
+      },
+      "preferred_times": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred time slots: morning, afternoon, evening, golden_hour",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date and both must be future dates.",
+      "Invalid session duration: Duration must be between 0.5 and 8.0 hours.",
+      "Invalid time preference: Use one or more of [morning, afternoon, evening, golden_hour].",
+      "No availability found: No open slots match the specified criteria."
+    ],
+    "usage": "Provide start_date, end_date, and session_duration_hours to find available appointment slots. Optionally specify preferred_times to filter results.",
+    "output_details": {
+      "available_slots": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of available appointment times in ISO 8601 format"
+      },
+      "total_slots_found": {
+        "type": "integer",
+        "description": "Number of available time slots found"
+      },
+      "next_available": {
+        "type": "string",
+        "description": "Earliest available appointment time in ISO 8601 format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Service Package Builder",
+    "tool_description": "Creates customized portrait photography service packages with pricing, deliverables, and add-on options based on client needs and session type.",
+    "parameters": {
+      "session_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of portrait session: individual, couple, family, corporate, maternity, engagement"
+      },
+      "session_duration_hours": {
+        "type": "number",
+        "required": true,
+        "description": "Planned session duration in hours (0.5 to 8.0)"
+      },
+      "location_type": {
+        "type": "string",
+        "required": true,
+        "description": "Shoot location: studio, outdoor, client_home, venue"
+      },
+      "edited_photo_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of professionally edited photos to deliver (5 to 200)"
+      },
+      "print_package": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include physical prints in package",
+        "default": false
+      },
+      "rush_delivery": {
+        "type": "boolean",
+        "required": false,
+        "description": "Expedited delivery within 48 hours",
+        "default": false
+      },
+      "additional_outfits": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of additional outfit changes (0 to 5)",
+        "default": 0
+      },
+      "makeup_artist": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include professional makeup artist services",
+        "default": false
+      },
+      "second_photographer": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include second photographer for coverage",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid session type: Use one of [individual, couple, family, corporate, maternity, engagement].",
+      "Invalid duration: Session duration must be between 0.5 and 8.0 hours.",
+      "Invalid location: Use one of [studio, outdoor, client_home, venue].",
+      "Invalid photo count: Edited photos must be between 5 and 200.",
+      "Invalid outfit count: Additional outfits must be between 0 and 5.",
+      "Package incompatibility: Some combinations may not be available for selected session type."
+    ],
+    "usage": "Specify session_type, session_duration_hours, location_type, and edited_photo_count as base requirements. Add optional services like print_package, rush_delivery, additional_outfits, makeup_artist, or second_photographer to customize the package.",
+    "output_details": {
+      "package_id": {
+        "type": "string",
+        "description": "Unique identifier for the created service package"
+      },
+      "base_price": {
+        "type": "number",
+        "description": "Base price for core photography services"
+      },
+      "addon_price": {
+        "type": "number",
+        "description": "Total price for additional services and options"
+      },
+      "total_price": {
+        "type": "number",
+        "description": "Final total price including all services and add-ons"
+      },
+      "deliverables": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of what will be delivered to the client"
+      },
+      "estimated_turnaround_days": {
+        "type": "integer",
+        "description": "Expected delivery timeline in business days"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quote Generator",
+    "tool_description": "Generates professional price quotes with itemized pricing, terms, and payment options for portrait photography services.",
+    "parameters": {
+      "client_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the client requesting the quote"
+      },
+      "package_id": {
+        "type": "string",
+        "required": true,
+        "description": "Service package identifier from Service Package Builder"
+      },
+      "quote_valid_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days the quote remains valid (1 to 90)",
+        "default": 30
+      },
+      "discount_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Promotional discount to apply (0 to 50 percent)",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Client not found: The specified client_id does not exist in the system.",
+      "Package not found: The specified package_id does not exist or is invalid.",
+      "Invalid quote validity: Quote valid days must be between 1 and 90.",
+      "Invalid discount: Discount percentage must be between 0 and 50.",
+      "Quote generation failed: Unable to create quote with provided parameters."
+    ],
+    "usage": "Provide client_id and package_id to generate a professional quote. Optionally set quote_valid_days and discount_percentage for custom terms.",
+    "output_details": {
+      "quote_number": {
+        "type": "string",
+        "description": "Unique quote reference number"
+      },
+      "subtotal": {
+        "type": "number",
+        "description": "Total price before tax and discounts"
+      },
+      "discount_amount": {
+        "type": "number",
+        "description": "Dollar amount of applied discount"
+      },
+      "tax_amount": {
+        "type": "number",
+        "description": "Calculated tax amount"
+      },
+      "final_total": {
+        "type": "number",
+        "description": "Final quoted price including all adjustments"
+      },
+      "expiration_date": {
+        "type": "string",
+        "description": "When the quote expires in ISO 8601 format"
+      },
+      "payment_terms": {
+        "type": "string",
+        "description": "Payment terms and deposit requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Consultation Scheduler",
+    "tool_description": "Schedules consultation appointments and manages meeting logistics for portrait photography client discussions.",
+    "parameters": {
+      "client_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique client identifier for the consultation"
+      },
+      "consultation_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "Scheduled consultation date and time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "meeting_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of consultation: phone, video_call, in_person"
+      },
+      "estimated_duration_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Expected consultation length in minutes (15 to 120)",
+        "default": 30
+      },
+      "meeting_location": {
+        "type": "string",
+        "required": false,
+        "description": "Location for in-person meetings or video platform for virtual meetings",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Client not found: The specified client_id does not exist in the system.",
+      "Invalid consultation time: The datetime must be in the future and during business hours.",
+      "Invalid meeting type: Use one of [phone, video_call, in_person].",
+      "Invalid duration: Consultation duration must be between 15 and 120 minutes.",
+      "Time slot unavailable: The requested time is already booked or unavailable.",
+      "Missing location: Location is required for in_person meeting type."
+    ],
+    "usage": "Provide client_id, consultation_datetime, and meeting_type to schedule a consultation. Set estimated_duration_minutes and meeting_location as needed for the consultation format.",
+    "output_details": {
+      "consultation_id": {
+        "type": "string",
+        "description": "Unique identifier for the scheduled consultation"
+      },
+      "confirmation_status": {
+        "type": "string",
+        "description": "Booking confirmation status: confirmed, pending, or failed"
+      },
+      "calendar_event_created": {
+        "type": "boolean",
+        "description": "Whether calendar event was successfully created"
+      },
+      "reminder_scheduled": {
+        "type": "boolean",
+        "description": "Whether automatic reminders were set up"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Client Questionnaire Processor",
+    "tool_description": "Processes and analyzes client consultation questionnaire responses to extract preferences, requirements, and special considerations for portrait sessions.",
+    "parameters": {
+      "client_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique client identifier for the questionnaire"
+      },
+      "style_preferences": {
+        "type": "array",
+        "required": true,
+        "description": "Photography styles: classic, modern, artistic, candid, formal, natural",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 6
+      },
+      "color_preferences": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred color palette: warm, cool, neutral, vibrant, monochrome",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "special_requests": {
+        "type": "string",
+        "required": false,
+        "description": "Any special requirements, considerations, or requests from client",
+        "default": "None"
+      },
+      "experience_level": {
+        "type": "string",
+        "required": false,
+        "description": "Client's photography experience: first_time, some_experience, experienced",
+        "default": "first_time"
+      },
+      "comfort_level": {
+        "type": "integer",
+        "required": false,
+        "description": "Client comfort level with being photographed (1-10 scale)",
+        "default": 5
+      },
+      "inspiration_images": {
+        "type": "array",
+        "required": false,
+        "description": "URLs or descriptions of inspiration images provided by client",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "timeline_flexibility": {
+        "type": "string",
+        "required": false,
+        "description": "Client scheduling flexibility: flexible, somewhat_flexible, strict",
+        "default": "flexible"
+      },
+      "group_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of people to be photographed (1 to 50)",
+        "default": 1
+      },
+      "age_ranges": {
+        "type": "array",
+        "required": false,
+        "description": "Age groups involved: infant, toddler, child, teen, adult, senior",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "mobility_considerations": {
+        "type": "string",
+        "required": false,
+        "description": "Any mobility or accessibility needs",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Client not found: The specified client_id does not exist in the system.",
+      "Invalid style preferences: Use one or more of [classic, modern, artistic, candid, formal, natural].",
+      "Invalid color preferences: Use one or more of [warm, cool, neutral, vibrant, monochrome].",
+      "Invalid experience level: Use one of [first_time, some_experience, experienced].",
+      "Invalid comfort level: Must be an integer between 1 and 10.",
+      "Invalid timeline flexibility: Use one of [flexible, somewhat_flexible, strict].",
+      "Invalid group size: Must be between 1 and 50 people.",
+      "Invalid age ranges: Use one or more of [infant, toddler, child, teen, adult, senior]."
+    ],
+    "usage": "Provide client_id and style_preferences as minimum requirements. Include additional parameters like color_preferences, special_requests, experience_level, and others to create a comprehensive client profile for session planning.",
+    "output_details": {
+      "questionnaire_id": {
+        "type": "string",
+        "description": "Unique identifier for the processed questionnaire"
+      },
+      "client_profile_updated": {
+        "type": "boolean",
+        "description": "Whether the client profile was updated with new information"
+      },
+      "complexity_score": {
+        "type": "integer",
+        "description": "Session complexity rating from 1-10 based on requirements"
+      },
+      "recommended_session_duration": {
+        "type": "number",
+        "description": "Suggested session duration in hours based on requirements"
+      },
+      "special_considerations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of important considerations for the session planning"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Location Validator",
+    "tool_description": "Validates and confirms portrait photography locations, checking accessibility, permits, lighting conditions, and logistics requirements.",
+    "parameters": {
+      "location_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of location: studio, outdoor, client_home, venue, beach, park, urban"
+      },
+      "specific_location": {
+        "type": "string",
+        "required": true,
+        "description": "Specific location address or name"
+      },
+      "session_date": {
+        "type": "string",
+        "required": true,
+        "description": "Planned session date for location validation",
+        "format": "date-time"
+      },
+      "session_time": {
+        "type": "string",
+        "required": true,
+        "description": "Planned session time for lighting assessment",
+        "format": "date-time"
+      },
+      "group_size": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of people in the photo session (1 to 50)"
+      }
+    },
+    "error_messages": [
+      "Invalid location type: Use one of [studio, outdoor, client_home, venue, beach, park, urban].",
+      "Location not accessible: The specified location cannot be accessed or is not suitable for photography.",
+      "Permit required: This location requires photography permits that must be obtained in advance.",
+      "Invalid session timing: The date/time must be in the future and during allowable hours.",
+      "Group size too large: The location cannot accommodate the specified group size.",
+      "Weather concerns: Outdoor location may have weather-related challenges for the planned date."
+    ],
+    "usage": "Provide location_type, specific_location, session_date, session_time, and group_size to validate location suitability and identify any requirements or restrictions.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Location validation result: approved, conditional, or rejected"
+      },
+      "permit_required": {
+        "type": "boolean",
+        "description": "Whether photography permits are needed for this location"
+      },
+      "lighting_assessment": {
+        "type": "string",
+        "description": "Lighting conditions assessment: excellent, good, challenging, or poor"
+      },
+      "accessibility_notes": {
+        "type": "string",
+        "description": "Important accessibility and logistics information"
+      },
+      "backup_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of alternative locations if primary location has issues"
+      },
+      "equipment_recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Suggested additional equipment needed for this location"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contract Generator",
+    "tool_description": "Generates comprehensive photography service contracts with terms, conditions, usage rights, and liability clauses customized for portrait sessions.",
+    "parameters": {
+      "client_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique client identifier for the contract"
+      },
+      "quote_number": {
+        "type": "string",
+        "required": true,
+        "description": "Reference number from the accepted quote"
+      },
+      "session_date": {
+        "type": "string",
+        "required": true,
+        "description": "Confirmed session date",
+        "format": "date-time"
+      },
+      "session_location": {
+        "type": "string",
+        "required": true,
+        "description": "Confirmed session location details"
+      },
+      "usage_rights": {
+        "type": "string",
+        "required": true,
+        "description": "Image usage rights: personal_use, commercial_use, limited_commercial, full_rights"
+      },
+      "copyright_retention": {
+        "type": "string",
+        "required": false,
+        "description": "Copyright ownership: photographer, client, shared",
+        "default": "photographer"
+      },
+      "model_release_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether model release forms are needed",
+        "default": true
+      },
+      "cancellation_policy": {
+        "type": "string",
+        "required": false,
+        "description": "Cancellation policy type: standard, flexible, strict",
+        "default": "standard"
+      },
+      "payment_schedule": {
+        "type": "string",
+        "required": false,
+        "description": "Payment timing: deposit_only, 50_50, full_upfront",
+        "default": "50_50"
+      }
+    },
+    "error_messages": [
+      "Client not found: The specified client_id does not exist in the system.",
+      "Invalid quote: The quote_number is not found or has expired.",
+      "Invalid session date: Session date must be in the future.",
+      "Invalid usage rights: Use one of [personal_use, commercial_use, limited_commercial, full_rights].",
+      "Invalid copyright option: Use one of [photographer, client, shared].",
+      "Invalid cancellation policy: Use one of [standard, flexible, strict].",
+      "Invalid payment schedule: Use one of [deposit_only, 50_50, full_upfront].",
+      "Contract generation failed: Unable to create contract with provided parameters."
+    ],
+    "usage": "Provide client_id, quote_number, session_date, session_location, and usage_rights to generate a contract. Customize copyright_retention, model_release_required, cancellation_policy, and payment_schedule as needed.",
+    "output_details": {
+      "contract_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated contract"
+      },
+      "contract_status": {
+        "type": "string",
+        "description": "Contract generation status: ready_for_signature, pending, or error"
+      },
+      "deposit_amount": {
+        "type": "number",
+        "description": "Required deposit amount based on payment schedule"
+      },
+      "final_payment_due": {
+        "type": "string",
+        "description": "When final payment is due in ISO 8601 format"
+      },
+      "contract_url": {
+        "type": "string",
+        "description": "URL or reference for accessing the contract document"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Tracker",
+    "tool_description": "Tracks and manages payment status, processes transactions, and handles deposit and final payment workflows for portrait photography bookings.",
+    "parameters": {
+      "client_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique client identifier for payment tracking"
+      },
+      "contract_id": {
+        "type": "string",
+        "required": true,
+        "description": "Contract identifier associated with the payment"
+      },
+      "payment_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of payment: deposit, final_payment, full_payment, additional_charges"
+      },
+      "payment_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Payment amount in dollars (must be positive)"
+      },
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method: credit_card, bank_transfer, check, cash, paypal"
+      }
+    },
+    "error_messages": [
+      "Client not found: The specified client_id does not exist in the system.",
+      "Contract not found: The specified contract_id does not exist or is invalid.",
+      "Invalid payment type: Use one of [deposit, final_payment, full_payment, additional_charges].",
+      "Invalid payment amount: Payment amount must be a positive number.",
+      "Invalid payment method: Use one of [credit_card, bank_transfer, check, cash, paypal].",
+      "Payment processing failed: Transaction could not be completed due to payment processor error.",
+      "Insufficient payment: Payment amount is less than required for this payment type."
+    ],
+    "usage": "Provide client_id, contract_id, payment_type, payment_amount, and payment_method to process and track payments. The tool will validate amounts against contract terms and update payment status.",
+    "output_details": {
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique transaction identifier for this payment"
+      },
+      "payment_status": {
+        "type": "string",
+        "description": "Payment processing result: completed, pending, failed, or refunded"
+      },
+      "remaining_balance": {
+        "type": "number",
+        "description": "Outstanding balance remaining on the contract"
+      },
+      "next_payment_due": {
+        "type": "string",
+        "description": "Date when next payment is due in ISO 8601 format"
+      },
+      "receipt_generated": {
+        "type": "boolean",
+        "description": "Whether payment receipt was generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Session Reminder System",
+    "tool_description": "Manages automated reminder notifications for upcoming portrait sessions, consultations, and payment deadlines via multiple communication channels.",
+    "parameters": {
+      "client_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique client identifier for reminder setup"
+      },
+      "reminder_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of reminder: session, consultation, payment, contract_signature"
+      },
+      "target_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "Date and time of the event being reminded about",
+        "format": "date-time"
+      },
+      "reminder_schedule": {
+        "type": "array",
+        "required": true,
+        "description": "When to send reminders: 7_days, 3_days, 1_day, 2_hours",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 4
+      },
+      "notification_methods": {
+        "type": "array",
+        "required": true,
+        "description": "How to send reminders: email, sms, phone_call",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 3
+      }
+    },
+    "error_messages": [
+      "Client not found: The specified client_id does not exist in the system.",
+      "Invalid reminder type: Use one of [session, consultation, payment, contract_signature].",
+      "Invalid target datetime: The target date must be in the future.",
+      "Invalid reminder schedule: Use one or more of [7_days, 3_days, 1_day, 2_hours].",
+      "Invalid notification methods: Use one or more of [email, sms, phone_call].",
+      "Schedule conflict: Reminder timing conflicts with target datetime.",
+      "Client preferences conflict: Selected notification methods not allowed by client preferences."
+    ],
+    "usage": "Provide client_id, reminder_type, target_datetime, reminder_schedule, and notification_methods to set up automated reminders. The system will schedule notifications according to the specified timing and delivery preferences.",
+    "output_details": {
+      "reminder_id": {
+        "type": "string",
+        "description": "Unique identifier for the created reminder schedule"
+      },
+      "reminders_scheduled": {
+        "type": "integer",
+        "description": "Number of individual reminder notifications scheduled"
+      },
+      "first_reminder_time": {
+        "type": "string",
+        "description": "When the first reminder will be sent in ISO 8601 format"
+      },
+      "last_reminder_time": {
+        "type": "string",
+        "description": "When the final reminder will be sent in ISO 8601 format"
+      },
+      "setup_status": {
+        "type": "string",
+        "description": "Reminder setup result:

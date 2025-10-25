@@ -1,0 +1,846 @@
+field_name: education_elearning
+subfield: Learning Management Systems
+task: Student enrollment and registration processing
+tool_description: |-
+  STEP 1 — Rate task difficulty
+  This task has medium complexity due to multiple interconnected workflows (enrollment validation, course capacity management, prerequisite checking, payment processing), data integrity requirements across student records and course catalogs, and the need for robust error handling to prevent enrollment conflicts or data corruption.
+
+  STEP 2 — Set a tool budget
+  Given the medium complexity, I'm targeting 12 tools to cover enrollment validation, course management, payment processing, notification systems, and reporting functionalities.
+
+  STEP 3 — List all tool names and dependencies
+  Tools and their data flow:
+  - Student Validator → validates student data, produces validation status
+  - Course Catalog Reader → reads course info, produces course details
+  - Prerequisite Checker → consumes student transcripts + course requirements, produces eligibility status
+  - Enrollment Capacity Checker → consumes course data, produces availability status
+  - Waitlist Manager → consumes enrollment attempts, produces waitlist positions
+  - Payment Processor → consumes payment data, produces transaction status
+  - Enrollment Record Creator → consumes validated data, produces enrollment records
+  - Schedule Conflict Detector → consumes student schedules + new courses, produces conflict reports
+  - Notification Sender → consumes enrollment events, produces delivery confirmations
+  - Registration Report Generator → consumes enrollment data, produces summary reports
+  - Bulk Enrollment Processor → consumes multiple enrollment requests, produces batch results
+  - Audit Trail Logger → consumes all system events, produces compliance logs
+
+  STEP 4 — Multi-tool plans
+  Simple plans:
+  1. Basic enrollment: Student Validator → Course Catalog Reader → Enrollment Record Creator
+  2. Payment processing: Payment Processor → Notification Sender → Audit Trail Logger
+
+  Medium plans:
+  1. Standard enrollment: Student Validator → Prerequisite Checker → Enrollment Capacity Checker → Payment Processor → Enrollment Record Creator → Notification Sender
+  2. Waitlist management: Enrollment Capacity Checker → Waitlist Manager → Notification Sender → Registration Report Generator
+
+  Complex plans:
+  1. Full enrollment workflow: Student Validator → Course Catalog Reader → Prerequisite Checker → Schedule Conflict Detector → Enrollment Capacity Checker → Payment Processor → Enrollment Record Creator → Notification Sender → Audit Trail Logger
+  2. Bulk enrollment processing: Bulk Enrollment Processor → Student Validator → Prerequisite Checker → Enrollment Capacity Checker → Waitlist Manager → Payment Processor → Registration Report Generator → Audit Trail Logger
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Student Validator",
+    "tool_description": "Validates student information and academic standing for enrollment eligibility.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "academic_term": {
+        "type": "string",
+        "required": true,
+        "description": "Academic term for enrollment (e.g., Fall2024, Spring2025)"
+      },
+      "check_financial_hold": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to check for financial holds on student account"
+      }
+    },
+    "error_messages": [
+      "Student not found: The provided student_id does not exist in the system.",
+      "Invalid academic term: Use format like Fall2024, Spring2025, Summer2024.",
+      "Student account suspended: Student has academic or disciplinary holds preventing enrollment.",
+      "Financial hold detected: Student has outstanding financial obligations that must be resolved before enrollment."
+    ],
+    "usage": "Provide student_id and academic_term to validate student eligibility. Set check_financial_hold to false to skip financial validation.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the student is eligible for enrollment"
+      },
+      "student_name": {
+        "type": "string",
+        "description": "Full name of the student"
+      },
+      "academic_standing": {
+        "type": "string",
+        "description": "Current academic standing (good, probation, suspended)"
+      },
+      "holds": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of any holds on the student account"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Course Catalog Reader",
+    "tool_description": "Retrieves detailed course information from the academic catalog.",
+    "parameters": {
+      "course_code": {
+        "type": "string",
+        "required": true,
+        "description": "Course identifier (e.g., CS101, MATH205)"
+      },
+      "academic_term": {
+        "type": "string",
+        "required": true,
+        "description": "Academic term for the course offering"
+      }
+    },
+    "error_messages": [
+      "Course not found: The specified course_code is not in the catalog for the given term.",
+      "Invalid course code format: Use department code followed by course number (e.g., CS101).",
+      "Course not offered: The course exists but is not offered in the specified academic term."
+    ],
+    "usage": "Provide course_code and academic_term to retrieve course details including prerequisites, capacity, and scheduling information.",
+    "output_details": {
+      "course_title": {
+        "type": "string",
+        "description": "Full title of the course"
+      },
+      "credits": {
+        "type": "integer",
+        "description": "Number of credit hours for the course"
+      },
+      "max_capacity": {
+        "type": "integer",
+        "description": "Maximum number of students that can enroll"
+      },
+      "prerequisites": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of prerequisite course codes"
+      },
+      "schedule": {
+        "type": "string",
+        "description": "Course meeting times and days"
+      },
+      "instructor": {
+        "type": "string",
+        "description": "Name of the course instructor"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Prerequisite Checker",
+    "tool_description": "Verifies that a student has completed all required prerequisites for course enrollment.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "course_code": {
+        "type": "string",
+        "required": true,
+        "description": "Course identifier to check prerequisites for"
+      },
+      "academic_term": {
+        "type": "string",
+        "required": true,
+        "description": "Academic term for enrollment"
+      },
+      "include_in_progress": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to count currently enrolled courses as prerequisites"
+      },
+      "minimum_grade": {
+        "type": "string",
+        "required": false,
+        "default": "D",
+        "description": "Minimum grade required for prerequisite completion"
+      }
+    },
+    "error_messages": [
+      "Student transcript not found: Unable to retrieve academic history for the student.",
+      "Prerequisites not met: Student has not completed required prerequisite courses with minimum grade.",
+      "Invalid minimum grade: Use standard letter grades (A, B, C, D, F).",
+      "Course prerequisites not defined: The specified course has no prerequisite requirements in the system."
+    ],
+    "usage": "Provide student_id, course_code, and academic_term. Set include_in_progress to true to allow currently enrolled prerequisites. Adjust minimum_grade as needed for prerequisite completion.",
+    "output_details": {
+      "prerequisites_met": {
+        "type": "boolean",
+        "description": "Whether all prerequisites are satisfied"
+      },
+      "completed_prerequisites": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of prerequisite courses the student has completed"
+      },
+      "missing_prerequisites": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of prerequisite courses the student still needs"
+      },
+      "in_progress_prerequisites": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of prerequisite courses currently in progress"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Enrollment Capacity Checker",
+    "tool_description": "Checks current enrollment numbers against course capacity limits.",
+    "parameters": {
+      "course_code": {
+        "type": "string",
+        "required": true,
+        "description": "Course identifier to check capacity for"
+      },
+      "academic_term": {
+        "type": "string",
+        "required": true,
+        "description": "Academic term for the course"
+      }
+    },
+    "error_messages": [
+      "Course not found: The specified course is not offered in the given academic term.",
+      "Capacity information unavailable: Unable to retrieve enrollment capacity data for this course.",
+      "Invalid academic term: Use proper term format (e.g., Fall2024, Spring2025)."
+    ],
+    "usage": "Provide course_code and academic_term to check current enrollment status and availability for new students.",
+    "output_details": {
+      "current_enrollment": {
+        "type": "integer",
+        "description": "Number of students currently enrolled"
+      },
+      "max_capacity": {
+        "type": "integer",
+        "description": "Maximum enrollment capacity"
+      },
+      "available_spots": {
+        "type": "integer",
+        "description": "Number of remaining enrollment spots"
+      },
+      "is_available": {
+        "type": "boolean",
+        "description": "Whether the course has available enrollment spots"
+      },
+      "waitlist_count": {
+        "type": "integer",
+        "description": "Number of students currently on waitlist"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Waitlist Manager",
+    "tool_description": "Manages student waitlist positions and processes waitlist enrollments when spots become available.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: add, remove, check_position, process_next"
+      },
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "course_code": {
+        "type": "string",
+        "required": true,
+        "description": "Course identifier for waitlist management"
+      },
+      "academic_term": {
+        "type": "string",
+        "required": true,
+        "description": "Academic term for the course"
+      },
+      "notification_email": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Email address for waitlist notifications"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Use one of [add, remove, check_position, process_next].",
+      "Student already on waitlist: Cannot add student who is already waitlisted for this course.",
+      "Student not on waitlist: Cannot remove or check position for student not on waitlist.",
+      "Course at capacity: Cannot process waitlist when course is not at full capacity.",
+      "Invalid email format: Provide a valid email address for notifications."
+    ],
+    "usage": "Specify action type and provide student_id, course_code, and academic_term. Use 'add' to join waitlist, 'remove' to leave, 'check_position' to see current position, 'process_next' to enroll next waitlisted student.",
+    "output_details": {
+      "action_result": {
+        "type": "string",
+        "description": "Result of the waitlist action performed"
+      },
+      "waitlist_position": {
+        "type": "integer",
+        "description": "Current position on the waitlist (if applicable)"
+      },
+      "total_waitlist_size": {
+        "type": "integer",
+        "description": "Total number of students on waitlist"
+      },
+      "estimated_enrollment_date": {
+        "type": "string",
+        "description": "Estimated date when enrollment might be available"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Processor",
+    "tool_description": "Processes tuition and fee payments for course enrollment, handling various payment methods and generating transaction records.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "course_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of course codes for payment calculation"
+      },
+      "academic_term": {
+        "type": "string",
+        "required": true,
+        "description": "Academic term for enrollment"
+      },
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method: credit_card, bank_transfer, financial_aid, payment_plan"
+      },
+      "payment_amount": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Specific payment amount (if different from calculated total)"
+      },
+      "payment_reference": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "External payment reference number"
+      },
+      "apply_discounts": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to apply eligible student discounts"
+      },
+      "installment_plan": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to set up payment installment plan"
+      },
+      "due_date": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Payment due date in ISO 8601 format",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid payment method: Use one of [credit_card, bank_transfer, financial_aid, payment_plan].",
+      "Payment amount mismatch: Provided payment amount does not match calculated tuition and fees.",
+      "Financial aid insufficient: Student's financial aid does not cover the enrollment costs.",
+      "Payment processing failed: External payment processor returned an error.",
+      "Invalid due date: Due date must be in the future and in ISO 8601 format.",
+      "Student not eligible for installment plan: Student does not meet criteria for payment plan enrollment."
+    ],
+    "usage": "Provide student_id, course_codes, academic_term, and payment_method. Optionally specify payment_amount, payment_reference, and payment options. The tool calculates fees, processes payment, and returns transaction details.",
+    "output_details": {
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique identifier for the payment transaction"
+      },
+      "payment_status": {
+        "type": "string",
+        "description": "Status of payment processing (completed, pending, failed)"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Total amount charged for enrollment"
+      },
+      "tuition_amount": {
+        "type": "number",
+        "description": "Tuition portion of the total amount"
+      },
+      "fees_amount": {
+        "type": "number",
+        "description": "Fees portion of the total amount"
+      },
+      "discounts_applied": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of discounts applied to the payment"
+      },
+      "payment_due_date": {
+        "type": "string",
+        "description": "Date when payment is due",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Enrollment Record Creator",
+    "tool_description": "Creates official enrollment records in the student information system after successful validation and payment.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "course_code": {
+        "type": "string",
+        "required": true,
+        "description": "Course identifier for enrollment"
+      },
+      "academic_term": {
+        "type": "string",
+        "required": true,
+        "description": "Academic term for enrollment"
+      },
+      "enrollment_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of enrollment in ISO 8601 format",
+        "format": "date-time"
+      },
+      "enrollment_status": {
+        "type": "string",
+        "required": false,
+        "default": "enrolled",
+        "description": "Initial enrollment status: enrolled, audit, pass_fail"
+      },
+      "transaction_id": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Associated payment transaction identifier"
+      }
+    },
+    "error_messages": [
+      "Duplicate enrollment: Student is already enrolled in this course for the specified term.",
+      "Invalid enrollment status: Use one of [enrolled, audit, pass_fail].",
+      "Invalid enrollment date: Date must be in ISO 8601 format and within the enrollment period.",
+      "Course capacity exceeded: Cannot create enrollment record when course is at maximum capacity.",
+      "Prerequisites not verified: Cannot create enrollment without prerequisite validation."
+    ],
+    "usage": "Provide student_id, course_code, academic_term, and enrollment_date to create an official enrollment record. Optionally specify enrollment_status and transaction_id for complete record keeping.",
+    "output_details": {
+      "enrollment_id": {
+        "type": "string",
+        "description": "Unique identifier for the enrollment record"
+      },
+      "student_name": {
+        "type": "string",
+        "description": "Full name of the enrolled student"
+      },
+      "course_title": {
+        "type": "string",
+        "description": "Full title of the enrolled course"
+      },
+      "enrollment_status": {
+        "type": "string",
+        "description": "Current status of the enrollment"
+      },
+      "credits": {
+        "type": "integer",
+        "description": "Number of credit hours for the course"
+      },
+      "created_timestamp": {
+        "type": "string",
+        "description": "Timestamp when enrollment record was created",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Conflict Detector",
+    "tool_description": "Analyzes student schedules to detect time conflicts between enrolled courses and new enrollment requests.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "new_course_code": {
+        "type": "string",
+        "required": true,
+        "description": "Course code for potential new enrollment"
+      },
+      "academic_term": {
+        "type": "string",
+        "required": true,
+        "description": "Academic term to check for conflicts"
+      }
+    },
+    "error_messages": [
+      "Student schedule not found: Unable to retrieve current schedule for the student.",
+      "Course schedule not available: Time schedule information is not available for the specified course.",
+      "Invalid academic term: Term must be properly formatted (e.g., Fall2024, Spring2025).",
+      "Student not enrolled in term: Student has no existing enrollments for the specified academic term."
+    ],
+    "usage": "Provide student_id, new_course_code, and academic_term to check for scheduling conflicts between existing enrollments and the proposed new course.",
+    "output_details": {
+      "has_conflicts": {
+        "type": "boolean",
+        "description": "Whether scheduling conflicts were detected"
+      },
+      "conflicting_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of currently enrolled courses with time conflicts"
+      },
+      "conflict_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed descriptions of each scheduling conflict"
+      },
+      "total_credit_hours": {
+        "type": "integer",
+        "description": "Total credit hours including the new course"
+      },
+      "schedule_summary": {
+        "type": "string",
+        "description": "Summary of the student's weekly schedule with the new course"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Sender",
+    "tool_description": "Sends enrollment-related notifications to students via email, SMS, or in-app messaging.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification: enrollment_confirmation, waitlist_update, payment_reminder, deadline_alert"
+      },
+      "course_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of course codes related to the notification"
+      },
+      "delivery_method": {
+        "type": "string",
+        "required": false,
+        "default": "email",
+        "description": "Delivery method: email, sms, in_app, all"
+      },
+      "custom_message": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Custom message content to include in notification"
+      }
+    },
+    "error_messages": [
+      "Invalid notification type: Use one of [enrollment_confirmation, waitlist_update, payment_reminder, deadline_alert].",
+      "Invalid delivery method: Use one of [email, sms, in_app, all].",
+      "Student contact information not found: Unable to retrieve contact details for notification delivery.",
+      "Notification delivery failed: External service failed to deliver the notification.",
+      "Message too long: Custom message exceeds maximum character limit."
+    ],
+    "usage": "Provide student_id, notification_type, and course_codes to send appropriate notifications. Optionally specify delivery_method and custom_message for personalized communications.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent notification"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Status of notification delivery (sent, failed, pending)"
+      },
+      "delivery_methods_used": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of delivery methods successfully used"
+      },
+      "sent_timestamp": {
+        "type": "string",
+        "description": "Timestamp when notification was sent",
+        "format": "date-time"
+      },
+      "recipient_info": {
+        "type": "string",
+        "description": "Anonymized recipient contact information"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Registration Report Generator",
+    "tool_description": "Generates comprehensive enrollment and registration reports for administrators and academic departments.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: enrollment_summary, waitlist_report, payment_status, course_capacity, student_schedule"
+      },
+      "academic_term": {
+        "type": "string",
+        "required": true,
+        "description": "Academic term for report generation"
+      },
+      "department_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Filter by specific academic departments"
+      },
+      "course_level_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Filter by course levels (e.g., 100, 200, 300, 400)"
+      },
+      "student_status_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Filter by student status (undergraduate, graduate, continuing_education)"
+      },
+      "include_waitlist": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include waitlist information in reports"
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Start date for enrollment activity filtering",
+        "format": "date-time"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "End date for enrollment activity filtering",
+        "format": "date-time"
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "default": "summary",
+        "description": "Report output format: summary, detailed, statistics_only"
+      }
+    },
+    "error_messages": [
+      "Invalid report type: Use one of [enrollment_summary, waitlist_report, payment_status, course_capacity, student_schedule].",
+      "Invalid date range: Start date must be before end date, both in ISO 8601 format.",
+      "Invalid output format: Use one of [summary, detailed, statistics_only].",
+      "No data available: No enrollment data found for the specified filters and academic term.",
+      "Department filter invalid: One or more department codes are not recognized.",
+      "Course level filter invalid: Use numeric course levels (e.g., 100, 200, 300, 400)."
+    ],
+    "usage": "Specify report_type and academic_term to generate enrollment reports. Use filters to narrow scope by department, course level, or student status. Set date ranges to analyze enrollment activity within specific periods.",
+    "output_details": {
+      "report_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated report"
+      },
+      "total_enrollments": {
+        "type": "integer",
+        "description": "Total number of student enrollments"
+      },
+      "unique_students": {
+        "type": "integer",
+        "description": "Number of unique students enrolled"
+      },
+      "courses_analyzed": {
+        "type": "integer",
+        "description": "Number of courses included in the report"
+      },
+      "report_summary": {
+        "type": "string",
+        "description": "Executive summary of key findings"
+      },
+      "generated_timestamp": {
+        "type": "string",
+        "description": "Timestamp when report was generated",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bulk Enrollment Processor",
+    "tool_description": "Processes multiple student enrollment requests simultaneously with batch validation and error handling.",
+    "parameters": {
+      "enrollment_requests": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of enrollment request identifiers to process"
+      },
+      "academic_term": {
+        "type": "string",
+        "required": true,
+        "description": "Academic term for all enrollment requests"
+      },
+      "processing_mode": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Processing mode: standard, fast_track, validation_only"
+      },
+      "stop_on_error": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to stop processing when encountering errors"
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "default": 50,
+        "description": "Number of enrollments to process in each batch"
+      }
+    },
+    "error_messages": [
+      "Invalid processing mode: Use one of [standard, fast_track, validation_only].",
+      "Batch size too large: Maximum batch size is 100 enrollment requests.",
+      "Empty enrollment requests: At least one enrollment request must be provided.",
+      "Academic term mismatch: All enrollment requests must be for the same academic term.",
+      "Processing capacity exceeded: Too many concurrent bulk processing operations."
+    ],
+    "usage": "Provide an array of enrollment_requests and academic_term for batch processing. Choose processing_mode based on urgency and validation needs. Set stop_on_error to control error handling behavior.",
+    "output_details": {
+      "batch_id": {
+        "type": "string",
+        "description": "Unique identifier for the bulk processing batch"
+      },
+      "total_processed": {
+        "type": "integer",
+        "description": "Total number of enrollment requests processed"
+      },
+      "successful_enrollments": {
+        "type": "integer",
+        "description": "Number of successful enrollments"
+      },
+      "failed_enrollments": {
+        "type": "integer",
+        "description": "Number of failed enrollment attempts"
+      },
+      "processing_duration": {
+        "type": "number",
+        "description": "Time taken to process the batch in seconds"
+      },
+      "error_summary": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Summary of errors encountered during processing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audit Trail Logger",
+    "tool_description": "Records all enrollment system activities for compliance, security, and troubleshooting purposes.",
+    "parameters": {
+      "activity_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of activity: enrollment, payment, waitlist, schedule_change, system_access"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the user performing the activity"
+      },
+      "affected_student_id": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Student ID affected by the activity (if applicable)"
+      },
+      "course_code": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Course code related to the activity (if applicable)"
+      },
+      "activity_details": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the activity performed"
+      },
+      "session_id": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "System session identifier"
+      },
+      "ip_address": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "IP address of the user performing the activity"
+      }
+    },
+    "error_messages": [
+      "Invalid activity type: Use one of [enrollment, payment, waitlist, schedule_change, system_access].",
+      "Activity details required: Provide a meaningful description of the activity performed.",
+      "User ID not found: The specified user_id is not recognized in the system.",
+      "Audit log storage failure: Unable to record the audit entry due to storage issues.",
+      "Invalid IP address format: Provide a valid IPv4 or IPv6 address."
+    ],
+    "usage": "Provide activity_type, user_id, and activity_details to log system activities. Include affected_student_

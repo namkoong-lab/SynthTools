@@ -1,0 +1,859 @@
+field_name: customer_support
+subfield: ticket_management
+task: Create and categorize new support tickets from multiple channels
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves handling multi-channel inputs, intelligent categorization, priority assessment, and routing workflows, with moderate complexity in data processing and decision logic. The task is **medium** difficulty due to the need for classification accuracy, channel integration, and coordination between intake, processing, and routing components.
+
+  **STEP 2 — Set a tool budget**
+
+  For medium difficulty, targeting **12 tools** to cover ticket intake, processing, categorization, priority assessment, routing, and management functions with appropriate granularity.
+
+  **STEP 3 — Tool names and dependencies**
+
+  1. **Channel Input Parser** - Consumes: raw channel data → Produces: standardized ticket data
+  2. **Ticket Creator** - Consumes: parsed ticket data → Produces: ticket ID and basic structure
+  3. **Content Analyzer** - Consumes: ticket content → Produces: extracted keywords and entities
+  4. **Category Classifier** - Consumes: analyzed content → Produces: category assignments
+  5. **Priority Assessor** - Consumes: ticket data and category → Produces: priority level
+  6. **Urgency Detector** - Consumes: ticket content → Produces: urgency indicators
+  7. **Customer History Lookup** - Consumes: customer ID → Produces: historical context
+  8. **Duplicate Detector** - Consumes: ticket content → Produces: potential duplicate matches
+  9. **Team Router** - Consumes: category and priority → Produces: team assignment
+  10. **Agent Matcher** - Consumes: ticket details and team → Produces: specific agent assignment
+  11. **SLA Calculator** - Consumes: priority and category → Produces: response time targets
+  12. **Ticket Validator** - Consumes: complete ticket data → Produces: validation status
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  1. **Basic ticket creation**: Channel Input Parser → Ticket Creator → Ticket Validator
+  2. **Quick categorization**: Content Analyzer → Category Classifier → Priority Assessor
+
+  **Medium plans:**
+  1. **Standard processing**: Channel Input Parser → Ticket Creator → Content Analyzer → Category Classifier → Priority Assessor → Team Router → SLA Calculator
+  2. **Enhanced intake**: Channel Input Parser → Ticket Creator → Customer History Lookup → Duplicate Detector → Category Classifier → Agent Matcher
+
+  **Complex plans:**
+  1. **Full workflow**: Channel Input Parser → Ticket Creator → Content Analyzer → Category Classifier → Priority Assessor → Urgency Detector → Customer History Lookup → Duplicate Detector → Team Router → Agent Matcher → SLA Calculator → Ticket Validator
+  2. **Quality-focused**: Channel Input Parser → Content Analyzer → Duplicate Detector → Customer History Lookup → Category Classifier → Priority Assessor → Urgency Detector → Team Router → Agent Matcher → SLA Calculator → Ticket Validator
+
+  **STEP 5 — Tools**
+
+  ```json
+  {
+    "tool_name": "Channel Input Parser",
+    "tool_description": "Parses incoming support requests from multiple channels (email, chat, phone, web form) and standardizes them into a unified ticket format.",
+    "parameters": {
+      "channel_type": {
+        "type": "string",
+        "required": true,
+        "description": "The source channel of the request"
+      },
+      "raw_content": {
+        "type": "string",
+        "required": true,
+        "description": "The raw message or request content"
+      },
+      "sender_identifier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier (email, phone, user ID, etc.)"
+      },
+      "timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "When the request was received",
+        "format": "date-time"
+      },
+      "metadata": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Additional channel-specific metadata",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Unsupported channel type: Use one of [email, chat, phone, web_form, social_media].",
+      "Invalid timestamp format: Provide timestamp in ISO 8601 date-time format.",
+      "Empty content: raw_content cannot be empty or null.",
+      "Invalid sender identifier: sender_identifier must be a valid email, phone, or user ID format."
+    ],
+    "usage": "Provide the channel_type, raw_content, sender_identifier, and timestamp. Optionally include metadata array. The tool returns standardized ticket data ready for processing.",
+    "output_details": {
+      "customer_id": {
+        "type": "string",
+        "description": "Standardized customer identifier"
+      },
+      "subject": {
+        "type": "string",
+        "description": "Extracted or generated ticket subject"
+      },
+      "description": {
+        "type": "string",
+        "description": "Cleaned and formatted ticket description"
+      },
+      "channel": {
+        "type": "string",
+        "description": "Source channel type"
+      },
+      "received_at": {
+        "type": "string",
+        "description": "Standardized timestamp"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ticket Creator",
+    "tool_description": "Creates a new support ticket with unique ID and initializes basic ticket structure and status tracking.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Standardized customer identifier"
+      },
+      "subject": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket subject line"
+      },
+      "description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed ticket description"
+      },
+      "channel": {
+        "type": "string",
+        "required": true,
+        "description": "Source channel of the ticket"
+      }
+    },
+    "error_messages": [
+      "Invalid customer ID: customer_id must be a non-empty string.",
+      "Missing subject: subject cannot be empty or null.",
+      "Missing description: description cannot be empty or null.",
+      "Invalid channel: channel must be a recognized channel type."
+    ],
+    "usage": "Provide customer_id, subject, description, and channel to create a new ticket. Returns ticket ID and initial structure.",
+    "output_details": {
+      "ticket_id": {
+        "type": "string",
+        "description": "Unique ticket identifier"
+      },
+      "status": {
+        "type": "string",
+        "description": "Initial ticket status"
+      },
+      "created_at": {
+        "type": "string",
+        "description": "Ticket creation timestamp"
+      },
+      "customer_id": {
+        "type": "string",
+        "description": "Associated customer ID"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Content Analyzer",
+    "tool_description": "Analyzes ticket content to extract keywords, entities, sentiment, and technical indicators for categorization and routing decisions.",
+    "parameters": {
+      "ticket_content": {
+        "type": "string",
+        "required": true,
+        "description": "Combined subject and description text"
+      },
+      "extract_keywords": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract keywords",
+        "default": true
+      },
+      "extract_entities": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract named entities",
+        "default": true
+      },
+      "analyze_sentiment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform sentiment analysis",
+        "default": true
+      },
+      "detect_technical_terms": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to identify technical terminology",
+        "default": true
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Content language code",
+        "default": "en"
+      }
+    },
+    "error_messages": [
+      "Empty content: ticket_content cannot be empty or null.",
+      "Unsupported language: Use a valid ISO language code.",
+      "Content too long: ticket_content must be under 10,000 characters.",
+      "Invalid boolean parameters: extract_keywords, extract_entities, analyze_sentiment, and detect_technical_terms must be boolean values."
+    ],
+    "usage": "Provide ticket_content and optionally configure analysis options. Returns extracted keywords, entities, sentiment, and technical indicators.",
+    "output_details": {
+      "keywords": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Extracted important keywords"
+      },
+      "entities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Identified named entities"
+      },
+      "sentiment_score": {
+        "type": "number",
+        "description": "Sentiment score from -1 to 1"
+      },
+      "technical_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detected technical terms or product names"
+      },
+      "urgency_signals": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Words/phrases indicating urgency"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Category Classifier",
+    "tool_description": "Classifies tickets into predefined categories and subcategories based on content analysis and business rules.",
+    "parameters": {
+      "keywords": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Keywords extracted from ticket content"
+      },
+      "entities": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Named entities from content analysis"
+      },
+      "technical_indicators": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Technical terms detected in content"
+      },
+      "subject": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket subject line"
+      },
+      "channel": {
+        "type": "string",
+        "required": true,
+        "description": "Source channel of the ticket"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence score for classification",
+        "default": 0.7
+      }
+    },
+    "error_messages": [
+      "Empty input arrays: keywords, entities, and technical_indicators cannot all be empty.",
+      "Invalid confidence threshold: Must be between 0.1 and 1.0.",
+      "Missing subject: subject cannot be empty or null.",
+      "Unknown channel: channel must be a recognized channel type.",
+      "Classification failed: Unable to classify with sufficient confidence."
+    ],
+    "usage": "Provide keywords, entities, technical_indicators, subject, and channel from content analysis. Optionally set confidence_threshold. Returns primary and secondary categories with confidence scores.",
+    "output_details": {
+      "primary_category": {
+        "type": "string",
+        "description": "Main category assignment"
+      },
+      "subcategory": {
+        "type": "string",
+        "description": "Specific subcategory"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Classification confidence (0-1)"
+      },
+      "alternative_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Other possible category matches"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Priority Assessor",
+    "tool_description": "Determines ticket priority level based on category, customer tier, impact assessment, and business rules.",
+    "parameters": {
+      "category": {
+        "type": "string",
+        "required": true,
+        "description": "Primary ticket category"
+      },
+      "subcategory": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket subcategory"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier"
+      },
+      "sentiment_score": {
+        "type": "number",
+        "required": true,
+        "description": "Customer sentiment score (-1 to 1)"
+      },
+      "urgency_signals": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Detected urgency indicators"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Customer service tier",
+        "default": "standard"
+      },
+      "business_hours": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether received during business hours",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid category: category must be a recognized category type.",
+      "Invalid sentiment score: Must be between -1 and 1.",
+      "Unknown customer tier: Use one of [premium, standard, basic].",
+      "Empty customer ID: customer_id cannot be empty or null.",
+      "Invalid business hours flag: business_hours must be boolean."
+    ],
+    "usage": "Provide category, subcategory, customer_id, sentiment_score, and urgency_signals. Optionally specify customer_tier and business_hours. Returns calculated priority level and reasoning.",
+    "output_details": {
+      "priority_level": {
+        "type": "string",
+        "description": "Assigned priority (critical, high, medium, low)"
+      },
+      "priority_score": {
+        "type": "integer",
+        "description": "Numeric priority score (1-10)"
+      },
+      "reasoning": {
+        "type": "string",
+        "description": "Explanation for priority assignment"
+      },
+      "escalation_required": {
+        "type": "boolean",
+        "description": "Whether immediate escalation is needed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Urgency Detector",
+    "tool_description": "Analyzes ticket content for urgency indicators, time-sensitive language, and escalation triggers.",
+    "parameters": {
+      "ticket_content": {
+        "type": "string",
+        "required": true,
+        "description": "Full ticket content to analyze"
+      },
+      "customer_history": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Recent ticket subjects for context",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty content: ticket_content cannot be empty or null.",
+      "Content too long: ticket_content must be under 10,000 characters."
+    ],
+    "usage": "Provide ticket_content and optionally customer_history for context. Returns urgency assessment and specific indicators found.",
+    "output_details": {
+      "urgency_level": {
+        "type": "string",
+        "description": "Detected urgency level (immediate, high, normal, low)"
+      },
+      "urgency_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Specific phrases or patterns indicating urgency"
+      },
+      "escalation_triggers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Words/phrases requiring immediate escalation"
+      },
+      "time_sensitivity": {
+        "type": "boolean",
+        "description": "Whether ticket contains time-sensitive issues"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer History Lookup",
+    "tool_description": "Retrieves customer's support history, previous tickets, account status, and service tier information for context.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier to lookup"
+      },
+      "include_resolved": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include resolved tickets",
+        "default": true
+      },
+      "days_back": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days of history to retrieve",
+        "default": 90
+      },
+      "include_account_info": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include account status information",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Customer not found: No customer record exists for the provided customer_id.",
+      "Invalid customer ID: customer_id cannot be empty or null.",
+      "Invalid days_back: Must be between 1 and 365.",
+      "Access denied: Insufficient permissions to access customer data."
+    ],
+    "usage": "Provide customer_id and optionally configure what historical data to include. Returns customer context information for ticket processing.",
+    "output_details": {
+      "customer_tier": {
+        "type": "string",
+        "description": "Customer service tier level"
+      },
+      "account_status": {
+        "type": "string",
+        "description": "Current account status"
+      },
+      "recent_tickets": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recent ticket subjects and IDs"
+      },
+      "satisfaction_score": {
+        "type": "number",
+        "description": "Average customer satisfaction rating"
+      },
+      "total_tickets": {
+        "type": "integer",
+        "description": "Total number of historical tickets"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Duplicate Detector",
+    "tool_description": "Identifies potential duplicate tickets by comparing content, customer, timing, and similarity scores with existing tickets.",
+    "parameters": {
+      "ticket_subject": {
+        "type": "string",
+        "required": true,
+        "description": "Subject line of the new ticket"
+      },
+      "ticket_description": {
+        "type": "string",
+        "required": true,
+        "description": "Description content of the new ticket"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer who submitted the ticket"
+      },
+      "category": {
+        "type": "string",
+        "required": true,
+        "description": "Assigned ticket category"
+      },
+      "keywords": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Extracted keywords from ticket content"
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum similarity score for duplicate detection",
+        "default": 0.8
+      },
+      "time_window_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Time window to search for duplicates",
+        "default": 72
+      },
+      "same_customer_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to only check tickets from same customer",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Empty subject: ticket_subject cannot be empty or null.",
+      "Empty description: ticket_description cannot be empty or null.",
+      "Invalid customer ID: customer_id cannot be empty or null.",
+      "Invalid similarity threshold: Must be between 0.1 and 1.0.",
+      "Invalid time window: time_window_hours must be between 1 and 720 (30 days).",
+      "Search failed: Unable to perform duplicate search due to system error."
+    ],
+    "usage": "Provide ticket_subject, ticket_description, customer_id, category, and keywords. Optionally configure similarity_threshold, time_window_hours, and same_customer_only. Returns potential duplicate matches.",
+    "output_details": {
+      "is_duplicate": {
+        "type": "boolean",
+        "description": "Whether potential duplicates were found"
+      },
+      "duplicate_tickets": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "IDs of potential duplicate tickets"
+      },
+      "similarity_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Similarity scores for each potential duplicate"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Recommended action for handling duplicates"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Team Router",
+    "tool_description": "Routes tickets to appropriate support teams based on category, priority, expertise requirements, and team capacity.",
+    "parameters": {
+      "category": {
+        "type": "string",
+        "required": true,
+        "description": "Primary ticket category"
+      },
+      "subcategory": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket subcategory"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": true,
+        "description": "Assigned priority level"
+      },
+      "technical_indicators": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Technical terms requiring specialized knowledge"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service tier"
+      },
+      "escalation_required": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether immediate escalation is needed"
+      }
+    },
+    "error_messages": [
+      "Invalid category: category must be a recognized category type.",
+      "Invalid priority level: Use one of [critical, high, medium, low].",
+      "Invalid customer tier: Use one of [premium, standard, basic].",
+      "No available team: No team currently available for this ticket type.",
+      "Routing failed: Unable to determine appropriate team assignment."
+    ],
+    "usage": "Provide category, subcategory, priority_level, technical_indicators, customer_tier, and escalation_required. Returns assigned team and routing reasoning.",
+    "output_details": {
+      "assigned_team": {
+        "type": "string",
+        "description": "Name of the assigned support team"
+      },
+      "team_id": {
+        "type": "string",
+        "description": "Unique identifier for the team"
+      },
+      "routing_reason": {
+        "type": "string",
+        "description": "Explanation for team assignment"
+      },
+      "escalation_path": {
+        "type": "string",
+        "description": "Next escalation level if needed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Agent Matcher",
+    "tool_description": "Matches tickets to specific agents within a team based on expertise, availability, workload, and customer preferences.",
+    "parameters": {
+      "team_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the assigned team"
+      },
+      "category": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket category"
+      },
+      "technical_indicators": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Required technical expertise"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket priority level"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier"
+      },
+      "language_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Customer's preferred language",
+        "default": "en"
+      },
+      "previous_agent": {
+        "type": "string",
+        "required": false,
+        "description": "ID of agent who handled previous tickets",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid team ID: team_id must be a valid team identifier.",
+      "Team not available: No agents currently available in the specified team.",
+      "No matching expertise: No agents with required technical skills available.",
+      "Invalid priority level: Use one of [critical, high, medium, low].",
+      "Matching failed: Unable to find suitable agent assignment."
+    ],
+    "usage": "Provide team_id, category, technical_indicators, priority_level, and customer_id. Optionally specify language_preference and previous_agent. Returns matched agent assignment.",
+    "output_details": {
+      "assigned_agent": {
+        "type": "string",
+        "description": "Name of the assigned agent"
+      },
+      "agent_id": {
+        "type": "string",
+        "description": "Unique identifier for the agent"
+      },
+      "match_score": {
+        "type": "number",
+        "description": "Quality score of the agent match"
+      },
+      "assignment_reason": {
+        "type": "string",
+        "description": "Explanation for agent assignment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SLA Calculator",
+    "tool_description": "Calculates Service Level Agreement targets, response times, and resolution deadlines based on priority, category, and customer tier.",
+    "parameters": {
+      "priority_level": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket priority level"
+      },
+      "category": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket category"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer service tier"
+      },
+      "created_at": {
+        "type": "string",
+        "required": true,
+        "description": "Ticket creation timestamp",
+        "format": "date-time"
+      },
+      "business_hours_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether SLA applies only during business hours",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid priority level: Use one of [critical, high, medium, low].",
+      "Invalid customer tier: Use one of [premium, standard, basic].",
+      "Invalid timestamp: created_at must be in ISO 8601 date-time format.",
+      "Unknown category: category must be a recognized category type.",
+      "SLA calculation failed: Unable to calculate SLA targets due to configuration error."
+    ],
+    "usage": "Provide priority_level, category, customer_tier, and created_at timestamp. Optionally specify business_hours_only. Returns calculated SLA targets and deadlines.",
+    "output_details": {
+      "first_response_deadline": {
+        "type": "string",
+        "description": "Deadline for first response"
+      },
+      "resolution_deadline": {
+        "type": "string",
+        "description": "Target resolution deadline"
+      },
+      "response_time_minutes": {
+        "type": "integer",
+        "description": "Target first response time in minutes"
+      },
+      "resolution_time_hours": {
+        "type": "integer",
+        "description": "Target resolution time in hours"
+      },
+      "sla_tier": {
+        "type": "string",
+        "description": "Applied SLA tier name"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ticket Validator",
+    "tool_description": "Validates completed ticket processing, ensures all required fields are populated, and checks for processing errors or missing steps.",
+    "parameters": {
+      "ticket_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique ticket identifier to validate"
+      },
+      "category": {
+        "type": "string",
+        "required": true,
+        "description": "Assigned category"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": true,
+        "description": "Assigned priority level"
+      },
+      "assigned_team": {
+        "type": "string",
+        "required": true,
+        "description": "Assigned support team"
+      },
+      "assigned_agent": {
+        "type": "string",
+        "required": true,
+        "description": "Assigned agent"
+      },
+      "sla_targets": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Calculated SLA deadlines"
+      },
+      "check_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether duplicate check was performed",
+        "default": true
+      },
+      "check_routing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether routing validation should be performed",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid ticket ID: ticket_id cannot be empty or null.",
+      "Missing category: category assignment is required.",
+      "Missing priority: priority_level assignment is required.",
+      "Missing team assignment: assigned_team cannot be empty.",
+      "Missing agent assignment: assigned_agent cannot be empty.",
+      "Missing SLA targets: sla_targets array cannot be empty.",
+      "Validation failed: Ticket processing appears incomplete or contains errors."
+    ],
+    "usage": "Provide ticket_id and all assigned values from processing pipeline. Optionally configure validation checks. Returns validation status and any issues found.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether ticket passed all validation checks"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation errors found"
+      },
+      "missing_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Required fields that are missing or invalid"
+      },
+      "status": {
+        "type": "string",
+        "description": "Final ticket status after validation"
+      }
+    }
+  }
+  ```

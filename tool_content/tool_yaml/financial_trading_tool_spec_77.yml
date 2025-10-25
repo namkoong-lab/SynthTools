@@ -1,0 +1,852 @@
+field_name: financial_trading
+subfield: trade_execution_and_order_management
+task: Real-time order status monitoring and execution tracking
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task is of medium difficulty. It involves real-time monitoring of order states across multiple exchanges/brokers, handling various order types and execution scenarios, managing latency-sensitive data flows, and coordinating between multiple systems. The task requires handling time-critical information where delays or errors can have significant financial impact, but the core workflows are well-established in trading systems.
+
+  STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'm targeting 12 tools to cover the various aspects of real-time order monitoring, execution tracking, alert management, and reporting workflows.
+
+  STEP 3 — List all tool names and dependencies
+
+  1. **Order Status Fetcher** - Consumes: order IDs, broker credentials → Produces: current order status data
+  2. **Execution Event Logger** - Consumes: execution data, timestamps → Produces: logged execution records
+  3. **Fill Notification Parser** - Consumes: raw broker messages → Produces: structured fill data
+  4. **Order Latency Analyzer** - Consumes: order timestamps, execution data → Produces: latency metrics
+  5. **Position Reconciler** - Consumes: order fills, current positions → Produces: reconciled position data
+  6. **Alert Rule Engine** - Consumes: order status, thresholds → Produces: alert notifications
+  7. **Multi-Broker Status Aggregator** - Consumes: multiple broker feeds → Produces: unified status view
+  8. **Order Performance Calculator** - Consumes: execution data, benchmarks → Produces: performance metrics
+  9. **Risk Exposure Monitor** - Consumes: open orders, positions → Produces: risk exposure data
+  10. **Execution Quality Analyzer** - Consumes: fills, market data → Produces: execution quality scores
+  11. **Order History Tracker** - Consumes: order events → Produces: complete order lifecycle data
+  12. **Real-time Dashboard Generator** - Consumes: aggregated data → Produces: dashboard summaries
+
+  STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. Basic order tracking: Order Status Fetcher → Execution Event Logger → Order History Tracker
+  2. Fill monitoring: Fill Notification Parser → Position Reconciler → Alert Rule Engine
+
+  **Medium Plans:**
+  1. Performance monitoring: Order Status Fetcher → Order Performance Calculator → Execution Quality Analyzer → Real-time Dashboard Generator
+  2. Risk monitoring: Multi-Broker Status Aggregator → Risk Exposure Monitor → Alert Rule Engine → Real-time Dashboard Generator
+
+  **Complex Plans:**
+  1. Complete execution analysis: Order Status Fetcher → Fill Notification Parser → Order Latency Analyzer → Order Performance Calculator → Execution Quality Analyzer → Position Reconciler → Real-time Dashboard Generator
+  2. Multi-broker risk management: Multi-Broker Status Aggregator → Order Status Fetcher → Risk Exposure Monitor → Position Reconciler → Alert Rule Engine → Execution Event Logger → Order History Tracker
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Order Status Fetcher",
+    "tool_description": "Retrieves current status information for one or more orders from specified brokers or exchanges, providing real-time order state data.",
+    "parameters": {
+      "order_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of order IDs to fetch status for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "broker_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the broker or exchange (e.g., 'interactive_brokers', 'alpaca', 'binance')"
+      },
+      "include_fills": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include detailed fill information",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid broker name: Broker name must be one of supported brokers (interactive_brokers, alpaca, binance, etc.)",
+      "Order ID not found: One or more order IDs do not exist in the broker system",
+      "Authentication failed: Invalid or expired broker API credentials",
+      "Rate limit exceeded: Too many requests to broker API, reduce frequency",
+      "Network timeout: Unable to connect to broker API within timeout period"
+    ],
+    "usage": "Provide order_ids array and broker_name to fetch current order status. Set include_fills to true for detailed execution information.",
+    "output_details": {
+      "orders": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of order status summaries"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp when status was fetched"
+      },
+      "broker": {
+        "type": "string",
+        "description": "Name of the broker that provided the data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Execution Event Logger",
+    "tool_description": "Logs execution events and order state changes to create an audit trail for compliance and analysis purposes.",
+    "parameters": {
+      "event_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of event (order_submitted, partially_filled, filled, cancelled, rejected)"
+      },
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the order"
+      },
+      "timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Event timestamp in ISO 8601 format",
+        "format": "date-time"
+      },
+      "details": {
+        "type": "string",
+        "required": false,
+        "description": "Additional event details or metadata",
+        "default": "None"
+      },
+      "venue": {
+        "type": "string",
+        "required": false,
+        "description": "Execution venue or exchange",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid event type: Event type must be one of (order_submitted, partially_filled, filled, cancelled, rejected)",
+      "Invalid timestamp format: Timestamp must be in ISO 8601 format",
+      "Database connection failed: Unable to connect to logging database",
+      "Duplicate event: Event with same order_id and timestamp already exists"
+    ],
+    "usage": "Call this tool whenever an order event occurs to maintain a complete audit trail. Provide event_type, order_id, and timestamp at minimum.",
+    "output_details": {
+      "log_id": {
+        "type": "string",
+        "description": "Unique identifier for the logged event"
+      },
+      "status": {
+        "type": "string",
+        "description": "Logging operation status (success/failed)"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp when event was logged"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fill Notification Parser",
+    "tool_description": "Parses raw broker fill notifications and execution messages into structured data format for downstream processing.",
+    "parameters": {
+      "raw_message": {
+        "type": "string",
+        "required": true,
+        "description": "Raw fill notification message from broker"
+      },
+      "broker_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format type of the message (fix_protocol, json, xml, proprietary)"
+      },
+      "message_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Timestamp when message was received",
+        "format": "date-time"
+      },
+      "validate_fields": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate parsed fields for completeness",
+        "default": true
+      },
+      "extract_fees": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract commission and fee information",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid message format: Raw message does not match specified broker_format",
+      "Parsing failed: Unable to extract required fields from raw message",
+      "Missing required fields: Parsed message lacks essential execution details",
+      "Validation failed: Extracted values fail validation checks (negative quantities, invalid prices)",
+      "Unsupported broker format: broker_format must be one of (fix_protocol, json, xml, proprietary)"
+    ],
+    "usage": "Provide raw_message and broker_format to parse fill notifications. Enable validate_fields and extract_fees for comprehensive parsing.",
+    "output_details": {
+      "order_id": {
+        "type": "string",
+        "description": "Parsed order identifier"
+      },
+      "symbol": {
+        "type": "string",
+        "description": "Trading symbol"
+      },
+      "quantity": {
+        "type": "number",
+        "description": "Filled quantity"
+      },
+      "price": {
+        "type": "number",
+        "description": "Execution price"
+      },
+      "execution_time": {
+        "type": "string",
+        "description": "Execution timestamp"
+      },
+      "fees": {
+        "type": "number",
+        "description": "Total fees and commissions"
+      },
+      "venue": {
+        "type": "string",
+        "description": "Execution venue"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order Latency Analyzer",
+    "tool_description": "Analyzes timing delays between order submission, acknowledgment, and execution to measure system performance and identify bottlenecks.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order identifier to analyze"
+      },
+      "submission_time": {
+        "type": "string",
+        "required": true,
+        "description": "When order was submitted",
+        "format": "date-time"
+      },
+      "ack_time": {
+        "type": "string",
+        "required": true,
+        "description": "When order acknowledgment was received",
+        "format": "date-time"
+      },
+      "first_fill_time": {
+        "type": "string",
+        "required": false,
+        "description": "Time of first fill",
+        "format": "date-time",
+        "default": "None"
+      },
+      "complete_fill_time": {
+        "type": "string",
+        "required": false,
+        "description": "Time when order was completely filled",
+        "format": "date-time",
+        "default": "None"
+      },
+      "venue": {
+        "type": "string",
+        "required": false,
+        "description": "Execution venue",
+        "default": "None"
+      },
+      "order_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of order (market, limit, stop)",
+        "default": "market"
+      }
+    },
+    "error_messages": [
+      "Invalid timestamp sequence: submission_time must be before ack_time, which must be before fill times",
+      "Missing timestamp data: submission_time and ack_time are required for latency analysis",
+      "Invalid timestamp format: All timestamps must be in ISO 8601 format",
+      "Unrealistic latency values: Calculated latency exceeds reasonable thresholds (>10 seconds for ack, >1 minute for fills)"
+    ],
+    "usage": "Provide order_id, submission_time, and ack_time at minimum. Include fill times when available for complete latency analysis.",
+    "output_details": {
+      "ack_latency_ms": {
+        "type": "number",
+        "description": "Milliseconds from submission to acknowledgment"
+      },
+      "first_fill_latency_ms": {
+        "type": "number",
+        "description": "Milliseconds from submission to first fill"
+      },
+      "complete_fill_latency_ms": {
+        "type": "number",
+        "description": "Milliseconds from submission to complete fill"
+      },
+      "analysis_timestamp": {
+        "type": "string",
+        "description": "When analysis was performed"
+      },
+      "performance_rating": {
+        "type": "string",
+        "description": "Performance category (excellent, good, average, poor)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Position Reconciler",
+    "tool_description": "Reconciles position data by comparing broker-reported positions with calculated positions based on order fills and adjustments.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Trading account identifier"
+      },
+      "symbol": {
+        "type": "string",
+        "required": true,
+        "description": "Symbol to reconcile"
+      },
+      "broker_position": {
+        "type": "number",
+        "required": true,
+        "description": "Current position reported by broker"
+      },
+      "calculated_position": {
+        "type": "number",
+        "required": true,
+        "description": "Position calculated from order fills"
+      },
+      "tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Acceptable difference threshold",
+        "default": 0.01
+      },
+      "last_reconcile_time": {
+        "type": "string",
+        "required": false,
+        "description": "Timestamp of last reconciliation",
+        "format": "date-time",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Position mismatch exceeds tolerance: Difference between broker and calculated positions is greater than tolerance threshold",
+      "Invalid account ID: Account identifier not found in system",
+      "Invalid symbol: Trading symbol not recognized",
+      "Negative tolerance: Tolerance value must be non-negative",
+      "Data staleness: Position data is older than acceptable threshold"
+    ],
+    "usage": "Provide account_id, symbol, broker_position, and calculated_position. Set tolerance for acceptable differences.",
+    "output_details": {
+      "reconciliation_status": {
+        "type": "string",
+        "description": "Status (matched, discrepancy, error)"
+      },
+      "position_difference": {
+        "type": "number",
+        "description": "Difference between broker and calculated positions"
+      },
+      "percentage_difference": {
+        "type": "number",
+        "description": "Percentage difference"
+      },
+      "reconcile_timestamp": {
+        "type": "string",
+        "description": "When reconciliation was performed"
+      },
+      "action_required": {
+        "type": "boolean",
+        "description": "Whether manual intervention is needed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Rule Engine",
+    "tool_description": "Evaluates order and execution events against configured alert rules to generate notifications when thresholds are breached or conditions are met.",
+    "parameters": {
+      "rule_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the alert rule to evaluate"
+      },
+      "order_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing order status and execution data"
+      },
+      "threshold_value": {
+        "type": "number",
+        "required": true,
+        "description": "Threshold value for comparison"
+      },
+      "comparison_operator": {
+        "type": "string",
+        "required": true,
+        "description": "Comparison operator (greater_than, less_than, equals, not_equals)"
+      },
+      "metric_field": {
+        "type": "string",
+        "required": true,
+        "description": "Field name to evaluate (latency, fill_ratio, slippage, etc.)"
+      },
+      "alert_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Alert priority level (low, medium, high, critical)",
+        "default": "medium"
+      },
+      "notification_channels": {
+        "type": "array",
+        "required": false,
+        "description": "Channels for alert notifications",
+        "items": {"type": "string"},
+        "default": ["email"]
+      },
+      "suppress_duration_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Minutes to suppress duplicate alerts",
+        "default": 15
+      }
+    },
+    "error_messages": [
+      "Invalid rule name: Alert rule not found in system configuration",
+      "Invalid order data: order_data must be valid JSON string",
+      "Invalid comparison operator: Must be one of (greater_than, less_than, equals, not_equals)",
+      "Missing metric field: Specified metric_field not found in order data",
+      "Invalid alert priority: Priority must be one of (low, medium, high, critical)",
+      "Invalid notification channel: One or more channels not supported"
+    ],
+    "usage": "Specify rule_name, order_data, threshold_value, comparison_operator, and metric_field. Configure notification preferences and suppression settings.",
+    "output_details": {
+      "alert_triggered": {
+        "type": "boolean",
+        "description": "Whether alert condition was met"
+      },
+      "alert_id": {
+        "type": "string",
+        "description": "Unique identifier for generated alert"
+      },
+      "message": {
+        "type": "string",
+        "description": "Alert message content"
+      },
+      "evaluation_timestamp": {
+        "type": "string",
+        "description": "When rule was evaluated"
+      },
+      "suppressed": {
+        "type": "boolean",
+        "description": "Whether alert was suppressed due to recent similar alert"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi-Broker Status Aggregator",
+    "tool_description": "Aggregates order status information from multiple brokers and exchanges into a unified view for cross-broker order management.",
+    "parameters": {
+      "broker_configs": {
+        "type": "array",
+        "required": true,
+        "description": "List of broker configuration names",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "order_filter": {
+        "type": "string",
+        "required": false,
+        "description": "Filter criteria (active_only, all, today_only)",
+        "default": "active_only"
+      },
+      "include_historical": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include historical orders",
+        "default": false
+      },
+      "refresh_interval_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "How often to refresh data from brokers",
+        "default": 5
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Timeout for broker API calls",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Invalid broker configuration: One or more broker configs not found",
+      "Connection timeout: Unable to connect to one or more brokers within timeout",
+      "Authentication failed: Invalid credentials for one or more brokers",
+      "Invalid order filter: Filter must be one of (active_only, all, today_only)",
+      "Refresh interval too short: Minimum refresh interval is 1 second"
+    ],
+    "usage": "Provide broker_configs array with broker names. Set order_filter and timing parameters as needed for aggregation requirements.",
+    "output_details": {
+      "total_orders": {
+        "type": "integer",
+        "description": "Total number of orders across all brokers"
+      },
+      "active_orders": {
+        "type": "integer",
+        "description": "Number of active orders"
+      },
+      "broker_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Connection status for each broker"
+      },
+      "last_update": {
+        "type": "string",
+        "description": "Timestamp of last successful update"
+      },
+      "aggregated_data": {
+        "type": "string",
+        "description": "JSON string containing unified order data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order Performance Calculator",
+    "tool_description": "Calculates comprehensive performance metrics for executed orders including slippage, implementation shortfall, and TWAP/VWAP comparisons.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order identifier for performance calculation"
+      },
+      "benchmark_price": {
+        "type": "number",
+        "required": true,
+        "description": "Benchmark price for comparison (arrival price, mid-price, etc.)"
+      },
+      "average_fill_price": {
+        "type": "number",
+        "required": true,
+        "description": "Volume-weighted average fill price"
+      },
+      "total_quantity": {
+        "type": "number",
+        "required": true,
+        "description": "Total order quantity"
+      },
+      "market_vwap": {
+        "type": "number",
+        "required": false,
+        "description": "Market VWAP during execution period",
+        "default": "None"
+      },
+      "market_twap": {
+        "type": "number",
+        "required": false,
+        "description": "Market TWAP during execution period",
+        "default": "None"
+      },
+      "order_side": {
+        "type": "string",
+        "required": true,
+        "description": "Order side (buy or sell)"
+      },
+      "execution_duration_minutes": {
+        "type": "number",
+        "required": false,
+        "description": "Time taken to execute order",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid price values: All price values must be positive numbers",
+      "Invalid quantity: total_quantity must be positive",
+      "Invalid order side: order_side must be 'buy' or 'sell'",
+      "Unrealistic price difference: Calculated slippage exceeds reasonable bounds (>10%)",
+      "Missing benchmark data: benchmark_price is required for performance calculation"
+    ],
+    "usage": "Provide order_id, benchmark_price, average_fill_price, total_quantity, and order_side. Include market VWAP/TWAP data for comprehensive analysis.",
+    "output_details": {
+      "slippage_bps": {
+        "type": "number",
+        "description": "Slippage in basis points"
+      },
+      "implementation_shortfall_bps": {
+        "type": "number",
+        "description": "Implementation shortfall in basis points"
+      },
+      "vwap_performance_bps": {
+        "type": "number",
+        "description": "Performance vs market VWAP in basis points"
+      },
+      "twap_performance_bps": {
+        "type": "number",
+        "description": "Performance vs market TWAP in basis points"
+      },
+      "total_cost_usd": {
+        "type": "number",
+        "description": "Total implementation cost in USD"
+      },
+      "performance_grade": {
+        "type": "string",
+        "description": "Overall performance grade (A, B, C, D, F)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Risk Exposure Monitor",
+    "tool_description": "Monitors real-time risk exposure from open orders and positions, calculating potential maximum loss and concentration risks.",
+    "parameters": {
+      "account_id": {
+        "type": "string",
+        "required": true,
+        "description": "Trading account to monitor"
+      },
+      "portfolio_value": {
+        "type": "number",
+        "required": true,
+        "description": "Current portfolio value"
+      },
+      "open_orders": {
+        "type": "array",
+        "required": true,
+        "description": "List of open order IDs",
+        "items": {"type": "string"},
+        "minItems": 0,
+        "maxItems": 1000
+      },
+      "risk_limits": {
+        "type": "array",
+        "required": true,
+        "description": "Risk limit values (max position size, sector concentration, etc.)",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "limit_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of risk limits corresponding to risk_limits array",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "include_stress_test": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include stress test scenarios",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid account ID: Account not found in system",
+      "Mismatched arrays: risk_limits and limit_types arrays must have same length",
+      "Invalid portfolio value: Portfolio value must be positive",
+      "Invalid risk limit type: limit_types must contain valid risk limit names",
+      "Empty risk limits: At least one risk limit must be specified"
+    ],
+    "usage": "Provide account_id, portfolio_value, open_orders array, and matching risk_limits/limit_types arrays. Enable stress testing for comprehensive risk analysis.",
+    "output_details": {
+      "total_exposure": {
+        "type": "number",
+        "description": "Total risk exposure amount"
+      },
+      "exposure_percentage": {
+        "type": "number",
+        "description": "Exposure as percentage of portfolio"
+      },
+      "limit_breaches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of breached risk limits"
+      },
+      "max_potential_loss": {
+        "type": "number",
+        "description": "Maximum potential loss from open positions"
+      },
+      "risk_score": {
+        "type": "number",
+        "description": "Overall risk score (0-100)"
+      },
+      "alert_level": {
+        "type": "string",
+        "description": "Risk alert level (low, medium, high, critical)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Execution Quality Analyzer",
+    "tool_description": "Analyzes execution quality by comparing actual fills against market conditions, calculating market impact and timing costs.",
+    "parameters": {
+      "fills_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing fill execution data"
+      },
+      "market_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing relevant market data during execution"
+      },
+      "analysis_period_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Period for market impact analysis",
+        "default": 30
+      },
+      "benchmark_type": {
+        "type": "string",
+        "required": false,
+        "description": "Benchmark for comparison (arrival_price, close_price, vwap, twap)",
+        "default": "vwap"
+      }
+    },
+    "error_messages": [
+      "Invalid fills data: fills_data must be valid JSON with required fields",
+      "Invalid market data: market_data must be valid JSON with price and volume information",
+      "Invalid analysis period: analysis_period_minutes must be positive integer",
+      "Invalid benchmark type: benchmark_type must be one of (arrival_price, close_price, vwap, twap)",
+      "Insufficient market data: Not enough market data for specified analysis period"
+    ],
+    "usage": "Provide fills_data and market_data as JSON strings. Set analysis_period_minutes and benchmark_type for customized quality analysis.",
+    "output_details": {
+      "execution_score": {
+        "type": "number",
+        "description": "Overall execution quality score (0-100)"
+      },
+      "market_impact_bps": {
+        "type": "number",
+        "description": "Estimated market impact in basis points"
+      },
+      "timing_cost_bps": {
+        "type": "number",
+        "description": "Timing cost relative to benchmark in basis points"
+      },
+      "fill_rate": {
+        "type": "number",
+        "description": "Percentage of order filled"
+      },
+      "price_improvement_bps": {
+        "type": "number",
+        "description": "Price improvement vs benchmark in basis points"
+      },
+      "quality_grade": {
+        "type": "string",
+        "description": "Letter grade for execution quality (A, B, C, D, F)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order History Tracker",
+    "tool_description": "Maintains comprehensive historical records of order lifecycle events, state transitions, and execution details for audit and analysis purposes.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order identifier to track"
+      },
+      "event_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of lifecycle event (created, modified, cancelled, filled, rejected, expired)"
+      },
+      "event_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "When the event occurred",
+        "format": "date-time"
+      },
+      "previous_state": {
+        "type": "string",
+        "required": false,
+        "description": "Previous order state",
+        "default": "None"
+      },
+      "new_state": {
+        "type": "string",
+        "required": false,
+        "description": "New order state after event",
+        "default": "None"
+      },
+      "event_details": {
+        "type": "string",
+        "required": false,
+        "description": "Additional event metadata",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid event type: event_type must be one of (created, modified, cancelled, filled, rejected, expired)",
+      "Invalid timestamp: event_timestamp must be in ISO 8601 format",
+      "Invalid state transition: Specified state transition is not valid for order lifecycle",
+      "Duplicate event: Event with same order_id, event_type and timestamp already exists",
+      "Database error: Failed to store event in history database"
+    ],
+    "usage": "Call for each significant order event to maintain complete lifecycle history. Provide order_id, event_type, and event_timestamp at minimum.",
+    "output_details": {
+      "history_id": {
+        "type": "string",
+        "description": "Unique identifier for history record"
+      },
+      "storage_status": {
+        "type": "string",
+        "description": "Whether event was successfully stored"
+      },
+      "sequence_number": {
+        "type": "integer",
+        "description": "Sequential number for this order's events"
+      },
+      "storage_timestamp": {
+        "type": "string",
+        "description": "When record was stored in history"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Real-time Dashboard Generator",
+    "tool_description": "Generates real-time dashboard summaries and key metrics for order execution monitoring, combining data from multiple sources into actionable views.",
+    "parameters": {
+      "dashboard_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of dashboard (execution_summary, risk_overview, performance_metrics, alerts_status)"
+      },
+      "account_filters": {
+        "type": "array",

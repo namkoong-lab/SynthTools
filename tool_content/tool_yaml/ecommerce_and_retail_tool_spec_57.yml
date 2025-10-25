@@ -1,0 +1,890 @@
+field_name: ecommerce_and_retail
+subfield: Customer Account Management
+task: Authentication and password management including multi-factor authentication
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves complex security requirements including password policies, multi-factor authentication, session management, and account recovery workflows. The high security stakes, multiple authentication methods, and need for robust error handling make this a **hard** difficulty task.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** within the 15-20 range to cover authentication flows, password management, MFA setup/verification, session handling, and security monitoring.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  - **User Registration Validator** → produces validated user data → consumed by **Password Policy Enforcer**
+  - **Password Policy Enforcer** → produces compliant passwords → consumed by **Secure Password Hasher**
+  - **Secure Password Hasher** → produces password hashes → consumed by **User Authentication Validator**
+  - **User Authentication Validator** → produces auth status → consumed by **Session Token Generator**
+  - **Session Token Generator** → produces tokens → consumed by **Session Manager**
+  - **MFA Setup Manager** → produces MFA configs → consumed by **MFA Token Validator**
+  - **MFA Token Validator** → produces MFA verification → consumed by **Session Token Generator**
+  - **Password Reset Initiator** → produces reset tokens → consumed by **Password Reset Validator**
+  - **Account Lockout Manager** → produces lockout status → consumed by **User Authentication Validator**
+  - **Login Attempt Logger** → consumes auth attempts → produces security logs
+  - **Security Question Manager** → produces security Q&A → consumed by **Account Recovery Validator**
+  - **Two Factor Backup Codes Generator** → produces backup codes → consumed by **Backup Code Validator**
+  - **Device Trust Manager** → produces trusted devices → consumed by **MFA Setup Manager**
+  - **Password Strength Analyzer** → produces strength scores → consumed by **Password Policy Enforcer**
+  - **Account Status Manager** → produces account states → consumed by **User Authentication Validator**
+  - **Authentication History Tracker** → consumes login events → produces audit trails
+  - **Security Alert Generator** → consumes security events → produces notifications
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Login**: User Authentication Validator → Session Token Generator → Session Manager
+  2. **Password Change**: Password Strength Analyzer → Password Policy Enforcer → Secure Password Hasher
+
+  **Medium Plans:**
+  1. **New User Registration**: User Registration Validator → Password Policy Enforcer → Secure Password Hasher → MFA Setup Manager → Session Token Generator
+  2. **Secure Login with MFA**: User Authentication Validator → MFA Token Validator → Session Token Generator → Session Manager → Login Attempt Logger
+
+  **Complex Plans:**
+  1. **Full Account Recovery**: Account Status Manager → Security Question Manager → Account Recovery Validator → Password Reset Initiator → Password Reset Validator → Password Policy Enforcer → Secure Password Hasher
+  2. **Suspicious Activity Response**: Login Attempt Logger → Account Lockout Manager → Security Alert Generator → Authentication History Tracker → Device Trust Manager
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "User Registration Validator",
+    "tool_description": "Validates new user registration data including email format, username availability, and basic profile requirements.",
+    "parameters": {
+      "email": {
+        "type": "string",
+        "required": true,
+        "description": "User's email address for registration"
+      },
+      "username": {
+        "type": "string",
+        "required": true,
+        "description": "Desired username (3-30 characters)"
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's last name"
+      }
+    },
+    "error_messages": [
+      "Invalid email format: Provide a valid email address in format user@domain.com",
+      "Username already exists: Choose a different username",
+      "Username too short or long: Username must be 3-30 characters",
+      "Invalid name format: First and last names must contain only letters and spaces"
+    ],
+    "usage": "Provide email, username, first_name, and last_name to validate registration data before account creation.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether all registration data is valid"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation errors if any"
+      },
+      "user_id": {
+        "type": "string",
+        "description": "Generated unique user identifier"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Password Policy Enforcer",
+    "tool_description": "Enforces password complexity requirements and validates passwords against security policies including length, character requirements, and common password checks.",
+    "parameters": {
+      "password": {
+        "type": "string",
+        "required": true,
+        "description": "Password to validate against policy"
+      },
+      "min_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum password length (8-20)",
+        "default": 8
+      },
+      "require_uppercase": {
+        "type": "boolean",
+        "required": false,
+        "description": "Require at least one uppercase letter",
+        "default": true
+      },
+      "require_lowercase": {
+        "type": "boolean",
+        "required": false,
+        "description": "Require at least one lowercase letter",
+        "default": true
+      },
+      "require_numbers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Require at least one number",
+        "default": true
+      },
+      "require_special": {
+        "type": "boolean",
+        "required": false,
+        "description": "Require at least one special character",
+        "default": true
+      },
+      "username": {
+        "type": "string",
+        "required": false,
+        "description": "Username to check for password similarity",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Password too short: Password must be at least the minimum required length",
+      "Missing required characters: Password must contain uppercase, lowercase, numbers, and/or special characters as required",
+      "Password contains username: Password cannot contain the username",
+      "Common password detected: Password is too common, choose a more unique password",
+      "Invalid minimum length: Minimum length must be between 8 and 20"
+    ],
+    "usage": "Provide password and optionally configure policy requirements. Use to validate new passwords or password changes.",
+    "output_details": {
+      "is_compliant": {
+        "type": "boolean",
+        "description": "Whether password meets policy requirements"
+      },
+      "policy_violations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of policy violations if any"
+      },
+      "strength_score": {
+        "type": "integer",
+        "description": "Password strength score from 0-100"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Secure Password Hasher",
+    "tool_description": "Securely hashes passwords using bcrypt with configurable salt rounds for storage in user database.",
+    "parameters": {
+      "password": {
+        "type": "string",
+        "required": true,
+        "description": "Plain text password to hash"
+      },
+      "salt_rounds": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of salt rounds for bcrypt (10-15)",
+        "default": 12
+      }
+    },
+    "error_messages": [
+      "Empty password: Password cannot be empty",
+      "Invalid salt rounds: Salt rounds must be between 10 and 15",
+      "Hashing failed: Internal error during password hashing process"
+    ],
+    "usage": "Provide password and optionally salt_rounds to generate secure hash for database storage.",
+    "output_details": {
+      "password_hash": {
+        "type": "string",
+        "description": "Securely hashed password"
+      },
+      "salt": {
+        "type": "string",
+        "description": "Salt used for hashing"
+      },
+      "hash_algorithm": {
+        "type": "string",
+        "description": "Hashing algorithm used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "User Authentication Validator",
+    "tool_description": "Validates user login credentials by comparing provided password with stored hash and checking account status.",
+    "parameters": {
+      "username_or_email": {
+        "type": "string",
+        "required": true,
+        "description": "Username or email address for login"
+      },
+      "password": {
+        "type": "string",
+        "required": true,
+        "description": "User's password"
+      },
+      "stored_hash": {
+        "type": "string",
+        "required": true,
+        "description": "Stored password hash from database"
+      },
+      "account_status": {
+        "type": "string",
+        "required": false,
+        "description": "Current account status (active, locked, disabled)",
+        "default": "active"
+      }
+    },
+    "error_messages": [
+      "Invalid credentials: Username/email or password is incorrect",
+      "Account locked: Account is temporarily locked due to security reasons",
+      "Account disabled: Account has been disabled, contact support",
+      "Authentication failed: Internal authentication error occurred"
+    ],
+    "usage": "Provide login credentials and stored hash to validate user authentication.",
+    "output_details": {
+      "is_authenticated": {
+        "type": "boolean",
+        "description": "Whether authentication was successful"
+      },
+      "user_id": {
+        "type": "string",
+        "description": "Authenticated user's unique identifier"
+      },
+      "requires_mfa": {
+        "type": "boolean",
+        "description": "Whether multi-factor authentication is required"
+      },
+      "last_login": {
+        "type": "string",
+        "description": "Timestamp of user's last login"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Session Token Generator",
+    "tool_description": "Generates secure session tokens with expiration times and optional refresh tokens for authenticated users.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of authenticated user"
+      },
+      "session_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Session duration in minutes (15-1440)",
+        "default": 120
+      },
+      "include_refresh_token": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include refresh token",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid user ID: User ID cannot be empty",
+      "Invalid session duration: Duration must be between 15 and 1440 minutes",
+      "Token generation failed: Internal error during token generation"
+    ],
+    "usage": "Provide user_id and optionally configure session duration and refresh token inclusion.",
+    "output_details": {
+      "access_token": {
+        "type": "string",
+        "description": "JWT access token for API authentication"
+      },
+      "refresh_token": {
+        "type": "string",
+        "description": "Refresh token for obtaining new access tokens"
+      },
+      "expires_at": {
+        "type": "string",
+        "description": "Token expiration timestamp"
+      },
+      "token_type": {
+        "type": "string",
+        "description": "Type of token (Bearer)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Session Manager",
+    "tool_description": "Manages user sessions including validation, renewal, and termination of active sessions.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Session action: validate, renew, terminate, or list"
+      },
+      "session_token": {
+        "type": "string",
+        "required": false,
+        "description": "Session token to operate on",
+        "default": "None"
+      },
+      "user_id": {
+        "type": "string",
+        "required": false,
+        "description": "User ID for session operations",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Action must be one of [validate, renew, terminate, list]",
+      "Token required: Session token is required for this action",
+      "Invalid or expired token: Session token is invalid or has expired",
+      "Session not found: No active session found for the provided token or user"
+    ],
+    "usage": "Specify action and provide session_token and/or user_id as required for session management operations.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the session is valid"
+      },
+      "session_info": {
+        "type": "string",
+        "description": "JSON string containing session details"
+      },
+      "active_sessions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of active session IDs"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "MFA Setup Manager",
+    "tool_description": "Manages multi-factor authentication setup including TOTP, SMS, and email-based authentication methods for user accounts.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user"
+      },
+      "mfa_method": {
+        "type": "string",
+        "required": true,
+        "description": "MFA method: totp, sms, or email"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "Phone number for SMS MFA (required for SMS method)",
+        "default": "None"
+      },
+      "email": {
+        "type": "string",
+        "required": false,
+        "description": "Email for email-based MFA (required for email method)",
+        "default": "None"
+      },
+      "device_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name for the authenticator device",
+        "default": "User Device"
+      },
+      "backup_codes_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of backup codes to generate (5-10)",
+        "default": 8
+      }
+    },
+    "error_messages": [
+      "Invalid MFA method: Method must be one of [totp, sms, email]",
+      "Phone number required: Phone number is required for SMS MFA setup",
+      "Email required: Email is required for email MFA setup",
+      "Invalid phone format: Phone number must be in valid international format",
+      "Invalid backup codes count: Count must be between 5 and 10",
+      "MFA already enabled: User already has MFA enabled for this method"
+    ],
+    "usage": "Provide user_id and mfa_method, along with required contact information based on the chosen method.",
+    "output_details": {
+      "setup_successful": {
+        "type": "boolean",
+        "description": "Whether MFA setup was successful"
+      },
+      "secret_key": {
+        "type": "string",
+        "description": "Secret key for TOTP setup (for totp method)"
+      },
+      "qr_code_url": {
+        "type": "string",
+        "description": "QR code URL for authenticator apps"
+      },
+      "backup_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Generated backup recovery codes"
+      },
+      "verification_token": {
+        "type": "string",
+        "description": "Token for verifying MFA setup"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "MFA Token Validator",
+    "tool_description": "Validates multi-factor authentication tokens from various sources including TOTP apps, SMS codes, and backup codes.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user"
+      },
+      "token": {
+        "type": "string",
+        "required": true,
+        "description": "MFA token to validate (6-8 digits)"
+      },
+      "token_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of token: totp, sms, email, or backup"
+      }
+    },
+    "error_messages": [
+      "Invalid token format: Token must be 6-8 digits",
+      "Invalid token type: Type must be one of [totp, sms, email, backup]",
+      "Token expired: The provided token has expired",
+      "Invalid token: Token is incorrect or already used",
+      "MFA not enabled: Multi-factor authentication is not enabled for this user"
+    ],
+    "usage": "Provide user_id, token, and token_type to validate MFA tokens during authentication.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the MFA token is valid"
+      },
+      "remaining_attempts": {
+        "type": "integer",
+        "description": "Number of remaining validation attempts"
+      },
+      "backup_codes_remaining": {
+        "type": "integer",
+        "description": "Number of unused backup codes remaining"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Password Reset Initiator",
+    "tool_description": "Initiates password reset process by generating secure reset tokens and sending reset instructions via email or SMS.",
+    "parameters": {
+      "username_or_email": {
+        "type": "string",
+        "required": true,
+        "description": "Username or email address for password reset"
+      },
+      "reset_method": {
+        "type": "string",
+        "required": false,
+        "description": "Reset method: email or sms",
+        "default": "email"
+      },
+      "token_expiry_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Reset token expiry time in minutes (15-60)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "User not found: No account found with the provided username or email",
+      "Invalid reset method: Method must be either email or sms",
+      "Invalid expiry time: Expiry must be between 15 and 60 minutes",
+      "Reset already pending: A password reset is already in progress for this account",
+      "Account locked: Cannot initiate reset for locked account"
+    ],
+    "usage": "Provide username_or_email and optionally specify reset_method and token_expiry_minutes.",
+    "output_details": {
+      "reset_initiated": {
+        "type": "boolean",
+        "description": "Whether password reset was successfully initiated"
+      },
+      "reset_token": {
+        "type": "string",
+        "description": "Secure reset token for password change"
+      },
+      "expires_at": {
+        "type": "string",
+        "description": "Reset token expiration timestamp"
+      },
+      "delivery_method": {
+        "type": "string",
+        "description": "Method used to deliver reset instructions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Password Reset Validator",
+    "tool_description": "Validates password reset tokens and completes the password reset process with new password validation.",
+    "parameters": {
+      "reset_token": {
+        "type": "string",
+        "required": true,
+        "description": "Password reset token from email/SMS"
+      },
+      "new_password": {
+        "type": "string",
+        "required": true,
+        "description": "New password to set"
+      },
+      "confirm_password": {
+        "type": "string",
+        "required": true,
+        "description": "Confirmation of new password"
+      }
+    },
+    "error_messages": [
+      "Invalid or expired token: Reset token is invalid or has expired",
+      "Password mismatch: New password and confirmation do not match",
+      "Token already used: This reset token has already been used",
+      "Password policy violation: New password does not meet security requirements"
+    ],
+    "usage": "Provide reset_token, new_password, and confirm_password to complete password reset.",
+    "output_details": {
+      "reset_successful": {
+        "type": "boolean",
+        "description": "Whether password reset was successful"
+      },
+      "user_id": {
+        "type": "string",
+        "description": "User ID of the account that was reset"
+      },
+      "reset_timestamp": {
+        "type": "string",
+        "description": "Timestamp when password was reset"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Account Lockout Manager",
+    "tool_description": "Manages account lockout policies including failed login attempt tracking, automatic lockouts, and manual lock/unlock operations.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user account"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: check_status, record_failure, lock, unlock, or reset_failures"
+      },
+      "max_failures": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum failed attempts before lockout (3-10)",
+        "default": 5
+      },
+      "lockout_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Lockout duration in minutes (15-1440)",
+        "default": 30
+      },
+      "admin_override": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this is an admin override action",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid action: Action must be one of [check_status, record_failure, lock, unlock, reset_failures]",
+      "User not found: No account found with the provided user ID",
+      "Invalid max failures: Maximum failures must be between 3 and 10",
+      "Invalid lockout duration: Duration must be between 15 and 1440 minutes",
+      "Admin privileges required: This action requires admin override"
+    ],
+    "usage": "Provide user_id and action, with optional configuration parameters for lockout behavior.",
+    "output_details": {
+      "account_status": {
+        "type": "string",
+        "description": "Current account status (active, locked, disabled)"
+      },
+      "failed_attempts": {
+        "type": "integer",
+        "description": "Current number of failed login attempts"
+      },
+      "lockout_expires": {
+        "type": "string",
+        "description": "Timestamp when lockout expires (if locked)"
+      },
+      "action_performed": {
+        "type": "string",
+        "description": "Description of the action that was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Login Attempt Logger",
+    "tool_description": "Logs and tracks user login attempts with detailed information for security monitoring and audit purposes.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": false,
+        "description": "User ID (if known)",
+        "default": "None"
+      },
+      "username_or_email": {
+        "type": "string",
+        "required": true,
+        "description": "Username or email used in login attempt"
+      },
+      "ip_address": {
+        "type": "string",
+        "required": true,
+        "description": "IP address of the login attempt"
+      },
+      "user_agent": {
+        "type": "string",
+        "required": true,
+        "description": "Browser/device user agent string"
+      },
+      "attempt_result": {
+        "type": "string",
+        "required": true,
+        "description": "Result: success, failed_password, failed_mfa, account_locked, or account_disabled"
+      },
+      "geolocation": {
+        "type": "string",
+        "required": false,
+        "description": "Geographic location if available",
+        "default": "None"
+      },
+      "device_fingerprint": {
+        "type": "string",
+        "required": false,
+        "description": "Device fingerprint for tracking",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid attempt result: Result must be one of [success, failed_password, failed_mfa, account_locked, account_disabled]",
+      "Invalid IP address: Provide a valid IPv4 or IPv6 address",
+      "Missing required fields: username_or_email, ip_address, user_agent, and attempt_result are required"
+    ],
+    "usage": "Log each login attempt with user identifier, IP address, device information, and attempt result.",
+    "output_details": {
+      "log_entry_id": {
+        "type": "string",
+        "description": "Unique identifier for this log entry"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp of the login attempt"
+      },
+      "risk_score": {
+        "type": "integer",
+        "description": "Calculated risk score (0-100) for this attempt"
+      },
+      "suspicious_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of suspicious activity indicators detected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Security Question Manager",
+    "tool_description": "Manages security questions and answers for account recovery, including setting up, validating, and updating security questions.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action: setup, validate, update, or list"
+      },
+      "questions": {
+        "type": "array",
+        "required": false,
+        "description": "Array of security questions",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 5,
+        "default": "None"
+      },
+      "answers": {
+        "type": "array",
+        "required": false,
+        "description": "Array of security question answers",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 5,
+        "default": "None"
+      },
+      "question_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Array of question IDs for validation",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Action must be one of [setup, validate, update, list]",
+      "Questions and answers mismatch: Number of questions must match number of answers",
+      "Insufficient security questions: At least 3 security questions are required for setup",
+      "Answer too short: Security answers must be at least 3 characters long",
+      "Security questions already exist: Use update action to modify existing questions"
+    ],
+    "usage": "Provide user_id and action, with questions/answers arrays for setup/update or question_ids/answers for validation.",
+    "output_details": {
+      "operation_successful": {
+        "type": "boolean",
+        "description": "Whether the operation was successful"
+      },
+      "question_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of security questions for the user"
+      },
+      "validation_result": {
+        "type": "boolean",
+        "description": "Result of answer validation (for validate action)"
+      },
+      "questions_count": {
+        "type": "integer",
+        "description": "Number of security questions configured"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Two Factor Backup Codes Generator",
+    "tool_description": "Generates and manages backup codes for two-factor authentication recovery when primary MFA methods are unavailable.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user"
+      },
+      "codes_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of backup codes to generate (8-12)",
+        "default": 10
+      },
+      "code_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Length of each backup code (8-12 characters)",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Invalid codes count: Number of codes must be between 8 and 12",
+      "Invalid code length: Code length must be between 8 and 12 characters",
+      "User not found: No account found with the provided user ID",
+      "MFA not enabled: Two-factor authentication must be enabled before generating backup codes"
+    ],
+    "usage": "Provide user_id and optionally specify codes_count and code_length to generate backup recovery codes.",
+    "output_details": {
+      "backup_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of generated backup codes"
+      },
+      "generation_timestamp": {
+        "type": "string",
+        "description": "Timestamp when codes were generated"
+      },
+      "codes_remaining": {
+        "type": "integer",
+        "description": "Number of unused backup codes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Code Validator",
+    "tool_description": "Validates and consumes backup codes for two-factor authentication when primary MFA methods fail or are unavailable.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user"
+      },
+      "backup_code": {
+        "type": "string",
+        "required": true,
+        "description": "Backup code to validate and consume"
+      }
+    },
+    "error_messages": [
+      "Invalid backup code: The provided backup code is invalid or already used",
+      "User not found: No account found with the provided user ID",
+      "No backup codes: No backup codes have been generated for this user",
+      "All codes used: All backup codes have been used, generate new ones"
+    ],
+    "usage": "Provide user_id and backup_code to validate and consume a backup code for MFA bypass.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the backup code is valid"
+      },
+      "codes_remaining": {
+        "type": "integer",
+        "description": "Number of backup codes remaining after this validation"
+      },

@@ -1,0 +1,813 @@
+field_name: home_organization_and_cleaning
+subfield: Household Inventory Management
+task: Monitor expiration dates and shelf life of consumable products and supplies
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task is of medium difficulty. It involves coordinating multiple types of inventory (food, medicine, household supplies), managing time-sensitive data with varying shelf life patterns, and requires systematic tracking with potential health/safety implications if errors occur in expiration monitoring.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium complexity, I'm targeting 12 tools to cover the various aspects of expiration monitoring, inventory tracking, alerting, and reporting workflows.
+
+  **STEP 3 — List all tool names and dependencies**
+  Tools and their data flow:
+  - **Product Registration Tool** → produces: product entries
+  - **Barcode Scanner Interface** → produces: product identifications → consumes: scanner input
+  - **Expiration Date Tracker** → consumes: product entries → produces: expiration records
+  - **Batch Management Tool** → consumes: product entries → produces: batch tracking data
+  - **Alert Configuration Manager** → produces: alert rules → consumes: user preferences
+  - **Expiration Alert Generator** → consumes: expiration records, alert rules → produces: notifications
+  - **Inventory Status Reporter** → consumes: expiration records, batch data → produces: status reports
+  - **Product Category Classifier** → consumes: product entries → produces: category assignments
+  - **Shelf Life Estimator** → consumes: product data, category assignments → produces: estimated expiration dates
+  - **Usage Pattern Analyzer** → consumes: consumption history → produces: usage insights
+  - **Waste Prevention Optimizer** → consumes: expiration records, usage insights → produces: optimization recommendations
+  - **Emergency Stock Checker** → consumes: expiration records, alert rules → produces: critical status updates
+
+  **STEP 4 — Multi-tool plans**
+
+  *Simple Plans:*
+  1. **Basic Expiration Monitoring**: Product Registration → Expiration Date Tracker → Expiration Alert Generator (tracks items and sends basic alerts)
+  2. **Quick Product Entry**: Barcode Scanner Interface → Product Registration → Product Category Classifier (fast product addition with auto-categorization)
+
+  *Medium Plans:*
+  1. **Comprehensive Tracking Setup**: Product Registration → Product Category Classifier → Expiration Date Tracker → Alert Configuration Manager → Expiration Alert Generator (full tracking system setup)
+  2. **Inventory Analysis**: Inventory Status Reporter → Usage Pattern Analyzer → Waste Prevention Optimizer (analyze current state and optimize)
+
+  *Complex Plans:*
+  1. **Full Household Management**: Product Registration → Product Category Classifier → Batch Management → Shelf Life Estimator → Expiration Date Tracker → Alert Configuration → Expiration Alert Generator → Usage Pattern Analyzer → Waste Prevention Optimizer (complete system)
+  2. **Emergency Response System**: Emergency Stock Checker → Inventory Status Reporter → Alert Configuration Manager → Expiration Alert Generator → Waste Prevention Optimizer (crisis management and prevention)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Product Registration Tool",
+    "tool_description": "Registers new consumable products and supplies in the household inventory system with basic product information and storage details.",
+    "parameters": {
+      "product_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name or description of the product"
+      },
+      "purchase_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when the product was purchased",
+        "format": "date-time"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of units purchased"
+      },
+      "storage_location": {
+        "type": "string",
+        "required": false,
+        "description": "Where the product is stored (e.g., pantry, refrigerator, bathroom)",
+        "default": "pantry"
+      },
+      "brand": {
+        "type": "string",
+        "required": false,
+        "description": "Brand name of the product",
+        "default": "generic"
+      }
+    },
+    "error_messages": [
+      "Invalid product name: Product name cannot be empty and must be less than 200 characters.",
+      "Invalid purchase date: Purchase date must be a valid ISO 8601 date-time format and cannot be in the future.",
+      "Invalid quantity: Quantity must be a positive integer greater than 0.",
+      "Invalid storage location: Storage location must be less than 100 characters."
+    ],
+    "usage": "Provide product_name, purchase_date, and quantity as minimum required information. Optionally specify storage_location and brand for better organization.",
+    "output_details": {
+      "product_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to the registered product"
+      },
+      "registration_status": {
+        "type": "string",
+        "description": "Status of the registration process"
+      },
+      "storage_assigned": {
+        "type": "string",
+        "description": "Confirmed storage location for the product"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Barcode Scanner Interface",
+    "tool_description": "Processes barcode scan data to identify products and retrieve basic product information from databases.",
+    "parameters": {
+      "barcode_data": {
+        "type": "string",
+        "required": true,
+        "description": "Raw barcode scan data or UPC/EAN code"
+      },
+      "scan_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Timestamp when the barcode was scanned",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid barcode format: Barcode data must be a valid UPC, EAN, or supported barcode format.",
+      "Barcode not recognized: The scanned barcode is not found in product databases.",
+      "Invalid timestamp: Scan timestamp must be a valid ISO 8601 date-time format."
+    ],
+    "usage": "Scan a barcode and provide the barcode_data along with the scan_timestamp to retrieve product identification information.",
+    "output_details": {
+      "product_name": {
+        "type": "string",
+        "description": "Product name identified from the barcode"
+      },
+      "brand": {
+        "type": "string",
+        "description": "Brand name of the scanned product"
+      },
+      "category": {
+        "type": "string",
+        "description": "Product category classification"
+      },
+      "recognition_confidence": {
+        "type": "number",
+        "description": "Confidence score of product identification (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expiration Date Tracker",
+    "tool_description": "Tracks and manages expiration dates for registered products, calculating days until expiration and monitoring status changes.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the product to track"
+      },
+      "expiration_date": {
+        "type": "string",
+        "required": true,
+        "description": "Expiration or best-by date of the product",
+        "format": "date-time"
+      },
+      "expiration_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of expiration: expiry, best_by, use_by, sell_by",
+        "default": "expiry"
+      },
+      "opened_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date when the product was first opened or unsealed",
+        "format": "date-time",
+        "default": "None"
+      },
+      "remaining_quantity": {
+        "type": "integer",
+        "required": false,
+        "description": "Current remaining quantity of the product",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid product ID: Product ID must be a valid registered product identifier.",
+      "Invalid expiration date: Expiration date must be a valid ISO 8601 date-time format.",
+      "Invalid expiration type: Expiration type must be one of: expiry, best_by, use_by, sell_by.",
+      "Invalid opened date: Opened date must be a valid ISO 8601 date-time format and cannot be before purchase date.",
+      "Invalid remaining quantity: Remaining quantity must be a non-negative integer."
+    ],
+    "usage": "Provide product_id and expiration_date to start tracking. Optionally specify expiration_type, opened_date, and remaining_quantity for more accurate monitoring.",
+    "output_details": {
+      "tracking_id": {
+        "type": "string",
+        "description": "Unique identifier for this expiration tracking record"
+      },
+      "days_until_expiration": {
+        "type": "integer",
+        "description": "Number of days until the product expires"
+      },
+      "status": {
+        "type": "string",
+        "description": "Current status: fresh, approaching_expiry, expired, critical"
+      },
+      "tracking_active": {
+        "type": "boolean",
+        "description": "Whether active tracking is enabled for this product"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Management Tool",
+    "tool_description": "Manages multiple units or batches of the same product with different expiration dates, implementing FIFO (First In, First Out) rotation strategies.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the product for batch management"
+      },
+      "batch_identifiers": {
+        "type": "array",
+        "required": true,
+        "description": "List of batch or lot numbers for tracking",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "batch_expiration_dates": {
+        "type": "array",
+        "required": true,
+        "description": "Expiration dates corresponding to each batch",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "batch_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities for each batch",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "rotation_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Inventory rotation method: FIFO, LIFO, or expiry_based",
+        "default": "FIFO"
+      },
+      "consumption_order": {
+        "type": "array",
+        "required": false,
+        "description": "Custom order for batch consumption",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid product ID: Product ID must be a valid registered product identifier.",
+      "Mismatched array lengths: batch_identifiers, batch_expiration_dates, and batch_quantities must have the same number of elements.",
+      "Invalid batch data: All batch identifiers must be unique and non-empty strings.",
+      "Invalid expiration dates: All batch expiration dates must be valid ISO 8601 date-time format.",
+      "Invalid quantities: All batch quantities must be positive integers.",
+      "Invalid rotation strategy: Rotation strategy must be one of: FIFO, LIFO, expiry_based.",
+      "Invalid consumption order: Custom consumption order must contain valid batch identifiers."
+    ],
+    "usage": "Provide product_id, batch_identifiers, batch_expiration_dates, and batch_quantities as parallel arrays. Optionally set rotation_strategy and consumption_order for custom management.",
+    "output_details": {
+      "batch_management_id": {
+        "type": "string",
+        "description": "Unique identifier for this batch management setup"
+      },
+      "next_batch_to_use": {
+        "type": "string",
+        "description": "Batch identifier that should be consumed next"
+      },
+      "total_quantity": {
+        "type": "integer",
+        "description": "Total quantity across all batches"
+      },
+      "earliest_expiration": {
+        "type": "string",
+        "description": "Earliest expiration date among all batches"
+      },
+      "rotation_applied": {
+        "type": "string",
+        "description": "Rotation strategy that was applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Configuration Manager",
+    "tool_description": "Configures alert preferences and notification settings for expiration monitoring, including timing, channels, and escalation rules.",
+    "parameters": {
+      "alert_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name for this alert configuration"
+      },
+      "days_before_expiry": {
+        "type": "array",
+        "required": true,
+        "description": "Days before expiration to trigger alerts",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "product_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Product categories to apply this alert to",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "notification_channels": {
+        "type": "array",
+        "required": false,
+        "description": "Notification methods: email, sms, push, visual",
+        "items": {"type": "string"},
+        "default": ["visual"]
+      },
+      "alert_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "How often to repeat alerts: once, daily, weekly",
+        "default": "daily"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Alert priority: low, medium, high, critical",
+        "default": "medium"
+      },
+      "active_hours": {
+        "type": "array",
+        "required": false,
+        "description": "Hours when alerts should be sent (24-hour format)",
+        "items": {"type": "integer"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid alert name: Alert name cannot be empty and must be less than 100 characters.",
+      "Invalid days before expiry: Days must be positive integers between 1 and 365.",
+      "Invalid notification channels: Channels must be from: email, sms, push, visual.",
+      "Invalid alert frequency: Frequency must be one of: once, daily, weekly.",
+      "Invalid priority level: Priority must be one of: low, medium, high, critical.",
+      "Invalid active hours: Hours must be integers between 0 and 23."
+    ],
+    "usage": "Provide alert_name and days_before_expiry array to create basic alerts. Customize with product_categories, notification_channels, alert_frequency, priority_level, and active_hours.",
+    "output_details": {
+      "alert_config_id": {
+        "type": "string",
+        "description": "Unique identifier for this alert configuration"
+      },
+      "configuration_status": {
+        "type": "string",
+        "description": "Status of the alert configuration setup"
+      },
+      "active_alerts_count": {
+        "type": "integer",
+        "description": "Number of products currently matching this alert configuration"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expiration Alert Generator",
+    "tool_description": "Generates and sends expiration alerts based on configured rules, checking current inventory status against alert thresholds.",
+    "parameters": {
+      "alert_config_id": {
+        "type": "string",
+        "required": true,
+        "description": "Alert configuration to use for generating alerts"
+      },
+      "check_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Timestamp when the alert check is performed",
+        "format": "date-time"
+      },
+      "force_send": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to send alerts regardless of frequency settings",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid alert configuration ID: Alert configuration ID must be a valid existing configuration.",
+      "Invalid check timestamp: Check timestamp must be a valid ISO 8601 date-time format.",
+      "Alert configuration inactive: The specified alert configuration is not currently active."
+    ],
+    "usage": "Provide alert_config_id and check_timestamp to generate alerts based on current inventory status. Set force_send to true to override frequency limitations.",
+    "output_details": {
+      "alerts_generated": {
+        "type": "integer",
+        "description": "Number of alerts generated in this check"
+      },
+      "products_alerted": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of product IDs that triggered alerts"
+      },
+      "alert_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed alert messages generated"
+      },
+      "next_check_time": {
+        "type": "string",
+        "description": "Recommended timestamp for the next alert check"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Status Reporter",
+    "tool_description": "Generates comprehensive reports on current inventory status, expiration timelines, and product categories with customizable filtering and sorting options.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: summary, detailed, expiring_soon, expired, by_category"
+      },
+      "time_horizon": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days to look ahead for expiration analysis",
+        "default": 30
+      },
+      "include_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Specific product categories to include in the report",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "storage_locations": {
+        "type": "array",
+        "required": false,
+        "description": "Specific storage locations to include",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "sort_by": {
+        "type": "string",
+        "required": false,
+        "description": "Sorting criteria: expiration_date, product_name, category, quantity, purchase_date",
+        "default": "expiration_date"
+      },
+      "include_expired": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include already expired products",
+        "default": true
+      },
+      "report_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output format: summary_text, detailed_list, statistical",
+        "default": "summary_text"
+      }
+    },
+    "error_messages": [
+      "Invalid report type: Report type must be one of: summary, detailed, expiring_soon, expired, by_category.",
+      "Invalid time horizon: Time horizon must be a positive integer between 1 and 365 days.",
+      "Invalid sort criteria: Sort criteria must be one of: expiration_date, product_name, category, quantity, purchase_date.",
+      "Invalid report format: Report format must be one of: summary_text, detailed_list, statistical."
+    ],
+    "usage": "Specify report_type to generate inventory reports. Customize with time_horizon, include_categories, storage_locations, sort_by, include_expired, and report_format.",
+    "output_details": {
+      "report_id": {
+        "type": "string",
+        "description": "Unique identifier for this report"
+      },
+      "report_content": {
+        "type": "string",
+        "description": "Main content of the generated report"
+      },
+      "total_products": {
+        "type": "integer",
+        "description": "Total number of products included in the report"
+      },
+      "expiring_count": {
+        "type": "integer",
+        "description": "Number of products expiring within the time horizon"
+      },
+      "expired_count": {
+        "type": "integer",
+        "description": "Number of products that have already expired"
+      },
+      "categories_covered": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product categories included in this report"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Category Classifier",
+    "tool_description": "Automatically classifies products into categories based on product names, brands, and characteristics to enable category-specific expiration management.",
+    "parameters": {
+      "product_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name or description of the product to classify"
+      },
+      "brand": {
+        "type": "string",
+        "required": false,
+        "description": "Brand name of the product",
+        "default": "None"
+      },
+      "product_keywords": {
+        "type": "array",
+        "required": false,
+        "description": "Additional keywords describing the product",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "storage_location": {
+        "type": "string",
+        "required": false,
+        "description": "Where the product is stored as a classification hint",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid product name: Product name cannot be empty and must be less than 200 characters.",
+      "Classification failed: Unable to determine product category from provided information.",
+      "Invalid keywords: Keywords must be non-empty strings if provided."
+    ],
+    "usage": "Provide product_name for basic classification. Include brand, product_keywords, and storage_location for more accurate categorization.",
+    "output_details": {
+      "primary_category": {
+        "type": "string",
+        "description": "Main product category assigned"
+      },
+      "subcategory": {
+        "type": "string",
+        "description": "More specific subcategory if applicable"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence level of the classification (0-1)"
+      },
+      "suggested_shelf_life": {
+        "type": "integer",
+        "description": "Typical shelf life in days for this category"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shelf Life Estimator",
+    "tool_description": "Estimates expected shelf life and optimal storage conditions for products when exact expiration dates are unavailable or to verify provided dates.",
+    "parameters": {
+      "product_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the product for shelf life estimation"
+      },
+      "category": {
+        "type": "string",
+        "required": true,
+        "description": "Product category classification"
+      },
+      "storage_temperature": {
+        "type": "string",
+        "required": false,
+        "description": "Storage temperature: room_temp, refrigerated, frozen",
+        "default": "room_temp"
+      },
+      "packaging_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of packaging: sealed, opened, bulk, individual",
+        "default": "sealed"
+      },
+      "brand": {
+        "type": "string",
+        "required": false,
+        "description": "Brand name for brand-specific shelf life data",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid product name: Product name cannot be empty and must be less than 200 characters.",
+      "Invalid category: Product category must be a recognized category type.",
+      "Invalid storage temperature: Storage temperature must be one of: room_temp, refrigerated, frozen.",
+      "Invalid packaging type: Packaging type must be one of: sealed, opened, bulk, individual."
+    ],
+    "usage": "Provide product_name and category for basic shelf life estimation. Specify storage_temperature, packaging_type, and brand for more accurate estimates.",
+    "output_details": {
+      "estimated_shelf_life_days": {
+        "type": "integer",
+        "description": "Estimated shelf life in days"
+      },
+      "recommended_storage": {
+        "type": "string",
+        "description": "Recommended storage conditions"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence in the estimation: high, medium, low"
+      },
+      "factors_considered": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Factors used in the shelf life calculation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Usage Pattern Analyzer",
+    "tool_description": "Analyzes historical consumption patterns to predict future usage and optimize purchasing decisions based on household consumption trends.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": false,
+        "description": "Specific product to analyze, or leave empty for all products",
+        "default": "None"
+      },
+      "analysis_period_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days of history to analyze",
+        "default": 90
+      },
+      "category_filter": {
+        "type": "string",
+        "required": false,
+        "description": "Analyze only products in this category",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid product ID: Product ID must be a valid registered product identifier if provided.",
+      "Invalid analysis period: Analysis period must be between 7 and 365 days.",
+      "Insufficient data: Not enough consumption history available for meaningful analysis."
+    ],
+    "usage": "Analyze usage patterns by providing product_id for specific products, or use category_filter for category analysis. Set analysis_period_days to control historical scope.",
+    "output_details": {
+      "average_consumption_rate": {
+        "type": "number",
+        "description": "Average consumption rate per day"
+      },
+      "consumption_trend": {
+        "type": "string",
+        "description": "Trend analysis: increasing, decreasing, stable, seasonal"
+      },
+      "predicted_usage": {
+        "type": "number",
+        "description": "Predicted usage for the next 30 days"
+      },
+      "waste_percentage": {
+        "type": "number",
+        "description": "Percentage of products that expired before use"
+      },
+      "optimal_purchase_quantity": {
+        "type": "integer",
+        "description": "Recommended quantity for next purchase"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Waste Prevention Optimizer",
+    "tool_description": "Provides optimization recommendations to minimize food and product waste based on expiration patterns, usage history, and current inventory levels.",
+    "parameters": {
+      "optimization_goal": {
+        "type": "string",
+        "required": true,
+        "description": "Primary optimization objective: minimize_waste, reduce_costs, maximize_freshness, balance_all"
+      },
+      "time_horizon_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Planning horizon for optimization recommendations",
+        "default": 30
+      },
+      "include_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Product categories to include in optimization",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "budget_constraint": {
+        "type": "number",
+        "required": false,
+        "description": "Budget limit for purchase recommendations",
+        "default": "None"
+      },
+      "priority_products": {
+        "type": "array",
+        "required": false,
+        "description": "Product IDs to prioritize in optimization",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid optimization goal: Goal must be one of: minimize_waste, reduce_costs, maximize_freshness, balance_all.",
+      "Invalid time horizon: Time horizon must be between 7 and 180 days.",
+      "Invalid budget constraint: Budget constraint must be a positive number if provided."
+    ],
+    "usage": "Specify optimization_goal to get targeted recommendations. Customize with time_horizon_days, include_categories, budget_constraint, and priority_products for specific optimization needs.",
+    "output_details": {
+      "waste_reduction_potential": {
+        "type": "number",
+        "description": "Estimated percentage reduction in waste if recommendations are followed"
+      },
+      "priority_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of high-priority recommended actions"
+      },
+      "purchase_recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Products recommended for purchase with quantities"
+      },
+      "consumption_suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Products that should be consumed soon"
+      },
+      "cost_impact": {
+        "type": "number",
+        "description": "Estimated cost savings from implementing recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Emergency Stock Checker",
+    "tool_description": "Monitors critical household supplies and generates emergency alerts when essential items are running low or have expired, with special handling for safety-critical products.",
+    "parameters": {
+      "check_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Timestamp for the emergency stock check",
+        "format": "date-time"
+      },
+      "emergency_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Categories to treat as emergency supplies",
+        "items": {"type": "string"},
+        "default": ["medicine", "first_aid", "safety", "baby_care"]
+      },
+      "minimum_days_supply": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum days of supply required before triggering emergency alert",
+        "default": 7
+      },
+      "include_expired_grace": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include items within grace period after expiration",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid check timestamp: Check timestamp must be a valid ISO 8601 date-time format.",
+      "Invalid minimum days supply: Minimum days supply must be a positive integer between 1 and 90.",
+      "No emergency categories defined: At least one emergency category must be specified."
+    ],
+    "usage": "Provide check_timestamp to perform emergency stock check. Customize emergency_categories, minimum_days_supply, and include_expired_grace based on household needs.",
+    "output_details": {
+      "emergency_level": {
+        "type": "string",
+        "description": "Overall emergency level: none, low, medium, high, critical"
+      },
+      "critical_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of items requiring immediate attention"
+      },
+      "low_stock_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Items with stock levels below minimum threshold"
+      },
+      "expired_critical": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Critical items that have expired"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items":

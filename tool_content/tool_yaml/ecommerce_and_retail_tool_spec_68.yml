@@ -1,0 +1,869 @@
+field_name: ecommerce_and_retail
+subfield: Shopping Cart and Checkout Systems
+task: Calculate shipping costs and taxes based on location and item details
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium difficulty. It involves multiple subproblems including location-based calculations, item categorization, tax jurisdiction mapping, and shipping carrier integration. While the core logic is well-defined, there are dependencies between components (tax calculations depend on location validation, shipping costs depend on item dimensions) and moderate risk of errors that could impact customer pricing.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools within the 10-15 range to handle the various aspects of shipping and tax calculations comprehensively.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Location Validator** - Consumes: addresses → Produces: validated location data
+  2. **Tax Jurisdiction Resolver** - Consumes: validated locations → Produces: tax jurisdiction codes
+  3. **Tax Rate Calculator** - Consumes: jurisdiction codes, item details → Produces: tax amounts
+  4. **Item Categorizer** - Consumes: item details → Produces: shipping/tax categories
+  5. **Package Optimizer** - Consumes: item dimensions/weights → Produces: optimized packaging
+  6. **Shipping Zone Mapper** - Consumes: origin/destination locations → Produces: shipping zones
+  7. **Carrier Rate Calculator** - Consumes: package details, zones → Produces: shipping rates
+  8. **Express Shipping Calculator** - Consumes: package details, locations → Produces: expedited rates
+  9. **Discount Validator** - Consumes: discount codes, order details → Produces: validated discounts
+  10. **Final Cost Aggregator** - Consumes: all cost components → Produces: total costs
+  11. **Multi-Currency Converter** - Consumes: amounts, currencies → Produces: converted amounts
+  12. **Cost Breakdown Generator** - Consumes: all calculations → Produces: itemized breakdown
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. Basic domestic shipping: Location Validator → Shipping Zone Mapper → Carrier Rate Calculator → Final Cost Aggregator
+  2. Simple tax calculation: Location Validator → Tax Jurisdiction Resolver → Tax Rate Calculator
+
+  **Medium Plans:**
+  1. Standard checkout: Item Categorizer → Location Validator → Tax Jurisdiction Resolver → Tax Rate Calculator → Package Optimizer → Carrier Rate Calculator → Final Cost Aggregator
+  2. International order: Location Validator → Multi-Currency Converter → Shipping Zone Mapper → Express Shipping Calculator → Tax Rate Calculator → Cost Breakdown Generator
+
+  **Complex Plans:**
+  1. Full checkout with optimization: Item Categorizer → Package Optimizer → Location Validator → Tax Jurisdiction Resolver → Shipping Zone Mapper → Carrier Rate Calculator → Express Shipping Calculator → Discount Validator → Tax Rate Calculator → Multi-Currency Converter → Final Cost Aggregator → Cost Breakdown Generator
+  2. Multi-destination shipping: Location Validator (multiple) → Shipping Zone Mapper → Package Optimizer → Carrier Rate Calculator → Tax Rate Calculator → Final Cost Aggregator
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Location Validator",
+    "tool_description": "Validates and standardizes shipping addresses, resolving incomplete or ambiguous location data into standardized geographic information.",
+    "parameters": {
+      "street_address": {
+        "type": "string",
+        "required": true,
+        "description": "Street address including number and street name"
+      },
+      "city": {
+        "type": "string",
+        "required": true,
+        "description": "City name"
+      },
+      "state_province": {
+        "type": "string",
+        "required": true,
+        "description": "State, province, or region"
+      },
+      "postal_code": {
+        "type": "string",
+        "required": true,
+        "description": "ZIP code, postal code, or equivalent"
+      },
+      "country_code": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code (e.g., US, CA, GB)"
+      }
+    },
+    "error_messages": [
+      "Invalid country code: Use a valid two-letter ISO 3166-1 alpha-2 country code.",
+      "Address not found: The provided address cannot be validated or standardized.",
+      "Incomplete address: All required address fields must be provided and non-empty.",
+      "Invalid postal code format: Postal code format doesn't match the specified country's requirements."
+    ],
+    "usage": "Provide complete address components including street_address, city, state_province, postal_code, and country_code. The tool returns standardized address data with geographic coordinates.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the address was successfully validated"
+      },
+      "standardized_address": {
+        "type": "string",
+        "description": "Standardized full address string"
+      },
+      "latitude": {
+        "type": "number",
+        "description": "Geographic latitude coordinate"
+      },
+      "longitude": {
+        "type": "number",
+        "description": "Geographic longitude coordinate"
+      },
+      "address_type": {
+        "type": "string",
+        "description": "Type of address (residential, commercial, PO box)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tax Jurisdiction Resolver",
+    "tool_description": "Determines the applicable tax jurisdictions and codes for a given location, handling complex multi-level tax authorities.",
+    "parameters": {
+      "country_code": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code"
+      },
+      "state_province": {
+        "type": "string",
+        "required": true,
+        "description": "State, province, or region name"
+      },
+      "city": {
+        "type": "string",
+        "required": false,
+        "description": "City name for local tax jurisdiction resolution",
+        "default": null
+      },
+      "postal_code": {
+        "type": "string",
+        "required": false,
+        "description": "Postal code for precise jurisdiction mapping",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Unsupported country: Tax jurisdiction data is not available for the specified country.",
+      "Invalid state/province: The state or province is not recognized for the given country.",
+      "Jurisdiction lookup failed: Unable to determine tax jurisdiction for the provided location data."
+    ],
+    "usage": "Provide country_code and state_province as minimum requirements. Include city and postal_code for more precise jurisdiction resolution. Returns applicable tax authority codes and hierarchy.",
+    "output_details": {
+      "federal_jurisdiction": {
+        "type": "string",
+        "description": "Federal or national tax authority code"
+      },
+      "state_jurisdiction": {
+        "type": "string",
+        "description": "State or provincial tax authority code"
+      },
+      "local_jurisdiction": {
+        "type": "string",
+        "description": "Local or municipal tax authority code"
+      },
+      "jurisdiction_hierarchy": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Ordered list of all applicable tax jurisdictions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tax Rate Calculator",
+    "tool_description": "Calculates applicable tax amounts based on jurisdiction codes, item categories, and taxable amounts, handling complex tax rules and exemptions.",
+    "parameters": {
+      "jurisdiction_codes": {
+        "type": "array",
+        "required": true,
+        "description": "Array of tax jurisdiction codes from most specific to least specific",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "item_categories": {
+        "type": "array",
+        "required": true,
+        "description": "Array of item tax categories (e.g., general, food, medical, digital)",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "item_amounts": {
+        "type": "array",
+        "required": true,
+        "description": "Array of taxable amounts corresponding to each item category",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "customer_type": {
+        "type": "string",
+        "required": false,
+        "description": "Customer type for exemption purposes (individual, business, nonprofit)",
+        "default": "individual"
+      },
+      "exemption_certificates": {
+        "type": "array",
+        "required": false,
+        "description": "Array of tax exemption certificate numbers",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "calculation_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date for tax rate lookup in ISO 8601 format",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: item_categories and item_amounts arrays must have the same length.",
+      "Invalid tax category: One or more item categories are not recognized in the tax system.",
+      "Negative amounts not allowed: All item amounts must be non-negative numbers.",
+      "Invalid customer type: Use one of [individual, business, nonprofit].",
+      "Invalid exemption certificate: One or more exemption certificates are not valid or expired."
+    ],
+    "usage": "Provide jurisdiction_codes, item_categories, and corresponding item_amounts. Optionally specify customer_type, exemption_certificates, and calculation_date for more accurate tax calculations.",
+    "output_details": {
+      "total_tax_amount": {
+        "type": "number",
+        "description": "Total calculated tax amount across all jurisdictions"
+      },
+      "tax_breakdown": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed breakdown of tax amounts by jurisdiction and category"
+      },
+      "effective_tax_rate": {
+        "type": "number",
+        "description": "Overall effective tax rate as a percentage"
+      },
+      "exemptions_applied": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of tax exemptions that were applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Item Categorizer",
+    "tool_description": "Categorizes items for shipping and tax purposes based on product attributes, dimensions, and regulatory classifications.",
+    "parameters": {
+      "product_names": {
+        "type": "array",
+        "required": true,
+        "description": "Array of product names or descriptions",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "product_codes": {
+        "type": "array",
+        "required": false,
+        "description": "Array of SKU or product codes corresponding to product names",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "weights": {
+        "type": "array",
+        "required": true,
+        "description": "Array of item weights in pounds",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Array of dimension strings in format 'length x width x height' (inches)",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of item values in USD for insurance and customs purposes",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All input arrays must have the same length when provided.",
+      "Invalid weight values: All weights must be positive numbers.",
+      "Invalid dimension format: Use format 'length x width x height' with numeric values.",
+      "Invalid item values: All item values must be non-negative numbers.",
+      "Product categorization failed: Unable to determine appropriate category for one or more items."
+    ],
+    "usage": "Provide product_names, weights, dimensions, and values arrays with matching lengths. Optionally include product_codes for more accurate categorization. Returns shipping and tax categories for each item.",
+    "output_details": {
+      "shipping_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Shipping category for each item (standard, fragile, hazardous, oversized)"
+      },
+      "tax_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Tax category for each item (general, food, clothing, medical, digital)"
+      },
+      "restricted_destinations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Countries or regions where items cannot be shipped"
+      },
+      "special_handling_flags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Special handling requirements for each item"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Package Optimizer",
+    "tool_description": "Optimizes item packaging to minimize shipping costs while ensuring safe delivery, considering item dimensions, weights, and compatibility.",
+    "parameters": {
+      "item_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Array of item dimensions in format 'length x width x height' (inches)",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "item_weights": {
+        "type": "array",
+        "required": true,
+        "description": "Array of item weights in pounds",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "item_categories": {
+        "type": "array",
+        "required": true,
+        "description": "Array of item shipping categories",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "fragile_flags": {
+        "type": "array",
+        "required": true,
+        "description": "Array of boolean flags indicating if items are fragile",
+        "items": {
+          "type": "boolean"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "max_package_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum allowed weight per package in pounds",
+        "default": 70
+      },
+      "packaging_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Packaging optimization preference (cost, speed, eco-friendly)",
+        "default": "cost"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All input arrays must have the same length.",
+      "Invalid dimensions format: Use 'length x width x height' with positive numeric values.",
+      "Invalid weights: All item weights must be positive numbers.",
+      "Items too heavy: One or more items exceed the maximum package weight limit.",
+      "Incompatible items: Some items cannot be packaged together due to safety restrictions.",
+      "Invalid packaging preference: Use one of [cost, speed, eco-friendly]."
+    ],
+    "usage": "Provide arrays of item_dimensions, item_weights, item_categories, and fragile_flags with matching lengths. Optionally set max_package_weight and packaging_preference for customized optimization.",
+    "output_details": {
+      "package_count": {
+        "type": "integer",
+        "description": "Number of packages required"
+      },
+      "package_dimensions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Dimensions of each package in 'length x width x height' format"
+      },
+      "package_weights": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Total weight of each package in pounds"
+      },
+      "item_assignments": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Package number assigned to each input item"
+      },
+      "packaging_cost": {
+        "type": "number",
+        "description": "Estimated total packaging material cost"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Zone Mapper",
+    "tool_description": "Maps origin and destination locations to carrier-specific shipping zones for accurate rate calculation.",
+    "parameters": {
+      "origin_postal_code": {
+        "type": "string",
+        "required": true,
+        "description": "Origin postal code or ZIP code"
+      },
+      "destination_postal_code": {
+        "type": "string",
+        "required": true,
+        "description": "Destination postal code or ZIP code"
+      },
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping carrier name (USPS, UPS, FedEx, DHL)"
+      }
+    },
+    "error_messages": [
+      "Invalid carrier: Use one of [USPS, UPS, FedEx, DHL].",
+      "Invalid postal code: Origin or destination postal code format is not recognized.",
+      "Zone mapping unavailable: Shipping zone data is not available for the specified route and carrier."
+    ],
+    "usage": "Provide origin_postal_code, destination_postal_code, and carrier. The tool returns the shipping zone and distance information for rate calculations.",
+    "output_details": {
+      "shipping_zone": {
+        "type": "string",
+        "description": "Carrier-specific shipping zone identifier"
+      },
+      "distance_miles": {
+        "type": "number",
+        "description": "Approximate shipping distance in miles"
+      },
+      "transit_days": {
+        "type": "integer",
+        "description": "Estimated transit days for standard service"
+      },
+      "zone_description": {
+        "type": "string",
+        "description": "Human-readable description of the shipping zone"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Carrier Rate Calculator",
+    "tool_description": "Calculates shipping rates for various carriers and service levels based on package specifications and shipping zones.",
+    "parameters": {
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping carrier name (USPS, UPS, FedEx, DHL)"
+      },
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Service level (ground, priority, express, overnight)"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Package weight in pounds"
+      },
+      "package_dimensions": {
+        "type": "string",
+        "required": true,
+        "description": "Package dimensions in 'length x width x height' format (inches)"
+      },
+      "shipping_zone": {
+        "type": "string",
+        "required": true,
+        "description": "Carrier-specific shipping zone"
+      },
+      "declared_value": {
+        "type": "number",
+        "required": false,
+        "description": "Declared value for insurance purposes",
+        "default": 0
+      },
+      "signature_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether signature confirmation is required",
+        "default": false
+      },
+      "saturday_delivery": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether Saturday delivery is requested",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid carrier: Use one of [USPS, UPS, FedEx, DHL].",
+      "Invalid service type: Use one of [ground, priority, express, overnight].",
+      "Invalid package specifications: Weight must be positive and dimensions must follow 'L x W x H' format.",
+      "Service unavailable: The requested service type is not available for the specified carrier and zone.",
+      "Package exceeds limits: Package weight or dimensions exceed carrier limitations."
+    ],
+    "usage": "Provide carrier, service_type, package_weight, package_dimensions, and shipping_zone. Optionally add declared_value, signature_required, and saturday_delivery for additional services.",
+    "output_details": {
+      "base_rate": {
+        "type": "number",
+        "description": "Base shipping rate before additional services"
+      },
+      "additional_fees": {
+        "type": "number",
+        "description": "Additional fees for extra services"
+      },
+      "total_rate": {
+        "type": "number",
+        "description": "Total shipping cost including all fees"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery date in ISO 8601 format",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Express Shipping Calculator",
+    "tool_description": "Calculates expedited shipping options and rates for time-sensitive deliveries with various speed tiers.",
+    "parameters": {
+      "origin_country": {
+        "type": "string",
+        "required": true,
+        "description": "Origin country code"
+      },
+      "destination_country": {
+        "type": "string",
+        "required": true,
+        "description": "Destination country code"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Package weight in pounds"
+      },
+      "package_value": {
+        "type": "number",
+        "required": true,
+        "description": "Package declared value for customs and insurance"
+      },
+      "required_delivery_date": {
+        "type": "string",
+        "required": false,
+        "description": "Required delivery date in ISO 8601 format",
+        "format": "date-time",
+        "default": null
+      },
+      "express_level": {
+        "type": "string",
+        "required": false,
+        "description": "Express service level (next-day, 2-day, 3-day, international-express)",
+        "default": "2-day"
+      }
+    },
+    "error_messages": [
+      "Invalid country codes: Use valid ISO 3166-1 alpha-2 country codes.",
+      "Express service unavailable: Express shipping is not available for the specified route.",
+      "Invalid express level: Use one of [next-day, 2-day, 3-day, international-express].",
+      "Delivery date not achievable: Required delivery date cannot be met with available express services.",
+      "Package restrictions: Package weight or value exceeds express shipping limits."
+    ],
+    "usage": "Provide origin_country, destination_country, package_weight, and package_value. Optionally specify required_delivery_date and express_level for customized express options.",
+    "output_details": {
+      "available_services": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of available express service options"
+      },
+      "service_rates": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Rates corresponding to each available service"
+      },
+      "delivery_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Estimated delivery dates for each service in ISO 8601 format"
+      },
+      "recommended_service": {
+        "type": "string",
+        "description": "Recommended express service based on requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Discount Validator",
+    "tool_description": "Validates and applies shipping and tax discount codes, calculating final adjustments based on promotion rules.",
+    "parameters": {
+      "discount_codes": {
+        "type": "array",
+        "required": true,
+        "description": "Array of discount codes to validate and apply",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "order_subtotal": {
+        "type": "number",
+        "required": true,
+        "description": "Order subtotal before shipping and taxes"
+      },
+      "shipping_cost": {
+        "type": "number",
+        "required": true,
+        "description": "Calculated shipping cost before discounts"
+      },
+      "tax_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Calculated tax amount before discounts"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": false,
+        "description": "Customer identifier for personalized discounts",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid discount code: One or more discount codes are not recognized or have expired.",
+      "Discount not applicable: Discount cannot be applied to the current order (minimum requirements not met).",
+      "Conflicting discounts: Multiple discount codes cannot be combined as per promotion rules.",
+      "Customer not eligible: Customer does not meet the eligibility criteria for the specified discount."
+    ],
+    "usage": "Provide discount_codes array along with order_subtotal, shipping_cost, and tax_amount. Optionally include customer_id for personalized discount validation.",
+    "output_details": {
+      "valid_discounts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of successfully validated discount codes"
+      },
+      "shipping_discount": {
+        "type": "number",
+        "description": "Total discount amount applied to shipping costs"
+      },
+      "tax_discount": {
+        "type": "number",
+        "description": "Total discount amount applied to tax costs"
+      },
+      "order_discount": {
+        "type": "number",
+        "description": "Total discount amount applied to order subtotal"
+      },
+      "discount_descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Human-readable descriptions of applied discounts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Final Cost Aggregator",
+    "tool_description": "Aggregates all cost components (items, shipping, taxes, discounts) to produce the final order total with detailed breakdown.",
+    "parameters": {
+      "item_subtotal": {
+        "type": "number",
+        "required": true,
+        "description": "Subtotal of all items before shipping and taxes"
+      },
+      "shipping_cost": {
+        "type": "number",
+        "required": true,
+        "description": "Total shipping cost"
+      },
+      "tax_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total tax amount"
+      },
+      "shipping_discount": {
+        "type": "number",
+        "required": false,
+        "description": "Discount applied to shipping",
+        "default": 0
+      },
+      "tax_discount": {
+        "type": "number",
+        "required": false,
+        "description": "Discount applied to taxes",
+        "default": 0
+      },
+      "order_discount": {
+        "type": "number",
+        "required": false,
+        "description": "Discount applied to order subtotal",
+        "default": 0
+      },
+      "additional_fees": {
+        "type": "array",
+        "required": false,
+        "description": "Array of additional fee amounts (handling, processing, etc.)",
+        "items": {
+          "type": "number"
+        },
+        "default": null
+      },
+      "fee_descriptions": {
+        "type": "array",
+        "required": false,
+        "description": "Descriptions corresponding to additional fees",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Negative cost components: Subtotal, shipping, and tax amounts must be non-negative.",
+      "Excessive discounts: Discount amounts cannot exceed the corresponding cost components.",
+      "Fee array mismatch: additional_fees and fee_descriptions arrays must have the same length when both are provided."
+    ],
+    "usage": "Provide item_subtotal, shipping_cost, and tax_amount as required fields. Include discount amounts and additional fees with descriptions as needed for complete cost aggregation.",
+    "output_details": {
+      "order_subtotal": {
+        "type": "number",
+        "description": "Item subtotal after order discounts"
+      },
+      "final_shipping_cost": {
+        "type": "number",
+        "description": "Shipping cost after discounts"
+      },
+      "final_tax_amount": {
+        "type": "number",
+        "description": "Tax amount after discounts"
+      },
+      "total_additional_fees": {
+        "type": "number",
+        "description": "Sum of all additional fees"
+      },
+      "grand_total": {
+        "type": "number",
+        "description": "Final order total including all components"
+      },
+      "total_savings": {
+        "type": "number",
+        "description": "Total amount saved through discounts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi Currency Converter",
+    "tool_description": "Converts monetary amounts between currencies using current exchange rates with support for multiple conversion operations.",
+    "parameters": {
+      "amounts": {
+        "type": "array",
+        "required": true,
+        "description": "Array of monetary amounts to convert",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "from_currency": {
+        "type": "string",
+        "required": true,
+        "description": "Source currency code (ISO 4217, e.g., USD, EUR, GBP)"
+      },
+      "to_currency": {
+        "type": "string",
+        "required": true,
+        "description": "Target currency code (ISO 4217, e.g., USD, EUR, GBP)"
+      },
+      "conversion_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date for historical exchange rates in ISO 8601 format",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid currency code: Use valid ISO 4217 three-letter currency codes.",
+      "Unsupported currency: The specified currency is not supported for conversion.",
+      "Exchange rate unavailable: Cannot retrieve exchange rate for the specified currency pair and date.",
+      "Invalid amounts: All monetary amounts must be non-negative numbers."
+    ],
+    "usage": "Provide amounts array, from_currency, and to_currency. Optionally specify conversion_date for historical rates. Returns converted amounts with exchange rate information.",
+    "output_details": {
+      "converted_amounts": {
+        "type": "array",
+        "

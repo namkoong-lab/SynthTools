@@ -1,0 +1,36 @@
+{
+  "Tool Call": {
+    "original_query": "SELECT c.customer_name, o.order_date, p.product_name FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id WHERE o.order_date >= '2023-01-01' AND c.region = 'North America'",
+    "parsed_plan": "Hash Join (cost=15000.00 rows=50000) -> Hash Join (cost=12000.00 rows=45000) -> Sequential Scan on customers (cost=0.00 rows=10000) -> Hash Join (cost=8000.00 rows=40000) -> Sequential Scan on orders (cost=0.00 rows=25000) -> Hash (cost=3000.00 rows=15000) -> Sequential Scan on order_items -> Hash (cost=2000.00 rows=5000) -> Sequential Scan on products",
+    "bottleneck_analysis": "Primary bottleneck: Sequential scans on large tables without proper indexing. High cost hash joins due to lack of selective filtering early in execution. Missing indexes on join columns and filter predicates causing full table scans.",
+    "database_type": "PostgreSQL",
+    "suggestion_types": [
+      "join",
+      "predicate"
+    ],
+    "preserve_semantics": true,
+    "aggressiveness": "moderate"
+  },
+  "Return Data": {
+    "suggested_rewrites": [
+      "SELECT c.customer_name, o.order_date, p.product_name FROM customers c WHERE c.region = 'North America' AND EXISTS (SELECT 1 FROM orders o JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id WHERE o.customer_id = c.customer_id AND o.order_date >= '2023-01-01')",
+      "WITH filtered_orders AS (SELECT customer_id, order_id, order_date FROM orders WHERE order_date >= '2023-01-01'), north_customers AS (SELECT customer_id, customer_name FROM customers WHERE region = 'North America') SELECT nc.customer_name, fo.order_date, p.product_name FROM north_customers nc JOIN filtered_orders fo ON nc.customer_id = fo.customer_id JOIN order_items oi ON fo.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id",
+      "SELECT c.customer_name, o.order_date, p.product_name FROM customers c INNER JOIN orders o ON c.customer_id = o.customer_id AND c.region = 'North America' AND o.order_date >= '2023-01-01' INNER JOIN order_items oi ON o.order_id = oi.order_id INNER JOIN products p ON oi.product_id = p.product_id"
+    ],
+    "optimization_rationale": [
+      "Rewrite using EXISTS clause to apply selective filtering on customers first, reducing the size of subsequent joins and eliminating unnecessary intermediate result sets",
+      "Use CTEs to pre-filter both customers and orders tables, creating smaller intermediate result sets before performing joins, which should reduce overall join costs",
+      "Move filter predicates directly into JOIN conditions to enable better query planner optimization and early filtering, potentially allowing index usage on composite conditions"
+    ],
+    "expected_improvement": [
+      "30-40% performance improvement by reducing hash join input sizes through early customer filtering",
+      "25-35% performance improvement through reduced intermediate result set sizes and better memory utilization",
+      "15-25% performance improvement through better predicate pushdown and potential index utilization"
+    ],
+    "risk_assessment": [
+      "Low risk - semantically equivalent with potential for significant performance gains",
+      "Low risk - maintains exact same result set with improved execution strategy",
+      "Medium risk - relies on query planner optimization capabilities and may require index tuning"
+    ]
+  }
+}

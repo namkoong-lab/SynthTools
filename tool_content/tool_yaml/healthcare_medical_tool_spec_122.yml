@@ -1,0 +1,812 @@
+field_name: healthcare_medical
+subfield: Electronic Health Records Management
+task: Laboratory test results integration and tracking
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves managing complex medical data with strict accuracy requirements, coordinating multiple lab systems and standards, handling patient privacy regulations, and maintaining data integrity across different formats and timeframes. The risk of errors is high due to patient safety implications. **Difficulty: Hard**
+
+  ## STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'm targeting 17 tools within the 15-20 range to handle the complexity of lab data integration, validation, tracking, and reporting across multiple systems and standards.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  **Tools and their data flow:**
+  1. **Lab_Data_Parser** - Consumes: raw lab files → Produces: structured lab records
+  2. **Test_Code_Standardizer** - Consumes: raw test codes → Produces: standardized codes
+  3. **Reference_Range_Validator** - Consumes: test values + demographics → Produces: validation status
+  4. **Result_Status_Classifier** - Consumes: lab values + ranges → Produces: status classifications
+  5. **Patient_Lab_History_Retriever** - Consumes: patient ID + date range → Produces: historical results
+  6. **Lab_Trend_Analyzer** - Consumes: historical data → Produces: trend analysis
+  7. **Critical_Value_Alert_Generator** - Consumes: lab results → Produces: alert notifications
+  8. **Lab_Report_Formatter** - Consumes: structured data → Produces: formatted reports
+  9. **Quality_Control_Validator** - Consumes: lab data + QC rules → Produces: quality assessment
+  10. **Lab_System_Interface** - Consumes: integration parameters → Produces: system connection
+  11. **Result_Duplicate_Detector** - Consumes: new results + existing data → Produces: duplicate flags
+  12. **Lab_Data_Archiver** - Consumes: lab records + retention policies → Produces: archived data
+  13. **Test_Panel_Decomposer** - Consumes: panel orders → Produces: individual test components
+  14. **Lab_Turnaround_Calculator** - Consumes: order + result timestamps → Produces: turnaround metrics
+  15. **Abnormal_Pattern_Detector** - Consumes: multiple test results → Produces: pattern alerts
+  16. **Lab_Compliance_Auditor** - Consumes: lab processes + standards → Produces: compliance report
+  17. **Result_Notification_Dispatcher** - Consumes: results + recipient lists → Produces: notifications
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - **Basic Lab Integration**: Lab_Data_Parser → Test_Code_Standardizer → Lab_Report_Formatter
+  - **Quality Check**: Quality_Control_Validator → Reference_Range_Validator → Result_Status_Classifier
+
+  **Medium Plans:**
+  - **Complete Lab Processing**: Lab_System_Interface → Lab_Data_Parser → Test_Code_Standardizer → Reference_Range_Validator → Result_Duplicate_Detector → Lab_Report_Formatter
+  - **Patient Monitoring**: Patient_Lab_History_Retriever → Lab_Trend_Analyzer → Abnormal_Pattern_Detector → Critical_Value_Alert_Generator
+
+  **Complex Plans:**
+  - **Full Lab Workflow**: Lab_System_Interface → Test_Panel_Decomposer → Lab_Data_Parser → Test_Code_Standardizer → Result_Duplicate_Detector → Reference_Range_Validator → Result_Status_Classifier → Critical_Value_Alert_Generator → Lab_Report_Formatter → Result_Notification_Dispatcher
+  - **Comprehensive Analysis & Compliance**: Patient_Lab_History_Retriever → Lab_Trend_Analyzer → Abnormal_Pattern_Detector → Quality_Control_Validator → Lab_Turnaround_Calculator → Lab_Compliance_Auditor → Lab_Data_Archiver
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Lab_Data_Parser",
+    "tool_description": "Parses raw laboratory data from various formats (HL7, CSV, XML) into standardized structured records for further processing.",
+    "parameters": {
+      "input_file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the laboratory data file to be parsed"
+      },
+      "file_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format of input file: HL7, CSV, XML, JSON"
+      },
+      "encoding": {
+        "type": "string",
+        "required": false,
+        "description": "File encoding type",
+        "default": "UTF-8"
+      }
+    },
+    "error_messages": [
+      "Invalid file path: Ensure the file path exists and is accessible.",
+      "Unsupported file format: Use one of [HL7, CSV, XML, JSON].",
+      "File parsing error: Check file integrity and format consistency.",
+      "Encoding error: Verify file encoding matches the specified parameter."
+    ],
+    "usage": "Provide the file path and format of laboratory data. The tool will parse and return structured lab records with standardized field names.",
+    "output_details": {
+      "parsed_records_count": {
+        "type": "integer",
+        "description": "Number of successfully parsed lab records"
+      },
+      "patient_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of unique patient identifiers found in the data"
+      },
+      "test_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of unique test types identified"
+      },
+      "parsing_status": {
+        "type": "string",
+        "description": "Overall parsing status: SUCCESS, PARTIAL, FAILED"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Test_Code_Standardizer",
+    "tool_description": "Converts laboratory test codes from various coding systems (LOINC, CPT, local codes) to a standardized format for consistent processing.",
+    "parameters": {
+      "input_codes": {
+        "type": "array",
+        "required": true,
+        "description": "Array of test codes to be standardized",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "source_coding_system": {
+        "type": "string",
+        "required": true,
+        "description": "Source coding system: LOINC, CPT, ICD10, LOCAL"
+      },
+      "target_coding_system": {
+        "type": "string",
+        "required": true,
+        "description": "Target coding system: LOINC, CPT, ICD10, SNOMED"
+      },
+      "mapping_version": {
+        "type": "string",
+        "required": false,
+        "description": "Version of the code mapping table to use",
+        "default": "latest"
+      },
+      "fallback_handling": {
+        "type": "string",
+        "required": false,
+        "description": "How to handle unmapped codes: PRESERVE, EXCLUDE, FLAG",
+        "default": "FLAG"
+      }
+    },
+    "error_messages": [
+      "Invalid coding system: Use supported systems [LOINC, CPT, ICD10, LOCAL, SNOMED].",
+      "Empty code array: Provide at least one test code to standardize.",
+      "Mapping version not found: Verify the specified mapping version exists.",
+      "Code format error: Ensure input codes match the source coding system format."
+    ],
+    "usage": "Provide an array of test codes, specify source and target coding systems. The tool returns standardized codes with mapping confidence scores.",
+    "output_details": {
+      "standardized_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of codes converted to target coding system"
+      },
+      "mapping_confidence": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each mapping (0.0-1.0)"
+      },
+      "unmapped_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Codes that could not be mapped to target system"
+      },
+      "conversion_summary": {
+        "type": "string",
+        "description": "Summary of conversion process and results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reference_Range_Validator",
+    "tool_description": "Validates laboratory test results against appropriate reference ranges based on patient demographics, test type, and laboratory standards.",
+    "parameters": {
+      "test_results": {
+        "type": "array",
+        "required": true,
+        "description": "Array of test result values to validate",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "test_codes": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding test codes",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "patient_gender": {
+        "type": "string",
+        "required": true,
+        "description": "Patient gender: M, F, O"
+      },
+      "reference_source": {
+        "type": "string",
+        "required": false,
+        "description": "Reference range source: LAB_SPECIFIC, CLINICAL_STANDARD, MANUFACTURER",
+        "default": "CLINICAL_STANDARD"
+      },
+      "units": {
+        "type": "array",
+        "required": false,
+        "description": "Units for each test result",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: test_results and test_codes arrays must have the same length.",
+      "Invalid gender code: Use M, F, or O for patient gender.",
+      "Age out of range: Patient age must be between 0 and 150 years.",
+      "Unknown test code: One or more test codes not found in reference database.",
+      "Invalid reference source: Use LAB_SPECIFIC, CLINICAL_STANDARD, or MANUFACTURER."
+    ],
+    "usage": "Provide test results with corresponding codes and patient demographics. The tool validates each result against appropriate reference ranges.",
+    "output_details": {
+      "validation_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Validation status for each result: NORMAL, HIGH, LOW, CRITICAL_HIGH, CRITICAL_LOW"
+      },
+      "reference_ranges": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Applied reference ranges in format 'min-max units'"
+      },
+      "validation_flags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Additional flags: AGE_ADJUSTED, GENDER_SPECIFIC, UNIT_CONVERTED"
+      },
+      "overall_status": {
+        "type": "string",
+        "description": "Overall validation summary"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Result_Status_Classifier",
+    "tool_description": "Classifies laboratory test results into clinical significance categories and generates appropriate status codes for reporting and alerting.",
+    "parameters": {
+      "test_values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of laboratory test values",
+        "items": {"type": "number"}
+      },
+      "reference_low": {
+        "type": "array",
+        "required": true,
+        "description": "Array of lower reference limits",
+        "items": {"type": "number"}
+      },
+      "reference_high": {
+        "type": "array",
+        "required": true,
+        "description": "Array of upper reference limits",
+        "items": {"type": "number"}
+      },
+      "critical_low": {
+        "type": "array",
+        "required": false,
+        "description": "Array of critical low thresholds",
+        "items": {"type": "number"},
+        "default": "None"
+      },
+      "critical_high": {
+        "type": "array",
+        "required": false,
+        "description": "Array of critical high thresholds",
+        "items": {"type": "number"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All input arrays must have the same length.",
+      "Invalid reference range: reference_low must be less than reference_high.",
+      "Invalid critical values: critical values must be outside reference ranges.",
+      "Missing required values: test_values, reference_low, and reference_high are required."
+    ],
+    "usage": "Provide test values with their corresponding reference ranges and optional critical thresholds. Returns clinical status classifications for each result.",
+    "output_details": {
+      "status_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Status code for each result: N, H, L, HH, LL (Normal, High, Low, Critical High, Critical Low)"
+      },
+      "clinical_significance": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Clinical significance level: NORMAL, ABNORMAL, CRITICAL"
+      },
+      "alert_required": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Whether each result requires immediate alert"
+      },
+      "classification_summary": {
+        "type": "string",
+        "description": "Summary of classification results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Patient_Lab_History_Retriever",
+    "tool_description": "Retrieves comprehensive laboratory test history for a specific patient within a specified date range, including all test types and results.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for history retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for history retrieval",
+        "format": "date-time"
+      },
+      "test_types": {
+        "type": "array",
+        "required": false,
+        "description": "Specific test types to retrieve",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "include_cancelled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include cancelled test results",
+        "default": false
+      },
+      "sort_order": {
+        "type": "string",
+        "required": false,
+        "description": "Sort order: NEWEST_FIRST, OLDEST_FIRST, TEST_TYPE",
+        "default": "NEWEST_FIRST"
+      }
+    },
+    "error_messages": [
+      "Invalid patient ID: Patient identifier not found in the system.",
+      "Invalid date range: start_date must be earlier than end_date.",
+      "Date format error: Use ISO 8601 date-time format (YYYY-MM-DDTHH:MM:SSZ).",
+      "No data found: No laboratory results found for the specified criteria.",
+      "Invalid sort order: Use NEWEST_FIRST, OLDEST_FIRST, or TEST_TYPE."
+    ],
+    "usage": "Provide patient ID and date range to retrieve lab history. Optionally filter by test types and specify sorting preferences.",
+    "output_details": {
+      "total_results": {
+        "type": "integer",
+        "description": "Total number of lab results retrieved"
+      },
+      "test_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of test collection dates"
+      },
+      "test_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of test names corresponding to results"
+      },
+      "test_values": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of test result values (strings to handle various formats)"
+      },
+      "date_range_summary": {
+        "type": "string",
+        "description": "Summary of the retrieved date range and patient information"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Lab_Trend_Analyzer",
+    "tool_description": "Analyzes trends in laboratory test results over time, identifying patterns, changes, and potential clinical concerns in patient lab values.",
+    "parameters": {
+      "test_values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of test values in chronological order",
+        "items": {"type": "number"},
+        "minItems": 3,
+        "maxItems": 1000
+      },
+      "test_dates": {
+        "type": "array",
+        "required": true,
+        "description": "Array of test dates corresponding to values",
+        "items": {"type": "string"},
+        "minItems": 3,
+        "maxItems": 1000
+      },
+      "test_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the laboratory test being analyzed"
+      },
+      "trend_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of recent results to focus trend analysis on",
+        "default": 10
+      },
+      "significance_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage change threshold for significant trends",
+        "default": 20.0
+      },
+      "reference_range_low": {
+        "type": "number",
+        "required": false,
+        "description": "Lower reference range limit",
+        "default": "None"
+      },
+      "reference_range_high": {
+        "type": "number",
+        "required": false,
+        "description": "Upper reference range limit",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Insufficient data points: At least 3 data points required for trend analysis.",
+      "Array length mismatch: test_values and test_dates arrays must have the same length.",
+      "Invalid date format: Use ISO 8601 date-time format for all dates.",
+      "Dates not chronological: Ensure test_dates are in chronological order.",
+      "Invalid threshold: significance_threshold must be between 0 and 100."
+    ],
+    "usage": "Provide chronologically ordered test values with dates and test name. The tool analyzes trends and identifies significant changes over time.",
+    "output_details": {
+      "trend_direction": {
+        "type": "string",
+        "description": "Overall trend direction: INCREASING, DECREASING, STABLE, FLUCTUATING"
+      },
+      "trend_strength": {
+        "type": "number",
+        "description": "Strength of trend correlation (-1.0 to 1.0)"
+      },
+      "significant_changes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Descriptions of significant value changes detected"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Comprehensive summary of trend analysis findings"
+      },
+      "risk_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Identified risk indicators based on trend patterns"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Critical_Value_Alert_Generator",
+    "tool_description": "Generates and prioritizes critical value alerts for laboratory results that require immediate clinical attention, formatting alerts according to healthcare standards.",
+    "parameters": {
+      "test_results": {
+        "type": "array",
+        "required": true,
+        "description": "Array of test result values to evaluate",
+        "items": {"type": "number"}
+      },
+      "test_names": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding test names",
+        "items": {"type": "string"}
+      },
+      "critical_thresholds_low": {
+        "type": "array",
+        "required": true,
+        "description": "Array of critical low thresholds for each test",
+        "items": {"type": "number"}
+      },
+      "critical_thresholds_high": {
+        "type": "array",
+        "required": true,
+        "description": "Array of critical high thresholds for each test",
+        "items": {"type": "number"}
+      },
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier for the alert"
+      },
+      "collection_time": {
+        "type": "string",
+        "required": true,
+        "description": "Sample collection timestamp",
+        "format": "date-time"
+      },
+      "ordering_physician": {
+        "type": "string",
+        "required": false,
+        "description": "Name of ordering physician",
+        "default": "Unknown"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Alert priority level: HIGH, MEDIUM, LOW",
+        "default": "HIGH"
+      },
+      "notification_channels": {
+        "type": "array",
+        "required": false,
+        "description": "Channels for alert delivery",
+        "items": {"type": "string"},
+        "default": ["EMR"]
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All test-related arrays must have the same length.",
+      "Invalid patient ID: Patient identifier cannot be empty.",
+      "Invalid date format: Use ISO 8601 format for collection_time.",
+      "Invalid priority level: Use HIGH, MEDIUM, or LOW.",
+      "No critical values detected: None of the provided values exceed critical thresholds."
+    ],
+    "usage": "Provide test results with critical thresholds and patient information. The tool identifies critical values and generates formatted alerts.",
+    "output_details": {
+      "alerts_generated": {
+        "type": "integer",
+        "description": "Number of critical value alerts generated"
+      },
+      "critical_tests": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Names of tests with critical values"
+      },
+      "critical_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "The actual critical values detected"
+      },
+      "alert_messages": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Formatted alert messages for each critical result"
+      },
+      "urgency_score": {
+        "type": "integer",
+        "description": "Overall urgency score based on critical values (1-10)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Lab_Report_Formatter",
+    "tool_description": "Formats laboratory test results into standardized clinical reports suitable for healthcare providers, patients, or regulatory requirements.",
+    "parameters": {
+      "test_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of test names to include in report",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "test_values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding test values",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "reference_ranges": {
+        "type": "array",
+        "required": true,
+        "description": "Array of reference ranges for each test",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "patient_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient full name for report header"
+      },
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier"
+      },
+      "collection_date": {
+        "type": "string",
+        "required": true,
+        "description": "Sample collection date",
+        "format": "date-time"
+      },
+      "report_format": {
+        "type": "string",
+        "required": false,
+        "description": "Report format type: CLINICAL, PATIENT_FRIENDLY, REGULATORY",
+        "default": "CLINICAL"
+      },
+      "include_interpretations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include clinical interpretations",
+        "default": true
+      },
+      "lab_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name of performing laboratory",
+        "default": "Clinical Laboratory"
+      },
+      "physician_name": {
+        "type": "string",
+        "required": false,
+        "description": "Ordering physician name",
+        "default": "Not Specified"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: test_data, test_values, and reference_ranges must have equal lengths.",
+      "Missing patient information: patient_name and patient_id are required.",
+      "Invalid date format: Use ISO 8601 format for collection_date.",
+      "Invalid report format: Use CLINICAL, PATIENT_FRIENDLY, or REGULATORY.",
+      "Empty test data: At least one test result must be provided."
+    ],
+    "usage": "Provide test results with patient and collection information. Specify desired report format and whether to include clinical interpretations.",
+    "output_details": {
+      "formatted_report": {
+        "type": "string",
+        "description": "Complete formatted laboratory report"
+      },
+      "report_sections": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Individual sections of the report"
+      },
+      "abnormal_flags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Tests flagged as abnormal in the report"
+      },
+      "report_summary": {
+        "type": "string",
+        "description": "Executive summary of report contents"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quality_Control_Validator",
+    "tool_description": "Validates laboratory data quality by checking for completeness, consistency, duplicate entries, and adherence to data standards and business rules.",
+    "parameters": {
+      "lab_records": {
+        "type": "array",
+        "required": true,
+        "description": "Array of laboratory record identifiers to validate",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 5000
+      },
+      "validation_rules": {
+        "type": "array",
+        "required": true,
+        "description": "Array of validation rules to apply",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "data_completeness_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum completeness percentage required (0-100)",
+        "default": 95.0
+      },
+      "allow_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether duplicate entries are acceptable",
+        "default": false
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for validation scope",
+        "format": "date-time",
+        "default": "None"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date for validation scope",
+        "format": "date-time",
+        "default": "None"
+      },
+      "severity_level": {
+        "type": "string",
+        "required": false,
+        "description": "Minimum severity to report: ERROR, WARNING, INFO",
+        "default": "WARNING"
+      }
+    },
+    "error_messages": [
+      "Invalid record identifiers: One or more lab record IDs not found in system.",
+      "Unknown validation rules: One or more specified rules are not recognized.",
+      "Invalid completeness threshold: Value must be between 0 and 100.",
+      "Invalid date range: start date must be earlier than end date.",
+      "Invalid severity level: Use ERROR, WARNING, or INFO."
+    ],
+    "usage": "Provide lab record IDs and validation rules to check. Set quality thresholds and specify date ranges for focused validation.",
+    "output_details": {
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Whether all records passed validation"
+      },
+      "total_records_checked": {
+        "type": "integer",
+        "description": "Total number of records validated"
+      },
+      "error_count": {
+        "type": "integer",
+        "description": "Number of validation errors found"
+      },
+      "warning_count": {
+        "type": "integer",
+        "description": "Number of validation warnings found"
+      },
+      "validation_issues": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed descriptions of validation issues found"
+      },
+      "quality_score": {
+        "type": "number",
+        "description": "Overall data quality score (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Lab_System_Interface",
+    "tool_description": "Establishes connections and data exchange with external laboratory information systems (LIS) and instruments for automated data integration.",
+    "parameters": {
+      "system_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of lab system: LIS, ANALYZER, EMR, MIDDLEWARE"
+      },
+      "connection_string": {
+        "type": "string",
+        "required": true,
+        "description": "Connection parameters for the lab system"
+      },
+      "authentication_method": {
+        "type": "string",
+        "required": true,
+        "description": "Authentication method: API_KEY, OAUTH2, CERTIFICATE, USERNAME_PASSWORD"
+      },
+      "data_format": {
+        "type": "string",
+        "required": true,
+        "description": "Expected data format: HL7, FHIR, JSON, XML"
+      },
+      "polling_interval": {
+        "type": "integer",
+        "required": false,
+        "description": "Data polling interval in minutes",
+        "default": 5
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Connection timeout in seconds",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid system type: Use LIS, ANALYZER, EMR, or MIDDLEWARE.",
+      "Connection failed: Unable to establish connection with specified parameters.",
+      "Authentication failed: Invalid credentials or authentication method.",
+      "Unsupported data format: Use HL7, FHIR, JSON, or XML.",
+      "Invalid polling interval: Must be between 1 and 1440 minutes.",
+      "Connection timeout: Increase timeout_seconds

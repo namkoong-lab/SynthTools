@@ -1,0 +1,818 @@
+field_name: facilities_management
+subfield: Building Maintenance and Repair
+task: Create and manage work orders for repair requests and maintenance tasks
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task involves moderate complexity with multiple interconnected subproblems: work order creation, assignment, tracking, scheduling, resource allocation, and communication workflows. While the individual components are well-defined, coordination between stakeholders, prioritization logic, and real-time status management add layers of complexity. The task is **medium** difficulty.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium complexity, I'll target **12 tools** to cover the core workflows of work order lifecycle management, from creation through completion and reporting.
+
+  **STEP 3 — List all tool names and dependencies**
+  1. **Work Order Creator** - Consumes: request details → Produces: work order ID and initial data
+  2. **Priority Assessor** - Consumes: work order details → Produces: priority score and classification
+  3. **Technician Matcher** - Consumes: work order requirements → Produces: qualified technician list
+  4. **Resource Estimator** - Consumes: work order type and scope → Produces: time/material estimates
+  5. **Schedule Optimizer** - Consumes: work orders and technician availability → Produces: optimized schedule
+  6. **Work Order Tracker** - Consumes: work order ID → Produces: current status and history
+  7. **Task Validator** - Consumes: completion data → Produces: validation results
+  8. **Cost Calculator** - Consumes: labor/materials data → Produces: cost breakdown
+  9. **Asset History Updater** - Consumes: completed work data → Produces: updated maintenance records
+  10. **Performance Analytics** - Consumes: historical work orders → Produces: KPI metrics
+  11. **Notification Dispatcher** - Consumes: work order events → Produces: stakeholder notifications
+  12. **Report Generator** - Consumes: work order data and filters → Produces: formatted reports
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Emergency repair: Work Order Creator → Priority Assessor → Notification Dispatcher
+  - Status check: Work Order Tracker → Performance Analytics
+
+  **Medium Plans:**
+  - Standard maintenance: Work Order Creator → Priority Assessor → Technician Matcher → Schedule Optimizer → Work Order Tracker → Task Validator
+  - Cost analysis: Resource Estimator → Cost Calculator → Report Generator
+
+  **Complex Plans:**
+  - Full lifecycle management: Work Order Creator → Priority Assessor → Resource Estimator → Technician Matcher → Schedule Optimizer → Notification Dispatcher → Work Order Tracker → Task Validator → Cost Calculator → Asset History Updater → Performance Analytics → Report Generator
+  - Preventive maintenance program: Performance Analytics → Work Order Creator → Resource Estimator → Schedule Optimizer → Asset History Updater
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Work Order Creator",
+    "tool_description": "Creates new work orders for repair requests and maintenance tasks with automatic ID generation and initial categorization.",
+    "parameters": {
+      "request_title": {
+        "type": "string",
+        "required": true,
+        "description": "Brief title describing the maintenance request"
+      },
+      "asset_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the asset requiring maintenance"
+      },
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Physical location of the asset (building, floor, room)"
+      },
+      "description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the issue or maintenance requirement"
+      },
+      "requestor_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the person submitting the request"
+      },
+      "request_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of request: emergency, urgent, routine, preventive"
+      }
+    },
+    "error_messages": [
+      "Invalid request type: Use one of [emergency, urgent, routine, preventive].",
+      "Missing required field: All required parameters must be provided with non-empty values.",
+      "Asset ID not found: The provided asset_id does not exist in the system.",
+      "Invalid requestor: The requestor_id is not recognized in the system."
+    ],
+    "usage": "Provide request_title, asset_id, location, description, requestor_id, and request_type to create a new work order. The tool generates a unique work order ID and timestamps.",
+    "output_details": {
+      "work_order_id": {
+        "type": "string",
+        "description": "Unique identifier for the created work order"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "Date and time when the work order was created"
+      },
+      "status": {
+        "type": "string",
+        "description": "Initial status of the work order (typically 'open' or 'pending')"
+      },
+      "category": {
+        "type": "string",
+        "description": "Auto-assigned category based on description analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Priority Assessor",
+    "tool_description": "Analyzes work orders to determine priority levels based on safety, business impact, and urgency factors.",
+    "parameters": {
+      "work_order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the work order to assess"
+      },
+      "safety_impact": {
+        "type": "string",
+        "required": true,
+        "description": "Safety impact level: none, low, medium, high, critical"
+      },
+      "business_impact": {
+        "type": "string",
+        "required": true,
+        "description": "Business operations impact: none, low, medium, high, critical"
+      },
+      "asset_criticality": {
+        "type": "string",
+        "required": true,
+        "description": "Asset criticality rating: low, medium, high, critical"
+      },
+      "deadline_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether the work has a specific deadline requirement"
+      }
+    },
+    "error_messages": [
+      "Work order not found: The provided work_order_id does not exist.",
+      "Invalid impact level: Use one of [none, low, medium, high, critical] for safety_impact and business_impact.",
+      "Invalid criticality rating: Use one of [low, medium, high, critical] for asset_criticality.",
+      "Assessment already exists: This work order has already been prioritized."
+    ],
+    "usage": "Provide work_order_id and impact assessments. The tool calculates priority score and assigns priority level for scheduling and resource allocation.",
+    "output_details": {
+      "priority_level": {
+        "type": "string",
+        "description": "Assigned priority level: P1-Critical, P2-High, P3-Medium, P4-Low"
+      },
+      "priority_score": {
+        "type": "integer",
+        "description": "Numerical priority score from 1-100"
+      },
+      "target_response_time": {
+        "type": "integer",
+        "description": "Target response time in hours"
+      },
+      "escalation_required": {
+        "type": "boolean",
+        "description": "Whether immediate escalation is required"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Technician Matcher",
+    "tool_description": "Identifies qualified technicians for work orders based on skills, certifications, workload, and location proximity.",
+    "parameters": {
+      "work_order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Work order requiring technician assignment"
+      },
+      "required_skills": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of required skills for the work order",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "required_certifications": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "List of required certifications",
+        "maxItems": 5
+      },
+      "location_preference": {
+        "type": "string",
+        "required": true,
+        "description": "Preferred technician location or region"
+      },
+      "max_travel_distance": {
+        "type": "number",
+        "required": false,
+        "default": 50,
+        "description": "Maximum travel distance in kilometers"
+      },
+      "exclude_technicians": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "List of technician IDs to exclude from matching",
+        "maxItems": 20
+      }
+    },
+    "error_messages": [
+      "Work order not found: The provided work_order_id does not exist.",
+      "No qualified technicians: No technicians found matching the skill and certification requirements.",
+      "Invalid travel distance: max_travel_distance must be between 1 and 500 kilometers.",
+      "Invalid skills list: At least one skill must be specified in required_skills.",
+      "Location not found: The specified location_preference is not recognized."
+    ],
+    "usage": "Provide work_order_id, required_skills, and location_preference. Optionally specify certifications, travel distance limits, and technicians to exclude. Returns ranked list of qualified technicians.",
+    "output_details": {
+      "matched_technicians": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of technician IDs ranked by suitability"
+      },
+      "match_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Suitability scores corresponding to each technician (0-100)"
+      },
+      "availability_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Availability status for each matched technician"
+      },
+      "total_matches": {
+        "type": "integer",
+        "description": "Total number of qualified technicians found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Resource Estimator",
+    "tool_description": "Estimates time, materials, and costs required for maintenance work orders based on historical data and work complexity.",
+    "parameters": {
+      "work_order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Work order to estimate resources for"
+      },
+      "work_category": {
+        "type": "string",
+        "required": true,
+        "description": "Category of work: electrical, plumbing, hvac, mechanical, structural, cleaning, landscaping"
+      },
+      "complexity_level": {
+        "type": "string",
+        "required": true,
+        "description": "Work complexity: simple, moderate, complex, major"
+      },
+      "asset_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of asset being serviced"
+      },
+      "estimated_scope": {
+        "type": "string",
+        "required": true,
+        "description": "Brief description of work scope"
+      },
+      "include_materials": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include material cost estimates"
+      },
+      "include_equipment": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include equipment/tool requirements"
+      },
+      "labor_rate_category": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Labor rate category: apprentice, standard, senior, specialist"
+      },
+      "urgency_multiplier": {
+        "type": "number",
+        "required": false,
+        "default": 1.0,
+        "description": "Urgency cost multiplier (1.0-3.0) for rush jobs"
+      }
+    },
+    "error_messages": [
+      "Work order not found: The provided work_order_id does not exist.",
+      "Invalid work category: Use one of [electrical, plumbing, hvac, mechanical, structural, cleaning, landscaping].",
+      "Invalid complexity level: Use one of [simple, moderate, complex, major].",
+      "Invalid labor rate category: Use one of [apprentice, standard, senior, specialist].",
+      "Invalid urgency multiplier: Value must be between 1.0 and 3.0.",
+      "Insufficient scope information: estimated_scope must contain meaningful work description."
+    ],
+    "usage": "Provide work_order_id, work_category, complexity_level, asset_type, and estimated_scope. Optionally configure material/equipment inclusion, labor rates, and urgency factors for accurate resource estimation.",
+    "output_details": {
+      "estimated_hours": {
+        "type": "number",
+        "description": "Estimated labor hours required"
+      },
+      "estimated_labor_cost": {
+        "type": "number",
+        "description": "Estimated total labor cost"
+      },
+      "estimated_material_cost": {
+        "type": "number",
+        "description": "Estimated material costs"
+      },
+      "estimated_equipment_cost": {
+        "type": "number",
+        "description": "Estimated equipment/tool costs"
+      },
+      "total_estimated_cost": {
+        "type": "number",
+        "description": "Total estimated cost for the work order"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence level of estimate: low, medium, high"
+      },
+      "required_materials": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of likely required materials"
+      },
+      "required_tools": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of required tools and equipment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Optimizer",
+    "tool_description": "Optimizes work order scheduling considering technician availability, priority levels, location efficiency, and resource constraints.",
+    "parameters": {
+      "work_order_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of work order IDs to schedule",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "scheduling_window_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start of scheduling window",
+        "format": "date-time"
+      },
+      "scheduling_window_end": {
+        "type": "string",
+        "required": true,
+        "description": "End of scheduling window",
+        "format": "date-time"
+      },
+      "optimization_goal": {
+        "type": "string",
+        "required": false,
+        "default": "balanced",
+        "description": "Optimization goal: minimize_time, minimize_cost, maximize_satisfaction, balanced"
+      },
+      "consider_travel_time": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to factor in travel time between locations"
+      }
+    },
+    "error_messages": [
+      "Invalid scheduling window: scheduling_window_start must be before scheduling_window_end.",
+      "No schedulable work orders: None of the provided work order IDs are eligible for scheduling.",
+      "Invalid optimization goal: Use one of [minimize_time, minimize_cost, maximize_satisfaction, balanced].",
+      "Scheduling conflict: Unable to resolve conflicts with existing scheduled work.",
+      "Insufficient technician availability: No technicians available during the specified window."
+    ],
+    "usage": "Provide work_order_ids and scheduling window boundaries. Optionally specify optimization goal and travel considerations. Returns optimized schedule with assigned technicians and time slots.",
+    "output_details": {
+      "scheduled_work_orders": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Work order IDs in optimized scheduling order"
+      },
+      "assigned_technicians": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Technician IDs assigned to each work order"
+      },
+      "scheduled_start_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Scheduled start times for each work order"
+      },
+      "scheduled_end_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Scheduled end times for each work order"
+      },
+      "optimization_score": {
+        "type": "number",
+        "description": "Quality score of the optimization (0-100)"
+      },
+      "unscheduled_orders": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Work orders that could not be scheduled"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Work Order Tracker",
+    "tool_description": "Tracks and updates work order status, progress, and maintains complete activity history throughout the lifecycle.",
+    "parameters": {
+      "work_order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Work order ID to track or update"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: view_status, update_status, add_note, record_progress"
+      },
+      "new_status": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "New status when updating: assigned, in_progress, on_hold, completed, cancelled"
+      },
+      "progress_note": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Progress notes or comments to add"
+      },
+      "completion_percentage": {
+        "type": "integer",
+        "required": false,
+        "default": "None",
+        "description": "Work completion percentage (0-100)"
+      }
+    },
+    "error_messages": [
+      "Work order not found: The provided work_order_id does not exist.",
+      "Invalid action: Use one of [view_status, update_status, add_note, record_progress].",
+      "Invalid status transition: The requested status change is not allowed from current status.",
+      "Invalid completion percentage: Value must be between 0 and 100.",
+      "Missing required parameter: new_status required when action is update_status.",
+      "Unauthorized status update: Current user lacks permission to modify this work order status."
+    ],
+    "usage": "Provide work_order_id and action. For status updates, include new_status. For progress tracking, include progress_note and/or completion_percentage. Returns current status and history.",
+    "output_details": {
+      "current_status": {
+        "type": "string",
+        "description": "Current status of the work order"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last status update"
+      },
+      "assigned_technician": {
+        "type": "string",
+        "description": "Currently assigned technician ID"
+      },
+      "completion_percentage": {
+        "type": "integer",
+        "description": "Current completion percentage"
+      },
+      "status_history": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Historical status changes with timestamps"
+      },
+      "recent_notes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recent progress notes and comments"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Task Validator",
+    "tool_description": "Validates work order completion by checking quality standards, required documentation, and approval workflows.",
+    "parameters": {
+      "work_order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Work order ID to validate for completion"
+      },
+      "validation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of validation: quality_check, safety_check, documentation_check, full_validation"
+      },
+      "inspector_id": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "ID of inspector performing validation"
+      },
+      "quality_photos_provided": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether quality photos were provided"
+      },
+      "safety_checklist_complete": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether safety checklist is completed"
+      },
+      "materials_list_provided": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether materials usage list is provided"
+      },
+      "customer_approval": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether customer/requestor approval is obtained"
+      }
+    },
+    "error_messages": [
+      "Work order not found: The provided work_order_id does not exist.",
+      "Invalid validation type: Use one of [quality_check, safety_check, documentation_check, full_validation].",
+      "Work order not ready: Work order status is not 'completed' and cannot be validated.",
+      "Missing required documentation: Required documentation is missing for validation.",
+      "Validation already completed: This work order has already been successfully validated.",
+      "Inspector authorization required: validation_type requires a valid inspector_id."
+    ],
+    "usage": "Provide work_order_id and validation_type. For comprehensive validation, include inspector_id and set appropriate boolean flags for documentation and approvals. Returns validation results and any required follow-up actions.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Validation result: passed, failed, requires_followup"
+      },
+      "validation_score": {
+        "type": "integer",
+        "description": "Overall validation score (0-100)"
+      },
+      "failed_criteria": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation criteria that failed"
+      },
+      "required_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Required follow-up actions for completion"
+      },
+      "validation_timestamp": {
+        "type": "string",
+        "description": "When validation was performed"
+      },
+      "final_approval": {
+        "type": "boolean",
+        "description": "Whether work order receives final approval"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cost Calculator",
+    "tool_description": "Calculates actual costs for completed work orders including labor, materials, equipment, and overhead expenses.",
+    "parameters": {
+      "work_order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Work order ID to calculate costs for"
+      },
+      "actual_hours_worked": {
+        "type": "number",
+        "required": true,
+        "description": "Actual hours worked by technicians"
+      },
+      "material_costs": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "default": [],
+        "description": "List of individual material costs",
+        "maxItems": 50
+      },
+      "equipment_rental_cost": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Equipment rental or usage costs"
+      },
+      "travel_expenses": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Travel and transportation expenses"
+      },
+      "overhead_rate": {
+        "type": "number",
+        "required": false,
+        "default": 0.15,
+        "description": "Overhead rate as decimal (e.g., 0.15 for 15%)"
+      }
+    },
+    "error_messages": [
+      "Work order not found: The provided work_order_id does not exist.",
+      "Invalid hours worked: actual_hours_worked must be greater than 0.",
+      "Invalid material costs: All material costs must be non-negative numbers.",
+      "Invalid overhead rate: overhead_rate must be between 0 and 1.",
+      "Negative cost values: Equipment rental and travel expenses cannot be negative.",
+      "Cost calculation already exists: Costs have already been calculated for this work order."
+    ],
+    "usage": "Provide work_order_id and actual_hours_worked. Add material_costs array, equipment_rental_cost, travel_expenses, and overhead_rate as needed. Returns detailed cost breakdown and totals.",
+    "output_details": {
+      "total_labor_cost": {
+        "type": "number",
+        "description": "Total cost of labor based on hours and rates"
+      },
+      "total_material_cost": {
+        "type": "number",
+        "description": "Total cost of all materials used"
+      },
+      "total_equipment_cost": {
+        "type": "number",
+        "description": "Total equipment and tool costs"
+      },
+      "total_travel_cost": {
+        "type": "number",
+        "description": "Total travel and transportation costs"
+      },
+      "overhead_cost": {
+        "type": "number",
+        "description": "Calculated overhead costs"
+      },
+      "grand_total": {
+        "type": "number",
+        "description": "Grand total of all costs"
+      },
+      "cost_variance": {
+        "type": "number",
+        "description": "Variance from original estimate (positive = over budget)"
+      },
+      "cost_efficiency": {
+        "type": "string",
+        "description": "Cost efficiency rating: excellent, good, acceptable, poor"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Asset History Updater",
+    "tool_description": "Updates asset maintenance history with completed work order information and tracks asset condition and lifecycle data.",
+    "parameters": {
+      "asset_id": {
+        "type": "string",
+        "required": true,
+        "description": "Asset ID to update maintenance history for"
+      },
+      "work_order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Completed work order ID to record"
+      },
+      "maintenance_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of maintenance performed: preventive, corrective, emergency, upgrade"
+      },
+      "completion_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when work was completed",
+        "format": "date-time"
+      },
+      "condition_after": {
+        "type": "string",
+        "required": false,
+        "default": "good",
+        "description": "Asset condition after maintenance: excellent, good, fair, poor, critical"
+      },
+      "parts_replaced": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "List of parts or components replaced",
+        "maxItems": 20
+      },
+      "next_service_due": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Date when next service is due",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Asset not found: The provided asset_id does not exist in the system.",
+      "Work order not found: The provided work_order_id does not exist.",
+      "Invalid maintenance type: Use one of [preventive, corrective, emergency, upgrade].",
+      "Invalid condition rating: Use one of [excellent, good, fair, poor, critical].",
+      "Invalid completion date: completion_date must be a valid date-time in the past.",
+      "Work order not completed: The work order must be in 'completed' status to update asset history.",
+      "History already updated: This work order has already been recorded in asset history."
+    ],
+    "usage": "Provide asset_id, work_order_id, maintenance_type, and completion_date. Optionally specify condition_after, parts_replaced, and next_service_due. Updates asset maintenance history and lifecycle tracking.",
+    "output_details": {
+      "history_record_id": {
+        "type": "string",
+        "description": "Unique ID of the created history record"
+      },
+      "asset_condition": {
+        "type": "string",
+        "description": "Updated asset condition status"
+      },
+      "total_maintenance_cost": {
+        "type": "number",
+        "description": "Cumulative maintenance cost for this asset"
+      },
+      "maintenance_frequency": {
+        "type": "number",
+        "description": "Average days between maintenance events"
+      },
+      "reliability_score": {
+        "type": "integer",
+        "description": "Asset reliability score (0-100)"
+      },
+      "next_scheduled_service": {
+        "type": "string",
+        "description": "Date of next scheduled maintenance"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Analytics",
+    "tool_description": "Analyzes work order performance metrics, technician efficiency, and maintenance trends to provide actionable insights.",
+    "parameters": {
+      "analysis_period_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period",
+        "format": "date-time"
+      },
+      "analysis_period_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period",
+        "format": "date-time"
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of analysis: technician_performance, work_order_trends, cost_analysis, asset_reliability, sla_compliance"
+      },
+      "filter_by_priority": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Filter by priority levels",
+        "maxItems": 4
+      },
+      "filter_by_category": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Filter by work categories",
+        "maxItems": 10
+      },
+      "include_cancelled": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include cancelled work orders in analysis"
+      },
+      "technician_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Specific technician IDs to analyze",
+        "maxItems": 50
+      }
+    },
+    "error_messages": [
+      "Invalid date range: analysis_period_start must be before analysis_period_end.",
+      "Invalid analysis type: Use one of [technician_performance, work_order_trends, cost_analysis, asset_reliability, sla_compliance].",
+      "Insufficient data: Not enough work orders in the specified period for meaningful analysis.",
+      "Date range too large:

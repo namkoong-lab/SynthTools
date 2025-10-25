@@ -1,0 +1,839 @@
+field_name: mining_and_resources
+subfield: Geological Survey and Exploration
+task: Rock and soil sample analysis and laboratory data processing
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves complex laboratory analysis workflows with multiple analytical techniques, quality control procedures, data interpretation, and regulatory compliance requirements. The scope includes sample preparation, various analytical methods (XRF, ICP-MS, petrography), statistical analysis, and report generation. The task has medium-high complexity due to coordination between multiple analytical steps, potential for measurement errors affecting exploration decisions, and requirements for specialized equipment and expertise.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium-high complexity with multiple analytical workflows, quality control requirements, and data processing needs, I'll target 14 tools to cover sample management, preparation, analysis, quality control, and reporting workflows.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their dependencies:**
+  1. Sample Registration Tool → produces sample metadata
+  2. Sample Preparation Planner → consumes sample metadata, produces preparation protocols
+  3. Geochemical Analyzer → consumes prepared samples, produces elemental data
+  4. Mineralogical Analyzer → consumes prepared samples, produces mineral composition data
+  5. Quality Control Validator → consumes analytical data, produces QC reports
+  6. Statistical Data Processor → consumes analytical data, produces statistical summaries
+  7. Geochemical Data Visualizer → consumes processed data, produces charts/plots
+  8. Sample Comparison Tool → consumes multiple sample datasets, produces comparative analysis
+  9. Detection Limit Calculator → consumes instrument parameters, produces limit values
+  10. Laboratory Report Generator → consumes all analytical data, produces formatted reports
+  11. Analytical Method Selector → consumes sample properties, produces method recommendations
+  12. Data Export Tool → consumes processed data, produces formatted exports
+  13. Contamination Checker → consumes analytical data, produces contamination assessments
+  14. Duplicate Analysis Validator → consumes duplicate sample data, produces precision metrics
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Basic Analysis: Sample Registration → Sample Preparation Planner → Geochemical Analyzer → Laboratory Report Generator
+  - Quick QC Check: Quality Control Validator → Detection Limit Calculator → Contamination Checker
+
+  **Medium Plans:**
+  - Standard Workflow: Sample Registration → Analytical Method Selector → Sample Preparation Planner → Geochemical Analyzer → Mineralogical Analyzer → Quality Control Validator → Statistical Data Processor → Laboratory Report Generator
+  - Comparative Study: Sample Registration → Geochemical Analyzer → Sample Comparison Tool → Geochemical Data Visualizer → Data Export Tool
+
+  **Complex Plans:**
+  - Full Laboratory Analysis: Sample Registration → Analytical Method Selector → Sample Preparation Planner → Geochemical Analyzer → Mineralogical Analyzer → Detection Limit Calculator → Quality Control Validator → Duplicate Analysis Validator → Contamination Checker → Statistical Data Processor → Sample Comparison Tool → Geochemical Data Visualizer → Laboratory Report Generator → Data Export Tool
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Sample Registration Tool",
+    "tool_description": "Registers rock and soil samples in the laboratory system with metadata, location data, and sample classifications for tracking throughout analysis workflows.",
+    "parameters": {
+      "sample_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the sample"
+      },
+      "sample_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of sample: rock, soil, sediment, ore, drill_core, or grab_sample"
+      },
+      "location_coordinates": {
+        "type": "array",
+        "required": true,
+        "description": "GPS coordinates as [latitude, longitude]",
+        "items": {
+          "type": "number"
+        }
+      },
+      "collection_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when sample was collected",
+        "format": "date-time"
+      },
+      "collector_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of person who collected the sample"
+      },
+      "sample_mass_kg": {
+        "type": "number",
+        "required": true,
+        "description": "Total mass of sample in kilograms"
+      }
+    },
+    "error_messages": [
+      "Invalid sample_type: Use one of [rock, soil, sediment, ore, drill_core, grab_sample].",
+      "Invalid coordinates: Provide valid latitude (-90 to 90) and longitude (-180 to 180) values.",
+      "Invalid sample_mass_kg: Must be a positive number greater than 0.",
+      "Duplicate sample_id: This sample ID already exists in the system.",
+      "Invalid collection_date: Provide valid ISO 8601 date-time format and cannot be in the future."
+    ],
+    "usage": "Provide sample_id, sample_type, location_coordinates, collection_date, collector_name, and sample_mass_kg to register a new sample in the laboratory system.",
+    "output_details": {
+      "registration_status": {
+        "type": "string",
+        "description": "Status of sample registration (success or failed)"
+      },
+      "sample_barcode": {
+        "type": "string",
+        "description": "Generated barcode for sample tracking"
+      },
+      "lab_reference_number": {
+        "type": "string",
+        "description": "Internal laboratory reference number"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sample Preparation Planner",
+    "tool_description": "Creates detailed preparation protocols for samples based on their properties and intended analytical methods, including crushing, grinding, and splitting procedures.",
+    "parameters": {
+      "sample_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the sample"
+      },
+      "intended_analyses": {
+        "type": "array",
+        "required": true,
+        "description": "List of intended analytical methods",
+        "items": {
+          "type": "string"
+        }
+      },
+      "sample_hardness": {
+        "type": "string",
+        "required": true,
+        "description": "Hardness classification: soft, medium, hard, very_hard"
+      },
+      "target_particle_size_mm": {
+        "type": "number",
+        "required": false,
+        "description": "Target particle size in millimeters for grinding",
+        "default": 0.075
+      }
+    },
+    "error_messages": [
+      "Sample not found: The provided sample_id does not exist in the system.",
+      "Invalid sample_hardness: Use one of [soft, medium, hard, very_hard].",
+      "Invalid target_particle_size_mm: Must be between 0.001 and 10.0 millimeters.",
+      "Incompatible analyses: Some selected analyses cannot be performed on the same sample preparation."
+    ],
+    "usage": "Provide sample_id, intended_analyses, and sample_hardness; optionally specify target_particle_size_mm. The tool generates a step-by-step preparation protocol.",
+    "output_details": {
+      "preparation_steps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Ordered list of preparation steps"
+      },
+      "equipment_needed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required equipment"
+      },
+      "estimated_time_hours": {
+        "type": "number",
+        "description": "Estimated preparation time in hours"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Geochemical Analyzer",
+    "tool_description": "Performs multi-element geochemical analysis using various analytical techniques (XRF, ICP-MS, ICP-AES) to determine elemental concentrations in prepared samples.",
+    "parameters": {
+      "sample_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the prepared sample"
+      },
+      "analytical_method": {
+        "type": "string",
+        "required": true,
+        "description": "Analytical technique: XRF, ICP_MS, ICP_AES, or multi_method"
+      },
+      "elements_to_analyze": {
+        "type": "array",
+        "required": true,
+        "description": "List of chemical elements to analyze",
+        "items": {
+          "type": "string"
+        }
+      },
+      "sample_weight_g": {
+        "type": "number",
+        "required": true,
+        "description": "Weight of sample aliquot in grams"
+      },
+      "calibration_standards": {
+        "type": "array",
+        "required": true,
+        "description": "Reference standards used for calibration",
+        "items": {
+          "type": "string"
+        }
+      },
+      "run_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to run duplicate analyses for precision",
+        "default": true
+      },
+      "detection_limit_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Detection limit calculation: standard, enhanced, or ultra_low",
+        "default": "standard"
+      },
+      "matrix_correction": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply matrix effect corrections",
+        "default": true
+      },
+      "blank_correction": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply blank subtraction",
+        "default": true
+      },
+      "measurement_replicates": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of measurement replicates per sample",
+        "default": 3
+      },
+      "analysis_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of analysis",
+        "format": "date-time"
+      },
+      "operator_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identification of laboratory operator"
+      }
+    },
+    "error_messages": [
+      "Sample not prepared: The sample must be prepared before analysis.",
+      "Invalid analytical_method: Use one of [XRF, ICP_MS, ICP_AES, multi_method].",
+      "Invalid elements: Provide valid chemical element symbols (e.g., Au, Cu, Fe, Si).",
+      "Insufficient sample_weight_g: Must be between 0.1 and 100 grams.",
+      "Missing calibration standards: At least one reference standard is required.",
+      "Invalid detection_limit_mode: Use one of [standard, enhanced, ultra_low].",
+      "Invalid measurement_replicates: Must be between 1 and 10.",
+      "Analysis date error: Date cannot be in the future and must be valid ISO 8601 format."
+    ],
+    "usage": "Provide sample_id, analytical_method, elements_to_analyze, sample_weight_g, calibration_standards, analysis_date, and operator_id; optionally set run_duplicates, detection_limit_mode, matrix_correction, blank_correction, and measurement_replicates.",
+    "output_details": {
+      "element_concentrations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Measured concentrations for each element with units"
+      },
+      "detection_limits": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detection limits for each element with units"
+      },
+      "analytical_uncertainty": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Measurement uncertainty percentages for each element"
+      },
+      "quality_flags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Quality control flags for each measurement"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Mineralogical Analyzer",
+    "tool_description": "Performs detailed mineralogical analysis using XRD, petrographic microscopy, and SEM-EDS to identify and quantify mineral phases in rock and soil samples.",
+    "parameters": {
+      "sample_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the prepared sample"
+      },
+      "analysis_techniques": {
+        "type": "array",
+        "required": true,
+        "description": "Analytical techniques to use: XRD, petrography, SEM_EDS, or QEMSCAN",
+        "items": {
+          "type": "string"
+        }
+      },
+      "sample_preparation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Sample preparation: powder, thin_section, polished_section, or grain_mount"
+      },
+      "quantitative_analysis": {
+        "type": "boolean",
+        "required": false,
+        "description": "Perform quantitative mineral analysis",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Sample not found: The provided sample_id does not exist in the system.",
+      "Invalid analysis_techniques: Use one or more of [XRD, petrography, SEM_EDS, QEMSCAN].",
+      "Invalid sample_preparation_type: Use one of [powder, thin_section, polished_section, grain_mount].",
+      "Incompatible technique-preparation: The selected technique is incompatible with the preparation type."
+    ],
+    "usage": "Provide sample_id, analysis_techniques, and sample_preparation_type; optionally set quantitative_analysis. The tool performs mineralogical analysis and returns mineral identification and abundance data.",
+    "output_details": {
+      "identified_minerals": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of identified mineral names"
+      },
+      "mineral_abundances": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Abundance percentages for each identified mineral"
+      },
+      "texture_description": {
+        "type": "string",
+        "description": "Description of sample texture and fabric"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each mineral identification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quality Control Validator",
+    "tool_description": "Validates analytical data quality by checking precision, accuracy, and compliance with laboratory standards using control samples, duplicates, and reference materials.",
+    "parameters": {
+      "sample_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of sample IDs to validate",
+        "items": {
+          "type": "string"
+        }
+      },
+      "control_sample_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Reference standard sample IDs used in the batch",
+        "items": {
+          "type": "string"
+        }
+      },
+      "acceptable_rsd_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum acceptable relative standard deviation percentage",
+        "default": 5.0
+      },
+      "bias_tolerance_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum acceptable bias from certified values",
+        "default": 10.0
+      }
+    },
+    "error_messages": [
+      "Insufficient data: At least one sample and one control sample are required.",
+      "Control samples not found: One or more control sample IDs do not exist.",
+      "Invalid tolerance values: RSD and bias tolerances must be positive numbers between 0.1 and 50.",
+      "No analytical data: Samples must have completed analytical data before validation."
+    ],
+    "usage": "Provide sample_data array and control_sample_ids; optionally set acceptable_rsd_percent and bias_tolerance_percent. The tool evaluates data quality and flags any issues.",
+    "output_details": {
+      "overall_batch_status": {
+        "type": "string",
+        "description": "Overall quality status: passed, warning, or failed"
+      },
+      "precision_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Precision test results for each element"
+      },
+      "accuracy_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Accuracy test results for each element"
+      },
+      "flagged_samples": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Sample IDs that failed QC criteria"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Statistical Data Processor",
+    "tool_description": "Performs statistical analysis on geochemical and mineralogical data including descriptive statistics, correlation analysis, and outlier detection for geological interpretation.",
+    "parameters": {
+      "sample_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of sample IDs to include in statistical analysis",
+        "items": {
+          "type": "string"
+        }
+      },
+      "analysis_parameters": {
+        "type": "array",
+        "required": true,
+        "description": "Parameters to analyze (elements or minerals)",
+        "items": {
+          "type": "string"
+        }
+      },
+      "statistical_tests": {
+        "type": "array",
+        "required": true,
+        "description": "Statistical analyses to perform: descriptive, correlation, outliers, normality, clustering",
+        "items": {
+          "type": "string"
+        }
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "Statistical confidence level (0.90, 0.95, or 0.99)",
+        "default": 0.95
+      },
+      "outlier_method": {
+        "type": "string",
+        "required": false,
+        "description": "Outlier detection method: iqr, zscore, or modified_zscore",
+        "default": "iqr"
+      }
+    },
+    "error_messages": [
+      "Insufficient samples: At least 3 samples are required for statistical analysis.",
+      "Invalid statistical_tests: Use one or more of [descriptive, correlation, outliers, normality, clustering].",
+      "Invalid confidence_level: Use 0.90, 0.95, or 0.99.",
+      "Invalid outlier_method: Use one of [iqr, zscore, modified_zscore].",
+      "Missing analytical data: Some samples lack complete analytical data for the requested parameters."
+    ],
+    "usage": "Provide sample_ids, analysis_parameters, and statistical_tests; optionally set confidence_level and outlier_method. The tool performs comprehensive statistical analysis.",
+    "output_details": {
+      "descriptive_statistics": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Mean, median, standard deviation, and range for each parameter"
+      },
+      "correlation_matrix": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Correlation coefficients between parameters"
+      },
+      "outlier_samples": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Sample IDs identified as statistical outliers"
+      },
+      "summary_interpretation": {
+        "type": "string",
+        "description": "Statistical summary and geological interpretation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Geochemical Data Visualizer",
+    "tool_description": "Creates various plots and charts for geochemical data visualization including scatter plots, histograms, ternary diagrams, and geochemical classification diagrams.",
+    "parameters": {
+      "sample_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of sample IDs to visualize",
+        "items": {
+          "type": "string"
+        }
+      },
+      "plot_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of plot: scatter, histogram, box_plot, ternary, classification, or multi_element"
+      },
+      "x_axis_parameter": {
+        "type": "string",
+        "required": true,
+        "description": "Parameter for x-axis (element or mineral)"
+      },
+      "y_axis_parameter": {
+        "type": "string",
+        "required": false,
+        "description": "Parameter for y-axis (required for scatter and classification plots)",
+        "default": "None"
+      },
+      "color_by_parameter": {
+        "type": "string",
+        "required": false,
+        "description": "Parameter to use for color coding points",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Insufficient data: At least 2 samples are required for visualization.",
+      "Invalid plot_type: Use one of [scatter, histogram, box_plot, ternary, classification, multi_element].",
+      "Missing y_axis_parameter: Y-axis parameter is required for scatter and classification plots.",
+      "Parameter not found: The specified parameter does not exist in the sample data.",
+      "Incompatible parameters: The selected parameters cannot be plotted together."
+    ],
+    "usage": "Provide sample_ids, plot_type, and x_axis_parameter; for scatter plots also provide y_axis_parameter; optionally set color_by_parameter for enhanced visualization.",
+    "output_details": {
+      "plot_description": {
+        "type": "string",
+        "description": "Description of the generated plot"
+      },
+      "data_points_count": {
+        "type": "integer",
+        "description": "Number of data points plotted"
+      },
+      "axis_ranges": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Min and max values for each axis"
+      },
+      "interpretation_notes": {
+        "type": "string",
+        "description": "Basic interpretation of patterns visible in the plot"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sample Comparison Tool",
+    "tool_description": "Compares analytical results between multiple samples or sample groups to identify similarities, differences, and trends for geological interpretation.",
+    "parameters": {
+      "reference_samples": {
+        "type": "array",
+        "required": true,
+        "description": "Array of reference sample IDs",
+        "items": {
+          "type": "string"
+        }
+      },
+      "comparison_samples": {
+        "type": "array",
+        "required": true,
+        "description": "Array of samples to compare against reference",
+        "items": {
+          "type": "string"
+        }
+      },
+      "comparison_parameters": {
+        "type": "array",
+        "required": true,
+        "description": "Elements or minerals to compare",
+        "items": {
+          "type": "string"
+        }
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Threshold for determining similarity (0-1 scale)",
+        "default": 0.8
+      }
+    },
+    "error_messages": [
+      "Insufficient samples: At least one reference and one comparison sample are required.",
+      "Overlapping sample sets: Reference and comparison samples cannot overlap.",
+      "Missing comparison parameters: At least one parameter must be specified for comparison.",
+      "Invalid similarity_threshold: Must be between 0 and 1.",
+      "Analytical data missing: Some samples lack data for the requested comparison parameters."
+    ],
+    "usage": "Provide reference_samples, comparison_samples, and comparison_parameters; optionally set similarity_threshold. The tool compares samples and identifies patterns.",
+    "output_details": {
+      "similarity_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Similarity scores between reference and comparison samples"
+      },
+      "significant_differences": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Parameters showing significant differences between groups"
+      },
+      "grouping_suggestions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggested sample groupings based on similarity"
+      },
+      "comparison_summary": {
+        "type": "string",
+        "description": "Summary of key similarities and differences"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Detection Limit Calculator",
+    "tool_description": "Calculates method detection limits and quantification limits for analytical instruments based on blank measurements and instrumental parameters.",
+    "parameters": {
+      "analytical_method": {
+        "type": "string",
+        "required": true,
+        "description": "Analytical method: XRF, ICP_MS, ICP_AES, or AA"
+      },
+      "target_elements": {
+        "type": "array",
+        "required": true,
+        "description": "Elements for which to calculate detection limits",
+        "items": {
+          "type": "string"
+        }
+      },
+      "blank_measurements": {
+        "type": "array",
+        "required": true,
+        "description": "Blank measurement values",
+        "items": {
+          "type": "number"
+        }
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "Statistical confidence level (0.95 or 0.99)",
+        "default": 0.99
+      }
+    },
+    "error_messages": [
+      "Invalid analytical_method: Use one of [XRF, ICP_MS, ICP_AES, AA].",
+      "Insufficient blank measurements: At least 7 blank measurements are required for reliable statistics.",
+      "Invalid confidence_level: Use 0.95 or 0.99.",
+      "Invalid elements: Provide valid chemical element symbols.",
+      "Negative blank values: Blank measurements cannot be negative."
+    ],
+    "usage": "Provide analytical_method, target_elements, and blank_measurements; optionally set confidence_level. The tool calculates detection and quantification limits.",
+    "output_details": {
+      "detection_limits": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Method detection limits for each element with units"
+      },
+      "quantification_limits": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Method quantification limits for each element with units"
+      },
+      "blank_statistics": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Statistical summary of blank measurements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Laboratory Report Generator",
+    "tool_description": "Generates comprehensive analytical reports combining geochemical and mineralogical data with quality control information, statistical summaries, and interpretations formatted according to industry standards.",
+    "parameters": {
+      "report_title": {
+        "type": "string",
+        "required": true,
+        "description": "Title for the analytical report"
+      },
+      "sample_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of sample IDs to include in the report",
+        "items": {
+          "type": "string"
+        }
+      },
+      "report_sections": {
+        "type": "array",
+        "required": true,
+        "description": "Sections to include: summary, methods, results, qc_data, interpretation, appendices",
+        "items": {
+          "type": "string"
+        }
+      },
+      "client_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the client or organization"
+      },
+      "project_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Project reference or job number"
+      },
+      "report_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output format: PDF, HTML, or CSV_data_only",
+        "default": "PDF"
+      },
+      "include_plots": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include data visualization plots in report",
+        "default": true
+      },
+      "confidentiality_level": {
+        "type": "string",
+        "required": false,
+        "description": "Confidentiality marking: public, internal, confidential, or restricted",
+        "default": "internal"
+      },
+      "report_date": {
+        "type": "string",
+        "required": true,
+        "description": "Report generation date",
+        "format": "date-time"
+      },
+      "authorized_signatory": {
+        "type": "string",
+        "required": true,
+        "description": "Name of authorized person signing the report"
+      },
+      "laboratory_accreditation": {
+        "type": "string",
+        "required": false,
+        "description": "Laboratory accreditation details",
+        "default": "None"
+      },
+      "custom_comments": {
+        "type": "array",
+        "required": false,
+        "description": "Additional comments or notes for the report",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid report_sections: Use one or more of [summary, methods, results, qc_data, interpretation, appendices].",
+      "Samples not analyzed: All samples must have completed analytical data before report generation.",
+      "Invalid report_format: Use one of [PDF, HTML, CSV_data_only].",
+      "Invalid confidentiality_level: Use one of [public, internal, confidential, restricted].",
+      "Missing required fields: report_title, client_name, project_reference, authorized_signatory are required.",
+      "Invalid report_date: Must be valid ISO 8601 format and not in the future."
+    ],
+    "usage": "Provide report_title, sample_ids, report_sections, client_name, project_reference, report_date, and authorized_signatory; optionally set report_format, include_plots, confidentiality_level, laboratory_accreditation, and custom_comments.",
+    "output_details": {
+      "report_filename": {
+        "type": "string",
+        "description": "Generated filename for the report"
+      },
+      "total_pages": {
+        "type": "integer",
+        "description": "Number of pages in the generated report"
+      },
+      "samples_included": {
+        "type": "integer",
+        "description": "Number of samples included in the report"
+      },
+      "generation_status": {
+        "type": "string",
+        "description": "Status of report generation: completed or failed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Analytical Method Selector",
+    "tool_description": "Recommends optimal analytical methods and sample preparation techniques based on sample type, target analytes, detection requirements, and matrix characteristics.",
+    "parameters": {
+      "sample_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of sample: rock, soil, sediment, ore,

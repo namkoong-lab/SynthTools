@@ -1,0 +1,869 @@
+field_name: manufacturing_industrial_iot_robot_control
+subfield: conveyor_belt_automation_systems
+task: Detect and classify objects on conveyor belts using computer vision and sensor data
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to the high complexity of real-time computer vision processing, multi-sensor data fusion, robotic control integration, and the critical need for accuracy in industrial environments where errors can cause production line failures and safety hazards.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** to cover the comprehensive workflow from sensor data acquisition through object detection, classification, tracking, and conveyor system control.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tool dependencies and affordances:
+  - **Camera Configuration Tool** → produces camera settings for Image Capture Tool
+  - **Sensor Data Collector** → produces sensor readings for Object Detection Tool
+  - **Image Capture Tool** → produces raw images for Image Preprocessing Tool
+  - **Image Preprocessing Tool** → produces processed images for Object Detection Tool
+  - **Object Detection Tool** → produces bounding boxes for Object Classification Tool
+  - **Object Classification Tool** → produces classifications for Decision Logic Engine
+  - **Conveyor Speed Monitor** → produces speed data for Object Tracking Tool
+  - **Object Tracking Tool** → produces tracking data for Decision Logic Engine
+  - **Decision Logic Engine** → produces decisions for Conveyor Control Tool and Sorting Actuator Tool
+  - **Quality Control Inspector** → produces quality metrics for Decision Logic Engine
+  - **Conveyor Control Tool** → controls belt speed/direction
+  - **Sorting Actuator Tool** → controls sorting mechanisms
+  - **Alert System Manager** → handles notifications and alerts
+  - **Performance Monitor** → tracks system metrics
+  - **Data Logger** → stores operational data
+  - **Calibration Manager** → maintains sensor/camera calibration
+  - **Configuration Validator** → validates system setup
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Object Detection**: Camera Configuration → Image Capture → Object Detection → Alert System (4 tools)
+  2. **Speed Monitoring**: Conveyor Speed Monitor → Performance Monitor → Data Logger (3 tools)
+
+  **Medium Plans:**
+  1. **Standard Classification Pipeline**: Camera Configuration → Image Capture → Image Preprocessing → Object Detection → Object Classification → Decision Logic → Sorting Actuator (7 tools)
+  2. **Quality Control Workflow**: Sensor Data Collector → Object Detection → Quality Control Inspector → Decision Logic → Alert System → Data Logger (6 tools)
+
+  **Complex Plans:**
+  1. **Full Automated Sorting**: Camera Configuration → Image Capture → Image Preprocessing → Object Detection → Object Classification → Object Tracking → Conveyor Speed Monitor → Decision Logic → Conveyor Control → Sorting Actuator → Performance Monitor → Data Logger (12 tools)
+  2. **Comprehensive System Management**: Configuration Validator → Calibration Manager → all detection/classification tools → Decision Logic → all control tools → Performance Monitor → Alert System → Data Logger (15+ tools)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Camera Configuration Tool",
+    "tool_description": "Configures camera settings for optimal object detection including resolution, frame rate, exposure, and focus parameters for conveyor belt monitoring.",
+    "parameters": {
+      "camera_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the camera device"
+      },
+      "resolution_width": {
+        "type": "integer",
+        "required": true,
+        "description": "Image width in pixels (640-4096)"
+      },
+      "resolution_height": {
+        "type": "integer",
+        "required": true,
+        "description": "Image height in pixels (480-3072)"
+      },
+      "frame_rate": {
+        "type": "integer",
+        "required": false,
+        "description": "Frames per second (1-120)",
+        "default": 30
+      },
+      "exposure_time": {
+        "type": "number",
+        "required": false,
+        "description": "Exposure time in milliseconds (0.1-1000)",
+        "default": 10.0
+      }
+    },
+    "error_messages": [
+      "Invalid camera_id: Camera device not found or not accessible. Ensure camera is connected and powered.",
+      "Invalid resolution: Width must be 640-4096, height must be 480-3072. Check camera specifications.",
+      "Invalid frame_rate: Must be 1-120 fps. Lower frame rate if camera cannot maintain the specified rate.",
+      "Invalid exposure_time: Must be 0.1-1000 ms. Adjust based on lighting conditions and belt speed."
+    ],
+    "usage": "Provide camera_id, resolution_width, and resolution_height. Optionally set frame_rate and exposure_time based on lighting and belt speed requirements.",
+    "output_details": {
+      "status": {
+        "type": "string",
+        "description": "Configuration success or failure status"
+      },
+      "active_settings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of active camera parameter settings"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When configuration was applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sensor Data Collector",
+    "tool_description": "Collects multi-sensor data from proximity sensors, weight sensors, and environmental monitors to provide contextual information for object detection.",
+    "parameters": {
+      "sensor_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of sensors to read from",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "sampling_rate": {
+        "type": "number",
+        "required": true,
+        "description": "Data collection frequency in Hz (0.1-1000)"
+      },
+      "duration": {
+        "type": "number",
+        "required": true,
+        "description": "Collection duration in seconds (0.1-3600)"
+      },
+      "sensor_positions": {
+        "type": "array",
+        "required": true,
+        "description": "Physical positions of sensors along belt",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "calibration_offset": {
+        "type": "number",
+        "required": false,
+        "description": "Calibration offset value (-1000 to 1000)",
+        "default": 0.0
+      },
+      "noise_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum signal threshold to filter noise (0-100)",
+        "default": 5.0
+      },
+      "enable_filtering": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable signal filtering for noise reduction",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Sensor connection failed: One or more sensors in sensor_types are not responding. Check connections and power.",
+      "Invalid sampling_rate: Must be 0.1-1000 Hz. Reduce rate if sensors cannot keep up.",
+      "Invalid duration: Must be 0.1-3600 seconds. Shorter durations for real-time processing.",
+      "Sensor position mismatch: Number of sensor_positions must match available sensors.",
+      "Calibration out of range: calibration_offset must be -1000 to 1000. Check sensor specifications."
+    ],
+    "usage": "Specify sensor_types, sampling_rate, duration, and sensor_positions. Optionally adjust calibration_offset, noise_threshold, and enable_filtering for optimal data quality.",
+    "output_details": {
+      "sensor_readings": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of collected sensor values"
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Corresponding timestamps for each reading"
+      },
+      "sensor_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Status of each sensor during collection"
+      },
+      "data_quality": {
+        "type": "string",
+        "description": "Overall data quality assessment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Capture Tool",
+    "tool_description": "Captures images from configured cameras at specified intervals or triggered by sensor events for conveyor belt object analysis.",
+    "parameters": {
+      "camera_id": {
+        "type": "string",
+        "required": true,
+        "description": "Camera device identifier"
+      },
+      "capture_mode": {
+        "type": "string",
+        "required": true,
+        "description": "Capture mode: continuous, triggered, or interval"
+      },
+      "trigger_sensor": {
+        "type": "string",
+        "required": false,
+        "description": "Sensor ID for triggered capture mode",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Camera not configured: Run Camera Configuration Tool first to set up camera parameters.",
+      "Invalid capture_mode: Use continuous, triggered, or interval modes only.",
+      "Trigger sensor not found: Specified trigger_sensor is not available or not responding.",
+      "Image capture failed: Camera malfunction or insufficient lighting. Check camera and lighting conditions."
+    ],
+    "usage": "Provide camera_id and capture_mode. For triggered mode, specify trigger_sensor. Tool captures images based on the selected mode.",
+    "output_details": {
+      "image_id": {
+        "type": "string",
+        "description": "Unique identifier for captured image"
+      },
+      "image_path": {
+        "type": "string",
+        "description": "File path to captured image"
+      },
+      "capture_timestamp": {
+        "type": "string",
+        "description": "When image was captured"
+      },
+      "image_quality": {
+        "type": "string",
+        "description": "Assessment of image quality for processing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Preprocessing Tool",
+    "tool_description": "Preprocesses captured images through noise reduction, contrast enhancement, and geometric corrections to optimize object detection accuracy.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to input image file"
+      },
+      "noise_reduction": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable noise reduction filtering",
+        "default": true
+      },
+      "contrast_enhancement": {
+        "type": "number",
+        "required": false,
+        "description": "Contrast adjustment factor (0.5-3.0)",
+        "default": 1.2
+      },
+      "brightness_adjustment": {
+        "type": "number",
+        "required": false,
+        "description": "Brightness adjustment (-100 to 100)",
+        "default": 0
+      },
+      "geometric_correction": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply perspective correction",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Image file not found: Specified image_path does not exist or is not accessible.",
+      "Invalid image format: Image must be in supported format (JPEG, PNG, BMP).",
+      "Invalid contrast_enhancement: Must be 0.5-3.0. Values outside range may degrade image quality.",
+      "Invalid brightness_adjustment: Must be -100 to 100. Extreme values may lose image details.",
+      "Preprocessing failed: Image corruption or insufficient memory. Check image integrity and system resources."
+    ],
+    "usage": "Provide image_path from Image Capture Tool. Optionally adjust noise_reduction, contrast_enhancement, brightness_adjustment, and geometric_correction based on image quality needs.",
+    "output_details": {
+      "processed_image_path": {
+        "type": "string",
+        "description": "Path to processed image file"
+      },
+      "processing_stats": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Statistics about applied preprocessing operations"
+      },
+      "quality_improvement": {
+        "type": "number",
+        "description": "Quantified improvement in image quality score"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Object Detection Tool",
+    "tool_description": "Detects objects in preprocessed images using computer vision algorithms and outputs bounding box coordinates with confidence scores.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to preprocessed image file"
+      },
+      "detection_model": {
+        "type": "string",
+        "required": true,
+        "description": "Detection algorithm: YOLO, SSD, RCNN, or EdgeAI"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence for valid detection (0.1-1.0)",
+        "default": 0.5
+      },
+      "max_objects": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of objects to detect (1-100)",
+        "default": 20
+      },
+      "region_of_interest": {
+        "type": "array",
+        "required": false,
+        "description": "ROI coordinates as [x1, y1, x2, y2]",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 4,
+        "maxItems": 4,
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid detection_model: Use YOLO, SSD, RCNN, or EdgeAI. Ensure model is loaded and available.",
+      "Invalid confidence_threshold: Must be 0.1-1.0. Lower values detect more objects but with less certainty.",
+      "Image processing error: Preprocessed image is corrupted or incompatible with detection model.",
+      "Invalid region_of_interest: Must be 4 integers [x1, y1, x2, y2] within image bounds.",
+      "Model inference failed: Detection model error or insufficient GPU/CPU resources."
+    ],
+    "usage": "Provide image_path and detection_model. Optionally set confidence_threshold, max_objects, and region_of_interest to fine-tune detection behavior.",
+    "output_details": {
+      "detected_objects": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of detected object identifiers"
+      },
+      "bounding_boxes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Bounding box coordinates for each detected object"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each detection"
+      },
+      "detection_count": {
+        "type": "integer",
+        "description": "Total number of objects detected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Object Classification Tool",
+    "tool_description": "Classifies detected objects into predefined categories using machine learning models trained on industrial object datasets.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to source image"
+      },
+      "bounding_boxes": {
+        "type": "array",
+        "required": true,
+        "description": "Object bounding box coordinates from detection",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "classification_model": {
+        "type": "string",
+        "required": true,
+        "description": "Classification model: ResNet, EfficientNet, MobileNet, or CustomCNN"
+      },
+      "object_categories": {
+        "type": "array",
+        "required": true,
+        "description": "List of possible object categories",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 50
+      },
+      "classification_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence for classification (0.1-1.0)",
+        "default": 0.7
+      },
+      "multi_label": {
+        "type": "boolean",
+        "required": false,
+        "description": "Allow multiple labels per object",
+        "default": false
+      },
+      "feature_extraction": {
+        "type": "boolean",
+        "required": false,
+        "description": "Extract additional object features",
+        "default": true
+      },
+      "batch_processing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Process all objects in single batch",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid classification_model: Use ResNet, EfficientNet, MobileNet, or CustomCNN. Ensure model is loaded.",
+      "Empty bounding_boxes: At least one bounding box required from Object Detection Tool.",
+      "Invalid object_categories: Must provide 2-50 category names that match model training data.",
+      "Invalid classification_threshold: Must be 0.1-1.0. Higher values provide more certain classifications.",
+      "Bounding box out of bounds: One or more bounding boxes exceed image dimensions.",
+      "Model inference error: Classification model failed. Check model compatibility and system resources."
+    ],
+    "usage": "Provide image_path, bounding_boxes from Object Detection Tool, classification_model, and object_categories. Optionally adjust classification_threshold, multi_label, feature_extraction, and batch_processing.",
+    "output_details": {
+      "classifications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Predicted category for each detected object"
+      },
+      "classification_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each classification"
+      },
+      "object_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Extracted features for each object if enabled"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Time taken for classification in milliseconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Conveyor Speed Monitor",
+    "tool_description": "Monitors conveyor belt speed and direction using encoder sensors and provides real-time speed data for tracking calculations.",
+    "parameters": {
+      "encoder_id": {
+        "type": "string",
+        "required": true,
+        "description": "Encoder sensor identifier"
+      },
+      "sampling_interval": {
+        "type": "number",
+        "required": true,
+        "description": "Speed measurement interval in seconds (0.01-10.0)"
+      },
+      "belt_diameter": {
+        "type": "number",
+        "required": false,
+        "description": "Belt pulley diameter in meters (0.1-5.0)",
+        "default": 0.5
+      }
+    },
+    "error_messages": [
+      "Encoder not found: Specified encoder_id is not connected or responding. Check sensor connections.",
+      "Invalid sampling_interval: Must be 0.01-10.0 seconds. Shorter intervals provide more responsive monitoring.",
+      "Invalid belt_diameter: Must be 0.1-5.0 meters. Check conveyor specifications for accurate measurements.",
+      "Speed calculation error: Encoder signal issues or mechanical problems. Verify conveyor operation."
+    ],
+    "usage": "Provide encoder_id and sampling_interval. Optionally specify belt_diameter for accurate speed calculations. Tool continuously monitors belt speed.",
+    "output_details": {
+      "current_speed": {
+        "type": "number",
+        "description": "Current belt speed in meters per second"
+      },
+      "direction": {
+        "type": "string",
+        "description": "Belt movement direction (forward, reverse, stopped)"
+      },
+      "speed_stability": {
+        "type": "string",
+        "description": "Speed stability assessment (stable, fluctuating, irregular)"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp of speed measurement"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Object Tracking Tool",
+    "tool_description": "Tracks detected objects across multiple frames using motion prediction and feature matching to maintain object identity during conveyor transport.",
+    "parameters": {
+      "current_detections": {
+        "type": "array",
+        "required": true,
+        "description": "Current frame object detections",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 0,
+        "maxItems": 100
+      },
+      "previous_tracks": {
+        "type": "array",
+        "required": true,
+        "description": "Previous frame tracking data",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 0,
+        "maxItems": 100
+      },
+      "belt_speed": {
+        "type": "number",
+        "required": true,
+        "description": "Current conveyor speed in m/s from Speed Monitor"
+      },
+      "frame_interval": {
+        "type": "number",
+        "required": true,
+        "description": "Time between frames in seconds (0.01-1.0)"
+      },
+      "tracking_algorithm": {
+        "type": "string",
+        "required": false,
+        "description": "Tracking method: Kalman, SORT, DeepSORT, or Centroid",
+        "default": "SORT"
+      },
+      "max_tracking_distance": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum pixel distance for object association (10-500)",
+        "default": 100
+      },
+      "track_memory": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of frames to remember lost objects (1-30)",
+        "default": 10
+      },
+      "feature_matching": {
+        "type": "boolean",
+        "required": false,
+        "description": "Use visual features for tracking improvement",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid tracking_algorithm: Use Kalman, SORT, DeepSORT, or Centroid. Ensure algorithm is available.",
+      "Invalid frame_interval: Must be 0.01-1.0 seconds. Must match camera frame rate settings.",
+      "Invalid max_tracking_distance: Must be 10-500 pixels. Adjust based on object sizes and belt speed.",
+      "Invalid track_memory: Must be 1-30 frames. Higher values maintain tracks longer but use more memory.",
+      "Tracking initialization failed: Insufficient previous tracking data or corrupted detection format."
+    ],
+    "usage": "Provide current_detections, previous_tracks, belt_speed, and frame_interval. Optionally configure tracking_algorithm, max_tracking_distance, track_memory, and feature_matching.",
+    "output_details": {
+      "active_tracks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Currently tracked objects with IDs and positions"
+      },
+      "new_tracks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Newly detected objects assigned track IDs"
+      },
+      "lost_tracks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Objects that are no longer being tracked"
+      },
+      "track_count": {
+        "type": "integer",
+        "description": "Total number of active tracks"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Decision Logic Engine",
+    "tool_description": "Makes sorting and control decisions based on object classifications, tracking data, quality metrics, and predefined business rules.",
+    "parameters": {
+      "tracked_objects": {
+        "type": "array",
+        "required": true,
+        "description": "Objects with tracking and classification data",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 0,
+        "maxItems": 100
+      },
+      "sorting_rules": {
+        "type": "array",
+        "required": true,
+        "description": "Business rules for object sorting",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "quality_thresholds": {
+        "type": "array",
+        "required": true,
+        "description": "Quality acceptance criteria",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "conveyor_zones": {
+        "type": "array",
+        "required": true,
+        "description": "Physical zones along conveyor for sorting",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "priority_categories": {
+        "type": "array",
+        "required": false,
+        "description": "High priority object categories",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "emergency_stop": {
+        "type": "boolean",
+        "required": false,
+        "description": "Emergency stop condition active",
+        "default": false
+      },
+      "batch_processing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Process decisions in batches",
+        "default": false
+      },
+      "decision_confidence": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence for automated decisions (0.1-1.0)",
+        "default": 0.8
+      },
+      "override_mode": {
+        "type": "boolean",
+        "required": false,
+        "description": "Allow manual override of decisions",
+        "default": true
+      },
+      "logging_level": {
+        "type": "string",
+        "required": false,
+        "description": "Decision logging detail: minimal, standard, detailed",
+        "default": "standard"
+      },
+      "performance_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Processing mode: speed, accuracy, balanced",
+        "default": "balanced"
+      }
+    },
+    "error_messages": [
+      "Invalid sorting_rules: Rules must be properly formatted and contain valid conditions and actions.",
+      "Invalid quality_thresholds: All threshold values must be between 0 and 1.",
+      "Empty conveyor_zones: At least one physical zone must be defined for sorting operations.",
+      "Invalid decision_confidence: Must be 0.1-1.0. Higher values require more certain classifications.",
+      "Rule conflict detected: Sorting rules contain contradictory conditions. Review and resolve conflicts.",
+      "Zone mapping error: Object positions cannot be mapped to defined conveyor_zones."
+    ],
+    "usage": "Provide tracked_objects, sorting_rules, quality_thresholds, and conveyor_zones. Optionally configure priority_categories, decision_confidence, and other parameters for optimal decision making.",
+    "output_details": {
+      "sorting_decisions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Sorting actions for each tracked object"
+      },
+      "control_commands": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Commands for conveyor and actuator control"
+      },
+      "rejected_objects": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Objects that failed quality criteria"
+      },
+      "decision_summary": {
+        "type": "string",
+        "description": "Summary of decisions made in current cycle"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quality Control Inspector",
+    "tool_description": "Evaluates object quality based on visual inspection, dimensional analysis, and classification confidence to ensure production standards.",
+    "parameters": {
+      "object_data": {
+        "type": "array",
+        "required": true,
+        "description": "Object classification and detection data",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "quality_criteria": {
+        "type": "array",
+        "required": true,
+        "description": "Quality inspection criteria",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "inspection_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Inspection level: basic, standard, comprehensive",
+        "default": "standard"
+      },
+      "defect_detection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable automated defect detection",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid object_data: Object data must include classification and bounding box information.",
+      "Invalid quality_criteria: Criteria must specify measurable quality parameters and thresholds.",
+      "Invalid inspection_mode: Use basic, standard, or comprehensive inspection levels.",
+      "Quality analysis failed: Insufficient image quality or object data for reliable inspection."
+    ],
+    "usage": "Provide object_data from classification and quality_criteria definitions. Optionally set inspection_mode and defect_detection based on quality requirements.",
+    "output_details": {
+      "quality_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Quality scores for each inspected object"
+      },
+      "pass_fail_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Pass/fail determination for each object"
+      },
+      "defect_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detected defect types if any"
+      },
+      "inspection_summary": {
+        "type": "string",
+        "description": "Overall quality inspection results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Conveyor Control Tool",
+    "tool_description": "Controls conveyor belt speed and direction based on processing demands and sorting decisions from the decision logic engine.",
+    "parameters": {
+      "control_commands": {
+        "type": "array",
+        "required": true,
+        "description": "Control commands from Decision Logic Engine",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "target_speed": {
+        "type": "number",
+        "required": false,
+        "description": "Desired belt speed in m/s (0.0-5.0)",
+        "default": 1.0
+      },
+      "acceleration_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Speed change rate in m/s² (0.1-2.0)",
+        "default

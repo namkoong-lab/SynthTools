@@ -1,0 +1,848 @@
+field_name: ecommerce_and_retail
+subfield: Shipping and Logistics Coordination
+task: Process shipping labels, customs documentation, and regulatory compliance forms
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task involves complex regulatory compliance requirements, multi-jurisdictional shipping rules, and coordination between various documentation systems. The scope includes customs regulations, international shipping protocols, and error-prone manual processes with significant legal and financial consequences. This is a **hard** difficulty task.
+
+  **STEP 2 — Set a tool budget**
+  Given the hard difficulty rating, I'm targeting 17 tools within the 15-20 range to handle the complexity of shipping documentation, customs compliance, and regulatory requirements across different jurisdictions.
+
+  **STEP 3 — List all tool names and dependencies**
+  1. **Address_Validator** - Consumes: addresses → Produces: validated address data
+  2. **Customs_Code_Classifier** - Consumes: product descriptions → Produces: HS codes, duty rates
+  3. **Shipping_Rate_Calculator** - Consumes: package specs, destinations → Produces: shipping costs, transit times
+  4. **Label_Generator** - Consumes: shipping details → Produces: formatted shipping labels
+  5. **Customs_Declaration_Builder** - Consumes: item details, classifications → Produces: customs forms
+  6. **Regulatory_Compliance_Checker** - Consumes: products, destinations → Produces: compliance requirements
+  7. **Documentation_Validator** - Consumes: forms, regulations → Produces: validation results
+  8. **Package_Dimension_Calculator** - Consumes: item specs → Produces: optimal packaging
+  9. **Invoice_Generator** - Consumes: order details → Produces: commercial invoices
+  10. **Certificate_Manager** - Consumes: product types, destinations → Produces: required certificates
+  11. **Restricted_Items_Scanner** - Consumes: product lists, destinations → Produces: restriction alerts
+  12. **Duty_Tax_Calculator** - Consumes: values, classifications → Produces: duty/tax amounts
+  13. **Carrier_Integration_Manager** - Consumes: shipping preferences → Produces: carrier-specific formats
+  14. **Tracking_Number_Generator** - Consumes: shipment details → Produces: tracking codes
+  15. **Export_License_Checker** - Consumes: products, destinations → Produces: license requirements
+  16. **Document_Batch_Processor** - Consumes: multiple orders → Produces: bulk documentation
+  17. **Compliance_Audit_Logger** - Consumes: all processing data → Produces: audit trails
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Domestic Label Creation**: Address_Validator → Package_Dimension_Calculator → Shipping_Rate_Calculator → Label_Generator
+  2. **Basic Compliance Check**: Restricted_Items_Scanner → Regulatory_Compliance_Checker → Documentation_Validator
+
+  **Medium Plans:**
+  1. **International Shipment Prep**: Address_Validator → Customs_Code_Classifier → Duty_Tax_Calculator → Invoice_Generator → Customs_Declaration_Builder → Documentation_Validator
+  2. **Multi-Carrier Rate Shopping**: Package_Dimension_Calculator → Shipping_Rate_Calculator → Carrier_Integration_Manager → Label_Generator → Tracking_Number_Generator
+
+  **Complex Plans:**
+  1. **Full International Compliance Pipeline**: Address_Validator → Customs_Code_Classifier → Restricted_Items_Scanner → Export_License_Checker → Certificate_Manager → Regulatory_Compliance_Checker → Invoice_Generator → Duty_Tax_Calculator → Customs_Declaration_Builder → Documentation_Validator → Label_Generator → Compliance_Audit_Logger
+  2. **Bulk Processing Workflow**: Document_Batch_Processor → (parallel processing) → Address_Validator + Customs_Code_Classifier + Package_Dimension_Calculator → Shipping_Rate_Calculator → Carrier_Integration_Manager → Label_Generator → Tracking_Number_Generator → Compliance_Audit_Logger
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Address_Validator",
+    "tool_description": "Validates and standardizes shipping addresses for domestic and international destinations, ensuring deliverability and compliance with postal standards.",
+    "parameters": {
+      "street_address": {
+        "type": "string",
+        "required": true,
+        "description": "Street address including number and street name"
+      },
+      "city": {
+        "type": "string",
+        "required": true,
+        "description": "City or locality name"
+      },
+      "country_code": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code (e.g., US, CA, GB)"
+      },
+      "postal_code": {
+        "type": "string",
+        "required": false,
+        "description": "Postal or ZIP code",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid country code: Provide a valid two-letter ISO country code.",
+      "Address not found: The provided address cannot be validated or standardized.",
+      "Incomplete address: Street address and city are required for validation.",
+      "Undeliverable address: Address exists but is not suitable for shipping delivery."
+    ],
+    "usage": "Provide street_address, city, and country_code. Optionally include postal_code for better accuracy. Returns standardized address components and deliverability status.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the address is valid and deliverable"
+      },
+      "standardized_street": {
+        "type": "string",
+        "description": "Standardized street address"
+      },
+      "standardized_city": {
+        "type": "string",
+        "description": "Standardized city name"
+      },
+      "standardized_postal_code": {
+        "type": "string",
+        "description": "Standardized postal code"
+      },
+      "address_type": {
+        "type": "string",
+        "description": "Address type (residential, commercial, PO Box)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customs_Code_Classifier",
+    "tool_description": "Classifies products using Harmonized System (HS) codes and determines applicable duty rates for international shipping.",
+    "parameters": {
+      "product_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name or title of the product"
+      },
+      "product_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the product including materials and purpose"
+      },
+      "product_category": {
+        "type": "string",
+        "required": false,
+        "description": "General product category (electronics, clothing, food, etc.)",
+        "default": null
+      },
+      "destination_country": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code for destination"
+      },
+      "origin_country": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code for country of origin"
+      }
+    },
+    "error_messages": [
+      "Product classification failed: Insufficient product information provided for accurate HS code determination.",
+      "Invalid country codes: Provide valid two-letter ISO country codes for origin and destination.",
+      "Ambiguous product description: Product description is too vague for accurate classification.",
+      "Restricted product classification: Product may require special licenses or is prohibited for the destination country."
+    ],
+    "usage": "Provide detailed product_name, product_description, destination_country, and origin_country. Optionally specify product_category for better accuracy. Returns HS classification and duty information.",
+    "output_details": {
+      "hs_code": {
+        "type": "string",
+        "description": "10-digit Harmonized System classification code"
+      },
+      "hs_description": {
+        "type": "string",
+        "description": "Official description for the HS code"
+      },
+      "duty_rate": {
+        "type": "number",
+        "description": "Applicable duty rate as percentage"
+      },
+      "trade_agreements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of applicable trade agreements that may affect duties"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Classification confidence score from 0 to 1"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping_Rate_Calculator",
+    "tool_description": "Calculates shipping costs and transit times across multiple carriers based on package specifications and destination details.",
+    "parameters": {
+      "origin_postal_code": {
+        "type": "string",
+        "required": true,
+        "description": "Origin postal or ZIP code"
+      },
+      "destination_postal_code": {
+        "type": "string",
+        "required": true,
+        "description": "Destination postal or ZIP code"
+      },
+      "destination_country": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code for destination"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Package weight in pounds"
+      },
+      "package_length": {
+        "type": "number",
+        "required": true,
+        "description": "Package length in inches"
+      },
+      "package_width": {
+        "type": "number",
+        "required": true,
+        "description": "Package width in inches"
+      },
+      "package_height": {
+        "type": "number",
+        "required": true,
+        "description": "Package height in inches"
+      },
+      "declared_value": {
+        "type": "number",
+        "required": false,
+        "description": "Declared value of contents in USD",
+        "default": 0
+      },
+      "service_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Preferred service types (ground, express, overnight, international)",
+        "default": ["ground", "express"]
+      },
+      "carriers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Preferred carriers (ups, fedex, usps, dhl)",
+        "default": ["ups", "fedex", "usps"]
+      }
+    },
+    "error_messages": [
+      "Invalid package dimensions: All dimensions must be positive numbers greater than 0.",
+      "Invalid postal codes: Provide valid postal codes for origin and destination.",
+      "Package too large: Package exceeds maximum size limits for available carriers.",
+      "Package too heavy: Package exceeds weight limits for selected service types.",
+      "No service available: No shipping services available for the specified route and package specifications."
+    ],
+    "usage": "Provide origin and destination postal codes, country code, and complete package dimensions. Optionally specify declared_value, service_types, and preferred carriers. Returns rate comparison across carriers and services.",
+    "output_details": {
+      "shipping_options": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of shipping option descriptions with carrier, service, cost, and transit time"
+      },
+      "lowest_cost": {
+        "type": "number",
+        "description": "Lowest available shipping cost"
+      },
+      "fastest_service": {
+        "type": "string",
+        "description": "Fastest shipping service description"
+      },
+      "currency": {
+        "type": "string",
+        "description": "Currency code for pricing (USD, CAD, etc.)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Label_Generator",
+    "tool_description": "Generates properly formatted shipping labels with carrier-specific layouts, barcodes, and required addressing information.",
+    "parameters": {
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping carrier (ups, fedex, usps, dhl)"
+      },
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Service type (ground, express, overnight, international)"
+      },
+      "sender_name": {
+        "type": "string",
+        "required": true,
+        "description": "Sender's full name or company name"
+      },
+      "sender_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete sender address"
+      },
+      "recipient_name": {
+        "type": "string",
+        "required": true,
+        "description": "Recipient's full name or company name"
+      },
+      "recipient_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete recipient address"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Unique tracking number for the shipment"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Package weight for label display"
+      },
+      "reference_number": {
+        "type": "string",
+        "required": false,
+        "description": "Customer reference number",
+        "default": null
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "description": "Special handling instructions",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Unsupported carrier: Use one of [ups, fedex, usps, dhl].",
+      "Invalid service type: Service type not supported by the selected carrier.",
+      "Missing required information: All sender and recipient details must be provided.",
+      "Invalid tracking number: Tracking number format is not valid for the selected carrier.",
+      "Address formatting error: Addresses must be properly formatted and complete."
+    ],
+    "usage": "Provide carrier, service_type, complete sender and recipient information, tracking_number, and package_weight. Optionally add reference_number and special_instructions. Returns formatted label data.",
+    "output_details": {
+      "label_format": {
+        "type": "string",
+        "description": "Label format specification (PDF, PNG, ZPL)"
+      },
+      "label_data": {
+        "type": "string",
+        "description": "Base64 encoded label image or raw format data"
+      },
+      "label_dimensions": {
+        "type": "string",
+        "description": "Label dimensions in inches (e.g., 4x6, 8.5x11)"
+      },
+      "barcode_data": {
+        "type": "string",
+        "description": "Tracking barcode in text format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customs_Declaration_Builder",
+    "tool_description": "Creates customs declaration forms including CN22, CN23, and commercial invoices with proper item descriptions and valuations for international shipments.",
+    "parameters": {
+      "form_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of customs form (CN22, CN23, commercial_invoice)"
+      },
+      "sender_name": {
+        "type": "string",
+        "required": true,
+        "description": "Sender's full name or company name"
+      },
+      "sender_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete sender address"
+      },
+      "recipient_name": {
+        "type": "string",
+        "required": true,
+        "description": "Recipient's full name or company name"
+      },
+      "recipient_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete recipient address"
+      },
+      "destination_country": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code for destination"
+      },
+      "shipment_purpose": {
+        "type": "string",
+        "required": true,
+        "description": "Purpose of shipment (gift, commercial_sale, personal_use, return, sample)"
+      },
+      "item_descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of detailed item descriptions",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "item_quantities": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Array of item quantities corresponding to descriptions",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "item_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Array of individual item values in USD",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "item_weights": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Array of individual item weights in pounds",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "hs_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of HS codes for each item",
+        "default": null
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Currency code for values (USD, EUR, GBP, etc.)",
+        "default": "USD"
+      },
+      "insurance_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Insurance coverage amount",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid form type: Use one of [CN22, CN23, commercial_invoice].",
+      "Mismatched array lengths: All item arrays (descriptions, quantities, values, weights) must have the same length.",
+      "Invalid shipment purpose: Use one of [gift, commercial_sale, personal_use, return, sample].",
+      "Value threshold exceeded: CN22 forms cannot exceed $400 total value, use CN23 for higher values.",
+      "Missing required information: All sender and recipient details must be complete.",
+      "Invalid country code: Provide a valid two-letter ISO country code for destination.",
+      "Item limit exceeded: Maximum 50 items allowed per declaration."
+    ],
+    "usage": "Specify form_type, complete sender/recipient information, destination_country, and shipment_purpose. Provide matching arrays of item details (descriptions, quantities, values, weights). Optionally include hs_codes, currency, and insurance_amount.",
+    "output_details": {
+      "form_data": {
+        "type": "string",
+        "description": "Complete customs form in specified format"
+      },
+      "total_declared_value": {
+        "type": "number",
+        "description": "Total declared value of all items"
+      },
+      "total_weight": {
+        "type": "number",
+        "description": "Total weight of all items"
+      },
+      "item_count": {
+        "type": "integer",
+        "description": "Total number of items declared"
+      },
+      "form_validity": {
+        "type": "boolean",
+        "description": "Whether the form meets customs requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Regulatory_Compliance_Checker",
+    "tool_description": "Validates products and shipments against international trade regulations, import/export restrictions, and licensing requirements for specific country pairs.",
+    "parameters": {
+      "origin_country": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code for origin"
+      },
+      "destination_country": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code for destination"
+      },
+      "product_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of product categories being shipped",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "hs_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of HS codes for products",
+        "default": null
+      },
+      "shipment_value": {
+        "type": "number",
+        "required": true,
+        "description": "Total shipment value in USD"
+      },
+      "shipment_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of shipment (commercial, personal, gift, sample, return)"
+      }
+    },
+    "error_messages": [
+      "Invalid country codes: Provide valid two-letter ISO country codes for origin and destination.",
+      "Prohibited products detected: One or more products are prohibited for the destination country.",
+      "License required: Products require export/import licenses for this country pair.",
+      "Value threshold exceeded: Shipment value exceeds limits for the specified shipment type.",
+      "Missing documentation: Additional certificates or permits required for compliance.",
+      "Embargo restrictions: Trade restrictions are in place between the specified countries."
+    ],
+    "usage": "Provide origin_country, destination_country, product_categories, shipment_value, and shipment_type. Optionally include specific hs_codes for more detailed compliance checking. Returns comprehensive compliance status and requirements.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance status (compliant, requires_action, prohibited)"
+      },
+      "required_licenses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required export/import licenses"
+      },
+      "required_certificates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required certificates or permits"
+      },
+      "prohibited_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of prohibited product categories"
+      },
+      "restrictions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of applicable restrictions or special requirements"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Recommended actions for compliance"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Documentation_Validator",
+    "tool_description": "Validates completeness and accuracy of shipping and customs documentation against regulatory requirements and carrier standards.",
+    "parameters": {
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document to validate (shipping_label, customs_form, commercial_invoice, certificate)"
+      },
+      "document_data": {
+        "type": "string",
+        "required": true,
+        "description": "Document content or data to validate"
+      },
+      "destination_country": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code for destination"
+      },
+      "carrier": {
+        "type": "string",
+        "required": false,
+        "description": "Shipping carrier for carrier-specific validation",
+        "default": null
+      },
+      "validation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Validation strictness (basic, standard, strict)",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Unsupported document type: Use one of [shipping_label, customs_form, commercial_invoice, certificate].",
+      "Invalid document format: Document data is not in the expected format.",
+      "Missing required fields: Document is missing mandatory information for the destination country.",
+      "Incorrect validation level: Use one of [basic, standard, strict].",
+      "Carrier validation failed: Document does not meet carrier-specific requirements.",
+      "Regulatory non-compliance: Document does not meet customs or regulatory standards."
+    ],
+    "usage": "Provide document_type, document_data, and destination_country. Optionally specify carrier for carrier-specific validation and validation_level for strictness. Returns detailed validation results and suggestions.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the document passes validation"
+      },
+      "validation_score": {
+        "type": "number",
+        "description": "Validation score from 0 to 1"
+      },
+      "errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation errors found"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation warnings"
+      },
+      "suggestions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of improvement suggestions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Package_Dimension_Calculator",
+    "tool_description": "Calculates optimal packaging dimensions and materials based on item specifications, fragility requirements, and shipping constraints.",
+    "parameters": {
+      "item_length": {
+        "type": "number",
+        "required": true,
+        "description": "Item length in inches"
+      },
+      "item_width": {
+        "type": "number",
+        "required": true,
+        "description": "Item width in inches"
+      },
+      "item_height": {
+        "type": "number",
+        "required": true,
+        "description": "Item height in inches"
+      },
+      "item_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Item weight in pounds"
+      },
+      "fragility_level": {
+        "type": "string",
+        "required": false,
+        "description": "Item fragility (low, medium, high, fragile)",
+        "default": "medium"
+      },
+      "multiple_items": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of identical items to pack together",
+        "default": 1
+      },
+      "packaging_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Packaging preference (minimal, standard, protective, eco_friendly)",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid dimensions: All item dimensions must be positive numbers greater than 0.",
+      "Invalid weight: Item weight must be a positive number.",
+      "Invalid fragility level: Use one of [low, medium, high, fragile].",
+      "Invalid packaging preference: Use one of [minimal, standard, protective, eco_friendly].",
+      "Item too large: Item exceeds maximum packageable dimensions.",
+      "Multiple items limit exceeded: Cannot calculate packaging for more than 50 identical items."
+    ],
+    "usage": "Provide item dimensions (length, width, height) and weight. Optionally specify fragility_level, multiple_items count, and packaging_preference. Returns optimal packaging specifications and material recommendations.",
+    "output_details": {
+      "package_length": {
+        "type": "number",
+        "description": "Recommended package length in inches"
+      },
+      "package_width": {
+        "type": "number",
+        "description": "Recommended package width in inches"
+      },
+      "package_height": {
+        "type": "number",
+        "description": "Recommended package height in inches"
+      },
+      "total_weight": {
+        "type": "number",
+        "description": "Total package weight including packaging materials"
+      },
+      "packaging_materials": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of recommended packaging materials"
+      },
+      "estimated_cost": {
+        "type": "number",
+        "description": "Estimated packaging material cost in USD"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice_Generator",
+    "tool_description": "Generates commercial invoices and proforma invoices with proper formatting, tax calculations, and international trade requirements for customs clearance.",
+    "parameters": {
+      "invoice_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of invoice (commercial, proforma)"
+      },
+      "seller_name": {
+        "type": "string",
+        "required": true,
+        "description": "Seller's company or individual name"
+      },
+      "seller_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete seller address"
+      },
+      "seller_tax_id": {
+        "type": "string",
+        "required": false,
+        "description": "Seller's tax identification number",
+        "default": null
+      },
+      "buyer_name": {
+        "type": "string",
+        "required": true,
+        "description": "Buyer's company or individual name"
+      },
+      "buyer_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete buyer address"
+      },
+      "buyer_tax_id": {
+        "type": "string",
+        "required": false,
+        "description": "Buyer's tax identification number",
+        "default": null
+      },
+      "item_descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of detailed item descriptions"
+      },
+      "quantities": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Array of quantities for each item"
+      },
+      "unit_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Array of unit prices for each item"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Currency code for pricing (USD, EUR, GBP, etc.)",
+        "default": "USD"
+      },
+      "payment_terms": {
+        "type": "string",
+        "required": false,
+        "description": "Payment terms description",
+        "default": "Net 30"
+      },
+      "shipping_terms": {
+        "type": "string",
+        "required": false,
+        "description": "Shipping terms (FOB, CIF, EXW, etc.)",
+        "default": "FOB"
+      },
+      "discount_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Discount percentage to apply",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid invoice type: Use either 'commercial' or 'proforma'.",
+      "Mismatched array lengths: Item descriptions, quantities, and unit prices arrays must have the same length.",
+      "Invalid currency code: Provide a valid three-letter currency code.",
+      "Missing required information: Seller and buyer names and addresses are required.",
+      "Invalid pricing: Unit prices and quantities must be positive numbers.",
+      "Invalid discount: Discount percentage must be between 0 and 100."
+    ],
+    "usage": "Specify invoice_type, complete seller and buyer information, and matching arrays

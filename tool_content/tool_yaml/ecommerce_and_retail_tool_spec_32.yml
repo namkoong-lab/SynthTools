@@ -1,0 +1,865 @@
+field_name: ecommerce_and_retail
+subfield: Inventory Management and Tracking
+task: Stock movement tracking and audit trail maintenance
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task involves tracking complex stock movements across multiple locations, maintaining detailed audit trails, and ensuring data integrity across various stakeholders. The difficulty is **medium** due to moderate coordination requirements between systems, real-time data synchronization needs, and the critical nature of inventory accuracy for business operations.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium difficulty, I'll target **12 tools** to cover the various aspects of stock movement tracking, audit trail maintenance, data validation, and reporting requirements.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Stock Movement Logger** - Consumes: movement details, location data → Produces: movement records
+  2. **Inventory Level Tracker** - Consumes: current stock data → Produces: inventory snapshots
+  3. **Audit Trail Generator** - Consumes: transaction data → Produces: audit records
+  4. **Movement Validator** - Consumes: movement requests → Produces: validation results
+  5. **Location Manager** - Consumes: location details → Produces: location configurations
+  6. **Batch Operations Processor** - Consumes: bulk movement data → Produces: batch results
+  7. **Stock Reconciliation Tool** - Consumes: expected vs actual inventory → Produces: discrepancy reports
+  8. **Movement History Analyzer** - Consumes: historical data → Produces: trend analysis
+  9. **Alert Configuration Manager** - Consumes: threshold settings → Produces: alert rules
+  10. **Inventory Snapshot Creator** - Consumes: current state → Produces: point-in-time snapshots
+  11. **Movement Report Generator** - Consumes: filtered data → Produces: formatted reports
+  12. **Data Integrity Checker** - Consumes: audit trails → Produces: integrity validation
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Stock Update**: Movement Validator → Stock Movement Logger → Inventory Level Tracker
+  2. **Quick Audit Check**: Audit Trail Generator → Data Integrity Checker
+
+  **Medium Plans:**
+  1. **Daily Reconciliation**: Inventory Snapshot Creator → Stock Reconciliation Tool → Alert Configuration Manager → Movement Report Generator
+  2. **Batch Processing**: Movement Validator → Batch Operations Processor → Audit Trail Generator → Stock Movement Logger
+
+  **Complex Plans:**
+  1. **Full Audit Cycle**: Location Manager → Inventory Snapshot Creator → Movement History Analyzer → Stock Reconciliation Tool → Audit Trail Generator → Data Integrity Checker → Movement Report Generator
+  2. **Comprehensive Movement Tracking**: Movement Validator → Location Manager → Stock Movement Logger → Inventory Level Tracker → Audit Trail Generator → Alert Configuration Manager → Movement History Analyzer
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Stock Movement Logger",
+    "tool_description": "Records individual stock movements between locations with detailed transaction information and timestamps for audit trail purposes.",
+    "parameters": {
+      "item_sku": {
+        "type": "string",
+        "required": true,
+        "description": "Stock keeping unit identifier for the item being moved"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of units being moved (positive for inbound, negative for outbound)"
+      },
+      "source_location": {
+        "type": "string",
+        "required": true,
+        "description": "Location identifier where items are moving from"
+      },
+      "destination_location": {
+        "type": "string",
+        "required": true,
+        "description": "Location identifier where items are moving to"
+      },
+      "movement_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of movement: transfer, sale, return, adjustment, receiving"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the user initiating the movement"
+      },
+      "reference_number": {
+        "type": "string",
+        "required": false,
+        "description": "External reference number (PO, invoice, etc.)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid movement type: Must be one of [transfer, sale, return, adjustment, receiving]",
+      "Invalid quantity: Quantity must be a non-zero integer",
+      "Location not found: Source or destination location does not exist in the system",
+      "User authorization failed: User does not have permission to perform this movement type",
+      "Duplicate reference: Reference number already exists for this movement type"
+    ],
+    "usage": "Provide item_sku, quantity, source_location, destination_location, movement_type, and user_id. Optionally include reference_number for external tracking. The tool creates a permanent movement record.",
+    "output_details": {
+      "movement_id": {
+        "type": "string",
+        "description": "Unique identifier for this movement transaction"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the movement was recorded in ISO 8601 format"
+      },
+      "status": {
+        "type": "string",
+        "description": "Status of the movement logging operation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Level Tracker",
+    "tool_description": "Maintains real-time inventory levels across all locations and provides current stock quantities with location-specific details.",
+    "parameters": {
+      "location_id": {
+        "type": "string",
+        "required": true,
+        "description": "Location identifier to track inventory for"
+      },
+      "item_sku": {
+        "type": "string",
+        "required": false,
+        "description": "Specific item SKU to track (if not provided, tracks all items at location)",
+        "default": "None"
+      },
+      "include_reserved": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include reserved stock in available quantity",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Location not found: The specified location_id does not exist",
+      "Item not found: The specified item_sku does not exist at this location",
+      "Access denied: User does not have permission to view inventory at this location"
+    ],
+    "usage": "Provide location_id to get inventory levels. Optionally specify item_sku for a single item or set include_reserved to include reserved quantities in calculations.",
+    "output_details": {
+      "location_id": {
+        "type": "string",
+        "description": "The location identifier that was queried"
+      },
+      "total_items": {
+        "type": "integer",
+        "description": "Number of different items at this location"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last inventory update in ISO 8601 format"
+      },
+      "inventory_data": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of inventory records in format 'SKU:Available:Reserved:Total'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audit Trail Generator",
+    "tool_description": "Creates comprehensive audit records for all inventory transactions with user actions, timestamps, and change details for compliance and tracking purposes.",
+    "parameters": {
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the transaction being audited"
+      },
+      "action_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of action performed: create, update, delete, transfer, adjust"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of user who performed the action"
+      },
+      "entity_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of entity affected: item, location, movement, adjustment"
+      },
+      "entity_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the specific entity affected"
+      },
+      "old_values": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Previous values before change in format 'field:value'",
+        "default": "None"
+      },
+      "new_values": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "New values after change in format 'field:value'",
+        "default": "None"
+      },
+      "reason_code": {
+        "type": "string",
+        "required": false,
+        "description": "Business reason for the change",
+        "default": "None"
+      },
+      "ip_address": {
+        "type": "string",
+        "required": false,
+        "description": "IP address from which action was performed",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid action type: Must be one of [create, update, delete, transfer, adjust]",
+      "Invalid entity type: Must be one of [item, location, movement, adjustment]",
+      "User not found: The specified user_id does not exist",
+      "Transaction not found: The specified transaction_id does not exist",
+      "Invalid value format: Old and new values must be in 'field:value' format"
+    ],
+    "usage": "Provide transaction_id, action_type, user_id, entity_type, and entity_id. Optionally include old_values, new_values, reason_code, and ip_address for complete audit information.",
+    "output_details": {
+      "audit_id": {
+        "type": "string",
+        "description": "Unique identifier for this audit record"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the audit record was created in ISO 8601 format"
+      },
+      "status": {
+        "type": "string",
+        "description": "Status of audit record creation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Movement Validator",
+    "tool_description": "Validates stock movement requests against business rules, inventory availability, and location constraints before processing.",
+    "parameters": {
+      "item_sku": {
+        "type": "string",
+        "required": true,
+        "description": "Stock keeping unit identifier to validate"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Quantity requested for movement"
+      },
+      "source_location": {
+        "type": "string",
+        "required": true,
+        "description": "Source location for the movement"
+      },
+      "destination_location": {
+        "type": "string",
+        "required": true,
+        "description": "Destination location for the movement"
+      },
+      "movement_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of movement to validate"
+      },
+      "check_availability": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check stock availability at source",
+        "default": true
+      },
+      "check_capacity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check destination capacity limits",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Insufficient stock: Not enough inventory available at source location",
+      "Capacity exceeded: Destination location would exceed capacity limits",
+      "Invalid movement path: Movement between these locations is not allowed",
+      "Item restriction: This item cannot be moved to the destination location",
+      "Movement type not allowed: This movement type is not permitted for this item/location combination"
+    ],
+    "usage": "Provide item_sku, quantity, source_location, destination_location, and movement_type. Optionally disable availability or capacity checks using the boolean parameters.",
+    "output_details": {
+      "validation_result": {
+        "type": "string",
+        "description": "Overall validation result: valid, invalid, warning"
+      },
+      "validation_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of specific validation messages and checks performed"
+      },
+      "available_quantity": {
+        "type": "integer",
+        "description": "Available quantity at source location"
+      },
+      "remaining_capacity": {
+        "type": "integer",
+        "description": "Remaining capacity at destination location"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Location Manager",
+    "tool_description": "Manages location configurations, capacity limits, and movement rules for inventory tracking across different storage locations.",
+    "parameters": {
+      "location_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the location"
+      },
+      "location_name": {
+        "type": "string",
+        "required": false,
+        "description": "Human-readable name for the location",
+        "default": "None"
+      },
+      "location_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of location: warehouse, store, supplier, customer, transit",
+        "default": "warehouse"
+      },
+      "max_capacity": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of units this location can hold",
+        "default": 10000
+      },
+      "allowed_item_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of item types allowed at this location",
+        "default": "None"
+      },
+      "restricted_movements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of movement types not allowed from/to this location",
+        "default": "None"
+      },
+      "active": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this location is currently active",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid location type: Must be one of [warehouse, store, supplier, customer, transit]",
+      "Duplicate location ID: Location with this ID already exists",
+      "Invalid capacity: Max capacity must be a positive integer",
+      "Location in use: Cannot deactivate location with current inventory",
+      "Invalid item type: One or more item types in allowed list do not exist"
+    ],
+    "usage": "Provide location_id as minimum requirement. Optionally configure location_name, location_type, max_capacity, allowed_item_types, restricted_movements, and active status.",
+    "output_details": {
+      "location_id": {
+        "type": "string",
+        "description": "The location identifier that was configured"
+      },
+      "configuration_status": {
+        "type": "string",
+        "description": "Status of the location configuration operation"
+      },
+      "current_utilization": {
+        "type": "number",
+        "description": "Current capacity utilization as a percentage"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Operations Processor",
+    "tool_description": "Processes multiple stock movements simultaneously with transaction rollback capabilities and batch validation for efficient bulk operations.",
+    "parameters": {
+      "batch_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for this batch operation"
+      },
+      "operations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of operations in format 'sku:qty:source:dest:type'",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "User identifier initiating the batch"
+      },
+      "validate_all": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate all operations before processing any",
+        "default": true
+      },
+      "rollback_on_error": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to rollback all operations if any fail",
+        "default": true
+      },
+      "continue_on_error": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to continue processing remaining operations after errors",
+        "default": false
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Processing priority: low, normal, high, urgent",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Invalid batch size: Operations array must contain 1-1000 items",
+      "Invalid operation format: Each operation must be in 'sku:qty:source:dest:type' format",
+      "Batch validation failed: One or more operations failed validation checks",
+      "Concurrent batch conflict: Another batch is currently processing conflicting operations",
+      "User authorization failed: User lacks permission for batch operations"
+    ],
+    "usage": "Provide batch_id, operations array, and user_id. Configure processing behavior with validate_all, rollback_on_error, continue_on_error, and priority settings.",
+    "output_details": {
+      "batch_id": {
+        "type": "string",
+        "description": "The batch identifier that was processed"
+      },
+      "total_operations": {
+        "type": "integer",
+        "description": "Total number of operations in the batch"
+      },
+      "successful_operations": {
+        "type": "integer",
+        "description": "Number of operations that completed successfully"
+      },
+      "failed_operations": {
+        "type": "integer",
+        "description": "Number of operations that failed"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Total processing time in seconds"
+      },
+      "error_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of error messages for failed operations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Reconciliation Tool",
+    "tool_description": "Compares expected versus actual inventory levels and identifies discrepancies for investigation and adjustment purposes.",
+    "parameters": {
+      "location_id": {
+        "type": "string",
+        "required": true,
+        "description": "Location to reconcile inventory for"
+      },
+      "reconciliation_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date for reconciliation in ISO 8601 format",
+        "format": "date-time"
+      },
+      "item_filter": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of specific item SKUs to reconcile (empty means all items)",
+        "default": "None"
+      },
+      "tolerance_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Acceptable variance percentage before flagging discrepancy",
+        "default": 2.0
+      },
+      "include_adjustments": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include recent adjustments in expected counts",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Location not found: The specified location does not exist",
+      "Invalid date format: Reconciliation date must be in ISO 8601 format",
+      "Future date not allowed: Reconciliation date cannot be in the future",
+      "Tolerance out of range: Tolerance percentage must be between 0 and 50",
+      "Item not found: One or more items in the filter do not exist"
+    ],
+    "usage": "Provide location_id and reconciliation_date. Optionally filter specific items, set tolerance percentage, and control whether to include recent adjustments.",
+    "output_details": {
+      "reconciliation_id": {
+        "type": "string",
+        "description": "Unique identifier for this reconciliation"
+      },
+      "total_items_checked": {
+        "type": "integer",
+        "description": "Number of items included in reconciliation"
+      },
+      "discrepancies_found": {
+        "type": "integer",
+        "description": "Number of items with discrepancies exceeding tolerance"
+      },
+      "total_variance_value": {
+        "type": "number",
+        "description": "Total monetary value of variances found"
+      },
+      "discrepancy_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of discrepancy records in format 'SKU:Expected:Actual:Variance'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Movement History Analyzer",
+    "tool_description": "Analyzes historical stock movement patterns to identify trends, anomalies, and provide insights for inventory optimization.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period in ISO 8601 format",
+        "format": "date-time"
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of analysis: trend, velocity, anomaly, pattern, forecast"
+      },
+      "location_filter": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of location IDs to include in analysis",
+        "default": "None"
+      },
+      "item_category_filter": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of item categories to include",
+        "default": "None"
+      },
+      "movement_type_filter": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of movement types to analyze",
+        "default": "None"
+      },
+      "grouping_period": {
+        "type": "string",
+        "required": false,
+        "description": "Time period for grouping data: daily, weekly, monthly",
+        "default": "daily"
+      },
+      "min_movement_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum movement quantity to include in analysis",
+        "default": 1
+      },
+      "anomaly_sensitivity": {
+        "type": "number",
+        "required": false,
+        "description": "Sensitivity for anomaly detection (1.0-5.0, higher = more sensitive)",
+        "default": 2.0
+      },
+      "include_seasonality": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to account for seasonal patterns",
+        "default": true
+      },
+      "forecast_periods": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of future periods to forecast (only for forecast analysis)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid date range: Start date must be before end date and both must be in the past",
+      "Invalid analysis type: Must be one of [trend, velocity, anomaly, pattern, forecast]",
+      "Date range too large: Analysis period cannot exceed 2 years",
+      "Insufficient data: Not enough movement data found for meaningful analysis",
+      "Invalid sensitivity: Anomaly sensitivity must be between 1.0 and 5.0",
+      "Invalid grouping period: Must be one of [daily, weekly, monthly]",
+      "Location not found: One or more locations in filter do not exist"
+    ],
+    "usage": "Provide start_date, end_date, and analysis_type. Use filters to narrow scope and configure analysis parameters like grouping_period, sensitivity, and forecast_periods.",
+    "output_details": {
+      "analysis_id": {
+        "type": "string",
+        "description": "Unique identifier for this analysis"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Executive summary of key findings"
+      },
+      "trend_direction": {
+        "type": "string",
+        "description": "Overall trend direction: increasing, decreasing, stable"
+      },
+      "key_metrics": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of key metrics in format 'metric_name:value'"
+      },
+      "anomalies_detected": {
+        "type": "integer",
+        "description": "Number of anomalies detected in the analysis period"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of actionable recommendations based on analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Configuration Manager",
+    "tool_description": "Configures and manages inventory alerts and notifications based on stock levels, movement patterns, and business rules.",
+    "parameters": {
+      "alert_name": {
+        "type": "string",
+        "required": true,
+        "description": "Unique name for this alert configuration"
+      },
+      "alert_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of alert: low_stock, high_movement, no_movement, discrepancy, threshold"
+      },
+      "trigger_conditions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of conditions in format 'field:operator:value'",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "locations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of location IDs where alert applies",
+        "default": "None"
+      },
+      "item_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of item categories to monitor",
+        "default": "None"
+      },
+      "notification_methods": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "How to send alerts: email, sms, dashboard, webhook",
+        "default": "email"
+      },
+      "recipients": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of user IDs or contact information for alert recipients",
+        "default": "None"
+      },
+      "active": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this alert is currently active",
+        "default": true
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Alert priority: low, medium, high, critical",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Invalid alert type: Must be one of [low_stock, high_movement, no_movement, discrepancy, threshold]",
+      "Invalid condition format: Conditions must be in 'field:operator:value' format",
+      "Invalid notification method: Must be one of [email, sms, dashboard, webhook]",
+      "Location not found: One or more locations in the array do not exist",
+      "Duplicate alert name: Alert with this name already exists",
+      "Invalid priority: Must be one of [low, medium, high, critical]"
+    ],
+    "usage": "Provide alert_name, alert_type, and trigger_conditions. Optionally specify locations, item_categories, notification_methods, recipients, priority, and active status.",
+    "output_details": {
+      "alert_id": {
+        "type": "string",
+        "description": "Unique identifier for the configured alert"
+      },
+      "configuration_status": {
+        "type": "string",
+        "description": "Status of alert configuration: active, inactive, error"
+      },
+      "estimated_frequency": {
+        "type": "string",
+        "description": "Estimated frequency this alert might trigger"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Snapshot Creator",
+    "tool_description": "Creates point-in-time snapshots of inventory levels across all or specified locations for audit and reporting purposes.",
+    "parameters": {
+      "snapshot_name": {
+        "type": "string",
+        "required": true,
+        "description": "Descriptive name for this inventory snapshot"
+      },
+      "snapshot_date": {
+        "type": "string",
+        "required": false,
+        "description": "Specific date/time for snapshot in ISO 8601 format (defaults to current time)",
+        "format": "date-time",
+        "default": "None"
+      },
+      "locations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Array of location IDs to include (empty means all locations)",
+        "default": "None"
+      },
+      "include_zero_stock": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include items with zero inventory",
+        "default": false
+      },
+      "include_reserved": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include reserved quantities in snapshot",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid snapshot date: Date must be in ISO 8601 format and cannot be in the future",
+      "Location not found: One or more specified locations do not exist",
+      "Snapshot name exists: A snapshot with this name already exists",
+      "No inventory data: No inventory found for the specified criteria",
+      "Date too old: Cannot create snapshot for dates older than data retention period"
+    ],
+    "usage": "Provide snapshot_name and optionally specify snapshot_date, locations array, and boolean flags for zero stock and reserved quantities inclusion.",
+    "output_details": {
+      "snapshot_id": {
+        "type": "string",
+        "description": "Unique identifier for the created snapshot"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "When the snapshot was created in ISO 8601 format"
+      },
+      "total_locations": {
+        "type": "integer",
+        "description": "Number of locations included in snapshot"
+      },
+      "total_items": {
+        "type": "integer",
+        "description": "Total number of unique items in snapshot"
+      },
+      "total_quantity": {
+        "type": "integer",
+        "description": "Total quantity across all items and locations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Movement Report Generator",
+    "tool_description": "Generates formatte

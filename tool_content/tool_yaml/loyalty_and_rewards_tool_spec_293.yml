@@ -1,0 +1,808 @@
+field_name: loyalty_and_rewards
+subfield: Reward Catalog Management
+task: Update reward inventory levels and track stock availability across multiple fulfillment channels
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves coordinating inventory updates across multiple fulfillment channels while ensuring data consistency and real-time availability tracking. The complexity stems from managing concurrent updates, handling various fulfillment channel requirements, maintaining accurate stock levels, and coordinating dependencies between inventory systems. **Medium difficulty** due to the need for real-time coordination, potential race conditions, and business-critical accuracy requirements.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium complexity involving multiple fulfillment channels, real-time tracking, inventory synchronization, and stock management workflows, I'll target **12 tools** to handle the various sub-tasks effectively.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and Dependencies:**
+  1. **Inventory Level Reader** - Consumes: reward IDs → Produces: current stock levels
+  2. **Stock Validator** - Consumes: stock quantities, thresholds → Produces: validation status
+  3. **Fulfillment Channel Manager** - Consumes: channel configs → Produces: channel status/capabilities
+  4. **Inventory Level Updater** - Consumes: reward IDs, quantities, channels → Produces: update confirmations
+  5. **Stock Threshold Monitor** - Consumes: current levels, thresholds → Produces: alerts/warnings
+  6. **Availability Status Calculator** - Consumes: stock levels, reservations → Produces: availability status
+  7. **Channel Sync Coordinator** - Consumes: inventory changes, channel list → Produces: sync results
+  8. **Stock Reservation Manager** - Consumes: reservation requests → Produces: reservation confirmations
+  9. **Inventory History Tracker** - Consumes: inventory changes → Produces: audit logs
+  10. **Stock Alert Generator** - Consumes: stock levels, rules → Produces: notification alerts
+  11. **Multi Channel Validator** - Consumes: channel inventory data → Produces: consistency reports
+  12. **Inventory Rollback Manager** - Consumes: transaction IDs, rollback requests → Produces: rollback results
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - **Basic Stock Check**: Inventory Level Reader → Stock Validator → Availability Status Calculator
+  - **Single Channel Update**: Inventory Level Updater → Stock Threshold Monitor → Stock Alert Generator
+
+  **Medium Plans:**
+  - **Cross-Channel Sync**: Fulfillment Channel Manager → Inventory Level Reader → Channel Sync Coordinator → Multi Channel Validator
+  - **Stock Replenishment**: Stock Threshold Monitor → Inventory Level Updater → Channel Sync Coordinator → Inventory History Tracker
+  - **Reservation Management**: Stock Reservation Manager → Availability Status Calculator → Stock Threshold Monitor → Stock Alert Generator
+
+  **Complex Plans:**
+  - **Full Inventory Update**: Inventory Level Reader → Stock Validator → Fulfillment Channel Manager → Inventory Level Updater → Channel Sync Coordinator → Multi Channel Validator → Stock Threshold Monitor → Stock Alert Generator → Inventory History Tracker
+  - **Comprehensive Stock Audit**: Fulfillment Channel Manager → Inventory Level Reader → Multi Channel Validator → Availability Status Calculator → Stock Threshold Monitor → Inventory History Tracker → Stock Alert Generator
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Inventory Level Reader",
+    "tool_description": "Retrieves current inventory levels for specified rewards across selected fulfillment channels, providing real-time stock quantities and metadata.",
+    "parameters": {
+      "reward_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of reward identifiers to query",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "channel_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific fulfillment channel IDs to query",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid reward ID: One or more reward IDs do not exist in the system. Verify reward IDs are active and properly formatted.",
+      "Channel access denied: Insufficient permissions for specified channels. Contact administrator for channel access.",
+      "Query timeout: Request took too long to process. Reduce the number of rewards or try again later."
+    ],
+    "usage": "Provide reward_ids array with valid identifiers. Optionally specify channel_ids to limit scope. Returns current stock levels across all accessible channels.",
+    "output_details": {
+      "reward_levels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of reward inventory level summaries"
+      },
+      "total_records": {
+        "type": "integer",
+        "description": "Number of inventory records retrieved"
+      },
+      "query_timestamp": {
+        "type": "string",
+        "description": "When the inventory data was captured"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Validator",
+    "tool_description": "Validates stock quantities against business rules, minimum thresholds, and data integrity constraints to ensure inventory updates are acceptable.",
+    "parameters": {
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Stock quantities to validate",
+        "items": {"type": "integer"},
+        "minItems": 1
+      },
+      "min_threshold": {
+        "type": "integer",
+        "required": true,
+        "description": "Minimum allowed stock level"
+      },
+      "max_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum allowed stock level",
+        "default": "None"
+      },
+      "allow_negative": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether negative stock levels are permitted",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid quantity range: One or more quantities exceed acceptable bounds. Ensure quantities are within min/max thresholds.",
+      "Negative stock not allowed: Negative quantities detected when allow_negative is false. Set allow_negative to true or provide non-negative values.",
+      "Threshold mismatch: min_threshold cannot be greater than max_threshold. Verify threshold values."
+    ],
+    "usage": "Provide quantities array and min_threshold. Optionally set max_threshold and allow_negative flag. Returns validation results for each quantity.",
+    "output_details": {
+      "validation_results": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Boolean validation result for each quantity"
+      },
+      "failed_validations": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Indices of quantities that failed validation"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Summary of validation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fulfillment Channel Manager",
+    "tool_description": "Manages fulfillment channel configurations, capabilities, and status information to coordinate inventory operations across multiple channels.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: list, status, configure, enable, disable"
+      },
+      "channel_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific channel IDs to target",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "configuration": {
+        "type": "array",
+        "required": false,
+        "description": "Configuration parameters for channels",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "sync_priority": {
+        "type": "integer",
+        "required": false,
+        "description": "Priority level for channel synchronization (1-10)",
+        "default": 5
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Operation timeout in seconds",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid action: Action must be one of [list, status, configure, enable, disable]. Check spelling and try again.",
+      "Channel not found: One or more specified channel IDs do not exist. Verify channel IDs are correct and active.",
+      "Configuration error: Invalid configuration parameters provided. Ensure configuration follows required schema.",
+      "Priority out of range: sync_priority must be between 1 and 10. Provide a valid priority value.",
+      "Operation timeout: Channel operation exceeded timeout limit. Increase timeout_seconds or try again later."
+    ],
+    "usage": "Specify action and optionally target specific channel_ids. For configure action, provide configuration array. Set sync_priority and timeout_seconds as needed.",
+    "output_details": {
+      "channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Channel information and status details"
+      },
+      "operation_status": {
+        "type": "string",
+        "description": "Result status of the requested operation"
+      },
+      "active_channels": {
+        "type": "integer",
+        "description": "Number of currently active channels"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Level Updater",
+    "tool_description": "Updates inventory levels for specified rewards across multiple fulfillment channels with transaction safety and rollback capabilities.",
+    "parameters": {
+      "reward_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reward identifier to update"
+      },
+      "new_quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "New inventory quantity to set"
+      },
+      "channel_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target fulfillment channel identifier"
+      },
+      "update_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Update mode: set, increment, decrement",
+        "default": "set"
+      },
+      "force_update": {
+        "type": "boolean",
+        "required": false,
+        "description": "Force update even if validation warnings exist",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Reward not found: The specified reward_id does not exist or is inactive. Verify the reward identifier.",
+      "Invalid channel: The channel_id is not recognized or not accessible. Check channel availability and permissions.",
+      "Quantity validation failed: new_quantity violates business rules or constraints. Review quantity limits and try again.",
+      "Update mode invalid: update_mode must be one of [set, increment, decrement]. Check parameter value.",
+      "Concurrent update conflict: Another process is updating this inventory. Wait and retry or use force_update."
+    ],
+    "usage": "Provide reward_id, new_quantity, and channel_id. Optionally specify update_mode and force_update flag. Returns update confirmation with new inventory state.",
+    "output_details": {
+      "update_success": {
+        "type": "boolean",
+        "description": "Whether the inventory update was successful"
+      },
+      "new_inventory_level": {
+        "type": "integer",
+        "description": "Updated inventory quantity after the operation"
+      },
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique identifier for this inventory transaction"
+      },
+      "update_timestamp": {
+        "type": "string",
+        "description": "When the inventory update was completed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Threshold Monitor",
+    "tool_description": "Monitors inventory levels against configured thresholds and generates alerts when stock levels approach or exceed warning boundaries.",
+    "parameters": {
+      "reward_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Reward identifiers to monitor",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "low_threshold": {
+        "type": "integer",
+        "required": true,
+        "description": "Minimum stock level before low stock alert"
+      },
+      "critical_threshold": {
+        "type": "integer",
+        "required": true,
+        "description": "Critical stock level threshold"
+      },
+      "high_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum preferred stock level",
+        "default": "None"
+      },
+      "alert_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "How often to check: immediate, hourly, daily",
+        "default": "immediate"
+      },
+      "include_projections": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include projected stock depletion estimates",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid threshold configuration: critical_threshold must be less than low_threshold. Adjust threshold values.",
+      "Reward monitoring failed: One or more reward_ids cannot be monitored. Verify reward exists and is active.",
+      "Alert frequency invalid: alert_frequency must be one of [immediate, hourly, daily]. Check parameter value.",
+      "Threshold values invalid: Thresholds must be non-negative integers. Provide valid threshold values."
+    ],
+    "usage": "Provide reward_ids array, low_threshold, and critical_threshold. Optionally set high_threshold, alert_frequency, and include_projections. Returns monitoring status and any triggered alerts.",
+    "output_details": {
+      "alerts_triggered": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of alerts triggered by current stock levels"
+      },
+      "monitoring_status": {
+        "type": "string",
+        "description": "Overall status of threshold monitoring"
+      },
+      "rewards_at_risk": {
+        "type": "integer",
+        "description": "Number of rewards below threshold levels"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Availability Status Calculator",
+    "tool_description": "Calculates real-time availability status for rewards by considering current stock levels, active reservations, and pending orders.",
+    "parameters": {
+      "reward_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reward identifier to calculate availability for"
+      },
+      "channel_id": {
+        "type": "string",
+        "required": true,
+        "description": "Fulfillment channel to check availability in"
+      },
+      "include_reservations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include active reservations in calculation",
+        "default": true
+      },
+      "requested_quantity": {
+        "type": "integer",
+        "required": false,
+        "description": "Specific quantity to check availability for",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Reward not found: The reward_id does not exist in the specified channel. Verify reward and channel combination.",
+      "Channel unavailable: The channel_id is not accessible or temporarily unavailable. Try a different channel or wait.",
+      "Invalid quantity: requested_quantity must be a positive integer. Provide a valid quantity value."
+    ],
+    "usage": "Provide reward_id and channel_id. Optionally specify requested_quantity and include_reservations flag. Returns availability status and supporting details.",
+    "output_details": {
+      "available_quantity": {
+        "type": "integer",
+        "description": "Quantity currently available for redemption"
+      },
+      "availability_status": {
+        "type": "string",
+        "description": "Status: available, limited, unavailable, backordered"
+      },
+      "reserved_quantity": {
+        "type": "integer",
+        "description": "Quantity currently held in reservations"
+      },
+      "estimated_restock_date": {
+        "type": "string",
+        "description": "Expected date when item will be restocked if unavailable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Channel Sync Coordinator",
+    "tool_description": "Synchronizes inventory changes across multiple fulfillment channels, ensuring data consistency and handling channel-specific requirements and conflicts.",
+    "parameters": {
+      "source_channel": {
+        "type": "string",
+        "required": true,
+        "description": "Channel ID where the inventory change originated"
+      },
+      "target_channels": {
+        "type": "array",
+        "required": true,
+        "description": "List of channel IDs to synchronize to",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "reward_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reward identifier being synchronized"
+      },
+      "inventory_change": {
+        "type": "integer",
+        "required": true,
+        "description": "Quantity change to synchronize (positive or negative)"
+      },
+      "sync_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Synchronization mode: parallel, sequential, priority_based",
+        "default": "parallel"
+      },
+      "conflict_resolution": {
+        "type": "string",
+        "required": false,
+        "description": "How to handle conflicts: skip, override, merge",
+        "default": "skip"
+      },
+      "timeout_per_channel": {
+        "type": "integer",
+        "required": false,
+        "description": "Timeout in seconds for each channel sync",
+        "default": 15
+      },
+      "rollback_on_failure": {
+        "type": "boolean",
+        "required": false,
+        "description": "Rollback successful syncs if any channel fails",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Source channel invalid: source_channel does not exist or is not accessible. Verify channel ID and permissions.",
+      "Target channel unreachable: One or more target_channels cannot be reached. Check channel status and connectivity.",
+      "Sync mode unsupported: sync_mode must be one of [parallel, sequential, priority_based]. Check parameter value.",
+      "Conflict resolution invalid: conflict_resolution must be one of [skip, override, merge]. Provide valid option.",
+      "Synchronization timeout: One or more channels exceeded timeout_per_channel limit. Increase timeout or check channel performance.",
+      "Rollback failed: Unable to rollback changes after partial failure. Manual intervention may be required."
+    ],
+    "usage": "Provide source_channel, target_channels array, reward_id, and inventory_change. Configure sync_mode, conflict_resolution, timeout settings, and rollback behavior as needed.",
+    "output_details": {
+      "sync_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Synchronization result for each target channel"
+      },
+      "successful_syncs": {
+        "type": "integer",
+        "description": "Number of channels successfully synchronized"
+      },
+      "failed_syncs": {
+        "type": "integer",
+        "description": "Number of channels that failed synchronization"
+      },
+      "sync_duration": {
+        "type": "number",
+        "description": "Total time taken for synchronization in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Reservation Manager",
+    "tool_description": "Manages stock reservations for rewards, including creating, updating, releasing, and querying reservation status across channels.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: create, release, extend, query"
+      },
+      "reward_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reward identifier for the reservation"
+      },
+      "channel_id": {
+        "type": "string",
+        "required": true,
+        "description": "Fulfillment channel for the reservation"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": false,
+        "description": "Quantity to reserve (required for create action)",
+        "default": "None"
+      },
+      "reservation_id": {
+        "type": "string",
+        "required": false,
+        "description": "Existing reservation ID (required for release/extend/query)",
+        "default": "None"
+      },
+      "duration_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Reservation duration in minutes",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid action: action must be one of [create, release, extend, query]. Check parameter value.",
+      "Insufficient stock: Not enough available inventory to fulfill the reservation request. Check stock levels.",
+      "Reservation not found: The specified reservation_id does not exist or has expired. Verify reservation ID.",
+      "Quantity required: quantity parameter is required for create action. Provide a positive integer.",
+      "Reservation expired: The reservation has already expired and cannot be extended or released.",
+      "Channel capacity exceeded: The channel has reached maximum reservation capacity. Try again later or use different channel."
+    ],
+    "usage": "Specify action, reward_id, and channel_id. For create action, provide quantity and optional duration_minutes. For other actions, provide reservation_id.",
+    "output_details": {
+      "reservation_id": {
+        "type": "string",
+        "description": "Unique identifier for the reservation"
+      },
+      "reservation_status": {
+        "type": "string",
+        "description": "Current status of the reservation"
+      },
+      "expires_at": {
+        "type": "string",
+        "description": "When the reservation will expire"
+      },
+      "reserved_quantity": {
+        "type": "integer",
+        "description": "Quantity currently reserved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory History Tracker",
+    "tool_description": "Tracks and logs all inventory changes, maintaining a complete audit trail for compliance, troubleshooting, and reporting purposes.",
+    "parameters": {
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Transaction identifier to log"
+      },
+      "reward_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reward identifier affected by the transaction"
+      },
+      "channel_id": {
+        "type": "string",
+        "required": true,
+        "description": "Channel where the transaction occurred"
+      },
+      "change_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of change: stock_update, reservation, redemption, adjustment"
+      },
+      "quantity_before": {
+        "type": "integer",
+        "required": true,
+        "description": "Inventory quantity before the change"
+      },
+      "quantity_after": {
+        "type": "integer",
+        "required": true,
+        "description": "Inventory quantity after the change"
+      },
+      "change_reason": {
+        "type": "string",
+        "required": false,
+        "description": "Reason code or description for the change",
+        "default": "None"
+      },
+      "user_id": {
+        "type": "string",
+        "required": false,
+        "description": "User or system that initiated the change",
+        "default": "system"
+      }
+    },
+    "error_messages": [
+      "Transaction already logged: The transaction_id has already been recorded. Duplicate logging is not allowed.",
+      "Invalid change type: change_type must be one of [stock_update, reservation, redemption, adjustment]. Check parameter value.",
+      "Quantity mismatch: quantity_before and quantity_after must be valid integers. Verify quantity values.",
+      "Missing transaction data: Required transaction information is incomplete. Ensure all mandatory fields are provided."
+    ],
+    "usage": "Provide transaction_id, reward_id, channel_id, change_type, quantity_before, and quantity_after. Optionally include change_reason and user_id for better audit trails.",
+    "output_details": {
+      "log_entry_id": {
+        "type": "string",
+        "description": "Unique identifier for this audit log entry"
+      },
+      "logged_timestamp": {
+        "type": "string",
+        "description": "When the change was logged"
+      },
+      "audit_status": {
+        "type": "string",
+        "description": "Status of the audit log entry creation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Alert Generator",
+    "tool_description": "Generates and sends automated alerts for inventory conditions based on configurable rules and thresholds, supporting multiple notification channels.",
+    "parameters": {
+      "alert_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of alert: low_stock, out_of_stock, overstocked, threshold_breach"
+      },
+      "reward_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reward identifier triggering the alert"
+      },
+      "current_stock": {
+        "type": "integer",
+        "required": true,
+        "description": "Current inventory level"
+      },
+      "threshold_value": {
+        "type": "integer",
+        "required": true,
+        "description": "Threshold value that triggered the alert"
+      },
+      "channel_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific channels affected by the alert",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Alert priority: low, medium, high, critical",
+        "default": "medium"
+      },
+      "notification_channels": {
+        "type": "array",
+        "required": false,
+        "description": "How to send alert: email, sms, webhook, dashboard",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid alert type: alert_type must be one of [low_stock, out_of_stock, overstocked, threshold_breach]. Check parameter value.",
+      "Invalid priority level: priority must be one of [low, medium, high, critical]. Provide valid priority.",
+      "Notification channel invalid: One or more notification_channels are not supported. Use [email, sms, webhook, dashboard].",
+      "Stock data inconsistent: current_stock and threshold_value must be non-negative integers. Verify values."
+    ],
+    "usage": "Provide alert_type, reward_id, current_stock, and threshold_value. Optionally specify affected channel_ids, priority level, and notification_channels for alert delivery.",
+    "output_details": {
+      "alert_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated alert"
+      },
+      "alert_sent": {
+        "type": "boolean",
+        "description": "Whether the alert was successfully sent"
+      },
+      "notification_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Delivery status for each notification channel"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi Channel Validator",
+    "tool_description": "Validates inventory consistency across multiple fulfillment channels, detecting discrepancies, synchronization issues, and data integrity problems.",
+    "parameters": {
+      "reward_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Reward identifiers to validate across channels",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "channel_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Fulfillment channel IDs to compare",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "validation_rules": {
+        "type": "array",
+        "required": false,
+        "description": "Specific validation rules to apply",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "tolerance_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Acceptable variance between channels",
+        "default": 0
+      },
+      "include_reservations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include reservations in validation calculations",
+        "default": true
+      },
+      "detailed_report": {
+        "type": "boolean",
+        "required": false,
+        "description": "Generate detailed discrepancy report",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Insufficient channels: At least 2 channels required for comparison. Provide more channel_ids.",
+      "Channel data unavailable: One or more channels cannot be accessed for validation. Check channel availability.",
+      "Validation rule invalid: One or more validation_rules are not recognized. Use supported rule names.",
+      "Tolerance threshold invalid: tolerance_threshold must be non-negative integer. Provide valid threshold."
+    ],
+    "usage": "Provide reward_ids and channel_ids arrays (minimum 2 channels). Optionally configure validation_rules, tolerance_threshold, and reporting options.",
+    "output_details": {
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Whether all channels passed validation"
+      },
+      "discrepancies_found": {
+        "type": "integer",
+        "description": "Number of inventory discrepancies detected"
+      },
+      "channel_consistency": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Consistency status for each channel comparison"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Summary of validation results and recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Rollback Manager",
+    "tool_description": "Manages inventory transaction rollbacks, restoring previous stock levels when operations fail or need to be reversed for business reasons.",
+    "parameters": {
+      "transaction_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Transaction identifiers to rollback",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "rollback_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for the rollback operation"
+      },
+      "force_rollback": {
+        "type": "boolean",
+        "required": false,
+        "description": "Force rollback even if dependent transactions exist",
+        "default": false
+      },
+      "notification_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Send notifications about the rollback",
+        "default": true
+      },
+      "preserve_audit_trail": {
+        "type": "boolean",
+        "required": false,
+        "description": "Keep rollback actions in audit logs",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Transaction not found: One or more transaction_ids do not exist in the system. Verify transaction identifiers.",
+      "Rollback not permitted: Transaction cannot be rolled back due to business rules or dependencies. Use force_rollback if necessary.",
+      "Dependent transactions exist: Rollback would affect other transactions. Review dependencies or use force_rollback.",
+      "Rollback window expired: Transaction is too old to be safely rolled back. Manual adjustment may be required."
+    ],
+    "usage": "Provide transaction_ids array and rollback_

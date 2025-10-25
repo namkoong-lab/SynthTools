@@ -1,0 +1,820 @@
+field_name: data_annotation_and_labeling
+subfield: image_classification_labeling
+task: Dataset preparation and image preprocessing for classification tasks
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves medium complexity due to the need for coordinating multiple preprocessing steps, handling diverse image formats and quality issues, managing annotation workflows, and ensuring data consistency across potentially large datasets. The risk of poor preprocessing affecting downstream model performance adds additional complexity.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools to cover the various aspects of dataset preparation and image preprocessing for classification tasks.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tool Names with Dependencies:**
+  1. **Image Format Validator** - Consumes: image paths → Produces: format validation results
+  2. **Image Quality Analyzer** - Consumes: image paths → Produces: quality metrics
+  3. **Image Resizer** - Consumes: image paths, dimensions → Produces: resized image paths
+  4. **Image Augmentor** - Consumes: image paths, augmentation parameters → Produces: augmented image paths
+  5. **Image Normalizer** - Consumes: image paths, normalization parameters → Produces: normalized image paths
+  6. **Dataset Splitter** - Consumes: image paths, labels → Produces: train/val/test splits
+  7. **Label Encoder** - Consumes: text labels → Produces: encoded labels
+  8. **Annotation Validator** - Consumes: annotations, validation rules → Produces: validation results
+  9. **Metadata Extractor** - Consumes: image paths → Produces: image metadata
+  10. **Batch Processor** - Consumes: image paths, processing operations → Produces: batch processing results
+  11. **Dataset Statistics Calculator** - Consumes: dataset information → Produces: statistical summaries
+  12. **Quality Control Reporter** - Consumes: various validation results → Produces: comprehensive quality reports
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Basic validation: Image Format Validator → Image Quality Analyzer → Quality Control Reporter
+  - Simple preprocessing: Image Resizer → Image Normalizer → Metadata Extractor
+
+  **Medium Plans:**
+  - Standard preparation: Image Format Validator → Image Quality Analyzer → Image Resizer → Image Normalizer → Dataset Splitter → Label Encoder
+  - Annotation workflow: Annotation Validator → Label Encoder → Dataset Statistics Calculator → Quality Control Reporter
+
+  **Complex Plans:**
+  - Full pipeline: Image Format Validator → Image Quality Analyzer → Image Resizer → Image Augmentor → Image Normalizer → Metadata Extractor → Annotation Validator → Label Encoder → Dataset Splitter → Batch Processor → Dataset Statistics Calculator → Quality Control Reporter
+  - Quality-focused pipeline: Image Format Validator → Image Quality Analyzer → Metadata Extractor → Annotation Validator → Dataset Statistics Calculator → Quality Control Reporter → Batch Processor
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Image Format Validator",
+    "tool_description": "Validates image file formats and checks for corruption or unsupported formats in a dataset.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of file paths to images that need format validation",
+        "minItems": 1,
+        "maxItems": 10000
+      },
+      "supported_formats": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["jpg", "jpeg", "png", "bmp", "tiff"],
+        "description": "Array of supported image formats (extensions without dots)"
+      },
+      "check_corruption": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to check for file corruption during validation"
+      }
+    },
+    "error_messages": [
+      "Empty image paths array: Provide at least one image path for validation.",
+      "Invalid file path: One or more provided paths do not exist or are not accessible.",
+      "Unsupported format specification: Supported formats must be valid image extensions.",
+      "Memory limit exceeded: Too many images provided for validation in single batch."
+    ],
+    "usage": "Provide an array of image file paths and optionally specify supported formats and corruption checking preferences. Use this tool first in any image processing pipeline to ensure data quality.",
+    "output_details": {
+      "valid_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of paths to images that passed validation"
+      },
+      "invalid_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of paths to images that failed validation"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Summary of validation results including counts and issues found"
+      },
+      "corrupted_files": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of paths to corrupted image files"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Quality Analyzer",
+    "tool_description": "Analyzes image quality metrics including resolution, brightness, contrast, and blur detection.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of file paths to images for quality analysis",
+        "minItems": 1,
+        "maxItems": 5000
+      },
+      "min_resolution": {
+        "type": "integer",
+        "required": false,
+        "default": 224,
+        "description": "Minimum acceptable resolution (pixels) for smallest dimension"
+      },
+      "brightness_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.1,
+        "description": "Minimum brightness threshold (0-1 scale)"
+      },
+      "contrast_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.2,
+        "description": "Minimum contrast threshold (0-1 scale)"
+      },
+      "blur_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 100.0,
+        "description": "Blur detection threshold (higher values indicate sharper images)"
+      }
+    },
+    "error_messages": [
+      "Invalid image path: One or more images cannot be loaded or accessed.",
+      "Invalid threshold values: Brightness and contrast thresholds must be between 0 and 1.",
+      "Resolution parameter error: min_resolution must be a positive integer.",
+      "Blur threshold error: blur_threshold must be a positive number.",
+      "Processing failure: Unable to analyze image quality due to format or memory issues."
+    ],
+    "usage": "Provide image paths and quality thresholds to analyze image suitability for classification tasks. Adjust thresholds based on your specific requirements for image quality.",
+    "output_details": {
+      "quality_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of overall quality scores (0-1) for each image"
+      },
+      "low_quality_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of paths to images that failed quality thresholds"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Summary of quality analysis results and recommendations"
+      },
+      "average_quality": {
+        "type": "number",
+        "description": "Average quality score across all analyzed images"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Resizer",
+    "tool_description": "Resizes images to specified dimensions with various scaling methods and aspect ratio handling options.",
+    "parameters": {
+      "input_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of input image file paths",
+        "minItems": 1,
+        "maxItems": 10000
+      },
+      "output_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory path where resized images will be saved"
+      },
+      "target_width": {
+        "type": "integer",
+        "required": true,
+        "description": "Target width in pixels (must be positive)"
+      },
+      "target_height": {
+        "type": "integer",
+        "required": true,
+        "description": "Target height in pixels (must be positive)"
+      },
+      "resize_method": {
+        "type": "string",
+        "required": false,
+        "default": "bilinear",
+        "description": "Resize interpolation method: bilinear, bicubic, nearest, lanczos"
+      },
+      "maintain_aspect_ratio": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to maintain original aspect ratio during resize"
+      },
+      "padding_color": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": false,
+        "default": [0, 0, 0],
+        "description": "RGB values for padding color when maintaining aspect ratio",
+        "minItems": 3,
+        "maxItems": 3
+      }
+    },
+    "error_messages": [
+      "Invalid output directory: The specified output directory does not exist or is not writable.",
+      "Invalid dimensions: target_width and target_height must be positive integers.",
+      "Unsupported resize method: Use one of [bilinear, bicubic, nearest, lanczos].",
+      "Invalid padding color: RGB values must be integers between 0 and 255.",
+      "File processing error: Unable to process one or more input images.",
+      "Insufficient disk space: Not enough space to save resized images."
+    ],
+    "usage": "Specify input images, output directory, and target dimensions. Choose appropriate resize method and aspect ratio settings based on your model requirements.",
+    "output_details": {
+      "resized_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of file paths to successfully resized images"
+      },
+      "failed_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of input paths that failed to resize"
+      },
+      "resize_summary": {
+        "type": "string",
+        "description": "Summary of resize operation including success count and settings used"
+      },
+      "output_dimensions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Final output dimensions [width, height] used for resizing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Augmentor",
+    "tool_description": "Applies data augmentation techniques to images including rotation, flipping, color adjustments, and noise addition.",
+    "parameters": {
+      "input_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of input image file paths for augmentation",
+        "minItems": 1,
+        "maxItems": 5000
+      },
+      "output_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory where augmented images will be saved"
+      },
+      "augmentations_per_image": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of augmented versions to create per input image"
+      },
+      "rotation_range": {
+        "type": "number",
+        "required": false,
+        "default": 15.0,
+        "description": "Maximum rotation angle in degrees (0-180)"
+      },
+      "brightness_range": {
+        "type": "number",
+        "required": false,
+        "default": 0.2,
+        "description": "Brightness adjustment range as fraction (0-1)"
+      },
+      "contrast_range": {
+        "type": "number",
+        "required": false,
+        "default": 0.2,
+        "description": "Contrast adjustment range as fraction (0-1)"
+      },
+      "horizontal_flip": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Enable random horizontal flipping"
+      },
+      "vertical_flip": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Enable random vertical flipping"
+      },
+      "noise_level": {
+        "type": "number",
+        "required": false,
+        "default": 0.1,
+        "description": "Gaussian noise level (0-1 scale)"
+      },
+      "zoom_range": {
+        "type": "number",
+        "required": false,
+        "default": 0.1,
+        "description": "Random zoom range as fraction (0-0.5)"
+      },
+      "preserve_labels": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to preserve original image labels for augmented versions"
+      }
+    },
+    "error_messages": [
+      "Invalid augmentation parameters: All range values must be non-negative numbers within valid bounds.",
+      "Output directory error: Cannot create or write to the specified output directory.",
+      "Invalid input images: One or more input image files cannot be loaded.",
+      "Insufficient augmentation count: augmentations_per_image must be at least 1.",
+      "Parameter range error: rotation_range must be 0-180, other ranges must be 0-1 except zoom_range (0-0.5).",
+      "Memory error: Too many augmentations requested for available system memory."
+    ],
+    "usage": "Provide input images and specify augmentation parameters based on your dataset needs. Start with moderate settings and adjust based on results. Consider the nature of your classification task when enabling certain augmentations.",
+    "output_details": {
+      "augmented_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of file paths to all generated augmented images"
+      },
+      "augmentation_mapping": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array mapping original images to their augmented versions"
+      },
+      "total_generated": {
+        "type": "integer",
+        "description": "Total number of augmented images successfully created"
+      },
+      "augmentation_summary": {
+        "type": "string",
+        "description": "Summary of augmentation operations and techniques applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Normalizer",
+    "tool_description": "Normalizes image pixel values using various normalization techniques for machine learning model preparation.",
+    "parameters": {
+      "input_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of input image file paths to normalize",
+        "minItems": 1,
+        "maxItems": 10000
+      },
+      "output_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory where normalized images will be saved"
+      },
+      "normalization_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of normalization: zero_one, neg_one_one, zscore, imagenet"
+      },
+      "custom_mean": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "default": null,
+        "description": "Custom mean values for each channel (RGB)",
+        "minItems": 1,
+        "maxItems": 3
+      },
+      "custom_std": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "default": null,
+        "description": "Custom standard deviation values for each channel (RGB)",
+        "minItems": 1,
+        "maxItems": 3
+      }
+    },
+    "error_messages": [
+      "Invalid normalization type: Use one of [zero_one, neg_one_one, zscore, imagenet].",
+      "Custom statistics error: When using custom_mean or custom_std, both must be provided with same length.",
+      "Invalid statistics values: Standard deviation values must be positive numbers.",
+      "File processing error: Unable to load or process one or more input images.",
+      "Output directory error: Cannot write to the specified output directory."
+    ],
+    "usage": "Choose normalization type based on your model requirements. Use 'imagenet' for transfer learning, 'zero_one' for general CNN training, or 'zscore' with custom statistics for specific domains.",
+    "output_details": {
+      "normalized_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of file paths to normalized images"
+      },
+      "normalization_stats": {
+        "type": "string",
+        "description": "Statistics used for normalization (mean and std values)"
+      },
+      "processing_summary": {
+        "type": "string",
+        "description": "Summary of normalization process and settings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dataset Splitter",
+    "tool_description": "Splits image datasets into training, validation, and test sets with stratified sampling to maintain class balance.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of all image file paths in the dataset",
+        "minItems": 10,
+        "maxItems": 100000
+      },
+      "labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of corresponding labels for each image",
+        "minItems": 10,
+        "maxItems": 100000
+      },
+      "train_ratio": {
+        "type": "number",
+        "required": false,
+        "default": 0.7,
+        "description": "Proportion of data for training (0.1-0.9)"
+      },
+      "val_ratio": {
+        "type": "number",
+        "required": false,
+        "default": 0.15,
+        "description": "Proportion of data for validation (0.05-0.4)"
+      },
+      "test_ratio": {
+        "type": "number",
+        "required": false,
+        "default": 0.15,
+        "description": "Proportion of data for testing (0.05-0.4)"
+      },
+      "stratify": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to maintain class distribution across splits"
+      },
+      "random_seed": {
+        "type": "integer",
+        "required": false,
+        "default": 42,
+        "description": "Random seed for reproducible splits"
+      },
+      "min_samples_per_class": {
+        "type": "integer",
+        "required": false,
+        "default": 2,
+        "description": "Minimum samples required per class in each split"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: image_paths and labels arrays must have the same length.",
+      "Invalid split ratios: train_ratio, val_ratio, and test_ratio must sum to approximately 1.0.",
+      "Insufficient data for stratification: Some classes have too few samples for stratified splitting with current ratios.",
+      "Invalid ratio values: All ratio values must be between 0.05 and 0.9.",
+      "Minimum samples error: min_samples_per_class must be at least 1.",
+      "Dataset too small: Dataset must have enough samples to satisfy minimum requirements for each split."
+    ],
+    "usage": "Ensure your dataset has sufficient samples per class for stratified splitting. Adjust ratios based on your dataset size and evaluation needs. Use consistent random_seed for reproducible experiments.",
+    "output_details": {
+      "train_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of image paths assigned to training set"
+      },
+      "train_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of labels for training images"
+      },
+      "val_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of image paths assigned to validation set"
+      },
+      "val_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of labels for validation images"
+      },
+      "test_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of image paths assigned to test set"
+      },
+      "test_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of labels for test images"
+      },
+      "split_summary": {
+        "type": "string",
+        "description": "Summary of split results including class distributions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Label Encoder",
+    "tool_description": "Encodes text labels into numerical format and creates mapping dictionaries for classification tasks.",
+    "parameters": {
+      "labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of text labels to encode",
+        "minItems": 1,
+        "maxItems": 1000000
+      },
+      "encoding_type": {
+        "type": "string",
+        "required": false,
+        "default": "label",
+        "description": "Encoding method: label (0,1,2...) or onehot"
+      },
+      "handle_unknown": {
+        "type": "string",
+        "required": false,
+        "default": "error",
+        "description": "How to handle unknown labels: error, ignore, or use_unknown_class"
+      }
+    },
+    "error_messages": [
+      "Empty labels array: Provide at least one label for encoding.",
+      "Invalid encoding type: Use either 'label' or 'onehot' for encoding_type.",
+      "Invalid handle_unknown option: Use 'error', 'ignore', or 'use_unknown_class'.",
+      "Duplicate processing error: Ensure labels array contains valid string values."
+    ],
+    "usage": "Provide an array of text labels to convert to numerical format. Choose 'label' encoding for most classification tasks or 'onehot' when you need binary vectors for each class.",
+    "output_details": {
+      "encoded_labels": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Array of numerically encoded labels"
+      },
+      "label_mapping": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array showing mapping from original labels to encoded values"
+      },
+      "unique_classes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of unique class names found in the dataset"
+      },
+      "num_classes": {
+        "type": "integer",
+        "description": "Total number of unique classes in the dataset"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Annotation Validator",
+    "tool_description": "Validates image annotations for consistency, completeness, and adherence to labeling guidelines.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of image file paths to validate annotations for",
+        "minItems": 1,
+        "maxItems": 50000
+      },
+      "annotations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of corresponding annotations/labels for each image",
+        "minItems": 1,
+        "maxItems": 50000
+      },
+      "valid_classes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of valid class names that annotations should match",
+        "minItems": 2,
+        "maxItems": 1000
+      },
+      "require_all_images": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether all images must have corresponding annotations"
+      },
+      "case_sensitive": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether class name matching should be case-sensitive"
+      },
+      "allow_multiple_labels": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to allow multiple labels per image (multi-label classification)"
+      },
+      "min_samples_per_class": {
+        "type": "integer",
+        "required": false,
+        "default": 1,
+        "description": "Minimum number of samples required per class"
+      },
+      "check_file_existence": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to verify that all referenced image files exist"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: image_paths and annotations arrays must have the same length.",
+      "Invalid class definitions: valid_classes must contain at least 2 unique class names.",
+      "File existence error: One or more referenced image files do not exist (when check_file_existence=true).",
+      "Invalid annotation format: Annotations contain characters or format not supported.",
+      "Insufficient class representation: Some classes in valid_classes don't meet min_samples_per_class requirement.",
+      "Empty annotations detected: Some images have empty or null annotations when require_all_images=true."
+    ],
+    "usage": "Provide image paths, their annotations, and valid class names to verify annotation quality. Use this tool before training to catch labeling errors and ensure dataset consistency.",
+    "output_details": {
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Whether all annotations passed validation"
+      },
+      "invalid_annotations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of image paths with invalid annotations"
+      },
+      "missing_classes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of valid classes that have no annotations"
+      },
+      "class_distribution": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array showing count of samples per class"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Detailed summary of validation results and recommendations"
+      },
+      "error_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of specific validation errors found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Metadata Extractor",
+    "tool_description": "Extracts comprehensive metadata from images including EXIF data, dimensions, file properties, and technical specifications.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of image file paths to extract metadata from",
+        "minItems": 1,
+        "maxItems": 20000
+      },
+      "include_exif": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to extract EXIF data from images"
+      },
+      "include_technical": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include technical specifications (color space, bit depth, etc.)"
+      }
+    },
+    "error_messages": [
+      "Invalid image paths: One or more provided paths do not exist or are not accessible.",
+      "Unsupported image format: Some images are in formats that don't support metadata extraction.",
+      "Corrupted image data: Unable to extract metadata from corrupted image files.",
+      "Memory limit exceeded: Too many images provided for metadata extraction in single batch."
+    ],
+    "usage": "Provide image paths to extract comprehensive metadata. Use this information for dataset analysis, quality assessment, and understanding image characteristics before preprocessing.",
+    "output_details": {
+      "image_metadata": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of metadata summaries for each image"
+      },
+      "dimensions_summary": {
+        "type": "string",
+        "description": "Summary of image dimensions across the dataset"
+      },
+      "format_distribution": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array showing distribution of image formats in the dataset"
+      },
+      "metadata_summary": {
+        "type": "string",
+        "description": "Overall summary of metadata extraction results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Processor",
+    "tool_description": "Processes large batches of images through multiple preprocessing operations in sequence with progress tracking and error handling.",
+    "parameters": {
+      "input_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of input image file paths to process",
+        "minItems": 1,
+        "maxItems": 100000
+      },
+      "output_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Base directory for processed images"
+      },
+      "operations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of processing operations: resize, normalize, validate, augment, extract_metadata",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "default": 100,
+        "description": "Number of images to process in each batch"
+      },
+      "max_workers": {
+        "type": "integer",
+        "required": false,
+        "default": 4,
+        "description": "Maximum number of parallel worker processes"
+      },
+      "continue_on_error": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to continue processing when individual images fail"
+      },
+      "operation_params": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Array of parameter strings for each operation (JSON format)"
+      },
+      "progress_reporting": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to provide detailed progress reporting"
+      },
+      "memory_limit_mb": {
+        "type": "integer",
+        "required": false,
+        "default": 2048,
+        "description": "Memory limit in MB for batch processing"
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "default": "preserve",
+        "description": "Output image format: preserve, jpg, png"
+      },
+      "quality_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.5,

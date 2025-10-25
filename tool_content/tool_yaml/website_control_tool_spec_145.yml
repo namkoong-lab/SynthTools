@@ -1,0 +1,816 @@
+field_name: website_control
+subfield: Domain Registration and DNS Management
+task: Domain registration and renewal management
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves medium complexity due to the coordination between multiple DNS providers, domain registrars, and renewal tracking systems. The scope includes domain search, registration, DNS configuration, and ongoing management with moderate risk from misconfigurations that could cause service outages.
+
+  ## STEP 2 — Set a tool budget
+
+  Based on medium complexity, I'll target 12 tools to cover domain search, registration, DNS management, monitoring, and renewal workflows.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their flow:**
+  1. Domain Availability Checker → produces availability status
+  2. Domain Registration Tool → consumes availability, produces registration details
+  3. DNS Zone Creator → consumes domain info, produces zone configuration
+  4. DNS Record Manager → consumes zone info, produces record configurations
+  5. WHOIS Information Retriever → consumes domain name, produces registration data
+  6. Domain Transfer Initiator → consumes domain and auth codes, produces transfer status
+  7. DNS Propagation Checker → consumes DNS changes, produces propagation status
+  8. Domain Renewal Manager → consumes domain list, produces renewal schedules
+  9. Nameserver Configuration Tool → consumes domain and nameserver data, produces configurations
+  10. Domain Expiration Monitor → consumes domain portfolio, produces expiration alerts
+  11. DNS Health Validator → consumes DNS configuration, produces health reports
+  12. Bulk Domain Processor → consumes domain lists, produces batch operation results
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  - Domain search and registration: Domain Availability Checker → Domain Registration Tool
+  - Basic DNS setup: DNS Zone Creator → DNS Record Manager → DNS Propagation Checker
+
+  **Medium plans:**
+  - Complete new domain setup: Domain Availability Checker → Domain Registration Tool → DNS Zone Creator → DNS Record Manager → Nameserver Configuration Tool → DNS Propagation Checker
+  - Domain health audit: WHOIS Information Retriever → DNS Health Validator → Domain Expiration Monitor
+
+  **Complex plans:**
+  - Enterprise domain migration: WHOIS Information Retriever → Domain Transfer Initiator → DNS Zone Creator → DNS Record Manager → Nameserver Configuration Tool → DNS Propagation Checker → DNS Health Validator
+  - Portfolio management workflow: Bulk Domain Processor → Domain Expiration Monitor → Domain Renewal Manager → DNS Health Validator → DNS Propagation Checker
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Domain Availability Checker",
+    "tool_description": "Checks the availability status of one or more domain names across multiple TLDs and provides pricing information from various registrars.",
+    "parameters": {
+      "domain_names": {
+        "type": "array",
+        "required": true,
+        "description": "List of domain names to check (without TLD extensions)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "tlds": {
+        "type": "array",
+        "required": true,
+        "description": "List of top-level domains to check (.com, .org, .net, etc.)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "include_premium": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include premium domain suggestions",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid domain name format: Domain names must contain only alphanumeric characters and hyphens, cannot start or end with hyphens.",
+      "Invalid TLD format: TLD must start with a dot and contain only valid characters (e.g., .com, .org).",
+      "Too many domains requested: Maximum 50 domain names can be checked in a single request.",
+      "Registrar API unavailable: One or more domain registrar services are temporarily unavailable."
+    ],
+    "usage": "Provide an array of domain names and TLD extensions to check. Set include_premium to true if you want premium domain suggestions. The tool returns availability status and pricing for each domain-TLD combination.",
+    "output_details": {
+      "results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of domain availability results with status and pricing"
+      },
+      "available_count": {
+        "type": "integer",
+        "description": "Number of available domains found"
+      },
+      "premium_suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of premium domain suggestions if requested"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Domain Registration Tool",
+    "tool_description": "Registers a domain name with specified registrar, contact information, and registration settings including privacy protection and auto-renewal.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full domain name to register (e.g., example.com)"
+      },
+      "registrar": {
+        "type": "string",
+        "required": true,
+        "description": "Registrar service to use (namecheap, godaddy, cloudflare, etc.)"
+      },
+      "registration_years": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of years to register the domain (1-10)"
+      },
+      "registrant_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of the domain registrant"
+      },
+      "registrant_email": {
+        "type": "string",
+        "required": true,
+        "description": "Email address of the domain registrant"
+      },
+      "registrant_phone": {
+        "type": "string",
+        "required": true,
+        "description": "Phone number of the domain registrant"
+      },
+      "organization": {
+        "type": "string",
+        "required": false,
+        "description": "Organization name if applicable",
+        "default": "None"
+      },
+      "address": {
+        "type": "string",
+        "required": true,
+        "description": "Street address of the registrant"
+      },
+      "city": {
+        "type": "string",
+        "required": true,
+        "description": "City of the registrant"
+      },
+      "country": {
+        "type": "string",
+        "required": true,
+        "description": "Country code of the registrant (ISO 3166-1 alpha-2)"
+      },
+      "privacy_protection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable WHOIS privacy protection",
+        "default": true
+      },
+      "auto_renew": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable automatic domain renewal",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Domain not available: The specified domain name is not available for registration.",
+      "Invalid registrar: The specified registrar is not supported or available.",
+      "Registration years out of range: Registration period must be between 1 and 10 years.",
+      "Invalid contact information: Registrant details must be complete and valid.",
+      "Invalid country code: Country must be a valid ISO 3166-1 alpha-2 code.",
+      "Payment method required: Valid payment information must be provided to complete registration.",
+      "Registrar API error: The registrar service encountered an error during registration."
+    ],
+    "usage": "Provide the domain name, registrar, registration period, and complete registrant contact information. Enable privacy protection and auto-renewal as needed. The tool will attempt to register the domain and return registration details.",
+    "output_details": {
+      "registration_id": {
+        "type": "string",
+        "description": "Unique registration identifier from the registrar"
+      },
+      "status": {
+        "type": "string",
+        "description": "Registration status (success, pending, failed)"
+      },
+      "expiration_date": {
+        "type": "string",
+        "description": "Domain expiration date in ISO format"
+      },
+      "nameservers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Default nameservers assigned to the domain"
+      },
+      "total_cost": {
+        "type": "number",
+        "description": "Total registration cost including fees"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "DNS Zone Creator",
+    "tool_description": "Creates a new DNS zone for a domain with basic default records and configures zone settings for a specified DNS provider.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Domain name for which to create the DNS zone"
+      },
+      "dns_provider": {
+        "type": "string",
+        "required": true,
+        "description": "DNS service provider (cloudflare, route53, cloudns, etc.)"
+      },
+      "default_ttl": {
+        "type": "integer",
+        "required": false,
+        "description": "Default TTL for DNS records in seconds (300-86400)",
+        "default": 3600
+      },
+      "create_defaults": {
+        "type": "boolean",
+        "required": false,
+        "description": "Create default A, AAAA, and MX records",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid domain format: Domain name must be a valid fully qualified domain name.",
+      "Unsupported DNS provider: The specified DNS provider is not supported.",
+      "TTL out of range: TTL must be between 300 and 86400 seconds.",
+      "Zone already exists: A DNS zone for this domain already exists with the provider.",
+      "DNS provider authentication failed: Unable to authenticate with the DNS service provider."
+    ],
+    "usage": "Provide the domain name and DNS provider. Optionally set the default TTL and whether to create default records. The tool will create a new DNS zone and return zone configuration details.",
+    "output_details": {
+      "zone_id": {
+        "type": "string",
+        "description": "Unique zone identifier from the DNS provider"
+      },
+      "nameservers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Nameservers assigned to the zone"
+      },
+      "status": {
+        "type": "string",
+        "description": "Zone creation status"
+      },
+      "default_records_created": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of default DNS records created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "DNS Record Manager",
+    "tool_description": "Creates, updates, or deletes DNS records in an existing zone with support for all common record types and batch operations.",
+    "parameters": {
+      "zone_id": {
+        "type": "string",
+        "required": true,
+        "description": "DNS zone identifier where records will be managed"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: create, update, delete, or list"
+      },
+      "record_type": {
+        "type": "string",
+        "required": true,
+        "description": "DNS record type (A, AAAA, CNAME, MX, TXT, NS, SRV, etc.)"
+      },
+      "record_name": {
+        "type": "string",
+        "required": true,
+        "description": "DNS record name (subdomain or @ for root)"
+      },
+      "record_value": {
+        "type": "string",
+        "required": false,
+        "description": "DNS record value (IP address, hostname, text content)",
+        "default": "None"
+      },
+      "ttl": {
+        "type": "integer",
+        "required": false,
+        "description": "Time to live in seconds (300-86400)",
+        "default": 3600
+      },
+      "priority": {
+        "type": "integer",
+        "required": false,
+        "description": "Priority value for MX and SRV records (0-65535)",
+        "default": "None"
+      },
+      "record_id": {
+        "type": "string",
+        "required": false,
+        "description": "Existing record ID for update or delete operations",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid zone ID: The specified zone ID does not exist or is not accessible.",
+      "Invalid action: Action must be one of: create, update, delete, list.",
+      "Unsupported record type: The specified DNS record type is not supported.",
+      "Invalid record value: The record value format is invalid for the specified record type.",
+      "TTL out of range: TTL must be between 300 and 86400 seconds.",
+      "Priority required: MX and SRV records require a priority value between 0 and 65535.",
+      "Record not found: The specified record ID does not exist in the zone."
+    ],
+    "usage": "Provide zone_id, action, record_type, and record_name. For create/update operations, include record_value and optionally ttl and priority. For update/delete operations, include record_id. The tool performs the specified DNS record operation.",
+    "output_details": {
+      "operation_status": {
+        "type": "string",
+        "description": "Status of the DNS record operation"
+      },
+      "record_id": {
+        "type": "string",
+        "description": "Record identifier for created or modified records"
+      },
+      "records": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of DNS records (for list operations)"
+      },
+      "changes_applied": {
+        "type": "integer",
+        "description": "Number of records affected by the operation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "WHOIS Information Retriever",
+    "tool_description": "Retrieves comprehensive WHOIS information for a domain including registrant details, registration dates, nameservers, and registrar information.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Domain name to query for WHOIS information"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include historical WHOIS data if available",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid domain format: Domain name must be a valid fully qualified domain name.",
+      "Domain not found: The specified domain is not registered or does not exist.",
+      "WHOIS service unavailable: The WHOIS service for this TLD is temporarily unavailable.",
+      "Rate limit exceeded: Too many WHOIS queries have been made in a short period."
+    ],
+    "usage": "Provide a domain name to retrieve its WHOIS information. Set include_history to true if you need historical registration data. The tool returns comprehensive registration details.",
+    "output_details": {
+      "domain_name": {
+        "type": "string",
+        "description": "The queried domain name"
+      },
+      "registrar": {
+        "type": "string",
+        "description": "Domain registrar name"
+      },
+      "registration_date": {
+        "type": "string",
+        "description": "Domain registration date"
+      },
+      "expiration_date": {
+        "type": "string",
+        "description": "Domain expiration date"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Last modification date"
+      },
+      "nameservers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current nameservers for the domain"
+      },
+      "status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Domain status codes"
+      },
+      "privacy_protected": {
+        "type": "boolean",
+        "description": "Whether WHOIS privacy protection is enabled"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Domain Transfer Initiator",
+    "tool_description": "Initiates domain transfer between registrars by validating auth codes, checking transfer eligibility, and starting the transfer process.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Domain name to transfer"
+      },
+      "auth_code": {
+        "type": "string",
+        "required": true,
+        "description": "Authorization code from current registrar"
+      },
+      "target_registrar": {
+        "type": "string",
+        "required": true,
+        "description": "Registrar to transfer the domain to"
+      },
+      "auto_renew": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable auto-renewal at new registrar",
+        "default": true
+      },
+      "privacy_protection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable privacy protection at new registrar",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid auth code: The authorization code is invalid or has expired.",
+      "Domain not eligible: Domain cannot be transferred (too recent registration, locked status, etc.).",
+      "Transfer in progress: A transfer for this domain is already in progress.",
+      "Registrar not supported: The target registrar is not supported for transfers.",
+      "Payment required: Valid payment method required to complete the transfer."
+    ],
+    "usage": "Provide the domain name, auth code from current registrar, and target registrar. Optionally configure auto-renewal and privacy protection settings. The tool initiates the domain transfer process.",
+    "output_details": {
+      "transfer_id": {
+        "type": "string",
+        "description": "Unique transfer request identifier"
+      },
+      "status": {
+        "type": "string",
+        "description": "Transfer initiation status"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated transfer completion date"
+      },
+      "next_steps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Required actions to complete the transfer"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "DNS Propagation Checker",
+    "tool_description": "Checks DNS propagation status across multiple global DNS servers to verify that DNS changes have been properly distributed worldwide.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Domain name to check for DNS propagation"
+      },
+      "record_type": {
+        "type": "string",
+        "required": true,
+        "description": "DNS record type to check (A, AAAA, CNAME, MX, TXT, NS)"
+      },
+      "expected_value": {
+        "type": "string",
+        "required": false,
+        "description": "Expected DNS record value to verify against",
+        "default": "None"
+      },
+      "check_locations": {
+        "type": "array",
+        "required": false,
+        "description": "Specific geographic locations to check (US, EU, ASIA, etc.)",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid domain format: Domain name must be a valid fully qualified domain name.",
+      "Unsupported record type: The specified DNS record type is not supported for propagation checking.",
+      "Invalid location code: One or more location codes are not recognized.",
+      "DNS query failed: Unable to query DNS servers in one or more locations."
+    ],
+    "usage": "Provide domain name and record type to check. Optionally specify expected value and geographic locations to test. The tool queries multiple DNS servers and reports propagation status.",
+    "output_details": {
+      "propagation_status": {
+        "type": "string",
+        "description": "Overall propagation status (complete, partial, failed)"
+      },
+      "propagation_percentage": {
+        "type": "number",
+        "description": "Percentage of DNS servers showing correct records"
+      },
+      "server_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Results from individual DNS servers"
+      },
+      "inconsistent_servers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "DNS servers showing different or outdated values"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Domain Renewal Manager",
+    "tool_description": "Manages domain renewals by checking expiration dates, processing renewals, and updating renewal settings for single domains or bulk operations.",
+    "parameters": {
+      "domain_names": {
+        "type": "array",
+        "required": true,
+        "description": "List of domain names to manage renewals for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: check, renew, update_settings, or bulk_renew"
+      },
+      "renewal_years": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of years to renew domains (1-10)",
+        "default": 1
+      },
+      "auto_renew": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable or disable auto-renewal",
+        "default": "None"
+      },
+      "notification_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Days before expiration to send notifications (7-365)",
+        "default": 30
+      },
+      "force_renewal": {
+        "type": "boolean",
+        "required": false,
+        "description": "Force renewal even if domain is not close to expiration",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid domain format: One or more domain names are not valid.",
+      "Invalid action: Action must be one of: check, renew, update_settings, bulk_renew.",
+      "Renewal years out of range: Renewal period must be between 1 and 10 years.",
+      "Domain not found: One or more domains are not registered or not managed by the current registrar.",
+      "Payment failed: Renewal payment could not be processed.",
+      "Notification days out of range: Notification period must be between 7 and 365 days.",
+      "Bulk operation limit exceeded: Maximum 100 domains can be processed in a single request."
+    ],
+    "usage": "Provide domain names and the action to perform. For renewals, specify renewal_years. Use update_settings to modify auto-renewal and notification preferences. The tool processes renewals and returns status for each domain.",
+    "output_details": {
+      "processed_domains": {
+        "type": "integer",
+        "description": "Number of domains successfully processed"
+      },
+      "renewal_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Renewal status for each domain"
+      },
+      "total_cost": {
+        "type": "number",
+        "description": "Total cost for all renewals processed"
+      },
+      "failed_domains": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Domains that failed to process with error reasons"
+      },
+      "next_expiration_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Updated expiration dates for renewed domains"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Nameserver Configuration Tool",
+    "tool_description": "Updates nameserver settings for domains at the registrar level and validates nameserver configurations for proper DNS resolution.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Domain name to configure nameservers for"
+      },
+      "nameservers": {
+        "type": "array",
+        "required": true,
+        "description": "List of nameserver hostnames to set",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 8
+      },
+      "validate_nameservers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Validate nameservers before applying changes",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid domain format: Domain name must be a valid fully qualified domain name.",
+      "Insufficient nameservers: At least 2 nameservers are required.",
+      "Too many nameservers: Maximum 8 nameservers are allowed.",
+      "Invalid nameserver format: Nameserver hostnames must be valid fully qualified domain names.",
+      "Nameserver validation failed: One or more nameservers are not responding to DNS queries.",
+      "Registrar update failed: Unable to update nameservers at the registrar level."
+    ],
+    "usage": "Provide domain name and array of nameserver hostnames. The tool validates nameservers if enabled and updates the domain's nameserver configuration at the registrar. Changes may take time to propagate.",
+    "output_details": {
+      "update_status": {
+        "type": "string",
+        "description": "Status of nameserver update operation"
+      },
+      "current_nameservers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Currently configured nameservers"
+      },
+      "validation_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Validation results for each nameserver"
+      },
+      "propagation_time": {
+        "type": "string",
+        "description": "Estimated time for changes to fully propagate"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Domain Expiration Monitor",
+    "tool_description": "Monitors domain portfolios for upcoming expirations, generates alerts, and provides renewal recommendations with customizable notification thresholds.",
+    "parameters": {
+      "domain_list": {
+        "type": "array",
+        "required": true,
+        "description": "List of domains to monitor for expiration",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "alert_thresholds": {
+        "type": "array",
+        "required": false,
+        "description": "Days before expiration to trigger alerts (e.g., [90, 30, 7])",
+        "items": {"type": "integer"},
+        "default": "[90, 30, 7]"
+      },
+      "include_suggestions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include renewal recommendations and cost estimates",
+        "default": true
+      },
+      "filter_status": {
+        "type": "string",
+        "required": false,
+        "description": "Filter domains by status: all, expiring_soon, expired, auto_renew_enabled",
+        "default": "all"
+      }
+    },
+    "error_messages": [
+      "Domain list too large: Maximum 500 domains can be monitored in a single request.",
+      "Invalid domain format: One or more domains in the list are not valid.",
+      "Invalid alert threshold: Alert thresholds must be positive integers between 1 and 365.",
+      "Invalid filter status: Status filter must be one of: all, expiring_soon, expired, auto_renew_enabled.",
+      "Unable to retrieve expiration data: Could not access expiration information for one or more domains."
+    ],
+    "usage": "Provide a list of domains to monitor and optionally set alert thresholds and filtering options. The tool checks expiration dates and generates alerts based on your criteria.",
+    "output_details": {
+      "total_domains": {
+        "type": "integer",
+        "description": "Total number of domains monitored"
+      },
+      "expiring_soon": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Domains expiring within alert thresholds"
+      },
+      "expired_domains": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Domains that have already expired"
+      },
+      "auto_renew_enabled": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Domains with auto-renewal enabled"
+      },
+      "renewal_recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Renewal suggestions and cost estimates"
+      },
+      "alert_summary": {
+        "type": "string",
+        "description": "Summary of expiration alerts and recommended actions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "DNS Health Validator",
+    "tool_description": "Performs comprehensive DNS health checks including record validation, nameserver connectivity, security configurations, and performance analysis.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Domain name to perform DNS health validation on"
+      },
+      "check_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of checks to perform: connectivity, records, security, performance, all",
+        "items": {"type": "string"},
+        "default": "[\"all\"]"
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Timeout for DNS queries in seconds (5-60)",
+        "default": 10
+      },
+      "include_recommendations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include optimization recommendations in results",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid domain format: Domain name must be a valid fully qualified domain name.",
+      "Invalid check types: Check types must be one or more of: connectivity, records, security, performance, all.",
+      "Timeout out of range: Timeout must be between 5 and 60 seconds.",
+      "Domain not found: The specified domain does not exist or has no DNS records.",
+      "DNS query timeout: One or more DNS queries timed out during validation."
+    ],
+    "usage": "Provide domain name to validate. Optionally specify which types of health checks to perform and set query timeout. The tool performs comprehensive DNS analysis and reports issues with recommendations.",
+    "output_details": {
+      "overall_health_score": {
+        "type": "integer",
+        "description": "Overall DNS health score from 0-100"
+      },
+      "connectivity_status": {
+        "type": "string",
+        "description": "Nameserver connectivity test results"
+      },
+      "record_validation": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "DNS record validation results and issues found"
+      },
+      "security_issues": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "DNS security vulnerabilities and concerns"
+      },
+      "performance_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "DNS query performance measurements"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Optimization recommendations for DNS configuration"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bulk Domain Processor",
+    "tool_description": "Processes multiple domain operations simultaneously including batch registrations, transfers, renewals

@@ -1,0 +1,889 @@
+field_name: weather_services
+subfield: Weather Data Collection and Monitoring
+task: Collect historical weather data and trends analysis
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves moderate complexity as it requires collecting weather data from multiple sources, handling different data formats and time ranges, performing statistical analysis for trend identification, and managing potential data quality issues. The coordination between data collection and analysis components, along with the need for robust error handling across various weather APIs and databases, places this in the **medium** difficulty category.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'm targeting **12 tools** within the 10–15 range. This allows for comprehensive coverage of data collection, validation, storage, analysis, and visualization workflows while maintaining tool orthogonality.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Weather Station Locator** → produces station metadata
+  2. **Historical Data Fetcher** → consumes date ranges, produces raw weather data
+  3. **Weather Data Validator** → consumes raw data, produces cleaned data
+  4. **Data Quality Analyzer** → consumes raw data, produces quality metrics
+  5. **Weather Metrics Calculator** → consumes cleaned data, produces statistical summaries
+  6. **Trend Analysis Engine** → consumes time series data, produces trend patterns
+  7. **Climate Anomaly Detector** → consumes historical data, produces anomaly flags
+  8. **Data Export Manager** → consumes processed data, produces export files
+  9. **Weather Data Aggregator** → consumes multi-source data, produces unified datasets
+  10. **Temporal Data Aligner** → consumes misaligned data, produces synchronized datasets
+  11. **Weather Pattern Classifier** → consumes weather data, produces pattern categories
+  12. **Seasonal Decomposer** → consumes time series, produces seasonal components
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  - Basic data collection: Weather Station Locator → Historical Data Fetcher → Data Export Manager
+  - Data validation workflow: Historical Data Fetcher → Weather Data Validator → Data Quality Analyzer
+
+  **Medium plans:**
+  - Standard analysis pipeline: Historical Data Fetcher → Weather Data Validator → Weather Metrics Calculator → Trend Analysis Engine → Data Export Manager
+  - Multi-source integration: Historical Data Fetcher → Weather Data Aggregator → Temporal Data Aligner → Weather Metrics Calculator
+
+  **Complex plans:**
+  - Comprehensive trend analysis: Weather Station Locator → Historical Data Fetcher → Weather Data Validator → Weather Data Aggregator → Temporal Data Aligner → Weather Metrics Calculator → Trend Analysis Engine → Climate Anomaly Detector → Seasonal Decomposer → Weather Pattern Classifier → Data Export Manager
+  - Quality-focused analysis: Historical Data Fetcher → Data Quality Analyzer → Weather Data Validator → Weather Metrics Calculator → Climate Anomaly Detector → Trend Analysis Engine → Data Export Manager
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Weather Station Locator",
+    "tool_description": "Finds and retrieves metadata for weather stations within specified geographic boundaries and filters by station characteristics.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Center latitude for search area (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Center longitude for search area (-180 to 180)"
+      },
+      "radius_km": {
+        "type": "number",
+        "required": false,
+        "description": "Search radius in kilometers (1-500)",
+        "default": 50
+      },
+      "station_type": {
+        "type": "string",
+        "required": false,
+        "description": "Filter by station type: automatic, manual, or all",
+        "default": "all"
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be between -90 and 90, longitude between -180 and 180.",
+      "Invalid radius: Search radius must be between 1 and 500 kilometers.",
+      "Invalid station type: Use 'automatic', 'manual', or 'all'.",
+      "No stations found: No weather stations exist within the specified search parameters."
+    ],
+    "usage": "Provide latitude and longitude coordinates to search for nearby weather stations. Optionally specify search radius and station type to filter results.",
+    "output_details": {
+      "station_count": {
+        "type": "integer",
+        "description": "Number of stations found"
+      },
+      "station_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of unique station identifiers"
+      },
+      "station_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of human-readable station names"
+      },
+      "distances_km": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Distance from search center to each station in kilometers"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Historical Data Fetcher",
+    "tool_description": "Retrieves historical weather data from specified stations and date ranges, supporting multiple weather parameters and data sources.",
+    "parameters": {
+      "station_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of weather station identifiers",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for data collection",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for data collection",
+        "format": "date-time"
+      },
+      "parameters": {
+        "type": "array",
+        "required": true,
+        "description": "Weather parameters to collect",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "data_source": {
+        "type": "string",
+        "required": false,
+        "description": "Data source: NOAA, ECMWF, or AUTO",
+        "default": "AUTO"
+      },
+      "frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Data frequency: hourly, daily, or monthly",
+        "default": "daily"
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include station metadata in response",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid date range: End date must be after start date and both must be valid ISO 8601 dates.",
+      "Station not found: One or more station IDs do not exist or are inactive.",
+      "Invalid parameters: Weather parameter names must be from the supported list (temperature, humidity, pressure, wind_speed, precipitation, etc.).",
+      "Invalid data source: Use 'NOAA', 'ECMWF', or 'AUTO' for automatic selection.",
+      "Invalid frequency: Use 'hourly', 'daily', or 'monthly'.",
+      "Data not available: Requested data is not available for the specified time range and stations.",
+      "Too many stations: Maximum 20 stations allowed per request."
+    ],
+    "usage": "Specify station IDs, date range, and desired weather parameters. The tool will fetch historical data from the best available source and return it in a structured format.",
+    "output_details": {
+      "record_count": {
+        "type": "integer",
+        "description": "Total number of weather records retrieved"
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of observation timestamps in ISO 8601 format"
+      },
+      "station_data": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of station identifiers for each record"
+      },
+      "weather_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of weather measurement values"
+      },
+      "parameter_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of weather parameter names corresponding to values"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weather Data Validator",
+    "tool_description": "Validates weather data for quality issues, outliers, and missing values, applying configurable validation rules and corrections.",
+    "parameters": {
+      "raw_data_timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of timestamps from raw weather data",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "raw_data_values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of weather measurement values",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "parameter_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of weather parameter being validated"
+      },
+      "outlier_method": {
+        "type": "string",
+        "required": false,
+        "description": "Outlier detection method: zscore, iqr, or none",
+        "default": "iqr"
+      },
+      "outlier_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Threshold for outlier detection (1.5-5.0)",
+        "default": 3.0
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: Timestamps and values arrays must have the same length.",
+      "Invalid parameter type: Parameter type must be a recognized weather measurement.",
+      "Invalid outlier method: Use 'zscore', 'iqr', or 'none'.",
+      "Invalid threshold: Outlier threshold must be between 1.5 and 5.0.",
+      "Insufficient data: At least 3 data points required for validation."
+    ],
+    "usage": "Provide timestamps and values arrays along with parameter type. The tool will identify quality issues and return cleaned data with validation flags.",
+    "output_details": {
+      "valid_count": {
+        "type": "integer",
+        "description": "Number of valid data points after validation"
+      },
+      "cleaned_timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of timestamps for valid data points"
+      },
+      "cleaned_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of validated and cleaned measurement values"
+      },
+      "outlier_flags": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Boolean flags indicating which original points were outliers"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Summary of validation results and actions taken"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Quality Analyzer",
+    "tool_description": "Analyzes weather data quality by calculating completeness, consistency, and reliability metrics for assessment and reporting.",
+    "parameters": {
+      "data_timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of data timestamps",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "data_values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of weather measurement values",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: Timestamps and values must have equal length.",
+      "Invalid timestamp format: All timestamps must be valid ISO 8601 strings.",
+      "Insufficient data: Minimum 5 data points required for quality analysis."
+    ],
+    "usage": "Input timestamp and value arrays to receive comprehensive data quality metrics including completeness ratios, gap analysis, and consistency scores.",
+    "output_details": {
+      "completeness_ratio": {
+        "type": "number",
+        "description": "Ratio of valid data points to expected data points"
+      },
+      "missing_count": {
+        "type": "integer",
+        "description": "Number of missing or invalid data points"
+      },
+      "gap_count": {
+        "type": "integer",
+        "description": "Number of temporal gaps in the data series"
+      },
+      "largest_gap_hours": {
+        "type": "number",
+        "description": "Duration of the largest gap in hours"
+      },
+      "consistency_score": {
+        "type": "number",
+        "description": "Data consistency score from 0 to 1"
+      },
+      "quality_grade": {
+        "type": "string",
+        "description": "Overall quality grade: A, B, C, D, or F"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weather Metrics Calculator",
+    "tool_description": "Calculates statistical metrics and summaries for weather data including means, extremes, distributions, and custom aggregations over specified time periods.",
+    "parameters": {
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of measurement timestamps",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of weather measurement values",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "parameter_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the weather parameter being analyzed"
+      },
+      "aggregation_period": {
+        "type": "string",
+        "required": false,
+        "description": "Time period for aggregation: daily, weekly, monthly, or yearly",
+        "default": "monthly"
+      },
+      "calculate_percentiles": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include percentile calculations in output",
+        "default": true
+      },
+      "include_extremes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include extreme value analysis",
+        "default": true
+      },
+      "custom_percentiles": {
+        "type": "array",
+        "required": false,
+        "description": "Custom percentile values to calculate",
+        "items": {
+          "type": "number"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: Timestamps and values arrays must have the same length.",
+      "Invalid aggregation period: Use 'daily', 'weekly', 'monthly', or 'yearly'.",
+      "Invalid percentile values: Percentiles must be between 0 and 100.",
+      "Insufficient data: At least 2 data points required for statistical calculations.",
+      "Invalid timestamps: All timestamps must be valid ISO 8601 format."
+    ],
+    "usage": "Provide timestamp and value arrays with parameter name. Configure aggregation period and statistical options to receive comprehensive weather metrics.",
+    "output_details": {
+      "mean_value": {
+        "type": "number",
+        "description": "Average value across the time period"
+      },
+      "min_value": {
+        "type": "number",
+        "description": "Minimum recorded value"
+      },
+      "max_value": {
+        "type": "number",
+        "description": "Maximum recorded value"
+      },
+      "standard_deviation": {
+        "type": "number",
+        "description": "Standard deviation of the values"
+      },
+      "percentile_25": {
+        "type": "number",
+        "description": "25th percentile value"
+      },
+      "percentile_75": {
+        "type": "number",
+        "description": "75th percentile value"
+      },
+      "median_value": {
+        "type": "number",
+        "description": "Median value (50th percentile)"
+      },
+      "data_range": {
+        "type": "number",
+        "description": "Difference between maximum and minimum values"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Trend Analysis Engine",
+    "tool_description": "Performs comprehensive trend analysis on weather time series data, identifying long-term patterns, seasonal trends, and statistical significance of changes over time.",
+    "parameters": {
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of chronological timestamps for the data series",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 10
+      },
+      "values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of weather measurement values corresponding to timestamps",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 10
+      },
+      "trend_method": {
+        "type": "string",
+        "required": false,
+        "description": "Trend detection method: linear, polynomial, or seasonal",
+        "default": "linear"
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "Statistical confidence level for trend significance (0.90-0.99)",
+        "default": 0.95
+      },
+      "detrend_seasonal": {
+        "type": "boolean",
+        "required": false,
+        "description": "Remove seasonal components before trend analysis",
+        "default": false
+      },
+      "smoothing_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Moving average window size for smoothing (3-50)",
+        "default": null
+      },
+      "parameter_units": {
+        "type": "string",
+        "required": false,
+        "description": "Units of measurement for the parameter",
+        "default": "unknown"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: Timestamps and values arrays must have identical length.",
+      "Insufficient data: Minimum 10 data points required for reliable trend analysis.",
+      "Invalid trend method: Use 'linear', 'polynomial', or 'seasonal'.",
+      "Invalid confidence level: Must be between 0.90 and 0.99.",
+      "Invalid smoothing window: Must be between 3 and 50, and less than half the data length.",
+      "Non-chronological data: Timestamps must be in chronological order.",
+      "Invalid timestamp format: All timestamps must be valid ISO 8601 strings."
+    ],
+    "usage": "Input time series data with timestamps and values. Configure trend detection method and statistical parameters to identify significant weather trends and their characteristics.",
+    "output_details": {
+      "trend_direction": {
+        "type": "string",
+        "description": "Overall trend direction: increasing, decreasing, or stable"
+      },
+      "trend_slope": {
+        "type": "number",
+        "description": "Rate of change per unit time"
+      },
+      "trend_significance": {
+        "type": "boolean",
+        "description": "Whether the trend is statistically significant"
+      },
+      "p_value": {
+        "type": "number",
+        "description": "Statistical p-value for trend test"
+      },
+      "r_squared": {
+        "type": "number",
+        "description": "Coefficient of determination for trend fit"
+      },
+      "seasonal_component": {
+        "type": "boolean",
+        "description": "Whether significant seasonal patterns were detected"
+      },
+      "trend_summary": {
+        "type": "string",
+        "description": "Human-readable summary of trend analysis results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Climate Anomaly Detector",
+    "tool_description": "Detects climate anomalies and extreme weather events by comparing current observations against historical baselines and statistical norms.",
+    "parameters": {
+      "current_timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Timestamps for current period data",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "current_values": {
+        "type": "array",
+        "required": true,
+        "description": "Current weather measurement values",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "baseline_values": {
+        "type": "array",
+        "required": true,
+        "description": "Historical baseline values for comparison",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 10
+      },
+      "anomaly_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Standard deviations from normal to flag anomaly (1.0-4.0)",
+        "default": 2.0
+      },
+      "parameter_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of weather parameter being analyzed"
+      },
+      "seasonal_adjustment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply seasonal adjustment to anomaly detection",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: Current timestamps and values must have equal length.",
+      "Insufficient baseline data: At least 10 baseline values required for statistical comparison.",
+      "Invalid anomaly threshold: Must be between 1.0 and 4.0 standard deviations.",
+      "Invalid parameter type: Parameter type must be a recognized weather measurement.",
+      "Invalid timestamp format: All timestamps must be valid ISO 8601 strings."
+    ],
+    "usage": "Provide current observations with timestamps and values, plus historical baseline data. The tool identifies anomalous conditions based on statistical deviation from normal patterns.",
+    "output_details": {
+      "anomaly_count": {
+        "type": "integer",
+        "description": "Number of anomalous observations detected"
+      },
+      "anomaly_flags": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Boolean flags indicating which observations are anomalous"
+      },
+      "deviation_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Standard deviation scores for each observation"
+      },
+      "severity_levels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Severity classification for each anomaly: mild, moderate, severe, extreme"
+      },
+      "anomaly_summary": {
+        "type": "string",
+        "description": "Summary description of detected anomalies"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Export Manager",
+    "tool_description": "Exports processed weather data and analysis results to various file formats with customizable structure and metadata inclusion.",
+    "parameters": {
+      "data_timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of data timestamps to export",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "data_values": {
+        "type": "array",
+        "required": true,
+        "description": "Array of data values to export",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "export_format": {
+        "type": "string",
+        "required": true,
+        "description": "Output format: csv, json, or xml"
+      },
+      "filename": {
+        "type": "string",
+        "required": true,
+        "description": "Output filename without extension"
+      },
+      "include_headers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include column headers in output",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: Timestamps and values arrays must have the same length.",
+      "Invalid export format: Use 'csv', 'json', or 'xml'.",
+      "Invalid filename: Filename must be non-empty and contain valid characters.",
+      "Export failed: Unable to write file due to permissions or disk space."
+    ],
+    "usage": "Specify data arrays, export format, and filename to generate formatted output files. The tool handles format-specific requirements and metadata inclusion.",
+    "output_details": {
+      "export_success": {
+        "type": "boolean",
+        "description": "Whether export operation completed successfully"
+      },
+      "output_filename": {
+        "type": "string",
+        "description": "Full filename of exported file including extension"
+      },
+      "record_count": {
+        "type": "integer",
+        "description": "Number of records exported"
+      },
+      "file_size_bytes": {
+        "type": "integer",
+        "description": "Size of exported file in bytes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weather Data Aggregator",
+    "tool_description": "Combines weather data from multiple sources, stations, or parameters into unified datasets while handling data conflicts and source prioritization.",
+    "parameters": {
+      "source_names": {
+        "type": "array",
+        "required": true,
+        "description": "Names of data sources being aggregated",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "timestamps_list": {
+        "type": "array",
+        "required": true,
+        "description": "Arrays of timestamps from each source",
+        "items": {
+          "type": "array"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "values_list": {
+        "type": "array",
+        "required": true,
+        "description": "Arrays of values from each source",
+        "items": {
+          "type": "array"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "aggregation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for combining overlapping data: average, priority, or maximum",
+        "default": "average"
+      },
+      "source_priorities": {
+        "type": "array",
+        "required": false,
+        "description": "Priority weights for each source when using priority method",
+        "items": {
+          "type": "number"
+        },
+        "default": null
+      },
+      "time_tolerance_minutes": {
+        "type": "number",
+        "required": false,
+        "description": "Time tolerance for matching observations (1-120 minutes)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Inconsistent array lengths: source_names, timestamps_list, and values_list must have the same length.",
+      "Insufficient sources: At least 2 data sources required for aggregation.",
+      "Invalid aggregation method: Use 'average', 'priority', or 'maximum'.",
+      "Priority mismatch: When using priority method, source_priorities must match number of sources.",
+      "Invalid time tolerance: Must be between 1 and 120 minutes.",
+      "Empty data source: One or more sources contain no valid data."
+    ],
+    "usage": "Provide multiple data sources with their timestamps and values. Configure aggregation method and time tolerance to combine data intelligently while resolving conflicts.",
+    "output_details": {
+      "unified_timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Combined timestamps from all sources"
+      },
+      "unified_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Aggregated values using specified method"
+      },
+      "source_contributions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Source names that contributed to each unified data point"
+      },
+      "conflict_count": {
+        "type": "integer",
+        "description": "Number of conflicts resolved during aggregation"
+      },
+      "total_records": {
+        "type": "integer",
+        "description": "Total number of records in unified dataset"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Temporal Data Aligner",
+    "tool_description": "Aligns weather data from different sources to common time intervals through interpolation and resampling techniques.",
+    "parameters": {
+      "source_timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Original timestamps that need alignment",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 3
+      },
+      "source_values": {
+        "type": "array",
+        "required": true,
+        "description": "Original values corresponding to timestamps",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 3
+      },
+      "target_interval": {
+        "type": "string",
+        "required": true,
+        "description": "Target time interval: 15min, 30min, 1hour, 3hour, 6hour, 12hour, 1day"
+      },
+      "interpolation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Interpolation method: linear, cubic, or nearest",
+        "default": "linear"
+      },
+      "alignment_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start time for aligned dataset",
+        "format": "date-time",
+        "default": null
+      },
+      "alignment_end": {
+        "type": "string",
+        "required": false,
+        "description": "End time for aligned dataset",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: Timestamps and values arrays must have equal length.",
+      "Insufficient data: At least 3 data points required for interpolation.",
+      "Invalid target interval: Use supported intervals like 15min, 1hour, 1day, etc.",
+      "Invalid interpolation method: Use 'linear', 'cubic', or 'nearest'.",
+      "Invalid time range: alignment_end must be after alignment_start.",
+      "Non-chronological data: Source timestamps must be in chronological order."
+    ],
+    "usage": "Input irregular time series data and specify target interval. The tool resamples data to regular intervals using chosen interpolation method.",
+    "output_details": {
+      "aligned_timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Regularly spaced timestamps at target interval"
+      },
+      "aligned_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Interpolated values at aligned timestamps"
+      },
+      "interpolation_flags": {
+        "type": "array",
+        "items": {
+          "type": "boolean"

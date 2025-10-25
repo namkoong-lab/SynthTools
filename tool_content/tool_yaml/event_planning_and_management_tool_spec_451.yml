@@ -1,0 +1,900 @@
+field_name: event_planning_and_management
+subfield: venue_selection_and_booking
+task: Search and filter venues based on criteria like location, capacity, amenities, and budget
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves coordinating multiple data sources (venue databases, availability systems, pricing), handling diverse search criteria with complex filtering logic, and managing real-time booking constraints. The scope includes location-based searches, capacity matching, amenity filtering, and budget optimization, but the core workflows are well-defined and the data requirements are manageable.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to handle the various aspects of venue search, filtering, comparison, and booking coordination.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Venue Database Search** - consumes: location, basic criteria → produces: venue listings
+  2. **Location Distance Calculator** - consumes: addresses/coordinates → produces: distance metrics
+  3. **Capacity Filter Validator** - consumes: venue data, guest count → produces: suitable venues
+  4. **Amenity Matcher** - consumes: required amenities, venue amenities → produces: match scores
+  5. **Budget Range Analyzer** - consumes: venue pricing, budget constraints → produces: affordability analysis
+  6. **Availability Checker** - consumes: venue IDs, date ranges → produces: availability status
+  7. **Venue Comparison Generator** - consumes: multiple venue data → produces: comparison matrix
+  8. **Review Score Aggregator** - consumes: venue IDs → produces: rating summaries
+  9. **Booking Cost Calculator** - consumes: venue details, event specs → produces: total cost breakdown
+  10. **Venue Photo Validator** - consumes: venue IDs → produces: photo availability status
+  11. **Contact Info Retriever** - consumes: venue IDs → produces: contact details
+  12. **Venue Ranking Engine** - consumes: venues, preferences, weights → produces: ranked results
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  - Basic venue search: Venue Database Search → Capacity Filter Validator → Budget Range Analyzer
+  - Quick comparison: Venue Database Search → Venue Comparison Generator → Review Score Aggregator
+
+  **Medium plans:**
+  - Comprehensive search: Venue Database Search → Capacity Filter Validator → Amenity Matcher → Budget Range Analyzer → Availability Checker → Venue Ranking Engine
+  - Location-focused search: Venue Database Search → Location Distance Calculator → Capacity Filter Validator → Venue Comparison Generator
+
+  **Complex plans:**
+  - Full evaluation workflow: Venue Database Search → Location Distance Calculator → Capacity Filter Validator → Amenity Matcher → Budget Range Analyzer → Availability Checker → Review Score Aggregator → Booking Cost Calculator → Venue Ranking Engine → Contact Info Retriever
+  - Multi-criteria optimization: Venue Database Search → Capacity Filter Validator → Amenity Matcher → Location Distance Calculator → Budget Range Analyzer → Availability Checker → Venue Photo Validator → Venue Comparison Generator → Venue Ranking Engine
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Venue Database Search",
+    "tool_description": "Searches venue databases based on location, event type, and basic criteria to retrieve initial venue listings.",
+    "parameters": {
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "City, address, or geographic area for venue search"
+      },
+      "search_radius": {
+        "type": "number",
+        "required": false,
+        "description": "Search radius in miles from location",
+        "default": 25
+      },
+      "event_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of event (wedding, corporate, conference, party, concert)"
+      },
+      "min_capacity": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum guest capacity required",
+        "default": 10
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of venues to return (10-500)",
+        "default": 50
+      }
+    },
+    "error_messages": [
+      "Invalid location: Provide a valid city name, address, or geographic identifier.",
+      "Unsupported event type: Use one of [wedding, corporate, conference, party, concert, exhibition, gala].",
+      "Invalid search radius: Must be between 1 and 100 miles.",
+      "Invalid capacity or result limits: min_capacity must be >= 1, max_results must be 10-500.",
+      "No venues found: Try expanding search radius or adjusting criteria."
+    ],
+    "usage": "Provide location and event_type as minimum requirements. Optionally set search_radius, min_capacity, and max_results to refine the initial search.",
+    "output_details": {
+      "total_found": {
+        "type": "integer",
+        "description": "Total number of venues found matching criteria"
+      },
+      "venue_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Unique identifiers for each venue found"
+      },
+      "venue_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Names of venues found"
+      },
+      "basic_info": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Brief description strings for each venue"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Location Distance Calculator",
+    "tool_description": "Calculates distances and travel times between venue locations and specified reference points.",
+    "parameters": {
+      "venue_addresses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of venue addresses to calculate distances for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "reference_address": {
+        "type": "string",
+        "required": true,
+        "description": "Reference address to calculate distances from"
+      },
+      "transport_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Transportation mode: driving, walking, transit",
+        "default": "driving"
+      }
+    },
+    "error_messages": [
+      "Invalid addresses: Ensure all addresses are properly formatted and recognizable.",
+      "Invalid transport mode: Use one of [driving, walking, transit].",
+      "Address not found: One or more addresses could not be geocoded.",
+      "Too many addresses: Maximum 100 venue addresses allowed per request."
+    ],
+    "usage": "Provide an array of venue_addresses and a reference_address. Optionally specify transport_mode for different travel calculations.",
+    "output_details": {
+      "distances_miles": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Distance in miles from reference to each venue"
+      },
+      "travel_times_minutes": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Estimated travel time in minutes to each venue"
+      },
+      "calculation_status": {
+        "type": "string",
+        "description": "Status of the distance calculation process"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Capacity Filter Validator",
+    "tool_description": "Validates venue capacity against guest requirements and filters venues based on seating arrangements and space utilization.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of venue IDs to validate capacity for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "expected_guests": {
+        "type": "integer",
+        "required": true,
+        "description": "Expected number of guests for the event"
+      },
+      "seating_style": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred seating arrangement: theater, banquet, cocktail, classroom, u-shape",
+        "default": "banquet"
+      },
+      "capacity_buffer": {
+        "type": "number",
+        "required": false,
+        "description": "Additional capacity percentage buffer (0-50%)",
+        "default": 10
+      },
+      "require_dance_floor": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether a dance floor space is required",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid guest count: expected_guests must be a positive integer.",
+      "Unsupported seating style: Use one of [theater, banquet, cocktail, classroom, u-shape, conference].",
+      "Invalid capacity buffer: Must be between 0 and 50 percent.",
+      "Venue IDs not found: One or more venue IDs are invalid or not in database.",
+      "Insufficient capacity data: Some venues lack detailed capacity information for validation."
+    ],
+    "usage": "Provide venue_ids and expected_guests count. Optionally specify seating_style, capacity_buffer, and require_dance_floor to refine capacity matching.",
+    "output_details": {
+      "suitable_venue_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Venue IDs that meet capacity requirements"
+      },
+      "capacity_ratings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Capacity suitability ratings for each venue"
+      },
+      "rejected_venues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Venue IDs that failed capacity requirements"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Summary of capacity validation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Amenity Matcher",
+    "tool_description": "Matches required amenities against venue offerings and calculates compatibility scores based on amenity priorities.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of venue IDs to check amenities for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 150
+      },
+      "required_amenities": {
+        "type": "array",
+        "required": true,
+        "description": "List of required amenities",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 30
+      },
+      "preferred_amenities": {
+        "type": "array",
+        "required": false,
+        "description": "List of preferred but not required amenities",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 20,
+        "default": []
+      },
+      "amenity_weights": {
+        "type": "array",
+        "required": false,
+        "description": "Importance weights for each required amenity (1-10 scale)",
+        "items": {
+          "type": "number"
+        },
+        "maxItems": 30,
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Missing required amenities: Provide at least one required amenity.",
+      "Invalid amenity weights: Weights must be numbers between 1 and 10.",
+      "Mismatched arrays: amenity_weights length must match required_amenities length if provided.",
+      "Unknown amenity types: Some specified amenities are not recognized in the system.",
+      "Too many amenities: Combined required and preferred amenities exceed maximum limits."
+    ],
+    "usage": "Provide venue_ids and required_amenities. Optionally add preferred_amenities and amenity_weights to customize matching priorities.",
+    "output_details": {
+      "compatibility_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Compatibility scores (0-100) for each venue"
+      },
+      "matching_venues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Venue IDs that meet all required amenities"
+      },
+      "amenity_gaps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Missing amenities summary for each venue"
+      },
+      "bonus_amenities": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Additional amenities offered by each venue"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Budget Range Analyzer",
+    "tool_description": "Analyzes venue pricing against budget constraints and categorizes venues by affordability with cost breakdowns.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of venue IDs to analyze pricing for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "total_budget": {
+        "type": "number",
+        "required": true,
+        "description": "Total event budget amount"
+      },
+      "venue_budget_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage of total budget allocated to venue (10-80%)",
+        "default": 40
+      },
+      "event_duration_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Event duration in hours",
+        "default": 6
+      },
+      "guest_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of guests for pricing calculations"
+      },
+      "include_extras": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include additional fees and service charges in analysis",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid budget amount: total_budget must be a positive number.",
+      "Invalid budget percentage: venue_budget_percentage must be between 10 and 80.",
+      "Invalid duration: event_duration_hours must be between 1 and 24 hours.",
+      "Invalid guest count: guest_count must be a positive integer.",
+      "Missing pricing data: Some venues lack complete pricing information for analysis."
+    ],
+    "usage": "Provide venue_ids, total_budget, and guest_count. Optionally set venue_budget_percentage, event_duration_hours, and include_extras for detailed budget analysis.",
+    "output_details": {
+      "affordable_venues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Venue IDs within budget constraints"
+      },
+      "cost_estimates": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Estimated total cost for each venue"
+      },
+      "budget_utilization": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Percentage of venue budget used by each option"
+      },
+      "affordability_rating": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Affordability category for each venue"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Availability Checker",
+    "tool_description": "Checks real-time availability for venues across specified dates and times with booking conflict detection.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of venue IDs to check availability for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "preferred_date": {
+        "type": "string",
+        "required": true,
+        "description": "Preferred event date",
+        "format": "date-time"
+      },
+      "alternative_dates": {
+        "type": "array",
+        "required": false,
+        "description": "Alternative acceptable dates",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 10,
+        "default": []
+      },
+      "event_start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Event start time",
+        "format": "date-time"
+      },
+      "event_end_time": {
+        "type": "string",
+        "required": true,
+        "description": "Event end time",
+        "format": "date-time"
+      },
+      "setup_time_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Required setup time before event in hours",
+        "default": 2
+      },
+      "breakdown_time_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Required breakdown time after event in hours",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Use ISO 8601 date-time format for all date fields.",
+      "Invalid time range: event_end_time must be after event_start_time.",
+      "Past date error: preferred_date cannot be in the past.",
+      "Excessive setup/breakdown time: Combined setup and breakdown cannot exceed 12 hours.",
+      "Too many venues: Maximum 50 venue IDs allowed per availability check."
+    ],
+    "usage": "Provide venue_ids, preferred_date, event_start_time, and event_end_time. Optionally add alternative_dates and setup/breakdown time requirements.",
+    "output_details": {
+      "available_venues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Venue IDs available for preferred date and time"
+      },
+      "availability_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed availability status for each venue"
+      },
+      "alternative_slots": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Alternative time slots available for each venue"
+      },
+      "booking_conflicts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Details of any scheduling conflicts found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Venue Comparison Generator",
+    "tool_description": "Generates detailed side-by-side comparisons of multiple venues across key criteria and features.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of venue IDs to compare",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "comparison_criteria": {
+        "type": "array",
+        "required": false,
+        "description": "Specific criteria to focus comparison on",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 15,
+        "default": ["price", "capacity", "location", "amenities", "reviews"]
+      },
+      "include_photos": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include photo availability in comparison",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Insufficient venues: Provide at least 2 venue IDs for comparison.",
+      "Too many venues: Maximum 10 venues can be compared simultaneously.",
+      "Invalid comparison criteria: Use recognized criteria such as price, capacity, location, amenities, reviews.",
+      "Venue data incomplete: Some venues lack sufficient data for meaningful comparison.",
+      "Duplicate venue IDs: Remove duplicate entries from venue_ids array."
+    ],
+    "usage": "Provide at least 2 venue_ids for comparison. Optionally specify comparison_criteria to focus on particular aspects and set include_photos if visual comparison is needed.",
+    "output_details": {
+      "comparison_matrix": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Structured comparison data for each venue and criteria"
+      },
+      "strengths_summary": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Key strengths identified for each venue"
+      },
+      "weaknesses_summary": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Notable weaknesses or limitations for each venue"
+      },
+      "recommendation_notes": {
+        "type": "string",
+        "description": "Overall comparison insights and recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Review Score Aggregator",
+    "tool_description": "Aggregates and analyzes customer reviews and ratings for venues from multiple sources with sentiment analysis.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of venue IDs to gather review data for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 75
+      },
+      "review_sources": {
+        "type": "array",
+        "required": false,
+        "description": "Specific review platforms to include",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 10,
+        "default": ["google", "yelp", "weddingwire", "theknot"]
+      },
+      "min_review_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of reviews required for inclusion",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Invalid review sources: Use supported platforms like google, yelp, weddingwire, theknot, eventective.",
+      "Insufficient review data: Some venues have fewer reviews than the minimum threshold.",
+      "Review access error: Unable to access review data from one or more sources.",
+      "Too many venues: Maximum 75 venues can be processed for review aggregation."
+    ],
+    "usage": "Provide venue_ids to aggregate reviews for. Optionally specify review_sources and min_review_count to customize review collection criteria.",
+    "output_details": {
+      "average_ratings": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Average rating score for each venue"
+      },
+      "review_counts": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Total number of reviews for each venue"
+      },
+      "sentiment_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Sentiment analysis scores for recent reviews"
+      },
+      "common_themes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Most frequently mentioned positive and negative themes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Booking Cost Calculator",
+    "tool_description": "Calculates comprehensive booking costs including venue fees, taxes, deposits, and additional service charges.",
+    "parameters": {
+      "venue_id": {
+        "type": "string",
+        "required": true,
+        "description": "Venue ID to calculate booking costs for"
+      },
+      "event_date": {
+        "type": "string",
+        "required": true,
+        "description": "Planned event date",
+        "format": "date-time"
+      },
+      "guest_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of guests attending"
+      },
+      "event_duration_hours": {
+        "type": "number",
+        "required": true,
+        "description": "Total event duration in hours"
+      },
+      "day_of_week": {
+        "type": "string",
+        "required": true,
+        "description": "Day of the week for pricing variations"
+      },
+      "catering_package": {
+        "type": "string",
+        "required": false,
+        "description": "Selected catering package level",
+        "default": "standard"
+      },
+      "bar_service": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include bar service in calculations",
+        "default": false
+      },
+      "av_equipment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include AV equipment rental fees",
+        "default": false
+      },
+      "valet_parking": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include valet parking service",
+        "default": false
+      },
+      "security_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include security service fees",
+        "default": false
+      },
+      "insurance_coverage": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include event insurance in cost calculation",
+        "default": false
+      },
+      "rush_booking": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply rush booking surcharge if applicable",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid venue ID: Venue not found in pricing database.",
+      "Invalid event date: Date must be in the future and properly formatted.",
+      "Invalid guest count: Must be a positive integer within venue capacity limits.",
+      "Invalid duration: Event duration must be between 1 and 24 hours.",
+      "Invalid day of week: Use full day names like Monday, Tuesday, etc.",
+      "Catering package error: Use recognized package levels (basic, standard, premium, luxury).",
+      "Pricing data unavailable: Complete pricing information not available for this venue."
+    ],
+    "usage": "Provide venue_id, event_date, guest_count, event_duration_hours, and day_of_week as required parameters. Add optional services to get comprehensive cost breakdown.",
+    "output_details": {
+      "base_venue_cost": {
+        "type": "number",
+        "description": "Base venue rental fee"
+      },
+      "service_fees": {
+        "type": "number",
+        "description": "Total additional service fees"
+      },
+      "taxes_total": {
+        "type": "number",
+        "description": "All applicable taxes"
+      },
+      "deposit_required": {
+        "type": "number",
+        "description": "Required deposit amount"
+      },
+      "total_estimated_cost": {
+        "type": "number",
+        "description": "Complete estimated total cost"
+      },
+      "cost_breakdown": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed itemized cost breakdown"
+      },
+      "payment_schedule": {
+        "type": "string",
+        "description": "Recommended payment timeline and amounts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Venue Photo Validator",
+    "tool_description": "Validates photo availability and quality for venues to ensure visual representation meets standards.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of venue IDs to validate photos for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "photo_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Required photo categories to validate",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 10,
+        "default": ["exterior", "interior", "ceremony_space", "reception_area"]
+      },
+      "minimum_photos": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of photos required per venue",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Invalid photo categories: Use standard categories like exterior, interior, ceremony_space, reception_area, kitchen, restroom.",
+      "Too few photos available: Some venues don't meet minimum photo requirements.",
+      "Photo access error: Unable to access photo galleries for some venues.",
+      "Invalid minimum count: minimum_photos must be between 1 and 50."
+    ],
+    "usage": "Provide venue_ids to validate photo availability. Optionally specify photo_categories and minimum_photos to set validation criteria.",
+    "output_details": {
+      "photo_counts": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Number of photos available for each venue"
+      },
+      "category_coverage": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Photo category coverage status for each venue"
+      },
+      "quality_ratings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Photo quality assessment for each venue"
+      },
+      "validation_status": {
+        "type": "string",
+        "description": "Overall photo validation results summary"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contact Info Retriever",
+    "tool_description": "Retrieves comprehensive contact information and communication preferences for venue booking coordinators.",
+    "parameters": {
+      "venue_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of venue IDs to get contact information for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "contact_urgency": {
+        "type": "string",
+        "required": false,
+        "description": "Urgency level for contact preference",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Invalid venue IDs: One or more venue IDs not found in contact database.",
+      "Contact information unavailable: Some venues lack complete contact details.",
+      "Invalid urgency level: Use normal, urgent, or immediate for contact_urgency."
+    ],
+    "usage": "Provide venue_ids to retrieve contact information. Optionally set contact_urgency to get appropriate communication channels for your timeline.",
+    "output_details": {
+      "venue_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Official venue names"
+      },
+      "primary_contacts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Primary contact person names and titles"
+      },
+      "phone_numbers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Primary phone numbers for each venue"
+      },
+      "

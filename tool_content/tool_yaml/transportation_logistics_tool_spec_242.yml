@@ -1,0 +1,811 @@
+field_name: transportation_logistics
+subfield: fleet_operations_and_maintenance
+task: Vehicle tracking and real-time location monitoring
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  Vehicle tracking and real-time location monitoring is a medium difficulty task. It involves coordinating multiple data streams (GPS, telematics, traffic), managing real-time updates across fleets, handling geofencing and alert systems, and ensuring data accuracy for operational decisions with moderate risk impact.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium complexity, I'll target 12 tools to cover GPS data processing, geofencing, route optimization, alert management, reporting, and fleet coordination workflows.
+
+  **STEP 3 — List all tool names and dependencies**
+  Tools and their data flow:
+  - GPS Data Collector → provides location data to Route Tracker, Geofence Monitor, Speed Analyzer
+  - Route Tracker → consumes GPS data, provides route info to Route Optimizer, Fleet Dashboard
+  - Geofence Monitor → consumes GPS data and boundaries, provides alerts to Alert Manager
+  - Speed Analyzer → consumes GPS data, provides speed metrics to Alert Manager, Fleet Dashboard
+  - Traffic Data Fetcher → provides traffic info to Route Optimizer, ETA Calculator
+  - Route Optimizer → consumes route/traffic data, provides optimized routes to Route Tracker
+  - ETA Calculator → consumes route/traffic data, provides time estimates to Fleet Dashboard
+  - Alert Manager → consumes various alerts, provides notifications to Fleet Dashboard
+  - Vehicle Status Monitor → provides vehicle health data to Fleet Dashboard, Maintenance Scheduler
+  - Fleet Dashboard → consumes all monitoring data, provides fleet overview
+  - Location History Analyzer → consumes historical GPS data, provides analytics to Fleet Dashboard
+  - Maintenance Scheduler → consumes vehicle status, provides maintenance alerts to Alert Manager
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  1. Basic location tracking: GPS Data Collector → Route Tracker → Fleet Dashboard
+  2. Speed monitoring: GPS Data Collector → Speed Analyzer → Alert Manager
+
+  Medium plans:
+  1. Route optimization: GPS Data Collector + Traffic Data Fetcher → Route Optimizer → ETA Calculator → Fleet Dashboard
+  2. Geofence compliance: GPS Data Collector → Geofence Monitor → Alert Manager → Fleet Dashboard
+
+  Complex plans:
+  1. Complete fleet monitoring: GPS Data Collector + Vehicle Status Monitor → Speed Analyzer + Geofence Monitor → Alert Manager → Fleet Dashboard + Maintenance Scheduler
+  2. Predictive route management: GPS Data Collector + Traffic Data Fetcher + Location History Analyzer → Route Optimizer → ETA Calculator → Route Tracker → Fleet Dashboard
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "GPS Data Collector",
+    "tool_description": "Collects and validates real-time GPS location data from vehicle tracking devices, returning standardized location information with timestamps.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the vehicle"
+      },
+      "data_source": {
+        "type": "string",
+        "required": true,
+        "description": "GPS data source type: onboard_gps, mobile_app, or telematics_device"
+      },
+      "collection_interval": {
+        "type": "integer",
+        "required": false,
+        "description": "Data collection interval in seconds (minimum 5, maximum 300)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle_id: Vehicle ID must be a non-empty string and exist in the fleet registry.",
+      "Unsupported data_source: Use one of [onboard_gps, mobile_app, telematics_device].",
+      "Invalid collection_interval: Must be between 5 and 300 seconds.",
+      "GPS signal unavailable: Vehicle is in an area with poor GPS reception.",
+      "Device offline: The specified GPS device is not responding or powered off."
+    ],
+    "usage": "Provide vehicle_id and data_source, optionally set collection_interval. The tool returns current GPS coordinates, heading, speed, and accuracy metrics.",
+    "output_details": {
+      "timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of the GPS reading"
+      },
+      "latitude": {
+        "type": "number",
+        "description": "Latitude coordinate in decimal degrees"
+      },
+      "longitude": {
+        "type": "number",
+        "description": "Longitude coordinate in decimal degrees"
+      },
+      "speed": {
+        "type": "number",
+        "description": "Vehicle speed in km/h"
+      },
+      "heading": {
+        "type": "number",
+        "description": "Vehicle heading in degrees (0-360)"
+      },
+      "accuracy": {
+        "type": "number",
+        "description": "GPS accuracy in meters"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Route Tracker",
+    "tool_description": "Tracks vehicle routes by processing GPS coordinates and mapping them to road networks, providing route progress and deviation alerts.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the vehicle"
+      },
+      "planned_route_id": {
+        "type": "string",
+        "required": false,
+        "description": "ID of the planned route to compare against",
+        "default": "None"
+      },
+      "deviation_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum allowed route deviation in meters (50-5000)",
+        "default": 500
+      },
+      "tracking_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Tracking mode: strict_route or flexible_navigation",
+        "default": "flexible_navigation"
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle_id: Vehicle ID must exist in the active fleet.",
+      "Route not found: The specified planned_route_id does not exist.",
+      "Invalid deviation_threshold: Must be between 50 and 5000 meters.",
+      "Invalid tracking_mode: Use either 'strict_route' or 'flexible_navigation'.",
+      "Insufficient GPS data: Need at least 3 consecutive GPS points for route tracking."
+    ],
+    "usage": "Provide vehicle_id, optionally set planned_route_id, deviation_threshold, and tracking_mode. The tool returns current route status, progress, and any deviations detected.",
+    "output_details": {
+      "current_location": {
+        "type": "string",
+        "description": "Current street address or nearest landmark"
+      },
+      "route_progress": {
+        "type": "number",
+        "description": "Route completion percentage (0-100)"
+      },
+      "is_on_route": {
+        "type": "boolean",
+        "description": "Whether vehicle is following the planned route"
+      },
+      "deviation_distance": {
+        "type": "number",
+        "description": "Distance from planned route in meters"
+      },
+      "next_waypoint": {
+        "type": "string",
+        "description": "Next destination or waypoint address"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Geofence Monitor",
+    "tool_description": "Monitors vehicle locations against defined geographic boundaries, triggering entry/exit events and compliance alerts.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the vehicle to monitor"
+      },
+      "geofence_zones": {
+        "type": "array",
+        "required": true,
+        "description": "List of geofence zone IDs to monitor",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "alert_on_entry": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to alert when vehicle enters geofenced areas",
+        "default": true
+      },
+      "alert_on_exit": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to alert when vehicle exits geofenced areas",
+        "default": true
+      },
+      "monitoring_frequency": {
+        "type": "integer",
+        "required": false,
+        "description": "Check frequency in seconds (10-120)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle_id: Vehicle must be registered and actively transmitting location data.",
+      "Geofence zone not found: One or more specified zone IDs do not exist in the system.",
+      "Invalid monitoring_frequency: Must be between 10 and 120 seconds.",
+      "Too many geofence zones: Maximum 50 zones can be monitored simultaneously.",
+      "Geofence data unavailable: Unable to retrieve boundary definitions for specified zones."
+    ],
+    "usage": "Provide vehicle_id and geofence_zones array, optionally configure alert settings and monitoring_frequency. Returns current geofence status and any boundary violations.",
+    "output_details": {
+      "current_zones": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of geofence zones the vehicle is currently inside"
+      },
+      "zone_entries": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Zones entered since last check"
+      },
+      "zone_exits": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Zones exited since last check"
+      },
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance: compliant, violation, or warning"
+      },
+      "alert_triggered": {
+        "type": "boolean",
+        "description": "Whether any alerts were generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Speed Analyzer",
+    "tool_description": "Analyzes vehicle speed patterns against speed limits and operational policies, detecting violations and generating speed reports.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the vehicle"
+      },
+      "speed_limit_buffer": {
+        "type": "number",
+        "required": false,
+        "description": "Allowable speed buffer above limit in km/h (0-20)",
+        "default": 5
+      },
+      "analysis_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Analysis time window in minutes (5-1440)",
+        "default": 60
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle_id: Vehicle not found or not actively reporting speed data.",
+      "Invalid speed_limit_buffer: Must be between 0 and 20 km/h.",
+      "Invalid analysis_period: Must be between 5 and 1440 minutes (24 hours).",
+      "Insufficient speed data: Not enough speed readings available for analysis.",
+      "Speed limit data unavailable: Unable to retrieve speed limit information for vehicle's route."
+    ],
+    "usage": "Provide vehicle_id, optionally set speed_limit_buffer and analysis_period. Returns speed analysis including violations, average speeds, and compliance metrics.",
+    "output_details": {
+      "average_speed": {
+        "type": "number",
+        "description": "Average speed during analysis period in km/h"
+      },
+      "max_speed": {
+        "type": "number",
+        "description": "Maximum recorded speed in km/h"
+      },
+      "speed_violations": {
+        "type": "integer",
+        "description": "Number of speed limit violations detected"
+      },
+      "compliance_rate": {
+        "type": "number",
+        "description": "Speed compliance percentage (0-100)"
+      },
+      "harsh_acceleration_events": {
+        "type": "integer",
+        "description": "Count of rapid acceleration events"
+      },
+      "harsh_braking_events": {
+        "type": "integer",
+        "description": "Count of hard braking events"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Traffic Data Fetcher",
+    "tool_description": "Retrieves real-time traffic conditions, road closures, and congestion data for specified routes or geographic areas.",
+    "parameters": {
+      "route_coordinates": {
+        "type": "array",
+        "required": true,
+        "description": "Array of latitude,longitude pairs defining the route",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 100
+      },
+      "traffic_sources": {
+        "type": "array",
+        "required": false,
+        "description": "Data sources to query: google_maps, mapbox, here_maps",
+        "items": {"type": "string"},
+        "default": ["google_maps"]
+      },
+      "include_incidents": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include traffic incidents and road closures",
+        "default": true
+      },
+      "data_freshness": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum age of traffic data in minutes (1-60)",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Invalid route_coordinates: Must provide at least 2 coordinate pairs in lat,lng format.",
+      "Unsupported traffic_source: Use one or more of [google_maps, mapbox, here_maps].",
+      "Invalid data_freshness: Must be between 1 and 60 minutes.",
+      "Traffic API unavailable: Unable to connect to specified traffic data sources.",
+      "Route too long: Maximum 100 coordinate pairs allowed per request.",
+      "Coordinates out of bounds: All coordinates must be valid latitude/longitude values."
+    ],
+    "usage": "Provide route_coordinates array, optionally specify traffic_sources, include_incidents flag, and data_freshness. Returns current traffic conditions and estimated delays.",
+    "output_details": {
+      "overall_traffic_level": {
+        "type": "string",
+        "description": "Overall traffic condition: light, moderate, heavy, or severe"
+      },
+      "estimated_delay": {
+        "type": "number",
+        "description": "Additional travel time due to traffic in minutes"
+      },
+      "congested_segments": {
+        "type": "integer",
+        "description": "Number of congested route segments"
+      },
+      "incidents_count": {
+        "type": "integer",
+        "description": "Number of traffic incidents along route"
+      },
+      "alternate_routes_available": {
+        "type": "boolean",
+        "description": "Whether faster alternate routes exist"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Route Optimizer",
+    "tool_description": "Optimizes vehicle routes considering traffic conditions, delivery windows, vehicle constraints, and operational priorities to minimize travel time and costs.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the vehicle"
+      },
+      "start_location": {
+        "type": "string",
+        "required": true,
+        "description": "Starting location in lat,lng format"
+      },
+      "destinations": {
+        "type": "array",
+        "required": true,
+        "description": "Array of destination coordinates in lat,lng format",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "optimization_objective": {
+        "type": "string",
+        "required": false,
+        "description": "Primary objective: shortest_time, shortest_distance, or fuel_efficiency",
+        "default": "shortest_time"
+      },
+      "time_windows": {
+        "type": "array",
+        "required": false,
+        "description": "Delivery time windows in HH:MM-HH:MM format for each destination",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "vehicle_capacity": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum vehicle capacity in kg",
+        "default": "None"
+      },
+      "avoid_tolls": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to avoid toll roads",
+        "default": false
+      },
+      "max_driving_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum continuous driving hours (1-12)",
+        "default": 8
+      },
+      "priority_destinations": {
+        "type": "array",
+        "required": false,
+        "description": "Indices of high-priority destinations",
+        "items": {"type": "integer"},
+        "default": "None"
+      },
+      "fuel_type": {
+        "type": "string",
+        "required": false,
+        "description": "Vehicle fuel type: gasoline, diesel, electric, or hybrid",
+        "default": "gasoline"
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle_id: Vehicle must be registered in the fleet management system.",
+      "Invalid coordinates: All location coordinates must be in valid lat,lng format.",
+      "Too many destinations: Maximum 25 destinations allowed per optimization request.",
+      "Invalid optimization_objective: Use one of [shortest_time, shortest_distance, fuel_efficiency].",
+      "Time window format error: Use HH:MM-HH:MM format for time windows.",
+      "Invalid max_driving_hours: Must be between 1 and 12 hours.",
+      "Mismatched arrays: Number of time windows must match number of destinations if provided.",
+      "Invalid fuel_type: Use one of [gasoline, diesel, electric, hybrid].",
+      "Unreachable destination: One or more destinations cannot be reached by vehicle.",
+      "Optimization failed: Unable to find feasible route with given constraints."
+    ],
+    "usage": "Provide vehicle_id, start_location, and destinations array. Optionally set optimization constraints like time_windows, vehicle_capacity, and preferences. Returns optimized route with waypoint order and timing.",
+    "output_details": {
+      "optimized_waypoint_order": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Optimal sequence of destination indices"
+      },
+      "total_distance": {
+        "type": "number",
+        "description": "Total route distance in kilometers"
+      },
+      "total_time": {
+        "type": "number",
+        "description": "Total estimated travel time in minutes"
+      },
+      "fuel_cost_estimate": {
+        "type": "number",
+        "description": "Estimated fuel cost for the route"
+      },
+      "route_segments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Turn-by-turn directions for each segment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "ETA Calculator",
+    "tool_description": "Calculates estimated time of arrival for vehicles based on current location, destination, traffic conditions, and historical travel patterns.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the vehicle"
+      },
+      "destination": {
+        "type": "string",
+        "required": true,
+        "description": "Destination coordinates in lat,lng format"
+      },
+      "include_traffic": {
+        "type": "boolean",
+        "required": false,
+        "description": "Factor in current traffic conditions",
+        "default": true
+      },
+      "confidence_level": {
+        "type": "string",
+        "required": false,
+        "description": "ETA confidence level: conservative, typical, or optimistic",
+        "default": "typical"
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle_id: Vehicle not found or location data unavailable.",
+      "Invalid destination: Destination coordinates must be in lat,lng format.",
+      "Vehicle location unknown: Current GPS position not available for ETA calculation.",
+      "Invalid confidence_level: Use one of [conservative, typical, optimistic].",
+      "Route calculation failed: Unable to determine route to destination.",
+      "Traffic data unavailable: Cannot factor traffic conditions into ETA calculation."
+    ],
+    "usage": "Provide vehicle_id and destination coordinates, optionally set include_traffic and confidence_level. Returns estimated arrival time with accuracy indicators.",
+    "output_details": {
+      "estimated_arrival": {
+        "type": "string",
+        "description": "Estimated arrival time in ISO 8601 format"
+      },
+      "travel_time_minutes": {
+        "type": "number",
+        "description": "Estimated travel time in minutes"
+      },
+      "confidence_range": {
+        "type": "string",
+        "description": "ETA range as 'min_time - max_time' in minutes"
+      },
+      "distance_remaining": {
+        "type": "number",
+        "description": "Remaining distance to destination in kilometers"
+      },
+      "traffic_impact": {
+        "type": "string",
+        "description": "Traffic impact on ETA: minimal, moderate, or significant"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Manager",
+    "tool_description": "Manages and distributes fleet alerts including geofence violations, speed infractions, maintenance needs, and operational notifications to appropriate personnel.",
+    "parameters": {
+      "alert_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of alert: speed_violation, geofence_breach, maintenance_due, route_deviation, or emergency"
+      },
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Vehicle identifier associated with the alert"
+      },
+      "severity_level": {
+        "type": "string",
+        "required": true,
+        "description": "Alert severity: low, medium, high, or critical"
+      },
+      "alert_message": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed alert description"
+      },
+      "notification_channels": {
+        "type": "array",
+        "required": false,
+        "description": "Delivery methods: email, sms, dashboard, mobile_app",
+        "items": {"type": "string"},
+        "default": ["dashboard"]
+      },
+      "recipient_groups": {
+        "type": "array",
+        "required": false,
+        "description": "Target groups: dispatchers, fleet_managers, drivers, maintenance_team",
+        "items": {"type": "string"},
+        "default": ["dispatchers"]
+      },
+      "auto_escalate": {
+        "type": "boolean",
+        "required": false,
+        "description": "Automatically escalate if not acknowledged within timeout",
+        "default": false
+      },
+      "escalation_timeout": {
+        "type": "integer",
+        "required": false,
+        "description": "Minutes before escalation (5-120)",
+        "default": 15
+      }
+    },
+    "error_messages": [
+      "Invalid alert_type: Use one of [speed_violation, geofence_breach, maintenance_due, route_deviation, emergency].",
+      "Invalid vehicle_id: Vehicle must exist in the fleet registry.",
+      "Invalid severity_level: Use one of [low, medium, high, critical].",
+      "Empty alert_message: Alert message cannot be empty.",
+      "Invalid notification_channel: Use one or more of [email, sms, dashboard, mobile_app].",
+      "Invalid recipient_group: Use one or more of [dispatchers, fleet_managers, drivers, maintenance_team].",
+      "Invalid escalation_timeout: Must be between 5 and 120 minutes.",
+      "Notification delivery failed: Unable to send alert through specified channels."
+    ],
+    "usage": "Provide alert_type, vehicle_id, severity_level, and alert_message. Optionally configure notification_channels, recipient_groups, and escalation settings. Returns alert ID and delivery status.",
+    "output_details": {
+      "alert_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated alert"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Alert generation timestamp in ISO 8601 format"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Notification delivery status: sent, pending, or failed"
+      },
+      "recipients_notified": {
+        "type": "integer",
+        "description": "Number of recipients successfully notified"
+      },
+      "escalation_scheduled": {
+        "type": "boolean",
+        "description": "Whether automatic escalation is scheduled"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Vehicle Status Monitor",
+    "tool_description": "Monitors real-time vehicle health parameters including engine diagnostics, fuel levels, battery status, and maintenance indicators.",
+    "parameters": {
+      "vehicle_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the vehicle"
+      },
+      "monitoring_parameters": {
+        "type": "array",
+        "required": false,
+        "description": "Specific parameters to monitor: engine, fuel, battery, tires, brakes, transmission",
+        "items": {"type": "string"},
+        "default": ["engine", "fuel", "battery"]
+      },
+      "alert_thresholds": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply predefined alert thresholds for monitored parameters",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle_id: Vehicle not found or telemetry data unavailable.",
+      "Invalid monitoring_parameter: Use one or more of [engine, fuel, battery, tires, brakes, transmission].",
+      "Telemetry connection failed: Unable to retrieve vehicle diagnostic data.",
+      "Sensor malfunction: One or more vehicle sensors are reporting invalid data.",
+      "Vehicle offline: Vehicle is not transmitting status data."
+    ],
+    "usage": "Provide vehicle_id, optionally specify monitoring_parameters and alert_thresholds. Returns current vehicle health status and any diagnostic alerts.",
+    "output_details": {
+      "overall_status": {
+        "type": "string",
+        "description": "Overall vehicle health: excellent, good, fair, poor, or critical"
+      },
+      "engine_status": {
+        "type": "string",
+        "description": "Engine condition and any diagnostic codes"
+      },
+      "fuel_level": {
+        "type": "number",
+        "description": "Current fuel level as percentage (0-100)"
+      },
+      "battery_level": {
+        "type": "number",
+        "description": "Battery charge level as percentage (0-100)"
+      },
+      "odometer_reading": {
+        "type": "number",
+        "description": "Current odometer reading in kilometers"
+      },
+      "maintenance_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of active maintenance alerts or warnings"
+      },
+      "diagnostic_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Active diagnostic trouble codes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fleet Dashboard Generator",
+    "tool_description": "Generates comprehensive fleet overview dashboards displaying real-time vehicle locations, status summaries, alerts, and key performance metrics.",
+    "parameters": {
+      "fleet_id": {
+        "type": "string",
+        "required": true,
+        "description": "Fleet identifier for dashboard scope"
+      },
+      "dashboard_type": {
+        "type": "string",
+        "required": false,
+        "description": "Dashboard view: overview, operational, maintenance, or compliance",
+        "default": "overview"
+      },
+      "time_range": {
+        "type": "string",
+        "required": false,
+        "description": "Data time range: last_hour, last_4_hours, today, or last_7_days",
+        "default": "today"
+      },
+      "vehicle_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Specific vehicle IDs to include in dashboard",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "include_maps": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include interactive map with vehicle locations",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid fleet_id: Fleet identifier not found in system.",
+      "Invalid dashboard_type: Use one of [overview, operational, maintenance, compliance].",
+      "Invalid time_range: Use one of [last_hour, last_4_hours, today, last_7_days].",
+      "Vehicle not in fleet: One or more specified vehicle IDs do not belong to this fleet.",
+      "Insufficient data: Not enough data available for specified time range.",
+      "Map service unavailable: Cannot generate dashboard with maps at this time."
+    ],
+    "usage": "Provide fleet_id, optionally specify dashboard_type, time_range, vehicle_filter, and include_maps. Returns dashboard data and visualization elements.",
+    "output_details": {
+      "total_vehicles": {
+        "type": "integer",
+        "description": "Total number of vehicles in fleet"
+      },
+      "active_vehicles": {
+        "type": "integer",
+        "description": "Number of currently active vehicles"
+      },
+      "vehicles_in_transit": {
+        "type": "integer",
+        "description": "Number of vehicles currently moving"
+      },
+      "idle_vehicles": {
+        "type": "integer",
+        "description": "Number of idle or parked vehicles"
+      },
+      "active_alerts": {
+        "type": "integer",
+        "description": "Total number of unresolved alerts"
+      },
+      "fuel_efficiency": {
+        "type": "number",
+        "description": "Average fleet fuel efficiency in km/L"
+      },
+      "maintenance_due": {
+        "type": "integer",
+        "description": "Number of vehicles requiring maintenance"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Location History Analyzer",
+    "tool_description": "Analyzes historical location data to identify patterns, optimize routes, detect anomalies, and generate insights for fleet operations improvement.",
+    "parameters": {
+      "vehicle_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of vehicle IDs to analyze",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Analysis start date in YYYY-MM-DD format"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "Analysis end date in YYYY-MM-DD format"
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of analysis: route_patterns, stop_analysis, efficiency_metrics, or anomaly_detection"
+      },
+      "aggregation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Data aggregation: hourly, daily, or weekly",
+        "default": "daily"
+      },
+      "minimum_distance": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum trip distance to include in analysis (km)",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Invalid vehicle_ids: One or more vehicle IDs do not exist or have insufficient location history.",
+      "Invalid date range: Start date must be before end date and within available data range.",
+      "Invalid analysis_type: Use one of [route_patterns, stop_analysis, efficiency_metrics, anomaly_detection].",
+      "

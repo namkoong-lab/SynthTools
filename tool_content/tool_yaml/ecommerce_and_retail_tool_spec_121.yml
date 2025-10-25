@@ -1,0 +1,881 @@
+field_name: ecommerce_and_retail
+subfield: Return and Refund Processing
+task: Manage return inventory and determine restocking decisions
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves managing complex inventory flows with multiple interdependent decisions around product condition assessment, restocking eligibility, pricing adjustments, and coordination across warehouse operations. The high risk of financial impact from incorrect decisions and the need for real-time inventory tracking make this a **hard** difficulty task.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'm targeting 17 tools within the 15-20 range to handle the comprehensive workflow from return receipt through final disposition decisions.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  - **Return Item Scanner** → produces item identifications
+  - **Product Condition Assessor** → consumes item data, produces condition reports
+  - **Inventory Level Checker** → produces current stock data
+  - **Return Policy Validator** → consumes return data, produces policy compliance status
+  - **Product Quality Inspector** → consumes item details, produces quality assessments
+  - **Restocking Eligibility Analyzer** → consumes condition/policy data, produces eligibility decisions
+  - **Pricing Impact Calculator** → consumes condition data, produces pricing recommendations
+  - **Warehouse Location Finder** → produces optimal storage locations
+  - **Vendor Return Coordinator** → manages supplier returns
+  - **Refurbishment Cost Estimator** → produces repair cost projections
+  - **Market Demand Predictor** → produces demand forecasts
+  - **Liquidation Value Assessor** → produces liquidation estimates
+  - **Inventory Update Manager** → consumes all decisions, updates inventory systems
+  - **Return Analytics Tracker** → produces performance metrics
+  - **Customer Communication Generator** → produces customer notifications
+  - **Disposition Decision Engine** → consumes multiple inputs, produces final decisions
+  - **Return Processing Reporter** → produces comprehensive reports
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Return Processing**: Return Item Scanner → Product Condition Assessor → Restocking Eligibility Analyzer → Inventory Update Manager
+  2. **Quick Quality Check**: Product Quality Inspector → Return Policy Validator → Customer Communication Generator
+
+  **Medium Plans:**
+  1. **Standard Return Workflow**: Return Item Scanner → Product Condition Assessor → Return Policy Validator → Restocking Eligibility Analyzer → Pricing Impact Calculator → Warehouse Location Finder → Inventory Update Manager
+  2. **Vendor Return Process**: Product Condition Assessor → Vendor Return Coordinator → Return Analytics Tracker → Inventory Update Manager
+
+  **Complex Plans:**
+  1. **Complete Return Analysis**: Return Item Scanner → Product Condition Assessor → Product Quality Inspector → Return Policy Validator → Market Demand Predictor → Refurbishment Cost Estimator → Liquidation Value Assessor → Disposition Decision Engine → Inventory Update Manager → Return Processing Reporter
+  2. **Strategic Restocking Decision**: Inventory Level Checker → Product Condition Assessor → Market Demand Predictor → Pricing Impact Calculator → Refurbishment Cost Estimator → Disposition Decision Engine → Warehouse Location Finder → Customer Communication Generator → Return Analytics Tracker
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Return Item Scanner",
+    "tool_description": "Scans and identifies returned items, extracting product information and return details for processing.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Barcode or SKU of the returned item"
+      },
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for this return transaction"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier associated with the return"
+      }
+    },
+    "error_messages": [
+      "Invalid barcode format: Ensure barcode follows standard UPC/EAN format.",
+      "Return ID not found: Verify the return ID exists in the system.",
+      "Customer ID mismatch: Customer ID does not match the return record."
+    ],
+    "usage": "Scan the item_barcode and provide return_id and customer_id to identify and log the returned product for further processing.",
+    "output_details": {
+      "product_name": {
+        "type": "string",
+        "description": "Name of the returned product"
+      },
+      "product_category": {
+        "type": "string",
+        "description": "Category classification of the product"
+      },
+      "original_price": {
+        "type": "number",
+        "description": "Original selling price of the item"
+      },
+      "return_date": {
+        "type": "string",
+        "description": "Date when the return was processed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Condition Assessor",
+    "tool_description": "Evaluates the physical condition of returned items and assigns condition grades for restocking decisions.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Barcode of the item being assessed"
+      },
+      "visual_damage_score": {
+        "type": "integer",
+        "required": true,
+        "description": "Visual damage assessment score from 1-10 (1=perfect, 10=severely damaged)"
+      },
+      "functional_test_result": {
+        "type": "string",
+        "required": true,
+        "description": "Result of functionality testing: working, partially_working, not_working"
+      },
+      "packaging_condition": {
+        "type": "string",
+        "required": true,
+        "description": "Condition of original packaging: original, damaged, missing"
+      },
+      "accessories_present": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether all original accessories are included"
+      },
+      "hygiene_category": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Hygiene classification: personal_care, food_related, standard"
+      }
+    },
+    "error_messages": [
+      "Invalid damage score: Visual damage score must be between 1-10.",
+      "Invalid functional test result: Use working, partially_working, or not_working.",
+      "Invalid packaging condition: Use original, damaged, or missing.",
+      "Invalid hygiene category: Use personal_care, food_related, or standard."
+    ],
+    "usage": "Assess the returned item by examining visual damage, testing functionality, checking packaging condition, verifying accessories, and noting hygiene classification to determine overall condition grade.",
+    "output_details": {
+      "condition_grade": {
+        "type": "string",
+        "description": "Overall condition rating: new, like_new, good, fair, poor"
+      },
+      "restockable": {
+        "type": "boolean",
+        "description": "Whether item meets basic restocking criteria"
+      },
+      "assessment_notes": {
+        "type": "string",
+        "description": "Detailed notes about the item's condition"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Suggested next step: restock, refurbish, liquidate, dispose"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Level Checker",
+    "tool_description": "Checks current inventory levels and stock velocity to inform restocking decisions.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Product barcode to check inventory for"
+      },
+      "warehouse_locations": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific warehouse locations to check"
+      }
+    },
+    "error_messages": [
+      "Product not found: Barcode does not exist in inventory system.",
+      "Invalid warehouse location: One or more warehouse codes are not recognized.",
+      "Inventory system unavailable: Unable to connect to inventory database."
+    ],
+    "usage": "Provide item_barcode to check current stock levels across all warehouses, or specify warehouse_locations for targeted inventory checking.",
+    "output_details": {
+      "current_stock": {
+        "type": "integer",
+        "description": "Total current inventory count"
+      },
+      "stock_velocity": {
+        "type": "number",
+        "description": "Average daily sales rate"
+      },
+      "days_of_inventory": {
+        "type": "integer",
+        "description": "Days until stock depletion at current sales rate"
+      },
+      "reorder_threshold": {
+        "type": "integer",
+        "description": "Minimum stock level before reordering"
+      },
+      "stock_status": {
+        "type": "string",
+        "description": "Current stock status: overstocked, normal, low, out_of_stock"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Policy Validator",
+    "tool_description": "Validates returns against company policies and determines eligibility for different processing options.",
+    "parameters": {
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique return transaction identifier"
+      },
+      "purchase_date": {
+        "type": "string",
+        "required": true,
+        "description": "Original purchase date",
+        "format": "date-time"
+      },
+      "return_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of return request",
+        "format": "date-time"
+      },
+      "return_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's reason for return"
+      },
+      "product_category": {
+        "type": "string",
+        "required": true,
+        "description": "Product category for policy lookup"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Customer loyalty tier: premium, standard, basic"
+      },
+      "receipt_provided": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether customer provided valid receipt"
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Dates must be in ISO 8601 format.",
+      "Return period exceeded: Item returned outside allowed return window.",
+      "Invalid customer tier: Use premium, standard, or basic.",
+      "Policy not found: No return policy exists for this product category.",
+      "Missing required documentation: Receipt or proof of purchase required."
+    ],
+    "usage": "Validate return eligibility by checking return timeframes, customer tier benefits, receipt requirements, and category-specific policies.",
+    "output_details": {
+      "policy_compliant": {
+        "type": "boolean",
+        "description": "Whether return meets policy requirements"
+      },
+      "return_window_days": {
+        "type": "integer",
+        "description": "Allowed return period in days"
+      },
+      "days_since_purchase": {
+        "type": "integer",
+        "description": "Number of days between purchase and return"
+      },
+      "eligible_for_full_refund": {
+        "type": "boolean",
+        "description": "Whether customer qualifies for full refund"
+      },
+      "policy_violations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of any policy violations found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Quality Inspector",
+    "tool_description": "Performs detailed quality inspection of returned items to determine safety and resale eligibility.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for inspection"
+      },
+      "safety_critical": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether product has safety implications"
+      },
+      "inspection_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of inspection needed: basic, detailed, certified"
+      },
+      "defect_codes": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of observed defect codes"
+      },
+      "inspector_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of quality inspector performing assessment"
+      }
+    },
+    "error_messages": [
+      "Invalid inspection type: Use basic, detailed, or certified.",
+      "Unauthorized inspector: Inspector ID not found in system.",
+      "Invalid defect code: One or more defect codes not recognized.",
+      "Safety inspection required: Safety-critical items require certified inspection."
+    ],
+    "usage": "Conduct quality inspection by specifying inspection type, documenting any defects, and ensuring proper inspector authorization for safety-critical items.",
+    "output_details": {
+      "inspection_passed": {
+        "type": "boolean",
+        "description": "Whether item passed quality inspection"
+      },
+      "quality_score": {
+        "type": "integer",
+        "description": "Overall quality score from 1-100"
+      },
+      "safety_approved": {
+        "type": "boolean",
+        "description": "Whether item meets safety standards"
+      },
+      "defects_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of identified defects"
+      },
+      "certification_required": {
+        "type": "boolean",
+        "description": "Whether item needs additional certification before resale"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Restocking Eligibility Analyzer",
+    "tool_description": "Analyzes multiple factors to determine if returned items should be restocked for resale.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for analysis"
+      },
+      "condition_grade": {
+        "type": "string",
+        "required": true,
+        "description": "Item condition: new, like_new, good, fair, poor"
+      },
+      "quality_score": {
+        "type": "integer",
+        "required": true,
+        "description": "Quality inspection score 1-100"
+      },
+      "policy_compliant": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether return meets policy requirements"
+      },
+      "current_stock_level": {
+        "type": "integer",
+        "required": true,
+        "description": "Current inventory count for this item"
+      },
+      "market_demand": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Market demand level: high, medium, low"
+      }
+    },
+    "error_messages": [
+      "Invalid condition grade: Use new, like_new, good, fair, or poor.",
+      "Invalid quality score: Score must be between 1-100.",
+      "Invalid demand level: Use high, medium, or low.",
+      "Negative stock level: Current stock level cannot be negative."
+    ],
+    "usage": "Analyze restocking eligibility by combining condition assessment, quality scores, policy compliance, and market factors to make informed restocking decisions.",
+    "output_details": {
+      "restock_recommended": {
+        "type": "boolean",
+        "description": "Whether item should be restocked"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence in recommendation (0-1)"
+      },
+      "limiting_factors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Factors preventing restocking if applicable"
+      },
+      "alternative_action": {
+        "type": "string",
+        "description": "Suggested alternative if not restocking"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pricing Impact Calculator",
+    "tool_description": "Calculates pricing adjustments for returned items based on condition and market factors.",
+    "parameters": {
+      "original_price": {
+        "type": "number",
+        "required": true,
+        "description": "Original retail price of the item"
+      },
+      "condition_grade": {
+        "type": "string",
+        "required": true,
+        "description": "Assessed condition: new, like_new, good, fair, poor"
+      },
+      "product_category": {
+        "type": "string",
+        "required": true,
+        "description": "Product category for category-specific pricing rules"
+      },
+      "market_position": {
+        "type": "string",
+        "required": false,
+        "default": "competitive",
+        "description": "Market positioning strategy: premium, competitive, discount"
+      },
+      "brand_tier": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Brand tier: luxury, premium, standard, economy"
+      }
+    },
+    "error_messages": [
+      "Invalid original price: Price must be greater than 0.",
+      "Invalid condition grade: Use new, like_new, good, fair, or poor.",
+      "Invalid market position: Use premium, competitive, or discount.",
+      "Invalid brand tier: Use luxury, premium, standard, or economy.",
+      "Category not found: Product category not recognized in pricing system."
+    ],
+    "usage": "Calculate appropriate resale pricing by considering item condition, original price, category rules, and market positioning strategy.",
+    "output_details": {
+      "recommended_price": {
+        "type": "number",
+        "description": "Suggested resale price"
+      },
+      "discount_percentage": {
+        "type": "number",
+        "description": "Percentage discount from original price"
+      },
+      "price_confidence": {
+        "type": "number",
+        "description": "Confidence in pricing recommendation (0-1)"
+      },
+      "minimum_acceptable_price": {
+        "type": "number",
+        "description": "Lowest price that maintains profitability"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Warehouse Location Finder",
+    "tool_description": "Determines optimal warehouse locations for storing restocked returned items.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for location assignment"
+      },
+      "condition_grade": {
+        "type": "string",
+        "required": true,
+        "description": "Item condition affecting storage requirements"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of units to be stored"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Storage priority: urgent, high, standard, low"
+      }
+    },
+    "error_messages": [
+      "Invalid quantity: Quantity must be greater than 0.",
+      "Invalid condition grade: Use new, like_new, good, fair, or poor.",
+      "Invalid priority level: Use urgent, high, standard, or low.",
+      "No available space: Insufficient warehouse capacity for requested quantity."
+    ],
+    "usage": "Find optimal storage locations by considering item characteristics, quantity requirements, and storage priorities across available warehouse facilities.",
+    "output_details": {
+      "primary_location": {
+        "type": "string",
+        "description": "Primary warehouse location code"
+      },
+      "storage_zone": {
+        "type": "string",
+        "description": "Specific zone within warehouse"
+      },
+      "capacity_utilization": {
+        "type": "number",
+        "description": "Percentage of location capacity used"
+      },
+      "estimated_retrieval_time": {
+        "type": "integer",
+        "description": "Expected time to retrieve item in minutes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Vendor Return Coordinator",
+    "tool_description": "Manages the process of returning defective items back to suppliers and tracks return status.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for vendor return"
+      },
+      "vendor_id": {
+        "type": "string",
+        "required": true,
+        "description": "Supplier vendor identification code"
+      },
+      "defect_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for returning to vendor"
+      },
+      "return_authorization": {
+        "type": "string",
+        "required": true,
+        "description": "Vendor-provided return authorization number"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of units being returned to vendor"
+      },
+      "warranty_claim": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether this is a warranty claim return"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Processing urgency: critical, high, standard, low"
+      },
+      "expected_credit_amount": {
+        "type": "number",
+        "required": false,
+        "default": "None",
+        "description": "Expected credit value from vendor"
+      },
+      "shipping_method": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Shipping method: overnight, expedited, standard, ground"
+      },
+      "photo_documentation": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether defect photos are included"
+      },
+      "batch_lot_number": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Manufacturing batch or lot number if applicable"
+      }
+    },
+    "error_messages": [
+      "Vendor not found: Vendor ID does not exist in supplier database.",
+      "Invalid return authorization: Authorization number format is incorrect or expired.",
+      "Invalid quantity: Quantity must be greater than 0.",
+      "Invalid urgency level: Use critical, high, standard, or low.",
+      "Invalid shipping method: Use overnight, expedited, standard, or ground.",
+      "Credit amount exceeds original cost: Expected credit cannot exceed original purchase cost.",
+      "Missing required documentation: Critical and high urgency returns require photo documentation."
+    ],
+    "usage": "Coordinate vendor returns by providing item details, vendor information, authorization numbers, and processing preferences to track return shipments and expected credits.",
+    "output_details": {
+      "tracking_number": {
+        "type": "string",
+        "description": "Shipping tracking number for vendor return"
+      },
+      "return_status": {
+        "type": "string",
+        "description": "Current status of vendor return process"
+      },
+      "estimated_credit_date": {
+        "type": "string",
+        "description": "Expected date for vendor credit processing"
+      },
+      "shipping_cost": {
+        "type": "number",
+        "description": "Cost of shipping return to vendor"
+      },
+      "case_reference": {
+        "type": "string",
+        "description": "Vendor case reference number"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Refurbishment Cost Estimator",
+    "tool_description": "Estimates costs and feasibility of refurbishing returned items for resale.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for refurbishment analysis"
+      },
+      "current_condition": {
+        "type": "string",
+        "required": true,
+        "description": "Current item condition: good, fair, poor"
+      },
+      "defect_types": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "List of defects requiring repair"
+      },
+      "target_condition": {
+        "type": "string",
+        "required": false,
+        "default": "like_new",
+        "description": "Desired condition after refurbishment: new, like_new"
+      }
+    },
+    "error_messages": [
+      "Invalid current condition: Use good, fair, or poor.",
+      "Invalid target condition: Use new or like_new.",
+      "Empty defect list: At least one defect type must be specified.",
+      "Unrecognized defect type: One or more defects not in repair database.",
+      "Item not refurbishable: Product type cannot be refurbished."
+    ],
+    "usage": "Estimate refurbishment costs by analyzing current condition, identifying required repairs, and calculating labor and parts costs to achieve target condition.",
+    "output_details": {
+      "total_refurbishment_cost": {
+        "type": "number",
+        "description": "Total estimated cost to refurbish item"
+      },
+      "labor_cost": {
+        "type": "number",
+        "description": "Estimated labor costs"
+      },
+      "parts_cost": {
+        "type": "number",
+        "description": "Estimated replacement parts costs"
+      },
+      "refurbishment_time_hours": {
+        "type": "integer",
+        "description": "Expected time to complete refurbishment"
+      },
+      "cost_effective": {
+        "type": "boolean",
+        "description": "Whether refurbishment is financially viable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Market Demand Predictor",
+    "tool_description": "Predicts market demand for returned items to inform restocking and pricing decisions.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for demand analysis"
+      },
+      "analysis_period_days": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Number of days to predict demand for"
+      },
+      "seasonality_factor": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include seasonal demand patterns"
+      }
+    },
+    "error_messages": [
+      "Product not found: Item barcode not recognized in sales database.",
+      "Invalid analysis period: Period must be between 7-365 days.",
+      "Insufficient historical data: Not enough sales history for accurate prediction.",
+      "Seasonal data unavailable: Cannot apply seasonality without sufficient yearly data."
+    ],
+    "usage": "Predict future demand by analyzing historical sales patterns, seasonal trends, and market conditions for the specified time period.",
+    "output_details": {
+      "predicted_demand": {
+        "type": "integer",
+        "description": "Forecasted demand quantity for analysis period"
+      },
+      "demand_trend": {
+        "type": "string",
+        "description": "Demand trajectory: increasing, stable, decreasing"
+      },
+      "confidence_level": {
+        "type": "number",
+        "description": "Prediction confidence score (0-1)"
+      },
+      "seasonal_impact": {
+        "type": "number",
+        "description": "Seasonal adjustment factor applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Liquidation Value Assessor",
+    "tool_description": "Assesses potential liquidation value for items that cannot be restocked through normal channels.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for liquidation assessment"
+      },
+      "condition_grade": {
+        "type": "string",
+        "required": true,
+        "description": "Item condition: new, like_new, good, fair, poor"
+      },
+      "original_cost": {
+        "type": "number",
+        "required": true,
+        "description": "Original cost basis of the item"
+      },
+      "liquidation_channel": {
+        "type": "string",
+        "required": false,
+        "default": "mixed",
+        "description": "Liquidation method: auction, bulk_sale, parts, mixed"
+      }
+    },
+    "error_messages": [
+      "Invalid condition grade: Use new, like_new, good, fair, or poor.",
+      "Invalid original cost: Cost must be greater than 0.",
+      "Invalid liquidation channel: Use auction, bulk_sale, parts, or mixed.",
+      "No liquidation market: No viable liquidation channels for this product type."
+    ],
+    "usage": "Assess liquidation value by considering item condition, market conditions, and available liquidation channels to maximize recovery value.",
+    "output_details": {
+      "estimated_liquidation_value": {
+        "type": "number",
+        "description": "Expected value from liquidation"
+      },
+      "recovery_percentage": {
+        "type": "number",
+        "description": "Percentage of original cost recoverable"
+      },
+      "recommended_channel": {
+        "type": "string",
+        "description": "Best liquidation channel for this item"
+      },
+      "time_to_liquidate_days": {
+        "type": "integer",
+        "description": "Expected time to complete liquidation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Update Manager",
+    "tool_description": "Updates inventory systems with return processing decisions and stock movements.",
+    "parameters": {
+      "item_barcode": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for inventory update"
+      },
+      "disposition_action": {
+        "type": "string",
+        "required": true,
+        "description": "Final action taken: restock, refurbish, liquidate, dispose, vendor_return"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of units affected by this action"
+      },
+      "location_code": {
+        "type": "string",
+        "required": true,
+        "description": "Warehouse location for inventory movement"
+      },
+      "condition_grade": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Item condition if being restocked"
+      },
+      "adjusted_price": {
+        "type": "number",
+        "required": false,
+        "default": "None",
+        "description": "New selling price if different from original"
+      }
+    },
+    "error_messages": [
+      "Invalid disposition action: Use restock, refurbish, liquidate, dispose, or vendor_return.",
+      "Invalid quantity: Quantity must be greater than 0.",
+      "Location not found: Warehouse location code not recognized.",
+      "Condition required for restock: Must specify condition_grade when restocking.",
+      "Invalid adjusted price: Price must be greater than 0 if specified.",
+      "Inventory system error: Unable to update inventory database."
+    ],
+    "usage": "Update inventory records by specifying the final disposition, quantities, locations, and any pricing changes resulting from return processing decisions.",
+    "output_details": {
+      "update_successful": {
+        "type": "boolean",
+        "description": "Whether inventory update completed successfully"
+      },
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique identifier for this inventory transaction"
+      },
+      "updated_stock_level": {
+        "type": "integer",
+        "description": "New inventory level after update"
+      },
+      "timestamp": {
+        "type": "string

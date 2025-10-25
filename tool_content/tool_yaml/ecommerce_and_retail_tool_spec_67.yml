@@ -1,0 +1,838 @@
+field_name: ecommerce_and_retail
+subfield: Shopping Cart and Checkout Systems
+task: Apply and validate discount codes, coupons, and promotional offers
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves multiple interconnected validation rules (discount eligibility, expiration, usage limits), requires coordination between inventory, user accounts, and promotion systems, and has moderate risk since incorrect discount application directly impacts revenue and customer satisfaction.
+
+  **STEP 2 — Set a tool budget**
+
+  Based on medium complexity, I'm targeting 12 tools to handle the various aspects of discount validation, application, and management workflows.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  1. **Discount Code Validator** - consumes: code, user_id → produces: validation status, discount details
+  2. **Coupon Eligibility Checker** - consumes: coupon_id, cart_items, user_profile → produces: eligibility status, restrictions
+  3. **Promotional Offer Matcher** - consumes: cart_contents, user_segments → produces: applicable promotions
+  4. **Usage Limit Tracker** - consumes: discount_id, user_id → produces: usage counts, remaining uses
+  5. **Cart Discount Calculator** - consumes: cart_items, discount_rules → produces: discount amounts, line-item breakdowns
+  6. **Stacking Rules Engine** - consumes: multiple discounts → produces: valid combinations, conflicts
+  7. **Minimum Order Validator** - consumes: cart_total, discount_requirements → produces: validation status
+  8. **Product Category Matcher** - consumes: cart_items, category_restrictions → produces: eligible items
+  9. **Geographic Restriction Checker** - consumes: shipping_address, discount_geography → produces: location eligibility
+  10. **Expiration Date Validator** - consumes: discount_codes, current_date → produces: active/expired status
+  11. **Discount Application Engine** - consumes: validated_discounts, cart → produces: updated_cart, applied_discounts
+  12. **Promotional Analytics Tracker** - consumes: applied_discounts, user_behavior → produces: usage_metrics, performance_data
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  - Single discount validation: Discount Code Validator → Usage Limit Tracker → Expiration Date Validator → Cart Discount Calculator
+  - Basic coupon check: Coupon Eligibility Checker → Minimum Order Validator → Discount Application Engine
+
+  **Medium plans:**
+  - Geographic promotion flow: Promotional Offer Matcher → Geographic Restriction Checker → Product Category Matcher → Cart Discount Calculator → Discount Application Engine
+  - Multi-discount validation: Discount Code Validator → Coupon Eligibility Checker → Stacking Rules Engine → Cart Discount Calculator → Discount Application Engine
+
+  **Complex plans:**
+  - Full promotional campaign: Promotional Offer Matcher → Product Category Matcher → Geographic Restriction Checker → Usage Limit Tracker → Stacking Rules Engine → Cart Discount Calculator → Discount Application Engine → Promotional Analytics Tracker
+  - Comprehensive checkout validation: All validation tools (Discount Code Validator, Coupon Eligibility Checker, Usage Limit Tracker, Expiration Date Validator, Minimum Order Validator, Geographic Restriction Checker) → Stacking Rules Engine → Cart Discount Calculator → Discount Application Engine → Promotional Analytics Tracker
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Discount Code Validator",
+    "tool_description": "Validates discount codes by checking their existence, format, and basic eligibility criteria against the promotional database.",
+    "parameters": {
+      "discount_code": {
+        "type": "string",
+        "required": true,
+        "description": "The discount code to validate"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user attempting to use the code"
+      },
+      "store_id": {
+        "type": "string",
+        "required": false,
+        "description": "Store identifier for multi-store validation",
+        "default": "default"
+      }
+    },
+    "error_messages": [
+      "Invalid discount code format: Discount codes must be alphanumeric and 3-20 characters long.",
+      "Discount code not found: The provided code does not exist in the promotional database.",
+      "User ID required: A valid user identifier must be provided for validation."
+    ],
+    "usage": "Provide the discount_code and user_id to check basic validity. Optionally specify store_id for multi-store environments. Returns validation status and discount details if valid.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the discount code is valid"
+      },
+      "discount_id": {
+        "type": "string",
+        "description": "Internal identifier of the discount"
+      },
+      "discount_type": {
+        "type": "string",
+        "description": "Type of discount (percentage, fixed_amount, free_shipping)"
+      },
+      "discount_value": {
+        "type": "number",
+        "description": "Value of the discount (percentage or amount)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Coupon Eligibility Checker",
+    "tool_description": "Determines if a user and their cart contents are eligible for a specific coupon based on purchase history, user segments, and cart requirements.",
+    "parameters": {
+      "coupon_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the coupon to check"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user"
+      },
+      "cart_items": {
+        "type": "array",
+        "required": true,
+        "description": "List of product IDs in the cart",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "cart_subtotal": {
+        "type": "number",
+        "required": true,
+        "description": "Current cart subtotal amount"
+      },
+      "user_segment": {
+        "type": "string",
+        "required": false,
+        "description": "User segment classification (new, loyal, vip)",
+        "default": "standard"
+      },
+      "previous_purchases": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of previous purchases by the user",
+        "default": 0
+      },
+      "account_age_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Age of user account in days",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid coupon ID: The provided coupon identifier does not exist.",
+      "Empty cart: At least one item must be in the cart for coupon validation.",
+      "Invalid cart subtotal: Cart subtotal must be a positive number.",
+      "Invalid user segment: User segment must be one of: new, loyal, vip, standard.",
+      "Invalid account age: Account age must be a non-negative integer."
+    ],
+    "usage": "Provide coupon_id, user_id, cart_items, and cart_subtotal. Optionally include user_segment, previous_purchases, and account_age_days for detailed eligibility checking.",
+    "output_details": {
+      "is_eligible": {
+        "type": "boolean",
+        "description": "Whether the user is eligible for the coupon"
+      },
+      "eligibility_reasons": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of reasons for eligibility or ineligibility"
+      },
+      "required_conditions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of conditions that must be met for eligibility"
+      },
+      "coupon_details": {
+        "type": "string",
+        "description": "Description of the coupon benefits"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Promotional Offer Matcher",
+    "tool_description": "Identifies and matches applicable promotional offers based on cart contents, user profile, and current promotional campaigns.",
+    "parameters": {
+      "cart_items": {
+        "type": "array",
+        "required": true,
+        "description": "List of product IDs in the cart",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "user_segments": {
+        "type": "array",
+        "required": true,
+        "description": "List of user segments the customer belongs to",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "cart_total": {
+        "type": "number",
+        "required": true,
+        "description": "Total cart value before discounts"
+      },
+      "include_expired": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include expired promotions in matching",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Empty cart items: At least one product must be provided for promotion matching.",
+      "Invalid user segments: At least one valid user segment must be provided.",
+      "Invalid cart total: Cart total must be a positive number.",
+      "Promotion matching failed: Unable to process promotional offers due to system error."
+    ],
+    "usage": "Provide cart_items, user_segments, and cart_total to find applicable promotions. Set include_expired to true to include expired promotions in results.",
+    "output_details": {
+      "matched_promotions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of promotion IDs that match the criteria"
+      },
+      "promotion_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Types of matched promotions"
+      },
+      "estimated_savings": {
+        "type": "number",
+        "description": "Estimated total savings from all matched promotions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Usage Limit Tracker",
+    "tool_description": "Tracks and validates usage limits for discounts, including per-user limits, total usage caps, and time-based restrictions.",
+    "parameters": {
+      "discount_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the discount to track"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user"
+      }
+    },
+    "error_messages": [
+      "Invalid discount ID: The provided discount identifier does not exist.",
+      "Invalid user ID: A valid user identifier must be provided.",
+      "Usage tracking unavailable: Unable to retrieve usage information due to system error."
+    ],
+    "usage": "Provide discount_id and user_id to check current usage against limits. Returns usage statistics and remaining availability.",
+    "output_details": {
+      "user_usage_count": {
+        "type": "integer",
+        "description": "Number of times user has used this discount"
+      },
+      "user_usage_limit": {
+        "type": "integer",
+        "description": "Maximum uses allowed per user"
+      },
+      "total_usage_count": {
+        "type": "integer",
+        "description": "Total times this discount has been used"
+      },
+      "total_usage_limit": {
+        "type": "integer",
+        "description": "Maximum total uses allowed"
+      },
+      "can_use": {
+        "type": "boolean",
+        "description": "Whether the user can still use this discount"
+      },
+      "remaining_uses": {
+        "type": "integer",
+        "description": "Number of remaining uses for this user"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cart Discount Calculator",
+    "tool_description": "Calculates the exact discount amounts for cart items based on discount rules, including line-item breakdowns and tax implications.",
+    "parameters": {
+      "cart_items": {
+        "type": "array",
+        "required": true,
+        "description": "List of product IDs in the cart",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "item_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Prices corresponding to each cart item",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "item_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities corresponding to each cart item",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "discount_rules": {
+        "type": "array",
+        "required": true,
+        "description": "List of discount rule IDs to apply",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "tax_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Tax rate as decimal (e.g., 0.08 for 8%)",
+        "default": 0.0
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Currency code for calculations",
+        "default": "USD"
+      },
+      "apply_tax_after_discount": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to calculate tax after applying discount",
+        "default": true
+      },
+      "round_to_cents": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to round calculations to nearest cent",
+        "default": true
+      },
+      "max_discount_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum discount percentage allowed (0-100)",
+        "default": 100.0
+      },
+      "min_order_total": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum order total required for discount",
+        "default": 0.0
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: cart_items, item_prices, and item_quantities must have the same length.",
+      "Invalid price values: All item prices must be positive numbers.",
+      "Invalid quantity values: All item quantities must be positive integers.",
+      "Invalid tax rate: Tax rate must be between 0 and 1.",
+      "Invalid discount rules: All discount rule IDs must be valid.",
+      "Invalid max discount percentage: Must be between 0 and 100.",
+      "Currency not supported: Provided currency code is not supported."
+    ],
+    "usage": "Provide cart_items, item_prices, item_quantities, and discount_rules. Optionally set tax_rate, currency, and calculation preferences. Returns detailed discount calculations.",
+    "output_details": {
+      "total_discount": {
+        "type": "number",
+        "description": "Total discount amount applied"
+      },
+      "line_item_discounts": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Discount amounts for each line item"
+      },
+      "original_total": {
+        "type": "number",
+        "description": "Original cart total before discounts"
+      },
+      "discounted_total": {
+        "type": "number",
+        "description": "Cart total after applying discounts"
+      },
+      "tax_amount": {
+        "type": "number",
+        "description": "Tax amount calculated"
+      },
+      "final_total": {
+        "type": "number",
+        "description": "Final total including tax"
+      },
+      "savings_percentage": {
+        "type": "number",
+        "description": "Percentage savings from discounts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stacking Rules Engine",
+    "tool_description": "Evaluates and enforces discount stacking rules to determine which combinations of discounts can be applied together.",
+    "parameters": {
+      "discount_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of discount IDs to evaluate for stacking",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user"
+      },
+      "cart_total": {
+        "type": "number",
+        "required": true,
+        "description": "Current cart total before discounts"
+      }
+    },
+    "error_messages": [
+      "Insufficient discounts: At least 2 discounts are required for stacking evaluation.",
+      "Invalid discount IDs: All provided discount IDs must exist in the system.",
+      "Invalid user ID: A valid user identifier must be provided.",
+      "Invalid cart total: Cart total must be a positive number.",
+      "Stacking evaluation failed: Unable to process stacking rules due to system error."
+    ],
+    "usage": "Provide an array of discount_ids, user_id, and cart_total to evaluate valid stacking combinations. Returns allowable combinations and conflicts.",
+    "output_details": {
+      "valid_combinations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Valid discount combinations that can be stacked"
+      },
+      "conflicting_discounts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Discounts that cannot be combined"
+      },
+      "recommended_combination": {
+        "type": "string",
+        "description": "Best combination for maximum savings"
+      },
+      "stacking_violations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Reasons why certain combinations are not allowed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Minimum Order Validator",
+    "tool_description": "Validates that cart totals meet minimum order requirements for specific discounts and promotional offers.",
+    "parameters": {
+      "cart_subtotal": {
+        "type": "number",
+        "required": true,
+        "description": "Current cart subtotal before discounts"
+      },
+      "discount_requirements": {
+        "type": "array",
+        "required": true,
+        "description": "List of discount IDs with minimum order requirements",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      }
+    },
+    "error_messages": [
+      "Invalid cart subtotal: Cart subtotal must be a positive number.",
+      "Invalid discount requirements: At least one valid discount ID must be provided.",
+      "Discount not found: One or more discount IDs do not exist in the system."
+    ],
+    "usage": "Provide cart_subtotal and discount_requirements to validate minimum order requirements. Returns validation status for each discount.",
+    "output_details": {
+      "overall_valid": {
+        "type": "boolean",
+        "description": "Whether all minimum order requirements are met"
+      },
+      "validation_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Validation status for each discount requirement"
+      },
+      "minimum_amounts_needed": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Additional amounts needed to meet each requirement"
+      },
+      "total_shortfall": {
+        "type": "number",
+        "description": "Total additional amount needed for all requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Category Matcher",
+    "tool_description": "Matches cart items against product category restrictions for category-specific discounts and promotions.",
+    "parameters": {
+      "cart_items": {
+        "type": "array",
+        "required": true,
+        "description": "List of product IDs in the cart",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "category_restrictions": {
+        "type": "array",
+        "required": true,
+        "description": "List of category restriction rules",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "discount_id": {
+        "type": "string",
+        "required": true,
+        "description": "Discount ID to check category restrictions for"
+      }
+    },
+    "error_messages": [
+      "Empty cart: At least one product must be provided for category matching.",
+      "Invalid category restrictions: At least one valid category restriction must be provided.",
+      "Invalid discount ID: The provided discount identifier does not exist.",
+      "Product catalog unavailable: Unable to retrieve product category information."
+    ],
+    "usage": "Provide cart_items, category_restrictions, and discount_id to match eligible products. Returns which items qualify for category-restricted discounts.",
+    "output_details": {
+      "eligible_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that match category restrictions"
+      },
+      "ineligible_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that do not match restrictions"
+      },
+      "category_matches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Specific category matches for each eligible item"
+      },
+      "eligibility_percentage": {
+        "type": "number",
+        "description": "Percentage of cart items that are eligible"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Geographic Restriction Checker",
+    "tool_description": "Validates geographic eligibility for location-restricted discounts and promotions based on shipping or billing addresses.",
+    "parameters": {
+      "shipping_address": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping address or location code"
+      },
+      "discount_geography": {
+        "type": "array",
+        "required": true,
+        "description": "List of geographic restriction rules for discounts",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "billing_address": {
+        "type": "string",
+        "required": false,
+        "description": "Billing address for additional validation",
+        "default": null
+      },
+      "check_both_addresses": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate both shipping and billing addresses",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid shipping address: A valid shipping address must be provided.",
+      "Invalid geographic restrictions: At least one valid geographic rule must be provided.",
+      "Address validation failed: Unable to validate address format or location.",
+      "Geographic service unavailable: Location validation service is temporarily unavailable."
+    ],
+    "usage": "Provide shipping_address and discount_geography for location validation. Optionally include billing_address and set check_both_addresses for comprehensive validation.",
+    "output_details": {
+      "is_eligible": {
+        "type": "boolean",
+        "description": "Whether the location is eligible for the discounts"
+      },
+      "eligible_discounts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Discount IDs that are available in this location"
+      },
+      "restricted_discounts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Discount IDs that are not available in this location"
+      },
+      "location_details": {
+        "type": "string",
+        "description": "Parsed location information (country, state, region)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expiration Date Validator",
+    "tool_description": "Validates that discount codes and promotional offers have not expired and are currently active based on their time constraints.",
+    "parameters": {
+      "discount_codes": {
+        "type": "array",
+        "required": true,
+        "description": "List of discount codes to validate",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "current_date": {
+        "type": "string",
+        "required": true,
+        "description": "Current date and time for validation",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid discount codes: At least one valid discount code must be provided.",
+      "Invalid date format: Current date must be in ISO 8601 format.",
+      "Discount codes not found: One or more discount codes do not exist in the system."
+    ],
+    "usage": "Provide an array of discount_codes and the current_date to check expiration status. Returns detailed expiration information for each code.",
+    "output_details": {
+      "active_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Discount codes that are currently active"
+      },
+      "expired_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Discount codes that have expired"
+      },
+      "expiration_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Expiration dates for each discount code"
+      },
+      "days_until_expiration": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Days remaining until each code expires"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Discount Application Engine",
+    "tool_description": "Applies validated discounts to the shopping cart, updating item prices and calculating final totals with proper discount allocation.",
+    "parameters": {
+      "validated_discounts": {
+        "type": "array",
+        "required": true,
+        "description": "List of validated discount IDs to apply",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "cart_items": {
+        "type": "array",
+        "required": true,
+        "description": "List of product IDs in the cart",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "item_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Original prices for each cart item",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "item_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities for each cart item",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user"
+      },
+      "session_id": {
+        "type": "string",
+        "required": false,
+        "description": "Shopping session identifier for tracking",
+        "default": null
+      },
+      "apply_best_combination": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to automatically select the best discount combination",
+        "default": true
+      },
+      "preserve_order": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve the order of discount application",
+        "default": false
+      },
+      "include_tax_calculation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include tax calculations in the result",
+        "default": true
+      },
+      "tax_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Tax rate to apply (as decimal)",
+        "default": 0.0
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Currency code for the transaction",
+        "default": "USD"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: cart_items, item_prices, and item_quantities must have the same length.",
+      "Invalid discount IDs: All validated discount IDs must exist and be currently valid.",
+      "Invalid user ID: A valid user identifier must be provided.",
+      "Invalid price or quantity values: All prices must be positive numbers and quantities must be positive integers.",
+      "Application failed: Unable to apply discounts due to system constraints.",
+      "Invalid tax rate: Tax rate must be between 0 and 1.",
+      "Currency not supported: The specified currency is not supported."
+    ],
+    "usage": "Provide validated_discounts, cart_items, item_prices, item_quantities, and user_id to apply discounts. Configure application behavior with optional parameters. Returns updated cart with applied discounts.",
+    "output_details": {
+      "updated_cart_total": {
+        "type": "number",
+        "description": "Final cart total after all discounts applied"
+      },
+      "total_savings": {
+        "type": "number",
+        "description": "Total amount saved from all applied discounts"
+      },
+      "applied_discount_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Details of each applied discount"
+      },
+      "line_item_totals": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Final price for each line item after discounts"
+      },
+      "tax_amount": {
+        "type": "number",
+        "description": "Tax amount calculated on discounted total"
+      },
+      "final_total_with_tax": {
+        "type": "number",
+        "description": "Final total including tax"
+      },
+      "discount_breakdown": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Breakdown of how each discount was applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Promotional Analytics Tracker",
+    "tool_description": "Tracks and analyzes promotional campaign performance, discount usage patterns, and customer behavior metrics for business intelligence.",
+    "parameters": {
+      "applied_discounts": {
+        "type": "array",
+        "required": true,
+        "description": "List of discount IDs that were successfully applied",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "user_behavior": {
+        "type": "array",
+        "required": true,
+        "description": "User behavior indicators (browsed, added_to_cart, purchased, etc.)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "transaction_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total transaction amount after discounts"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the user"
+      },
+      "campaign_id": {
+        "type": "string",
+        "required": false,
+        "description": "Marketing campaign identifier if applicable",
+        "default": null
+      },
+      "session_id": {
+        "type": "string",
+        "required": false,

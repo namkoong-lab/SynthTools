@@ -1,0 +1,766 @@
+field_name: construction_and_civil_engineering
+subfield: structural_design_and_analysis
+task: Seismic and wind load assessment for building compliance
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to its high complexity across multiple dimensions: it requires extensive engineering calculations involving multiple load types, complex structural analysis, strict regulatory compliance across different jurisdictions, high risk of structural failure if errors occur, and substantial computational requirements for dynamic analysis and code verification.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** within the 15-20 range to cover the comprehensive workflow from site characterization through final compliance reporting.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Seismic Site Classifier** - Consumes: site data → Produces: site class parameters
+  2. **Ground Motion Selector** - Consumes: site class, location → Produces: design spectra
+  3. **Wind Speed Calculator** - Consumes: location, building data → Produces: wind speeds
+  4. **Seismic Force Calculator** - Consumes: building properties, ground motion → Produces: seismic forces
+  5. **Wind Pressure Calculator** - Consumes: wind speeds, building geometry → Produces: wind pressures
+  6. **Load Combinator** - Consumes: various loads → Produces: combined load cases
+  7. **Dynamic Analysis Runner** - Consumes: structural model, loads → Produces: dynamic response
+  8. **Modal Analyzer** - Consumes: structural properties → Produces: modal characteristics
+  9. **Drift Calculator** - Consumes: displacements, building height → Produces: drift ratios
+  10. **Base Shear Validator** - Consumes: forces, code requirements → Produces: validation results
+  11. **Code Compliance Checker** - Consumes: all analysis results → Produces: compliance status
+  12. **Load Path Tracer** - Consumes: structural model, loads → Produces: load paths
+  13. **Foundation Load Calculator** - Consumes: superstructure loads → Produces: foundation demands
+  14. **Irregularity Detector** - Consumes: building geometry, mass → Produces: irregularity flags
+  15. **P-Delta Analyzer** - Consumes: gravity loads, lateral displacements → Produces: P-delta effects
+  16. **Damping Estimator** - Consumes: structural properties → Produces: damping ratios
+  17. **Compliance Report Generator** - Consumes: all results → Produces: final report
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic wind assessment: Wind Speed Calculator → Wind Pressure Calculator → Code Compliance Checker
+  2. Site characterization: Seismic Site Classifier → Ground Motion Selector → validation
+
+  **Medium Plans:**
+  1. Seismic analysis workflow: Seismic Site Classifier → Ground Motion Selector → Seismic Force Calculator → Drift Calculator → Base Shear Validator
+  2. Combined load analysis: Seismic Force Calculator + Wind Pressure Calculator → Load Combinator → Dynamic Analysis Runner → Code Compliance Checker
+
+  **Complex Plans:**
+  1. Full seismic compliance: Seismic Site Classifier → Ground Motion Selector → Modal Analyzer → Damping Estimator → Dynamic Analysis Runner → Drift Calculator → P-Delta Analyzer → Base Shear Validator → Code Compliance Checker
+  2. Complete assessment workflow: All site/load tools → Load Combinator → Dynamic Analysis Runner → Modal Analyzer → Drift Calculator → Irregularity Detector → Foundation Load Calculator → Code Compliance Checker → Compliance Report Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Seismic Site Classifier",
+    "tool_description": "Determines seismic site class based on soil properties and geotechnical data according to building code requirements.",
+    "parameters": {
+      "soil_profile_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name identifier for the soil profile being analyzed"
+      },
+      "average_shear_wave_velocity": {
+        "type": "number",
+        "required": true,
+        "description": "Average shear wave velocity in the top 30m of soil (Vs30) in m/s, range 150-1500"
+      },
+      "standard_penetration_values": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": false,
+        "description": "N-values from standard penetration tests, if available",
+        "default": "None"
+      },
+      "undrained_shear_strength": {
+        "type": "number",
+        "required": false,
+        "description": "Average undrained shear strength in kPa for cohesive soils, range 10-200",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid shear wave velocity: Vs30 must be between 150-1500 m/s. Check geotechnical report data.",
+      "Insufficient soil data: Provide either Vs30, SPT N-values, or undrained shear strength. Obtain additional geotechnical testing if needed.",
+      "Inconsistent soil parameters: Verify that provided parameters are consistent with each other and site conditions."
+    ],
+    "usage": "Input soil profile name and primary soil parameter (Vs30 preferred). Additional parameters improve classification accuracy. Tool determines site class per ASCE 7 or equivalent code.",
+    "output_details": {
+      "site_class": {
+        "type": "string",
+        "description": "Assigned site class (A, B, C, D, E, or F)"
+      },
+      "classification_method": {
+        "type": "string",
+        "description": "Method used for classification (Vs30, SPT, or shear strength)"
+      },
+      "site_coefficients": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Site modification coefficients Fa and Fv"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ground Motion Selector",
+    "tool_description": "Selects appropriate ground motion parameters and design response spectra based on seismic hazard maps and site conditions.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Site latitude in decimal degrees, range -90 to 90"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Site longitude in decimal degrees, range -180 to 180"
+      },
+      "site_class": {
+        "type": "string",
+        "required": true,
+        "description": "Site class from soil classification (A, B, C, D, E, or F)"
+      },
+      "risk_category": {
+        "type": "string",
+        "required": true,
+        "description": "Building risk category (I, II, III, or IV)"
+      },
+      "design_code": {
+        "type": "string",
+        "required": false,
+        "description": "Design code standard (ASCE7, NBC, Eurocode8, etc.)",
+        "default": "ASCE7"
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be -90 to 90, longitude -180 to 180. Verify site location.",
+      "Invalid site class: Must be A, B, C, D, E, or F. Use Seismic Site Classifier tool first.",
+      "Invalid risk category: Must be I, II, III, or IV per building code occupancy classification.",
+      "Location outside design code jurisdiction: Specified code may not apply to this geographic location."
+    ],
+    "usage": "Provide site coordinates, site class from soil analysis, and building risk category. Tool retrieves seismic parameters from hazard maps and generates design response spectrum.",
+    "output_details": {
+      "mapped_ss": {
+        "type": "number",
+        "description": "Mapped short-period spectral acceleration parameter"
+      },
+      "mapped_s1": {
+        "type": "number",
+        "description": "Mapped 1-second spectral acceleration parameter"
+      },
+      "design_sds": {
+        "type": "number",
+        "description": "Design short-period spectral acceleration"
+      },
+      "design_sd1": {
+        "type": "number",
+        "description": "Design 1-second spectral acceleration"
+      },
+      "response_spectrum_periods": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Period values for design response spectrum"
+      },
+      "response_spectrum_accelerations": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Spectral acceleration values for design response spectrum"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Wind Speed Calculator",
+    "tool_description": "Determines design wind speeds and pressure coefficients based on location, terrain, and building characteristics.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Site latitude in decimal degrees"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Site longitude in decimal degrees"
+      },
+      "building_height": {
+        "type": "number",
+        "required": true,
+        "description": "Building height above ground in meters, range 3-300"
+      },
+      "terrain_category": {
+        "type": "string",
+        "required": true,
+        "description": "Terrain exposure category (A, B, C, or D)"
+      },
+      "building_width": {
+        "type": "number",
+        "required": true,
+        "description": "Building width perpendicular to wind in meters, range 5-200"
+      },
+      "building_depth": {
+        "type": "number",
+        "required": true,
+        "description": "Building depth parallel to wind in meters, range 5-200"
+      },
+      "risk_category": {
+        "type": "string",
+        "required": true,
+        "description": "Building risk category (I, II, III, or IV)"
+      },
+      "topographic_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Topographic factor for hills/escarpments, range 1.0-1.5",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Invalid building dimensions: Height must be 3-300m, width and depth must be 5-200m. Check architectural drawings.",
+      "Invalid terrain category: Must be A, B, C, or D. Assess surrounding terrain within 1.6km radius.",
+      "Invalid topographic factor: Must be 1.0-1.5. Use 1.0 for flat terrain or calculate per code provisions.",
+      "Location outside wind map coverage: Coordinates may be outside available wind speed database."
+    ],
+    "usage": "Input site coordinates, building dimensions, terrain exposure, and risk category. Tool retrieves basic wind speed from maps and calculates design wind speeds with all applicable factors.",
+    "output_details": {
+      "basic_wind_speed": {
+        "type": "number",
+        "description": "Basic wind speed from hazard maps in m/s"
+      },
+      "design_wind_speed": {
+        "type": "number",
+        "description": "Design wind speed including all factors in m/s"
+      },
+      "velocity_pressure": {
+        "type": "number",
+        "description": "Velocity pressure at building height in Pa"
+      },
+      "gust_factor": {
+        "type": "number",
+        "description": "Gust effect factor for dynamic response"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Seismic Force Calculator",
+    "tool_description": "Calculates seismic design forces using equivalent lateral force method or response spectrum analysis based on building properties and ground motion parameters.",
+    "parameters": {
+      "building_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Total seismic weight of building in kN, range 500-50000"
+      },
+      "fundamental_period": {
+        "type": "number",
+        "required": true,
+        "description": "Fundamental period of building in seconds, range 0.1-5.0"
+      },
+      "design_sds": {
+        "type": "number",
+        "required": true,
+        "description": "Design short-period spectral acceleration parameter"
+      },
+      "design_sd1": {
+        "type": "number",
+        "required": true,
+        "description": "Design 1-second spectral acceleration parameter"
+      },
+      "response_modification_factor": {
+        "type": "number",
+        "required": true,
+        "description": "Response modification factor (R) for structural system, range 1.0-8.0"
+      },
+      "importance_factor": {
+        "type": "number",
+        "required": true,
+        "description": "Seismic importance factor (I) based on risk category, range 1.0-1.5"
+      },
+      "system_overstrength": {
+        "type": "number",
+        "required": true,
+        "description": "System overstrength factor (Omega0), range 1.0-3.0"
+      },
+      "deflection_amplification": {
+        "type": "number",
+        "required": true,
+        "description": "Deflection amplification factor (Cd), range 1.0-7.0"
+      },
+      "floor_weights": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Weight of each floor level in kN, from bottom to top",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "floor_heights": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Height of each floor above base in meters",
+        "minItems": 1,
+        "maxItems": 50
+      }
+    },
+    "error_messages": [
+      "Inconsistent floor data: Number of floor weights must equal number of floor heights. Verify building model.",
+      "Invalid structural system parameters: Check R, Omega0, and Cd values against code tables for specified system.",
+      "Building weight out of range: Total weight should be 500-50000 kN. Verify load calculations.",
+      "Invalid period: Fundamental period must be 0.1-5.0 seconds. Check structural analysis or use code approximation.",
+      "Spectral parameters missing: Provide design SDS and SD1 from Ground Motion Selector tool."
+    ],
+    "usage": "Input building weight, period, spectral parameters from ground motion analysis, structural system factors from code tables, and floor-by-floor weight and height data. Tool calculates base shear and distributes forces to each level.",
+    "output_details": {
+      "base_shear": {
+        "type": "number",
+        "description": "Total design base shear in kN"
+      },
+      "floor_forces": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Lateral force at each floor level in kN"
+      },
+      "design_cs": {
+        "type": "number",
+        "description": "Seismic response coefficient Cs"
+      },
+      "period_limits": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Upper and lower period limits for structural system"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Wind Pressure Calculator",
+    "tool_description": "Calculates wind pressures on building surfaces including main wind force resisting system and components/cladding loads.",
+    "parameters": {
+      "velocity_pressure": {
+        "type": "number",
+        "required": true,
+        "description": "Velocity pressure at building height in Pa"
+      },
+      "gust_factor": {
+        "type": "number",
+        "required": true,
+        "description": "Gust effect factor from wind speed analysis"
+      },
+      "building_height": {
+        "type": "number",
+        "required": true,
+        "description": "Building height in meters"
+      },
+      "building_width": {
+        "type": "number",
+        "required": true,
+        "description": "Building width perpendicular to wind in meters"
+      },
+      "building_length": {
+        "type": "number",
+        "required": true,
+        "description": "Building length parallel to wind in meters"
+      },
+      "wall_pressure_coefficients": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "External pressure coefficients for walls [windward, leeward, side1, side2]",
+        "default": "[0.8, -0.5, -0.7, -0.7]"
+      },
+      "roof_pressure_coefficients": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "External pressure coefficients for roof zones",
+        "default": "[-0.9, -0.9, -0.5, -0.3]"
+      }
+    },
+    "error_messages": [
+      "Invalid pressure coefficients: Values must be within realistic range -2.0 to 1.0. Check code provisions for building geometry.",
+      "Missing velocity pressure: Obtain from Wind Speed Calculator tool first.",
+      "Inconsistent building dimensions: Verify height, width, and length are positive and realistic.",
+      "Array size mismatch: Pressure coefficient arrays must match expected number of building surfaces."
+    ],
+    "usage": "Input velocity pressure and gust factor from wind analysis, building dimensions, and pressure coefficients (or use defaults). Tool calculates design pressures for structural analysis.",
+    "output_details": {
+      "wall_pressures": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Design pressures on each wall surface in Pa"
+      },
+      "roof_pressures": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Design pressures on roof zones in Pa"
+      },
+      "total_wind_force": {
+        "type": "number",
+        "description": "Total lateral wind force on building in kN"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Load Combinator",
+    "tool_description": "Combines dead, live, seismic, and wind loads according to building code load combinations for structural design.",
+    "parameters": {
+      "dead_load": {
+        "type": "number",
+        "required": true,
+        "description": "Dead load in kN"
+      },
+      "live_load": {
+        "type": "number",
+        "required": true,
+        "description": "Live load in kN"
+      },
+      "seismic_load": {
+        "type": "number",
+        "required": false,
+        "description": "Seismic load in kN",
+        "default": 0
+      },
+      "wind_load": {
+        "type": "number",
+        "required": false,
+        "description": "Wind load in kN",
+        "default": 0
+      },
+      "snow_load": {
+        "type": "number",
+        "required": false,
+        "description": "Snow load in kN",
+        "default": 0
+      },
+      "load_combination_type": {
+        "type": "string",
+        "required": false,
+        "description": "Design method: ASD (allowable stress) or LRFD (load resistance factor)",
+        "default": "LRFD"
+      }
+    },
+    "error_messages": [
+      "Invalid load combination type: Must be either ASD or LRFD. Check design code requirements.",
+      "Negative loads specified: Dead and live loads must be positive. Check load calculations.",
+      "Missing required loads: Dead and live loads are mandatory for all combinations."
+    ],
+    "usage": "Input all applicable loads and specify design method. Tool generates all relevant load combinations per building code requirements for structural analysis and design.",
+    "output_details": {
+      "combination_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Names/identifiers of each load combination"
+      },
+      "combination_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Calculated values for each load combination in kN"
+      },
+      "governing_combination": {
+        "type": "string",
+        "description": "Load combination producing maximum effect"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dynamic Analysis Runner",
+    "tool_description": "Performs response spectrum analysis or time history analysis to determine dynamic response of structure under seismic loading.",
+    "parameters": {
+      "analysis_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of analysis: response_spectrum or time_history"
+      },
+      "modal_periods": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Natural periods of vibration modes in seconds",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "modal_participation_factors": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Modal participation factors for each mode",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "modal_masses": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Modal masses for each mode in kg",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "response_spectrum_periods": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Period values for design response spectrum",
+        "minItems": 10,
+        "maxItems": 100
+      },
+      "response_spectrum_accelerations": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Spectral acceleration values for design response spectrum",
+        "minItems": 10,
+        "maxItems": 100
+      },
+      "damping_ratio": {
+        "type": "number",
+        "required": false,
+        "description": "Structural damping ratio as decimal (0.01-0.10)",
+        "default": 0.05
+      },
+      "combination_method": {
+        "type": "string",
+        "required": false,
+        "description": "Modal combination method: CQC or SRSS",
+        "default": "CQC"
+      },
+      "scale_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Scale factor for ground motion (positive number)",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Invalid analysis type: Must be response_spectrum or time_history. Check analysis requirements.",
+      "Modal data inconsistency: Arrays for periods, participation factors, and masses must have same length.",
+      "Response spectrum data mismatch: Period and acceleration arrays must have same length.",
+      "Invalid damping ratio: Must be between 0.01-0.10 (1%-10%). Use 5% if unknown.",
+      "Invalid combination method: Use CQC for closely spaced modes, SRSS for well-separated modes.",
+      "Insufficient modes: Include enough modes to capture 90% mass participation in each direction."
+    ],
+    "usage": "Input modal properties from eigenvalue analysis and response spectrum from ground motion selection. Tool performs dynamic analysis and combines modal responses using specified method.",
+    "output_details": {
+      "modal_responses": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Peak response in each mode"
+      },
+      "total_base_shear": {
+        "type": "number",
+        "description": "Total base shear from dynamic analysis in kN"
+      },
+      "maximum_displacement": {
+        "type": "number",
+        "description": "Maximum lateral displacement in meters"
+      },
+      "mass_participation": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Cumulative mass participation by mode as percentages"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Modal Analyzer",
+    "tool_description": "Calculates natural frequencies, mode shapes, and modal properties of structural systems for dynamic analysis.",
+    "parameters": {
+      "mass_matrix": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Diagonal terms of lumped mass matrix in kg",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "stiffness_matrix": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Diagonal terms of stiffness matrix in N/m",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "number_of_modes": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of modes to extract (1-20)",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Matrix size mismatch: Mass and stiffness arrays must have same length representing DOF count.",
+      "Invalid matrix values: Mass and stiffness values must be positive. Check structural model.",
+      "Too many modes requested: Number of modes cannot exceed degrees of freedom.",
+      "Numerical instability: Check for very small stiffness or very large mass values."
+    ],
+    "usage": "Input diagonal terms of mass and stiffness matrices from structural model. For simplified analysis, use lumped masses at floor levels and story stiffnesses. Tool extracts specified number of vibration modes.",
+    "output_details": {
+      "natural_frequencies": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Natural frequencies in Hz for each mode"
+      },
+      "natural_periods": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Natural periods in seconds for each mode"
+      },
+      "participation_factors": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Modal participation factors for lateral direction"
+      },
+      "modal_masses": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Effective modal masses in kg"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Drift Calculator",
+    "tool_description": "Calculates story drifts and checks compliance with building code drift limits for serviceability and life safety.",
+    "parameters": {
+      "floor_displacements": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Lateral displacement at each floor in meters",
+        "minItems": 2,
+        "maxItems": 50
+      },
+      "story_heights": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Height of each story in meters",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "deflection_amplification": {
+        "type": "number",
+        "required": true,
+        "description": "Deflection amplification factor (Cd) for structural system"
+      },
+      "importance_factor": {
+        "type": "number",
+        "required": true,
+        "description": "Seismic importance factor (I) based on occupancy"
+      },
+      "occupancy_category": {
+        "type": "string",
+        "required": false,
+        "description": "Occupancy category for drift limits: residential, office, industrial, other",
+        "default": "office"
+      }
+    },
+    "error_messages": [
+      "Displacement array size error: Must have one displacement per floor (n floors, n displacements).",
+      "Story height array size error: Must have n-1 story heights for n floors.",
+      "Invalid amplification factor: Cd must be positive, typically 1.0-7.0 per structural system.",
+      "Negative displacements: Check sign convention - displacements should increase with height.",
+      "Invalid occupancy category: Use residential, office, industrial, or other."
+    ],
+    "usage": "Input floor displacements from structural analysis, story heights, and structural system factors. Tool calculates amplified drifts and checks against code limits for specified occupancy.",
+    "output_details": {
+      "story_drifts": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Story drift at each level in meters"
+      },
+      "drift_ratios": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Story drift ratios (drift/height) as decimals"
+      },
+      "allowable_drift": {
+        "type": "number",
+        "description": "Code allowable drift ratio for occupancy type"
+      },
+      "compliance_status": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Compliance status for each story (true=compliant)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Base Shear Validator",
+    "tool_description": "Validates that dynamic analysis base shear meets minimum code requirements and applies scaling if necessary.",
+    "parameters": {
+      "dynamic_base_shear": {
+        "type": "number",
+        "required": true,
+        "description": "Base shear from dynamic analysis in kN"
+      },
+      "equivalent_static_base_shear": {
+        "type": "number",
+        "required": true,
+        "description": "Base shear from equivalent lateral force method in kN"
+      },
+      "building_irregularity": {
+        "type": "boolean",
+        "required": true,
+        "description": "True if building has structural irregularities"
+      },
+      "risk_category": {
+        "type": "string",
+        "required": true,
+        "description": "Building risk category (I, II, III, or IV)"
+      }
+    },
+    "error_messages": [
+      "Invalid base shear values: Both dynamic and static base shears must be positive.",
+      "Invalid risk category: Must be I, II, III, or IV per building code classification.",
+      "Missing base shear data: Obtain dynamic base shear from Dynamic Analysis Runner and static from Seismic Force Calculator."
+    ],
+    "usage": "Input base shears from both dynamic analysis and equivalent lateral force method, along with building characteristics. Tool determines if scaling is required and calculates appropriate factors.",
+    "output_details": {
+      "scale_factor": {
+        "type": "number",
+        "description": "Required scaling factor for dynamic analysis results"
+      },
+      "scaled_base_shear": {
+        "type": "number",
+        "description": "Final design base shear after scaling in kN"
+      },
+      "minimum_required_ratio": {
+        "type": "number",
+        "description": "Code minimum ratio of dynamic to static base shear"
+      },
+      "scaling_required": {
+        "type": "boolean",
+        "description": "True if scaling of dynamic results is required"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Code Compliance Checker",
+    "tool_description": "Comprehensive check of all seismic and wind design requirements against applicable building codes and standards.",
+    "parameters": {
+      "design_base_shear": {
+        "

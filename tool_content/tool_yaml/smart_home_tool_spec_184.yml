@@ -1,0 +1,739 @@
+field_name: smart_home
+subfield: Home Security and Surveillance
+task: Configure and manage security cameras and recording schedules
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves coordinating multiple camera devices with different capabilities, managing complex scheduling logic, handling storage requirements, and ensuring reliable recording with proper error handling. The scope includes hardware integration, data management, and user configuration interfaces.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover camera discovery, configuration, scheduling, recording management, storage, and monitoring functions.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  - Camera Discovery Tool → produces camera inventory
+  - Camera Configuration Tool → consumes camera IDs, produces configured cameras
+  - Recording Schedule Creator → produces schedule configurations
+  - Motion Detection Configurator → produces motion settings
+  - Storage Space Analyzer → produces storage metrics
+  - Recording Session Manager → consumes schedules/cameras, produces recording sessions
+  - Live Stream Viewer → consumes camera IDs, produces stream data
+  - Recording Playback Tool → consumes recording IDs, produces playback streams
+  - Alert Rule Engine → consumes motion/schedule data, produces alerts
+  - Camera Health Monitor → consumes camera IDs, produces health status
+  - Backup Configuration Tool → consumes recording data, produces backup jobs
+  - Security Event Logger → consumes all events, produces audit logs
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  1. Basic monitoring setup: Camera Discovery → Camera Configuration → Live Stream Viewer
+  2. Simple recording: Recording Schedule Creator → Recording Session Manager
+
+  Medium plans:
+  1. Motion-based recording: Camera Discovery → Motion Detection Configurator → Alert Rule Engine → Recording Session Manager → Security Event Logger
+  2. Storage management: Storage Space Analyzer → Recording Playback Tool → Backup Configuration Tool
+
+  Complex plans:
+  1. Full security system: Camera Discovery → Camera Configuration → Motion Detection Configurator → Recording Schedule Creator → Recording Session Manager → Alert Rule Engine → Camera Health Monitor → Security Event Logger
+  2. Automated maintenance: Storage Space Analyzer → Recording Playback Tool → Backup Configuration Tool → Camera Health Monitor → Alert Rule Engine
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Camera Discovery Tool",
+    "tool_description": "Scans the network to discover available security cameras and retrieves their basic information including IP addresses, models, and capabilities.",
+    "parameters": {
+      "network_range": {
+        "type": "string",
+        "required": true,
+        "description": "IP address range to scan (e.g., 192.168.1.0/24)"
+      },
+      "scan_timeout": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Maximum time in seconds to wait for device responses"
+      }
+    },
+    "error_messages": [
+      "Invalid network range: Provide a valid CIDR notation (e.g., 192.168.1.0/24).",
+      "Network unreachable: Ensure the specified network range is accessible from this device.",
+      "Scan timeout too low: Minimum timeout is 5 seconds, maximum is 300 seconds."
+    ],
+    "usage": "Provide the network range in CIDR notation to scan for cameras. Optionally set scan timeout for slower networks.",
+    "output_details": {
+      "cameras_found": {
+        "type": "integer",
+        "description": "Number of cameras discovered"
+      },
+      "camera_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of unique camera identifiers"
+      },
+      "camera_ips": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of camera IP addresses"
+      },
+      "camera_models": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of camera model names"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Camera Configuration Tool",
+    "tool_description": "Configures individual camera settings including resolution, frame rate, compression, and network parameters.",
+    "parameters": {
+      "camera_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the camera to configure"
+      },
+      "resolution": {
+        "type": "string",
+        "required": true,
+        "description": "Video resolution (720p, 1080p, 4K)"
+      },
+      "frame_rate": {
+        "type": "integer",
+        "required": true,
+        "description": "Frames per second (15, 24, 30, 60)"
+      },
+      "compression_quality": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Video compression quality (low, medium, high)"
+      },
+      "night_vision": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Enable infrared night vision mode"
+      },
+      "audio_recording": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Enable audio recording alongside video"
+      },
+      "pan_tilt_preset": {
+        "type": "string",
+        "required": false,
+        "default": "none",
+        "description": "Pan/tilt preset position name or 'none'"
+      }
+    },
+    "error_messages": [
+      "Camera not found: The specified camera_id does not exist in the system.",
+      "Unsupported resolution: Use one of [720p, 1080p, 4K] based on camera capabilities.",
+      "Invalid frame rate: Use one of [15, 24, 30, 60] frames per second.",
+      "Invalid compression quality: Use one of [low, medium, high].",
+      "Configuration failed: Camera rejected the configuration, check hardware compatibility."
+    ],
+    "usage": "Specify camera_id, resolution, and frame_rate as required parameters. Optionally configure compression, night vision, audio, and pan/tilt settings.",
+    "output_details": {
+      "configuration_status": {
+        "type": "string",
+        "description": "Success or failure status of configuration"
+      },
+      "applied_resolution": {
+        "type": "string",
+        "description": "Actually applied video resolution"
+      },
+      "applied_frame_rate": {
+        "type": "integer",
+        "description": "Actually applied frame rate"
+      },
+      "bandwidth_estimate": {
+        "type": "number",
+        "description": "Estimated bandwidth usage in Mbps"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Recording Schedule Creator",
+    "tool_description": "Creates and manages recording schedules for cameras with time-based rules, day-of-week patterns, and duration limits.",
+    "parameters": {
+      "schedule_name": {
+        "type": "string",
+        "required": true,
+        "description": "Unique name for this recording schedule"
+      },
+      "camera_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of camera IDs to apply this schedule to"
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Daily start time in HH:MM format (24-hour)"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "Daily end time in HH:MM format (24-hour)"
+      },
+      "days_of_week": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Days when schedule is active (monday, tuesday, etc.)"
+      },
+      "recording_mode": {
+        "type": "string",
+        "required": true,
+        "description": "Recording trigger mode (continuous, motion_only, scheduled_events)"
+      },
+      "max_duration_hours": {
+        "type": "integer",
+        "required": false,
+        "default": 24,
+        "description": "Maximum recording duration per session in hours"
+      },
+      "priority_level": {
+        "type": "integer",
+        "required": false,
+        "default": 1,
+        "description": "Schedule priority from 1 (highest) to 5 (lowest)"
+      }
+    },
+    "error_messages": [
+      "Invalid time format: Use HH:MM format in 24-hour notation (e.g., 14:30).",
+      "Invalid day of week: Use full day names in lowercase (monday, tuesday, etc.).",
+      "Time range error: end_time must be after start_time, or use 00:00 for overnight.",
+      "Invalid recording mode: Use one of [continuous, motion_only, scheduled_events].",
+      "Priority out of range: Use integers 1-5 where 1 is highest priority.",
+      "Empty camera list: At least one camera_id must be specified.",
+      "Max duration invalid: Must be between 1 and 168 hours (1 week)."
+    ],
+    "usage": "Create named schedules with time ranges, days of week, and recording modes. Apply to multiple cameras and set priorities for conflicting schedules.",
+    "output_details": {
+      "schedule_id": {
+        "type": "string",
+        "description": "Unique identifier for the created schedule"
+      },
+      "status": {
+        "type": "string",
+        "description": "Creation status (active, inactive, error)"
+      },
+      "cameras_assigned": {
+        "type": "integer",
+        "description": "Number of cameras successfully assigned"
+      },
+      "next_activation": {
+        "type": "string",
+        "description": "Next scheduled activation time in ISO format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Motion Detection Configurator",
+    "tool_description": "Configures motion detection parameters including sensitivity, detection zones, and trigger thresholds for cameras.",
+    "parameters": {
+      "camera_id": {
+        "type": "string",
+        "required": true,
+        "description": "Camera identifier to configure motion detection for"
+      },
+      "sensitivity": {
+        "type": "integer",
+        "required": true,
+        "description": "Motion sensitivity level from 1 (least) to 10 (most sensitive)"
+      },
+      "detection_zones": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["full_frame"],
+        "description": "Areas to monitor (full_frame, left_half, right_half, center, custom)"
+      },
+      "minimum_object_size": {
+        "type": "integer",
+        "required": false,
+        "default": 5,
+        "description": "Minimum object size percentage to trigger detection (1-50)"
+      },
+      "trigger_delay": {
+        "type": "integer",
+        "required": false,
+        "default": 2,
+        "description": "Seconds of motion required before triggering (1-30)"
+      }
+    },
+    "error_messages": [
+      "Camera not found: The specified camera_id does not exist or is not accessible.",
+      "Invalid sensitivity: Use integers 1-10 where 1 is least sensitive and 10 is most sensitive.",
+      "Invalid detection zone: Use predefined zones or 'custom' with proper coordinates.",
+      "Object size out of range: Minimum object size must be 1-50 percent of frame.",
+      "Invalid trigger delay: Use 1-30 seconds for motion trigger delay."
+    ],
+    "usage": "Configure motion detection by specifying camera_id and sensitivity. Optionally define detection zones, object size thresholds, and trigger delays.",
+    "output_details": {
+      "configuration_status": {
+        "type": "string",
+        "description": "Success or error status of motion detection setup"
+      },
+      "active_zones": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of active detection zones"
+      },
+      "estimated_triggers_per_day": {
+        "type": "integer",
+        "description": "Estimated number of motion triggers per day"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Storage Space Analyzer",
+    "tool_description": "Analyzes available storage space, calculates recording capacity, and provides recommendations for storage management.",
+    "parameters": {
+      "storage_path": {
+        "type": "string",
+        "required": true,
+        "description": "File system path where recordings are stored"
+      },
+      "cleanup_older_than_days": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Consider files older than this many days for cleanup"
+      }
+    },
+    "error_messages": [
+      "Storage path not found: The specified storage path does not exist or is not accessible.",
+      "Insufficient permissions: Cannot access storage location due to permission restrictions.",
+      "Invalid cleanup period: Cleanup period must be between 1 and 365 days."
+    ],
+    "usage": "Provide the storage path where recordings are kept. Optionally specify cleanup period for old files analysis.",
+    "output_details": {
+      "total_space_gb": {
+        "type": "number",
+        "description": "Total storage space in gigabytes"
+      },
+      "used_space_gb": {
+        "type": "number",
+        "description": "Currently used storage space in gigabytes"
+      },
+      "available_space_gb": {
+        "type": "number",
+        "description": "Available storage space in gigabytes"
+      },
+      "recording_capacity_hours": {
+        "type": "number",
+        "description": "Estimated recording hours available with current settings"
+      },
+      "cleanup_candidates_count": {
+        "type": "integer",
+        "description": "Number of old files that could be cleaned up"
+      },
+      "cleanup_space_recoverable_gb": {
+        "type": "number",
+        "description": "Storage space that could be recovered by cleanup"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Recording Session Manager",
+    "tool_description": "Manages active recording sessions including starting, stopping, pausing recordings and monitoring session status.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform (start, stop, pause, resume, status)"
+      },
+      "camera_id": {
+        "type": "string",
+        "required": true,
+        "description": "Camera identifier for the recording session"
+      },
+      "session_name": {
+        "type": "string",
+        "required": false,
+        "default": "none",
+        "description": "Custom name for the recording session"
+      },
+      "duration_minutes": {
+        "type": "integer",
+        "required": false,
+        "default": 60,
+        "description": "Maximum recording duration in minutes for start action"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Use one of [start, stop, pause, resume, status].",
+      "Camera not available: The specified camera is not connected or already recording.",
+      "Session not found: No active session exists for the specified camera.",
+      "Storage full: Cannot start recording due to insufficient storage space.",
+      "Duration invalid: Recording duration must be between 1 and 1440 minutes (24 hours)."
+    ],
+    "usage": "Specify action and camera_id to control recording sessions. Use session_name and duration_minutes when starting new recordings.",
+    "output_details": {
+      "session_id": {
+        "type": "string",
+        "description": "Unique identifier for the recording session"
+      },
+      "session_status": {
+        "type": "string",
+        "description": "Current session status (recording, stopped, paused, error)"
+      },
+      "elapsed_time_minutes": {
+        "type": "integer",
+        "description": "Minutes elapsed since session started"
+      },
+      "file_size_mb": {
+        "type": "number",
+        "description": "Current recording file size in megabytes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Live Stream Viewer",
+    "tool_description": "Establishes live video streams from cameras for real-time monitoring and returns stream access information.",
+    "parameters": {
+      "camera_id": {
+        "type": "string",
+        "required": true,
+        "description": "Camera identifier to stream from"
+      },
+      "stream_quality": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Stream quality setting (low, medium, high)"
+      },
+      "include_audio": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Include audio in the live stream"
+      }
+    },
+    "error_messages": [
+      "Camera offline: The specified camera is not responding or is offline.",
+      "Stream limit exceeded: Maximum number of concurrent streams reached.",
+      "Invalid quality setting: Use one of [low, medium, high] for stream quality.",
+      "Audio not supported: The camera does not support audio streaming."
+    ],
+    "usage": "Provide camera_id to start live streaming. Optionally adjust stream quality and audio inclusion based on bandwidth requirements.",
+    "output_details": {
+      "stream_url": {
+        "type": "string",
+        "description": "URL endpoint for accessing the live stream"
+      },
+      "stream_status": {
+        "type": "string",
+        "description": "Stream connection status (active, connecting, error)"
+      },
+      "current_viewers": {
+        "type": "integer",
+        "description": "Number of current viewers connected to stream"
+      },
+      "bandwidth_usage_mbps": {
+        "type": "number",
+        "description": "Current bandwidth usage for this stream in Mbps"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Recording Playback Tool",
+    "tool_description": "Retrieves and plays back recorded video files with timestamp navigation and export capabilities.",
+    "parameters": {
+      "camera_id": {
+        "type": "string",
+        "required": true,
+        "description": "Camera that created the recording"
+      },
+      "start_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "Start time for playback range",
+        "format": "date-time"
+      },
+      "end_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "End time for playback range",
+        "format": "date-time"
+      },
+      "playback_speed": {
+        "type": "number",
+        "required": false,
+        "default": 1.0,
+        "description": "Playback speed multiplier (0.25, 0.5, 1.0, 2.0, 4.0)"
+      },
+      "export_format": {
+        "type": "string",
+        "required": false,
+        "default": "none",
+        "description": "Export format if needed (mp4, avi, none)"
+      }
+    },
+    "error_messages": [
+      "Invalid datetime format: Use ISO 8601 format for start_datetime and end_datetime.",
+      "No recordings found: No recordings exist for the specified camera and time range.",
+      "Invalid playback speed: Use one of [0.25, 0.5, 1.0, 2.0, 4.0].",
+      "Export failed: Unable to export recording in the requested format.",
+      "Time range too large: Reduce the time range to less than 7 days for playback."
+    ],
+    "usage": "Specify camera_id and datetime range to playback recordings. Optionally adjust playback speed and export format for saving clips.",
+    "output_details": {
+      "playback_url": {
+        "type": "string",
+        "description": "URL for accessing the playback stream"
+      },
+      "total_duration_minutes": {
+        "type": "integer",
+        "description": "Total duration of recordings in the specified range"
+      },
+      "recording_segments": {
+        "type": "integer",
+        "description": "Number of separate recording segments found"
+      },
+      "export_file_path": {
+        "type": "string",
+        "description": "Path to exported file if export was requested"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Rule Engine",
+    "tool_description": "Creates and manages alert rules based on motion detection, camera status, and recording events with notification settings.",
+    "parameters": {
+      "rule_name": {
+        "type": "string",
+        "required": true,
+        "description": "Unique name for the alert rule"
+      },
+      "trigger_type": {
+        "type": "string",
+        "required": true,
+        "description": "Event type that triggers alert (motion_detected, camera_offline, recording_failed, storage_low)"
+      },
+      "camera_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Cameras to monitor for this rule"
+      },
+      "notification_methods": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "How to send alerts (email, sms, push, webhook)"
+      },
+      "threshold_value": {
+        "type": "number",
+        "required": false,
+        "default": 1,
+        "description": "Threshold value for numeric triggers (storage percentage, etc.)"
+      },
+      "cooldown_minutes": {
+        "type": "integer",
+        "required": false,
+        "default": 5,
+        "description": "Minutes to wait before sending duplicate alerts"
+      },
+      "active_hours_start": {
+        "type": "string",
+        "required": false,
+        "default": "00:00",
+        "description": "Start time for active alert period (HH:MM format)"
+      },
+      "active_hours_end": {
+        "type": "string",
+        "required": false,
+        "default": "23:59",
+        "description": "End time for active alert period (HH:MM format)"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Alert priority level (low, medium, high, critical)"
+      }
+    },
+    "error_messages": [
+      "Invalid trigger type: Use one of [motion_detected, camera_offline, recording_failed, storage_low].",
+      "Invalid notification method: Use one of [email, sms, push, webhook].",
+      "Empty camera list: At least one camera_id must be specified.",
+      "Invalid time format: Use HH:MM format for active hours (e.g., 14:30).",
+      "Invalid priority: Use one of [low, medium, high, critical].",
+      "Threshold out of range: Threshold value must be between 0 and 100 for percentage-based triggers.",
+      "Cooldown too short: Minimum cooldown is 1 minute, maximum is 1440 minutes."
+    ],
+    "usage": "Create alert rules by specifying rule_name, trigger_type, camera_ids, and notification_methods. Configure thresholds, cooldowns, and active hours as needed.",
+    "output_details": {
+      "rule_id": {
+        "type": "string",
+        "description": "Unique identifier for the created alert rule"
+      },
+      "rule_status": {
+        "type": "string",
+        "description": "Status of the rule (active, inactive, error)"
+      },
+      "cameras_monitored": {
+        "type": "integer",
+        "description": "Number of cameras successfully assigned to this rule"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Camera Health Monitor",
+    "tool_description": "Monitors camera health status including connectivity, hardware diagnostics, and performance metrics.",
+    "parameters": {
+      "camera_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of camera IDs to monitor"
+      },
+      "check_interval_minutes": {
+        "type": "integer",
+        "required": false,
+        "default": 15,
+        "description": "How often to check camera health (5-60 minutes)"
+      }
+    },
+    "error_messages": [
+      "Empty camera list: At least one camera_id must be provided for monitoring.",
+      "Invalid check interval: Check interval must be between 5 and 60 minutes.",
+      "Camera not found: One or more specified cameras do not exist in the system."
+    ],
+    "usage": "Provide an array of camera_ids to monitor their health status. Optionally set the check interval frequency.",
+    "output_details": {
+      "monitoring_status": {
+        "type": "string",
+        "description": "Overall monitoring status (active, partial, inactive)"
+      },
+      "cameras_online": {
+        "type": "integer",
+        "description": "Number of cameras currently online"
+      },
+      "cameras_offline": {
+        "type": "integer",
+        "description": "Number of cameras currently offline"
+      },
+      "cameras_with_issues": {
+        "type": "integer",
+        "description": "Number of cameras reporting hardware or performance issues"
+      },
+      "last_check_time": {
+        "type": "string",
+        "description": "Timestamp of the last health check",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Backup Configuration Tool",
+    "tool_description": "Configures automated backup of recording files to external storage locations with retention policies and scheduling.",
+    "parameters": {
+      "backup_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name for this backup configuration"
+      },
+      "source_path": {
+        "type": "string",
+        "required": true,
+        "description": "Local path containing recordings to backup"
+      },
+      "destination_path": {
+        "type": "string",
+        "required": true,
+        "description": "Remote or external storage path for backups"
+      },
+      "backup_schedule": {
+        "type": "string",
+        "required": true,
+        "description": "When to run backups (hourly, daily, weekly)"
+      },
+      "retention_days": {
+        "type": "integer",
+        "required": false,
+        "default": 90,
+        "description": "Days to keep backup files (1-365)"
+      },
+      "compression_enabled": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Enable compression to reduce backup size"
+      },
+      "incremental_backup": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Use incremental backup to save time and space"
+      }
+    },
+    "error_messages": [
+      "Source path not found: The specified source path does not exist or is not readable.",
+      "Destination unreachable: Cannot access the destination path for backups.",
+      "Invalid backup schedule: Use one of [hourly, daily, weekly].",
+      "Invalid retention period: Retention days must be between 1 and 365.",
+      "Insufficient destination space: Not enough space at destination for backup operations."
+    ],
+    "usage": "Configure backup by specifying backup_name, source_path, destination_path, and backup_schedule. Optionally set retention period and backup options.",
+    "output_details": {
+      "backup_id": {
+        "type": "string",
+        "description": "Unique identifier for this backup configuration"
+      },
+      "configuration_status": {
+        "type": "string",
+        "description": "Status of backup configuration (active, inactive, error)"
+      },
+      "next_backup_time": {
+        "type": "string",
+        "description": "Next scheduled backup time",
+        "format": "date-time"
+      },
+      "estimated_backup_size_gb": {
+        "type": "number",
+        "description": "Estimated size of next backup in gigabytes"
+      }
+    }
+  }
+  ```

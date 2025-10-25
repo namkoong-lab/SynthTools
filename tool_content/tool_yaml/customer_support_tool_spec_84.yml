@@ -1,0 +1,805 @@
+field_name: customer_support
+subfield: live_chat_support
+task: Routing and queue management for incoming chat requests
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves coordinating multiple moving parts (agent availability, customer priority levels, queue states, routing rules) with real-time constraints and potential cascading effects from poor routing decisions, but the core logic is well-understood in customer service operations.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the various aspects of chat routing, queue management, agent coordination, and performance monitoring.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Chat Request Validator** - Consumes: raw chat requests → Produces: validated request data
+  2. **Customer Priority Assessor** - Consumes: customer info → Produces: priority scores
+  3. **Agent Availability Checker** - Consumes: agent IDs, time constraints → Produces: availability status
+  4. **Skill Matcher** - Consumes: request requirements, agent skills → Produces: compatibility scores
+  5. **Queue Position Calculator** - Consumes: queue state, priority → Produces: position assignments
+  6. **Route Optimizer** - Consumes: validated requests, agent data, priorities → Produces: routing decisions
+  7. **Queue State Monitor** - Consumes: queue snapshots → Produces: queue metrics
+  8. **Wait Time Estimator** - Consumes: current queue state, historical data → Produces: time predictions
+  9. **Agent Load Balancer** - Consumes: current agent workloads → Produces: load distribution recommendations
+  10. **Escalation Trigger** - Consumes: wait times, customer data → Produces: escalation flags
+  11. **Performance Tracker** - Consumes: routing outcomes, timing data → Produces: performance metrics
+  12. **Queue Reorganizer** - Consumes: queue state, new priorities → Produces: reordered queue
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic routing: Chat Request Validator → Customer Priority Assessor → Agent Availability Checker → Route Optimizer
+  - Queue monitoring: Queue State Monitor → Wait Time Estimator
+
+  **Medium Plans:**
+  - Smart routing: Chat Request Validator → Customer Priority Assessor → Skill Matcher → Agent Load Balancer → Route Optimizer → Performance Tracker
+  - Queue optimization: Queue State Monitor → Queue Position Calculator → Escalation Trigger → Queue Reorganizer
+
+  **Complex Plans:**
+  - Full routing pipeline: Chat Request Validator → Customer Priority Assessor → Skill Matcher → Agent Availability Checker → Agent Load Balancer → Route Optimizer → Queue Position Calculator → Performance Tracker
+  - Adaptive queue management: Queue State Monitor → Wait Time Estimator → Escalation Trigger → Queue Reorganizer → Agent Load Balancer → Route Optimizer
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Chat Request Validator",
+    "tool_description": "Validates and standardizes incoming chat requests, ensuring all required fields are present and properly formatted before routing.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer initiating the chat"
+      },
+      "request_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of support request (technical, billing, general, sales, complaint)"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "default": "normal",
+        "description": "Customer-declared urgency (low, normal, high, critical)"
+      }
+    },
+    "error_messages": [
+      "Invalid customer_id: Customer ID must be a non-empty string with valid format.",
+      "Invalid request_type: Must be one of [technical, billing, general, sales, complaint].",
+      "Invalid urgency_level: Must be one of [low, normal, high, critical]."
+    ],
+    "usage": "Provide customer_id and request_type; optionally specify urgency_level. The tool validates and returns standardized request data ready for routing.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Status of validation (valid, invalid)"
+      },
+      "standardized_request_type": {
+        "type": "string",
+        "description": "Standardized request type category"
+      },
+      "processed_urgency": {
+        "type": "string",
+        "description": "Processed urgency level"
+      },
+      "request_id": {
+        "type": "string",
+        "description": "Generated unique request identifier"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Priority Assessor",
+    "tool_description": "Evaluates customer priority based on subscription tier, history, and business rules to determine routing precedence.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "subscription_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Customer subscription level (basic, premium, enterprise, vip)"
+      },
+      "previous_interactions": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": "Number of previous support interactions in last 30 days"
+      },
+      "account_value": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Monthly recurring revenue or account value in dollars"
+      },
+      "escalation_history": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether customer has recent escalation history"
+      },
+      "declared_urgency": {
+        "type": "string",
+        "required": false,
+        "default": "normal",
+        "description": "Customer-declared urgency level"
+      }
+    },
+    "error_messages": [
+      "Invalid subscription_tier: Must be one of [basic, premium, enterprise, vip].",
+      "Invalid previous_interactions: Must be a non-negative integer.",
+      "Invalid account_value: Must be a non-negative number.",
+      "Invalid declared_urgency: Must be one of [low, normal, high, critical]."
+    ],
+    "usage": "Provide customer_id and subscription_tier; optionally include previous_interactions, account_value, escalation_history, and declared_urgency. Returns calculated priority score and tier.",
+    "output_details": {
+      "priority_score": {
+        "type": "number",
+        "description": "Calculated priority score (0-100)"
+      },
+      "priority_tier": {
+        "type": "string",
+        "description": "Assigned priority tier (low, standard, high, critical)"
+      },
+      "tier_justification": {
+        "type": "string",
+        "description": "Explanation of priority tier assignment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Agent Availability Checker",
+    "tool_description": "Checks real-time availability status of support agents based on their current workload and schedule constraints.",
+    "parameters": {
+      "agent_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of agent identifiers to check"
+      },
+      "check_time": {
+        "type": "string",
+        "required": true,
+        "format": "date-time",
+        "description": "Timestamp to check availability against"
+      }
+    },
+    "error_messages": [
+      "Invalid agent_ids: Must provide at least one valid agent identifier.",
+      "Invalid check_time: Must be a valid ISO 8601 datetime string.",
+      "Agent not found: One or more agent IDs do not exist in the system."
+    ],
+    "usage": "Provide array of agent_ids and check_time timestamp. Returns availability status and current workload for each agent.",
+    "output_details": {
+      "available_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of currently available agent IDs"
+      },
+      "busy_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of currently busy agent IDs"
+      },
+      "offline_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of offline agent IDs"
+      },
+      "workload_summary": {
+        "type": "string",
+        "description": "Summary of current workload distribution"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Skill Matcher",
+    "tool_description": "Matches customer requests with agent skills and specializations to optimize support quality and resolution time.",
+    "parameters": {
+      "request_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of support request"
+      },
+      "request_complexity": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Estimated complexity level (low, medium, high)"
+      },
+      "product_category": {
+        "type": "string",
+        "required": false,
+        "default": "general",
+        "description": "Product or service category"
+      },
+      "language_preference": {
+        "type": "string",
+        "required": false,
+        "default": "english",
+        "description": "Customer's preferred language"
+      },
+      "available_agent_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of currently available agents to consider"
+      },
+      "specialized_skills_required": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Any specialized skills required for this request"
+      }
+    },
+    "error_messages": [
+      "Invalid request_complexity: Must be one of [low, medium, high].",
+      "Empty available_agent_ids: Must provide at least one available agent to match against.",
+      "Invalid language_preference: Must be a supported language code.",
+      "No matching agents: No agents available with required skills for this request."
+    ],
+    "usage": "Provide request_type and available_agent_ids; optionally specify complexity, category, language, and specialized skills. Returns ranked list of suitable agents.",
+    "output_details": {
+      "best_match_agent": {
+        "type": "string",
+        "description": "Agent ID with highest skill match score"
+      },
+      "match_score": {
+        "type": "number",
+        "description": "Skill match score for best agent (0-100)"
+      },
+      "ranked_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "All agents ranked by skill match descending"
+      },
+      "skill_gaps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Any required skills not available in agent pool"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Queue Position Calculator",
+    "tool_description": "Calculates optimal queue position for new requests based on priority, estimated handling time, and current queue state.",
+    "parameters": {
+      "request_priority": {
+        "type": "number",
+        "required": true,
+        "description": "Priority score of the new request (0-100)"
+      },
+      "estimated_handle_time": {
+        "type": "integer",
+        "required": true,
+        "description": "Estimated handling time in minutes"
+      },
+      "current_queue_length": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of requests currently in queue"
+      },
+      "queue_priorities": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Priority scores of existing queue items"
+      },
+      "insertion_strategy": {
+        "type": "string",
+        "required": false,
+        "default": "priority_weighted",
+        "description": "Queue insertion strategy (fifo, priority_strict, priority_weighted)"
+      }
+    },
+    "error_messages": [
+      "Invalid priority: request_priority must be between 0 and 100.",
+      "Invalid handle time: estimated_handle_time must be a positive integer.",
+      "Invalid queue length: current_queue_length must be a non-negative integer.",
+      "Queue length mismatch: current_queue_length must match length of queue_priorities array.",
+      "Invalid insertion_strategy: Must be one of [fifo, priority_strict, priority_weighted]."
+    ],
+    "usage": "Provide request_priority, estimated_handle_time, current_queue_length, and queue_priorities; optionally specify insertion_strategy. Returns optimal queue position.",
+    "output_details": {
+      "queue_position": {
+        "type": "integer",
+        "description": "Calculated position in queue (0-based)"
+      },
+      "position_justification": {
+        "type": "string",
+        "description": "Explanation of position assignment logic"
+      },
+      "estimated_wait_time": {
+        "type": "integer",
+        "description": "Estimated wait time in minutes at this position"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Route Optimizer",
+    "tool_description": "Makes final routing decisions by combining priority, skill matching, and load balancing to assign requests to optimal agents.",
+    "parameters": {
+      "request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the chat request"
+      },
+      "priority_score": {
+        "type": "number",
+        "required": true,
+        "description": "Customer priority score (0-100)"
+      },
+      "skill_match_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Ranked list of suitable agent IDs"
+      },
+      "agent_workloads": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Current workload percentages for each agent in skill_match_results"
+      },
+      "routing_strategy": {
+        "type": "string",
+        "required": false,
+        "default": "balanced",
+        "description": "Routing optimization strategy (skill_first, load_first, balanced)"
+      },
+      "max_queue_time": {
+        "type": "integer",
+        "required": false,
+        "default": 300,
+        "description": "Maximum acceptable queue time in seconds"
+      }
+    },
+    "error_messages": [
+      "Invalid priority_score: Must be between 0 and 100.",
+      "Empty skill_match_results: Must provide at least one suitable agent.",
+      "Workload mismatch: agent_workloads length must match skill_match_results length.",
+      "Invalid routing_strategy: Must be one of [skill_first, load_first, balanced].",
+      "Invalid max_queue_time: Must be a positive integer."
+    ],
+    "usage": "Provide request_id, priority_score, skill_match_results, and agent_workloads; optionally specify routing_strategy and max_queue_time. Returns optimal routing decision.",
+    "output_details": {
+      "assigned_agent": {
+        "type": "string",
+        "description": "Selected agent ID for this request"
+      },
+      "routing_reason": {
+        "type": "string",
+        "description": "Explanation of routing decision"
+      },
+      "estimated_response_time": {
+        "type": "integer",
+        "description": "Estimated time to first response in seconds"
+      },
+      "queue_bypass": {
+        "type": "boolean",
+        "description": "Whether request bypassed standard queue"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Queue State Monitor",
+    "tool_description": "Monitors and reports current state of chat queues including length, wait times, and performance metrics.",
+    "parameters": {
+      "queue_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["general"],
+        "description": "Types of queues to monitor"
+      },
+      "metric_window": {
+        "type": "integer",
+        "required": false,
+        "default": 300,
+        "description": "Time window for metrics calculation in seconds"
+      }
+    },
+    "error_messages": [
+      "Invalid queue_types: Must contain only valid queue type names.",
+      "Invalid metric_window: Must be a positive integer between 60 and 3600."
+    ],
+    "usage": "Optionally specify queue_types and metric_window. Returns comprehensive queue state information for monitoring and decision making.",
+    "output_details": {
+      "total_queued": {
+        "type": "integer",
+        "description": "Total number of requests across all queues"
+      },
+      "average_wait_time": {
+        "type": "number",
+        "description": "Average wait time across all queues in seconds"
+      },
+      "longest_wait": {
+        "type": "integer",
+        "description": "Longest current wait time in seconds"
+      },
+      "queue_lengths": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Length of each monitored queue"
+      },
+      "throughput_rate": {
+        "type": "number",
+        "description": "Requests processed per minute"
+      },
+      "bottleneck_indicator": {
+        "type": "string",
+        "description": "Indication of current system bottlenecks"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Wait Time Estimator",
+    "tool_description": "Estimates customer wait times based on current queue state, agent availability, and historical processing patterns.",
+    "parameters": {
+      "queue_position": {
+        "type": "integer",
+        "required": true,
+        "description": "Customer's current position in queue (0-based)"
+      },
+      "request_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of support request for time estimation"
+      },
+      "priority_level": {
+        "type": "string",
+        "required": true,
+        "description": "Priority level of the request"
+      },
+      "current_queue_length": {
+        "type": "integer",
+        "required": true,
+        "description": "Total number of requests in queue"
+      },
+      "active_agents": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of agents currently handling requests"
+      },
+      "historical_data_days": {
+        "type": "integer",
+        "required": false,
+        "default": 7,
+        "description": "Days of historical data to use for estimation"
+      }
+    },
+    "error_messages": [
+      "Invalid queue_position: Must be a non-negative integer.",
+      "Invalid current_queue_length: Must be a non-negative integer.",
+      "Invalid active_agents: Must be a positive integer.",
+      "Invalid historical_data_days: Must be between 1 and 30.",
+      "Position exceeds queue: queue_position cannot exceed current_queue_length."
+    ],
+    "usage": "Provide queue_position, request_type, priority_level, current_queue_length, and active_agents; optionally specify historical_data_days. Returns estimated wait time with confidence interval.",
+    "output_details": {
+      "estimated_wait_minutes": {
+        "type": "integer",
+        "description": "Estimated wait time in minutes"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence level of estimate (low, medium, high)"
+      },
+      "min_wait_minutes": {
+        "type": "integer",
+        "description": "Minimum expected wait time"
+      },
+      "max_wait_minutes": {
+        "type": "integer",
+        "description": "Maximum expected wait time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Agent Load Balancer",
+    "tool_description": "Analyzes and balances workload distribution across agents to optimize performance and prevent burnout.",
+    "parameters": {
+      "agent_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of agent IDs to balance workload for"
+      },
+      "current_assignments": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Current number of active chats per agent"
+      },
+      "agent_capacities": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Maximum concurrent chat capacity for each agent"
+      },
+      "performance_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "default": [],
+        "description": "Recent performance scores for each agent (0-100)"
+      },
+      "shift_end_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Shift end times for each agent in ISO 8601 format"
+      },
+      "balancing_strategy": {
+        "type": "string",
+        "required": false,
+        "default": "capacity_weighted",
+        "description": "Load balancing strategy (round_robin, capacity_weighted, performance_weighted)"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All agent arrays must have the same length.",
+      "Invalid current_assignments: All values must be non-negative integers.",
+      "Invalid agent_capacities: All values must be positive integers.",
+      "Invalid performance_scores: All values must be between 0 and 100.",
+      "Invalid balancing_strategy: Must be one of [round_robin, capacity_weighted, performance_weighted].",
+      "Capacity exceeded: current_assignments cannot exceed agent_capacities for any agent."
+    ],
+    "usage": "Provide agent_ids, current_assignments, and agent_capacities; optionally include performance_scores, shift_end_times, and balancing_strategy. Returns load balancing recommendations.",
+    "output_details": {
+      "recommended_agent": {
+        "type": "string",
+        "description": "Best agent ID for next assignment"
+      },
+      "load_distribution": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Current load percentage for each agent"
+      },
+      "rebalancing_needed": {
+        "type": "boolean",
+        "description": "Whether workload rebalancing is recommended"
+      },
+      "overloaded_agents": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Agent IDs currently over capacity"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Escalation Trigger",
+    "tool_description": "Monitors requests and triggers escalation based on wait times, customer priority, and business rules to prevent service level violations.",
+    "parameters": {
+      "request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the chat request"
+      },
+      "current_wait_time": {
+        "type": "integer",
+        "required": true,
+        "description": "Current wait time in seconds"
+      },
+      "customer_priority": {
+        "type": "string",
+        "required": true,
+        "description": "Customer priority tier"
+      },
+      "request_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of support request"
+      },
+      "previous_escalations": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": "Number of previous escalations for this customer"
+      },
+      "sla_threshold": {
+        "type": "integer",
+        "required": false,
+        "default": 300,
+        "description": "SLA threshold in seconds for this priority level"
+      }
+    },
+    "error_messages": [
+      "Invalid current_wait_time: Must be a non-negative integer.",
+      "Invalid customer_priority: Must be a valid priority tier.",
+      "Invalid previous_escalations: Must be a non-negative integer.",
+      "Invalid sla_threshold: Must be a positive integer."
+    ],
+    "usage": "Provide request_id, current_wait_time, customer_priority, and request_type; optionally specify previous_escalations and sla_threshold. Returns escalation decision and actions.",
+    "output_details": {
+      "escalation_required": {
+        "type": "boolean",
+        "description": "Whether escalation should be triggered"
+      },
+      "escalation_type": {
+        "type": "string",
+        "description": "Type of escalation (priority_boost, supervisor_notify, immediate_assignment)"
+      },
+      "urgency_level": {
+        "type": "string",
+        "description": "Updated urgency level after evaluation"
+      },
+      "action_required": {
+        "type": "string",
+        "description": "Specific action that should be taken"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Tracker",
+    "tool_description": "Tracks and analyzes routing performance metrics to identify optimization opportunities and measure system effectiveness.",
+    "parameters": {
+      "tracking_period_start": {
+        "type": "string",
+        "required": true,
+        "format": "date-time",
+        "description": "Start of the tracking period"
+      },
+      "tracking_period_end": {
+        "type": "string",
+        "required": true,
+        "format": "date-time",
+        "description": "End of the tracking period"
+      },
+      "metrics_to_track": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["wait_time", "resolution_time", "customer_satisfaction"],
+        "description": "Specific metrics to track and analyze"
+      },
+      "agent_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Filter results to specific agent IDs"
+      },
+      "request_type_filter": {
+        "type": "string",
+        "required": false,
+        "default": "all",
+        "description": "Filter by request type"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: tracking_period_end must be after tracking_period_start.",
+      "Invalid metrics_to_track: Must contain valid metric names.",
+      "Date range too large: Maximum tracking period is 90 days.",
+      "Invalid agent_filter: Must contain valid agent IDs."
+    ],
+    "usage": "Provide tracking_period_start and tracking_period_end; optionally specify metrics_to_track, agent_filter, and request_type_filter. Returns comprehensive performance analysis.",
+    "output_details": {
+      "average_wait_time": {
+        "type": "number",
+        "description": "Average wait time in minutes"
+      },
+      "average_resolution_time": {
+        "type": "number",
+        "description": "Average resolution time in minutes"
+      },
+      "routing_accuracy": {
+        "type": "number",
+        "description": "Percentage of requests routed optimally"
+      },
+      "sla_compliance": {
+        "type": "number",
+        "description": "Percentage of requests meeting SLA"
+      },
+      "total_requests_processed": {
+        "type": "integer",
+        "description": "Total number of requests in tracking period"
+      },
+      "improvement_recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Actionable recommendations for performance improvement"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Queue Reorganizer",
+    "tool_description": "Reorganizes existing queue order based on changing priorities, new information, or optimization rules to improve overall efficiency.",
+    "parameters": {
+      "current_queue": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Current queue of request IDs in order"
+      },
+      "updated_priorities": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Updated priority scores corresponding to current_queue"
+      },
+      "reorganization_trigger": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for reorganization (priority_change, sla_risk, agent_availability, manual)"
+      },
+      "affected_requests": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": [],
+        "description": "Specific request IDs that triggered reorganization"
+      },
+      "max_position_change": {
+        "type": "integer",
+        "required": false,
+        "default": 5,
+        "description": "Maximum positions a request can move to minimize disruption"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: current_queue and updated_priorities must have same length.",
+      "Invalid reorganization_trigger: Must be one of [priority_change, sla_risk, agent_availability, manual].",
+      "Invalid max_position_change: Must be a positive integer.",
+      "Empty queue: current_queue cannot be empty."
+    ],
+    "usage": "Provide current_queue, updated_priorities, and reorganization_trigger; optionally specify affected_requests and max_position_change. Returns optimized queue order.",
+    "output_details": {
+      "reorganized_queue": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "New queue order after reorganization"
+      },
+      "positions_changed": {
+        "type": "integer",
+        "description": "Number of requests that changed position"
+      },
+      "efficiency_improvement": {
+        "type": "number",
+        "description": "Estimated efficiency improvement percentage"
+      },
+      "affected_customers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Customer IDs whose wait times were significantly affected"
+      }
+    }
+  }
+  ```

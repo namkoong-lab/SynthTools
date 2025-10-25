@@ -1,0 +1,830 @@
+field_name: sales_and_crm
+subfield: Contact and Account Management
+task: Contact data enrichment and validation
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves moderate complexity with multiple data sources, validation rules, and potential integration challenges. The scope includes data cleansing, external API calls for enrichment, validation logic, and maintaining data quality standards. The task has medium difficulty due to coordination between multiple data sources, handling inconsistent data formats, and managing API rate limits and failures.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'm targeting 12 tools to cover data validation, enrichment workflows, deduplication, formatting, and quality assessment while maintaining composability and avoiding overlap.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  - **Contact Data Validator** → consumes: raw contact records → produces: validation results
+  - **Email Validator** → consumes: email addresses → produces: email validity status
+  - **Phone Number Formatter** → consumes: raw phone numbers → produces: standardized phone formats
+  - **Company Data Enricher** → consumes: company names/domains → produces: enriched company information
+  - **Social Profile Finder** → consumes: contact details → produces: social media profiles
+  - **Contact Deduplicator** → consumes: contact lists → produces: deduplicated records
+  - **Address Standardizer** → consumes: raw addresses → produces: standardized addresses
+  - **Contact Score Calculator** → consumes: enriched contact data → produces: quality scores
+  - **Data Quality Reporter** → consumes: validation results → produces: quality metrics
+  - **Contact Merger** → consumes: multiple contact records → produces: merged contact record
+  - **Industry Classifier** → consumes: company information → produces: industry classifications
+  - **Contact Export Formatter** → consumes: validated contacts → produces: formatted export data
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple workflows:**
+  1. **Basic Email Validation**: Email Validator → Data Quality Reporter
+  2. **Phone Standardization**: Phone Number Formatter → Contact Export Formatter
+
+  **Medium complexity workflows:**
+  1. **Standard Enrichment**: Contact Data Validator → Company Data Enricher → Address Standardizer → Contact Score Calculator
+  2. **Duplicate Cleanup**: Contact Deduplicator → Contact Merger → Data Quality Reporter
+
+  **Complex workflows:**
+  1. **Full Contact Enhancement**: Contact Data Validator → Email Validator → Phone Number Formatter → Company Data Enricher → Social Profile Finder → Address Standardizer → Industry Classifier → Contact Score Calculator → Data Quality Reporter
+  2. **Complete Data Hygiene**: Contact Deduplicator → Contact Data Validator → Contact Merger → Company Data Enricher → Address Standardizer → Contact Score Calculator → Contact Export Formatter
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Contact Data Validator",
+    "tool_description": "Validates contact records against predefined rules and data quality standards, checking for required fields, format compliance, and basic data integrity.",
+    "parameters": {
+      "contact_records": {
+        "type": "array",
+        "required": true,
+        "description": "Array of contact record identifiers to validate",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "validation_rules": {
+        "type": "array",
+        "required": true,
+        "description": "Validation rules to apply: required_fields, email_format, phone_format, name_length, company_required",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "strict_mode": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply strict validation rules",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid contact records: Ensure contact_records array contains valid string identifiers.",
+      "Unknown validation rule: Use supported rules [required_fields, email_format, phone_format, name_length, company_required].",
+      "Batch size exceeded: Maximum 1000 contact records per validation request.",
+      "Missing required parameters: Both contact_records and validation_rules are required."
+    ],
+    "usage": "Provide an array of contact record identifiers and specify which validation rules to apply. Set strict_mode to true for more rigorous validation. Returns validation results with pass/fail status and specific issues found.",
+    "output_details": {
+      "total_records": {
+        "type": "integer",
+        "description": "Total number of records validated"
+      },
+      "passed_records": {
+        "type": "integer",
+        "description": "Number of records that passed validation"
+      },
+      "failed_records": {
+        "type": "integer",
+        "description": "Number of records that failed validation"
+      },
+      "validation_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed validation results for each record"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Email Validator",
+    "tool_description": "Validates email addresses using syntax checking, domain verification, and deliverability testing to ensure email addresses are valid and active.",
+    "parameters": {
+      "email_addresses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of email addresses to validate",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "check_deliverability": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform deliverability checks",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid email format: Ensure all email addresses follow standard email format.",
+      "Batch limit exceeded: Maximum 500 email addresses per request.",
+      "Rate limit reached: Too many requests, please wait before retrying.",
+      "Service unavailable: Email validation service is temporarily unavailable."
+    ],
+    "usage": "Provide an array of email addresses to validate. Set check_deliverability to false for faster syntax-only validation. Returns validation status and confidence scores for each email.",
+    "output_details": {
+      "validation_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Validation results for each email address"
+      },
+      "valid_count": {
+        "type": "integer",
+        "description": "Number of valid email addresses"
+      },
+      "invalid_count": {
+        "type": "integer",
+        "description": "Number of invalid email addresses"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Phone Number Formatter",
+    "tool_description": "Standardizes and formats phone numbers according to international standards, detecting country codes and applying appropriate formatting rules.",
+    "parameters": {
+      "phone_numbers": {
+        "type": "array",
+        "required": true,
+        "description": "Array of raw phone numbers to format",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "default_country": {
+        "type": "string",
+        "required": false,
+        "description": "Default country code (ISO 3166-1 alpha-2) for numbers without country codes",
+        "default": "US"
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "description": "Desired output format: international, national, e164",
+        "default": "international"
+      },
+      "validate_numbers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate phone numbers for correctness",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid country code: Use valid ISO 3166-1 alpha-2 country codes.",
+      "Unsupported output format: Use one of [international, national, e164].",
+      "Invalid phone number: Some phone numbers could not be parsed or validated.",
+      "Batch size exceeded: Maximum 1000 phone numbers per request."
+    ],
+    "usage": "Provide an array of phone numbers with optional country and format preferences. The tool will standardize formatting and optionally validate numbers. Returns formatted numbers with validation status.",
+    "output_details": {
+      "formatted_numbers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of formatted phone numbers"
+      },
+      "validation_status": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Validation status for each phone number"
+      },
+      "processing_summary": {
+        "type": "string",
+        "description": "Summary of formatting results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Company Data Enricher",
+    "tool_description": "Enriches company information by fetching additional data from external sources including company size, industry, revenue, founding date, and key personnel details.",
+    "parameters": {
+      "company_names": {
+        "type": "array",
+        "required": false,
+        "description": "Array of company names to enrich",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "company_domains": {
+        "type": "array",
+        "required": false,
+        "description": "Array of company domains to enrich",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "data_sources": {
+        "type": "array",
+        "required": true,
+        "description": "Data sources to use: linkedin, crunchbase, clearbit, owler, zoominfo",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "fields_to_enrich": {
+        "type": "array",
+        "required": true,
+        "description": "Fields to enrich: industry, size, revenue, founded_year, description, location, employees",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "match_confidence": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence score for company matching (0.1 to 1.0)",
+        "default": 0.7
+      },
+      "include_subsidiaries": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include subsidiary information",
+        "default": false
+      },
+      "max_results_per_company": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of enrichment results per company",
+        "default": 1
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Request timeout in seconds",
+        "default": 30
+      },
+      "priority_source": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred data source when conflicts occur",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "No input provided: Either company_names or company_domains must be provided.",
+      "Invalid data source: Use supported sources [linkedin, crunchbase, clearbit, owler, zoominfo].",
+      "Invalid enrichment field: Use supported fields [industry, size, revenue, founded_year, description, location, employees].",
+      "Invalid confidence score: match_confidence must be between 0.1 and 1.0.",
+      "API quota exceeded: Daily enrichment quota has been reached.",
+      "Timeout error: Request timed out, consider increasing timeout_seconds.",
+      "Invalid priority source: priority_source must be one of the selected data_sources."
+    ],
+    "usage": "Provide either company names or domains, specify data sources and fields to enrich. Adjust match_confidence for stricter matching. Returns enriched company data with confidence scores and source attribution.",
+    "output_details": {
+      "enriched_companies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of enriched company data records"
+      },
+      "enrichment_summary": {
+        "type": "string",
+        "description": "Summary of enrichment results and coverage"
+      },
+      "failed_enrichments": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Companies that could not be enriched"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Social Profile Finder",
+    "tool_description": "Discovers and validates social media profiles for contacts across major platforms using name, email, and company information for matching.",
+    "parameters": {
+      "contact_identifiers": {
+        "type": "array",
+        "required": true,
+        "description": "Array of contact identifiers to find social profiles for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "platforms": {
+        "type": "array",
+        "required": true,
+        "description": "Social platforms to search: linkedin, twitter, facebook, instagram, github",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "search_depth": {
+        "type": "string",
+        "required": false,
+        "description": "Search depth: shallow, medium, deep",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Invalid platform: Use supported platforms [linkedin, twitter, facebook, instagram, github].",
+      "Batch size exceeded: Maximum 200 contacts per request.",
+      "Invalid search depth: Use one of [shallow, medium, deep].",
+      "Rate limit exceeded: Too many social profile requests, please wait before retrying."
+    ],
+    "usage": "Provide contact identifiers and specify which social platforms to search. Choose search depth based on time vs. accuracy trade-off. Returns discovered profiles with confidence scores.",
+    "output_details": {
+      "found_profiles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of discovered social media profiles"
+      },
+      "search_summary": {
+        "type": "string",
+        "description": "Summary of social profile search results"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each found profile"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contact Deduplicator",
+    "tool_description": "Identifies and groups duplicate contact records using fuzzy matching algorithms on names, emails, phone numbers, and company information.",
+    "parameters": {
+      "contact_dataset": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier for the contact dataset to deduplicate"
+      },
+      "matching_fields": {
+        "type": "array",
+        "required": true,
+        "description": "Fields to use for matching: email, phone, name, company, address",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Similarity threshold for fuzzy matching (0.1 to 1.0)",
+        "default": 0.85
+      },
+      "exact_match_fields": {
+        "type": "array",
+        "required": false,
+        "description": "Fields requiring exact matches",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid dataset identifier: Provided dataset identifier not found or inaccessible.",
+      "Invalid matching field: Use supported fields [email, phone, name, company, address].",
+      "Invalid similarity threshold: Threshold must be between 0.1 and 1.0.",
+      "Dataset too large: Maximum dataset size exceeded for deduplication processing."
+    ],
+    "usage": "Specify the dataset identifier and matching fields to use for deduplication. Adjust similarity_threshold for stricter or looser matching. Returns grouped duplicates with similarity scores.",
+    "output_details": {
+      "duplicate_groups": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Groups of duplicate contact records"
+      },
+      "total_duplicates": {
+        "type": "integer",
+        "description": "Total number of duplicate records found"
+      },
+      "deduplication_summary": {
+        "type": "string",
+        "description": "Summary of deduplication process and results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Address Standardizer",
+    "tool_description": "Standardizes and validates postal addresses using postal service databases and geocoding services to ensure consistency and deliverability.",
+    "parameters": {
+      "addresses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of raw addresses to standardize",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "country_hint": {
+        "type": "string",
+        "required": false,
+        "description": "ISO country code to assist with address parsing",
+        "default": "US"
+      },
+      "include_geocoding": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include latitude/longitude coordinates",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid country code: Use valid ISO 3166-1 alpha-2 country codes.",
+      "Batch size exceeded: Maximum 500 addresses per request.",
+      "Address parsing failed: Some addresses could not be parsed or standardized.",
+      "Geocoding service unavailable: Coordinates could not be retrieved for addresses."
+    ],
+    "usage": "Provide an array of raw addresses with optional country hint for better parsing accuracy. Enable geocoding if coordinates are needed. Returns standardized addresses with validation status.",
+    "output_details": {
+      "standardized_addresses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of standardized address strings"
+      },
+      "validation_status": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Validation status for each address"
+      },
+      "coordinates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Latitude/longitude coordinates if geocoding enabled"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contact Score Calculator",
+    "tool_description": "Calculates quality and completeness scores for contact records based on data richness, accuracy, and freshness indicators.",
+    "parameters": {
+      "contact_records": {
+        "type": "array",
+        "required": true,
+        "description": "Array of contact record identifiers to score",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "scoring_criteria": {
+        "type": "array",
+        "required": true,
+        "description": "Criteria to include: completeness, accuracy, freshness, enrichment, social_presence",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "weight_completeness": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for completeness score (0.0 to 1.0)",
+        "default": 0.3
+      },
+      "weight_accuracy": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for accuracy score (0.0 to 1.0)",
+        "default": 0.4
+      },
+      "weight_freshness": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for data freshness (0.0 to 1.0)",
+        "default": 0.2
+      },
+      "weight_enrichment": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for enrichment level (0.0 to 1.0)",
+        "default": 0.1
+      }
+    },
+    "error_messages": [
+      "Invalid scoring criteria: Use supported criteria [completeness, accuracy, freshness, enrichment, social_presence].",
+      "Invalid weight values: All weights must be between 0.0 and 1.0.",
+      "Weights don't sum to 1.0: The sum of all weight parameters must equal 1.0.",
+      "Batch size exceeded: Maximum 1000 contact records per scoring request."
+    ],
+    "usage": "Provide contact record identifiers and specify scoring criteria. Adjust weights to emphasize different quality aspects. Ensure all weights sum to 1.0. Returns individual and aggregate quality scores.",
+    "output_details": {
+      "contact_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Quality scores for each contact record"
+      },
+      "average_score": {
+        "type": "number",
+        "description": "Average quality score across all contacts"
+      },
+      "score_distribution": {
+        "type": "string",
+        "description": "Distribution summary of quality scores"
+      },
+      "scoring_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed scoring breakdown for each contact"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Quality Reporter",
+    "tool_description": "Generates comprehensive reports on contact data quality metrics, identifying trends, issues, and improvement opportunities across the dataset.",
+    "parameters": {
+      "dataset_identifier": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier for the contact dataset to analyze"
+      },
+      "report_sections": {
+        "type": "array",
+        "required": true,
+        "description": "Report sections to include: overview, validation_results, completeness_analysis, duplicate_analysis, enrichment_coverage",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "include_recommendations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include improvement recommendations",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid dataset identifier: Specified dataset not found or inaccessible.",
+      "Invalid report section: Use supported sections [overview, validation_results, completeness_analysis, duplicate_analysis, enrichment_coverage].",
+      "Insufficient data: Dataset too small to generate meaningful quality metrics.",
+      "Analysis timeout: Dataset too large, consider splitting into smaller batches."
+    ],
+    "usage": "Specify the dataset identifier and desired report sections. Enable recommendations for actionable insights. Returns comprehensive quality analysis with metrics and suggestions.",
+    "output_details": {
+      "quality_report": {
+        "type": "string",
+        "description": "Comprehensive data quality report"
+      },
+      "key_metrics": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Key quality metrics and KPIs"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Improvement recommendations if enabled"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contact Merger",
+    "tool_description": "Merges duplicate contact records into single consolidated records, preserving the most complete and accurate information from each source.",
+    "parameters": {
+      "duplicate_groups": {
+        "type": "array",
+        "required": true,
+        "description": "Array of duplicate contact group identifiers to merge",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "merge_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Strategy for conflicting data: newest, most_complete, manual_review",
+        "default": "most_complete"
+      },
+      "preserve_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to maintain audit trail of merged records",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid duplicate groups: One or more group identifiers not found or invalid.",
+      "Invalid merge strategy: Use one of [newest, most_complete, manual_review].",
+      "Merge conflict: Some records have conflicting data requiring manual resolution.",
+      "Batch size exceeded: Maximum 100 duplicate groups per merge operation."
+    ],
+    "usage": "Provide duplicate group identifiers from deduplication results. Choose merge strategy based on business rules. Enable preserve_history for compliance requirements. Returns merged contact records.",
+    "output_details": {
+      "merged_contacts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of merged contact record identifiers"
+      },
+      "merge_summary": {
+        "type": "string",
+        "description": "Summary of merge operations performed"
+      },
+      "conflicts_requiring_review": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Records requiring manual review due to conflicts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Industry Classifier",
+    "tool_description": "Classifies companies into standard industry categories using company descriptions, websites, and business information with confidence scoring.",
+    "parameters": {
+      "company_identifiers": {
+        "type": "array",
+        "required": true,
+        "description": "Array of company identifiers to classify",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "classification_system": {
+        "type": "string",
+        "required": false,
+        "description": "Industry classification system: NAICS, SIC, GICS",
+        "default": "NAICS"
+      }
+    },
+    "error_messages": [
+      "Invalid classification system: Use one of [NAICS, SIC, GICS].",
+      "Company data insufficient: Some companies lack enough information for accurate classification.",
+      "Batch size exceeded: Maximum 500 companies per classification request.",
+      "Classification service unavailable: Industry classification service is temporarily down."
+    ],
+    "usage": "Provide company identifiers and choose the desired classification system. The tool analyzes available company data to assign appropriate industry codes with confidence levels.",
+    "output_details": {
+      "industry_classifications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Industry classifications for each company"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each classification"
+      },
+      "classification_summary": {
+        "type": "string",
+        "description": "Summary of classification results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contact Export Formatter",
+    "tool_description": "Formats validated and enriched contact data for export to various CRM systems and marketing platforms with field mapping and transformation capabilities.",
+    "parameters": {
+      "contact_records": {
+        "type": "array",
+        "required": true,
+        "description": "Array of contact record identifiers to format for export",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 5000
+      },
+      "export_format": {
+        "type": "string",
+        "required": true,
+        "description": "Export format: csv, json, xml, salesforce, hubspot, mailchimp"
+      },
+      "field_mapping": {
+        "type": "array",
+        "required": false,
+        "description": "Custom field mappings for target system",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "include_headers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include column headers in export",
+        "default": true
+      },
+      "date_format": {
+        "type": "string",
+        "required": false,
+        "description": "Date format for export: iso, us, eu, custom",
+        "default": "iso"
+      }
+    },
+    "error_messages": [
+      "Unsupported export format: Use one of [csv, json, xml, salesforce, hubspot, mailchimp].",
+      "Invalid field mapping: Field mapping format is incorrect or contains invalid field names.",
+      "Export size exceeded: Maximum 5000 contact records per export operation.",
+      "Invalid date format: Use one of [iso, us, eu, custom] or provide valid custom format.",
+      "Missing required fields: Some contacts lack required fields for the chosen export format."
+    ],
+    "usage": "Specify contact records and desired export format. Provide field mapping for custom integrations. Choose appropriate date format for target system compatibility. Returns formatted export data ready for import.",
+    "output_details": {
+      "export_data": {
+        "type": "string",
+        "description": "Formatted export data in requested format"
+      },
+      "record_count": {
+        "type": "integer",
+        "description": "Number of records in export"
+      },
+      "export_summary": {
+        "type": "string",
+        "description": "Summary of export operation and any issues"
+      },
+      "field_mapping_used": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Field mappings applied during export"
+      }
+    }
+  }
+  ```

@@ -1,0 +1,876 @@
+field_name: document_scanning_and_ocr
+subfield: invoice_and_receipt_processing
+task: Extract structured data from invoices including vendor details, amounts, dates, and line items
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task is of **hard** difficulty. It requires handling diverse invoice formats, complex OCR processing, sophisticated text extraction and parsing, data validation and correction, and has high accuracy requirements since financial data extraction errors can have significant business impact.
+
+  **STEP 2 — Set a tool budget**
+  Given the hard difficulty rating, I'm targeting **17 tools** to cover the comprehensive workflow from image preprocessing through structured data extraction and validation.
+
+  **STEP 3 — List all tool names and dependencies**
+  Tools and their data flow:
+  - Document Image Preprocessor (consumes: raw image → produces: cleaned image)
+  - OCR Text Extractor (consumes: processed image → produces: raw text)
+  - Invoice Format Detector (consumes: text/image → produces: format classification)
+  - Vendor Information Extractor (consumes: OCR text → produces: vendor details)
+  - Date Information Extractor (consumes: OCR text → produces: structured dates)
+  - Amount Extractor (consumes: OCR text → produces: financial amounts)
+  - Line Item Parser (consumes: OCR text → produces: itemized data)
+  - Tax Information Extractor (consumes: OCR text → produces: tax details)
+  - Invoice Number Extractor (consumes: OCR text → produces: reference numbers)
+  - Text Region Classifier (consumes: OCR text with coordinates → produces: labeled regions)
+  - Currency Converter (consumes: amounts + currencies → produces: standardized amounts)
+  - Data Validation Engine (consumes: extracted data → produces: validation results)
+  - Confidence Score Calculator (consumes: extraction results → produces: reliability scores)
+  - Duplicate Invoice Detector (consumes: invoice data → produces: duplicate flags)
+  - Structured Data Formatter (consumes: all extracted data → produces: standardized JSON)
+  - Error Correction Suggester (consumes: low-confidence extractions → produces: correction suggestions)
+  - Invoice Summary Generator (consumes: structured data → produces: executive summary)
+
+  **STEP 4 — Multi-tool plans**
+  Simple plans:
+  1. Basic extraction: Document Image Preprocessor → OCR Text Extractor → Vendor Information Extractor → Amount Extractor → Structured Data Formatter
+  2. Quick validation: OCR Text Extractor → Data Validation Engine → Confidence Score Calculator
+
+  Medium plans:
+  1. Standard processing: Document Image Preprocessor → OCR Text Extractor → Invoice Format Detector → Vendor Information Extractor → Date Information Extractor → Amount Extractor → Line Item Parser → Structured Data Formatter → Data Validation Engine
+  2. Enhanced extraction: Text Region Classifier → Vendor Information Extractor → Tax Information Extractor → Invoice Number Extractor → Currency Converter → Duplicate Invoice Detector
+
+  Complex plans:
+  1. Full pipeline: Document Image Preprocessor → OCR Text Extractor → Invoice Format Detector → Text Region Classifier → Vendor Information Extractor → Date Information Extractor → Amount Extractor → Line Item Parser → Tax Information Extractor → Invoice Number Extractor → Currency Converter → Data Validation Engine → Confidence Score Calculator → Error Correction Suggester → Structured Data Formatter → Invoice Summary Generator
+  2. Quality-focused workflow: All extraction tools → Data Validation Engine → Confidence Score Calculator → Error Correction Suggester → Duplicate Invoice Detector → final formatting and summary
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Document Image Preprocessor",
+    "tool_description": "Preprocesses invoice images to improve OCR accuracy by applying noise reduction, contrast enhancement, skew correction, and resolution optimization.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the input invoice image file"
+      },
+      "enhancement_level": {
+        "type": "string",
+        "required": false,
+        "description": "Processing intensity: low, medium, high",
+        "default": "medium"
+      },
+      "target_dpi": {
+        "type": "integer",
+        "required": false,
+        "description": "Target resolution in DPI (200-600)",
+        "default": 300
+      }
+    },
+    "error_messages": [
+      "Image file not found: Verify the image_path exists and is accessible",
+      "Unsupported image format: Use JPG, PNG, TIFF, or PDF formats only",
+      "Invalid enhancement level: Use 'low', 'medium', or 'high'",
+      "Invalid DPI value: target_dpi must be between 200-600"
+    ],
+    "usage": "Provide the path to an invoice image. Optionally specify enhancement_level and target_dpi. Returns path to processed image ready for OCR.",
+    "output_details": {
+      "processed_image_path": {
+        "type": "string",
+        "description": "Path to the enhanced image file"
+      },
+      "processing_applied": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of preprocessing operations performed"
+      },
+      "quality_score": {
+        "type": "number",
+        "description": "Estimated image quality score (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "OCR Text Extractor",
+    "tool_description": "Extracts text from invoice images using OCR technology, preserving spatial coordinates and confidence levels for each text element.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the invoice image file"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "OCR language code (e.g., 'en', 'es', 'fr')",
+        "default": "en"
+      },
+      "ocr_engine": {
+        "type": "string",
+        "required": false,
+        "description": "OCR engine to use: tesseract, azure, aws",
+        "default": "tesseract"
+      },
+      "preserve_layout": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to maintain spatial text positioning",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Image file not accessible: Ensure image_path points to a valid, readable file",
+      "Unsupported language code: Use standard ISO language codes (en, es, fr, de, etc.)",
+      "Invalid OCR engine: Choose from tesseract, azure, or aws",
+      "OCR processing failed: Image may be corrupted or unreadable, try preprocessing first"
+    ],
+    "usage": "Provide image_path and optionally specify language, ocr_engine, and preserve_layout settings. Returns extracted text with spatial information.",
+    "output_details": {
+      "extracted_text": {
+        "type": "string",
+        "description": "Complete text content from the invoice"
+      },
+      "text_blocks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Individual text blocks with spatial coordinates"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each text block (0-100)"
+      },
+      "overall_confidence": {
+        "type": "number",
+        "description": "Average confidence score for entire extraction"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Format Detector",
+    "tool_description": "Analyzes invoice structure and layout to classify the document type and format, enabling format-specific extraction strategies.",
+    "parameters": {
+      "text_content": {
+        "type": "string",
+        "required": true,
+        "description": "OCR extracted text from the invoice"
+      },
+      "image_path": {
+        "type": "string",
+        "required": false,
+        "description": "Path to invoice image for visual analysis",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty text content: Provide non-empty OCR text for analysis",
+      "Unrecognized invoice format: Document may not be a standard invoice format",
+      "Image file not found: Verify image_path exists if visual analysis is requested"
+    ],
+    "usage": "Input OCR text and optionally the image path. Returns detected invoice format and layout characteristics for optimized processing.",
+    "output_details": {
+      "format_type": {
+        "type": "string",
+        "description": "Detected invoice format (standard, itemized, service, utility, etc.)"
+      },
+      "layout_structure": {
+        "type": "string",
+        "description": "Document layout pattern (tabular, free-form, mixed)"
+      },
+      "confidence": {
+        "type": "number",
+        "description": "Detection confidence score (0-100)"
+      },
+      "key_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Features that led to format classification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Vendor Information Extractor",
+    "tool_description": "Extracts comprehensive vendor details including company name, address, contact information, and tax identifiers from invoice text.",
+    "parameters": {
+      "ocr_text": {
+        "type": "string",
+        "required": true,
+        "description": "OCR extracted text from invoice"
+      },
+      "format_type": {
+        "type": "string",
+        "required": false,
+        "description": "Known invoice format to guide extraction",
+        "default": "None"
+      },
+      "country_code": {
+        "type": "string",
+        "required": false,
+        "description": "Expected vendor country (ISO 2-letter code)",
+        "default": "US"
+      },
+      "extract_logo_text": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract text near logo areas",
+        "default": true
+      },
+      "validate_tax_ids": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate tax ID formats",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Empty OCR text: Provide valid OCR extracted text content",
+      "Invalid country code: Use ISO 3166-1 alpha-2 country codes",
+      "No vendor information found: Text may not contain recognizable vendor details",
+      "Multiple vendor candidates: Text contains ambiguous vendor information, manual review needed"
+    ],
+    "usage": "Input OCR text with optional format guidance and validation preferences. Returns structured vendor information with confidence scores.",
+    "output_details": {
+      "vendor_name": {
+        "type": "string",
+        "description": "Extracted company/vendor name"
+      },
+      "vendor_address": {
+        "type": "string",
+        "description": "Complete vendor address"
+      },
+      "phone_number": {
+        "type": "string",
+        "description": "Vendor phone number if found"
+      },
+      "email": {
+        "type": "string",
+        "description": "Vendor email address if found"
+      },
+      "tax_id": {
+        "type": "string",
+        "description": "Vendor tax identification number"
+      },
+      "website": {
+        "type": "string",
+        "description": "Vendor website URL if found"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each extracted field"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Date Information Extractor",
+    "tool_description": "Identifies and extracts all date-related information from invoices including invoice date, due date, service period, and delivery dates.",
+    "parameters": {
+      "text_content": {
+        "type": "string",
+        "required": true,
+        "description": "OCR extracted text content"
+      },
+      "date_formats": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Expected date formats (MM/DD/YYYY, DD-MM-YYYY, etc.)",
+        "default": ["MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD"]
+      },
+      "locale": {
+        "type": "string",
+        "required": false,
+        "description": "Locale for date interpretation (en-US, en-GB, etc.)",
+        "default": "en-US"
+      }
+    },
+    "error_messages": [
+      "No text provided: Input OCR text content is required",
+      "No dates found: Text does not contain recognizable date patterns",
+      "Invalid date format specification: Use standard date format patterns",
+      "Ambiguous date interpretation: Multiple valid date interpretations found, specify locale or format"
+    ],
+    "usage": "Provide OCR text and optionally specify expected date formats and locale. Returns all identified dates with their types and confidence levels.",
+    "output_details": {
+      "invoice_date": {
+        "type": "string",
+        "description": "Main invoice date in ISO format"
+      },
+      "due_date": {
+        "type": "string",
+        "description": "Payment due date if found"
+      },
+      "service_start_date": {
+        "type": "string",
+        "description": "Service period start date if applicable"
+      },
+      "service_end_date": {
+        "type": "string",
+        "description": "Service period end date if applicable"
+      },
+      "delivery_date": {
+        "type": "string",
+        "description": "Delivery or shipped date if found"
+      },
+      "all_dates_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "All date strings identified in the document"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each extracted date"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Amount Extractor",
+    "tool_description": "Identifies and extracts all monetary amounts from invoices including subtotal, tax, total, discounts, and individual line item amounts with currency detection.",
+    "parameters": {
+      "ocr_text": {
+        "type": "string",
+        "required": true,
+        "description": "OCR extracted text from invoice"
+      },
+      "default_currency": {
+        "type": "string",
+        "required": false,
+        "description": "Default currency code if not detected",
+        "default": "USD"
+      },
+      "decimal_separator": {
+        "type": "string",
+        "required": false,
+        "description": "Decimal separator used (. or ,)",
+        "default": "."
+      },
+      "thousand_separator": {
+        "type": "string",
+        "required": false,
+        "description": "Thousand separator used (, or space)",
+        "default": ","
+      },
+      "extract_negative": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract negative amounts (credits/returns)",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "No text provided: OCR text content is required for amount extraction",
+      "No monetary amounts found: Text does not contain recognizable currency amounts",
+      "Invalid currency code: Use standard 3-letter ISO currency codes",
+      "Conflicting number formats: Detected multiple incompatible number formatting styles",
+      "Invalid separator configuration: Decimal and thousand separators cannot be the same"
+    ],
+    "usage": "Input OCR text with optional currency and formatting preferences. Returns all identified monetary amounts with their types and confidence levels.",
+    "output_details": {
+      "subtotal": {
+        "type": "number",
+        "description": "Invoice subtotal amount"
+      },
+      "tax_amount": {
+        "type": "number",
+        "description": "Total tax amount"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Final total amount"
+      },
+      "discount_amount": {
+        "type": "number",
+        "description": "Total discount amount if any"
+      },
+      "currency": {
+        "type": "string",
+        "description": "Detected or default currency code"
+      },
+      "all_amounts": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "All monetary amounts found in document"
+      },
+      "amount_labels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Descriptive labels for each amount found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Line Item Parser",
+    "tool_description": "Extracts detailed line item information from invoices including product descriptions, quantities, unit prices, and line totals with support for various table formats.",
+    "parameters": {
+      "invoice_text": {
+        "type": "string",
+        "required": true,
+        "description": "OCR extracted text from invoice"
+      },
+      "table_detection_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for table detection: auto, manual_regex, column_based",
+        "default": "auto"
+      },
+      "currency_symbol": {
+        "type": "string",
+        "required": false,
+        "description": "Currency symbol to identify price columns",
+        "default": "$"
+      },
+      "min_line_items": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum expected number of line items (1-100)",
+        "default": 1
+      },
+      "max_line_items": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum expected number of line items (1-1000)",
+        "default": 100
+      },
+      "include_headers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to identify and include table headers",
+        "default": true
+      },
+      "parse_product_codes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract product/SKU codes",
+        "default": true
+      },
+      "quantity_patterns": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Custom patterns for quantity detection",
+        "default": ["qty", "quantity", "units", "count"]
+      }
+    },
+    "error_messages": [
+      "Empty invoice text: Provide valid OCR text content for line item parsing",
+      "No line items detected: Text does not contain recognizable tabular line item data",
+      "Invalid table detection method: Use 'auto', 'manual_regex', or 'column_based'",
+      "Invalid line item limits: min_line_items must be ≤ max_line_items, both within valid ranges",
+      "Table structure too complex: Line item table format is too irregular for automatic parsing",
+      "Inconsistent column structure: Detected table has inconsistent number of columns across rows"
+    ],
+    "usage": "Provide OCR text and optionally configure table detection parameters. Returns structured line item data with descriptions, quantities, prices, and totals.",
+    "output_details": {
+      "line_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of line item records with all extracted fields"
+      },
+      "item_descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Product or service descriptions for each line"
+      },
+      "quantities": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Quantity values for each line item"
+      },
+      "unit_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Unit price for each line item"
+      },
+      "line_totals": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Total amount for each line item"
+      },
+      "product_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Product codes or SKUs if found"
+      },
+      "table_headers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detected column headers from the line item table"
+      },
+      "parsing_confidence": {
+        "type": "number",
+        "description": "Overall confidence in line item parsing accuracy"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tax Information Extractor",
+    "tool_description": "Extracts detailed tax information including tax rates, amounts, tax types, and exemptions from invoice text with multi-jurisdiction support.",
+    "parameters": {
+      "text_content": {
+        "type": "string",
+        "required": true,
+        "description": "OCR extracted text from invoice"
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": false,
+        "description": "Tax jurisdiction (US, EU, CA, AU, etc.)",
+        "default": "US"
+      },
+      "extract_tax_ids": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract tax registration numbers",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "No text content provided: OCR text is required for tax information extraction",
+      "Unsupported jurisdiction: Use supported tax jurisdiction codes (US, EU, CA, AU, UK, etc.)",
+      "No tax information found: Document does not contain recognizable tax details"
+    ],
+    "usage": "Input OCR text with optional jurisdiction specification. Returns comprehensive tax information including rates, amounts, and applicable tax types.",
+    "output_details": {
+      "total_tax_amount": {
+        "type": "number",
+        "description": "Sum of all tax amounts"
+      },
+      "tax_rate": {
+        "type": "number",
+        "description": "Primary tax rate percentage"
+      },
+      "tax_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Types of taxes applied (sales tax, VAT, GST, etc.)"
+      },
+      "tax_amounts": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Individual tax amounts for each tax type"
+      },
+      "tax_exemptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Tax exemption information if applicable"
+      },
+      "vendor_tax_id": {
+        "type": "string",
+        "description": "Vendor's tax registration number"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Number Extractor",
+    "tool_description": "Identifies and extracts various reference numbers from invoices including invoice number, purchase order number, and other document identifiers.",
+    "parameters": {
+      "ocr_text": {
+        "type": "string",
+        "required": true,
+        "description": "OCR extracted text from the invoice"
+      },
+      "number_patterns": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Custom regex patterns for number extraction",
+        "default": ["INV-", "PO-", "#"]
+      }
+    },
+    "error_messages": [
+      "Missing OCR text: Provide valid OCR extracted text content",
+      "No reference numbers found: Text does not contain identifiable invoice or reference numbers",
+      "Invalid regex pattern: One or more custom patterns contain invalid regex syntax"
+    ],
+    "usage": "Input OCR text and optionally specify custom number patterns. Returns all identified reference numbers with their probable types.",
+    "output_details": {
+      "invoice_number": {
+        "type": "string",
+        "description": "Primary invoice number"
+      },
+      "purchase_order_number": {
+        "type": "string",
+        "description": "Purchase order number if found"
+      },
+      "reference_numbers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "All reference numbers found in the document"
+      },
+      "number_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Identified types for each reference number"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Text Region Classifier",
+    "tool_description": "Classifies text regions in invoices into semantic categories (header, vendor info, line items, totals, etc.) to improve targeted extraction accuracy.",
+    "parameters": {
+      "text_blocks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Text blocks from OCR with spatial information"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence for classification (0.1-1.0)",
+        "default": 0.7
+      }
+    },
+    "error_messages": [
+      "Empty text blocks array: Provide at least one text block for classification",
+      "Invalid confidence threshold: Value must be between 0.1 and 1.0",
+      "Malformed text blocks: Text blocks must contain valid spatial and content information"
+    ],
+    "usage": "Input text blocks from OCR processing. Returns semantic labels for each text region to guide subsequent extraction tools.",
+    "output_details": {
+      "region_labels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Semantic labels for each text block (header, vendor, amounts, etc.)"
+      },
+      "classification_confidence": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each region classification"
+      },
+      "region_summary": {
+        "type": "string",
+        "description": "Overall document structure summary"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Currency Converter",
+    "tool_description": "Converts monetary amounts between different currencies using current or historical exchange rates, with support for multiple currencies in a single invoice.",
+    "parameters": {
+      "amounts": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": true,
+        "description": "Array of monetary amounts to convert",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "source_currency": {
+        "type": "string",
+        "required": true,
+        "description": "Source currency code (ISO 4217)"
+      },
+      "target_currency": {
+        "type": "string",
+        "required": true,
+        "description": "Target currency code (ISO 4217)"
+      },
+      "conversion_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date for historical rates (YYYY-MM-DD format)",
+        "default": "None"
+      },
+      "round_to": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of decimal places for rounding (0-4)",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Empty amounts array: Provide at least one amount to convert",
+      "Invalid currency code: Use valid ISO 4217 currency codes (USD, EUR, GBP, etc.)",
+      "Same source and target currency: No conversion needed when currencies are identical",
+      "Invalid conversion date: Use YYYY-MM-DD format for historical rates",
+      "Exchange rate unavailable: Could not retrieve exchange rate for specified currency pair and date",
+      "Invalid rounding precision: round_to must be between 0 and 4"
+    ],
+    "usage": "Provide amounts array, source and target currencies, and optionally specify conversion date and rounding. Returns converted amounts with exchange rate information.",
+    "output_details": {
+      "converted_amounts": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of converted monetary amounts"
+      },
+      "exchange_rate": {
+        "type": "number",
+        "description": "Exchange rate used for conversion"
+      },
+      "rate_date": {
+        "type": "string",
+        "description": "Date of the exchange rate used"
+      },
+      "conversion_summary": {
+        "type": "string",
+        "description": "Summary of conversion performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Validation Engine",
+    "tool_description": "Validates extracted invoice data for consistency, completeness, and business rule compliance including mathematical accuracy and format validation.",
+    "parameters": {
+      "vendor_name": {
+        "type": "string",
+        "required": false,
+        "description": "Extracted vendor name",
+        "default": "None"
+      },
+      "invoice_number": {
+        "type": "string",
+        "required": false,
+        "description": "Extracted invoice number",
+        "default": "None"
+      },
+      "invoice_date": {
+        "type": "string",
+        "required": false,
+        "description": "Extracted invoice date",
+        "default": "None"
+      },
+      "total_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Extracted total amount",
+        "default": "None"
+      },
+      "subtotal": {
+        "type": "number",
+        "required": false,
+        "description": "Extracted subtotal",
+        "default": "None"
+      },
+      "tax_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Extracted tax amount",
+        "default": "None"
+      },
+      "line_item_totals": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Array of individual line item totals",
+        "default": "None"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Document currency code",
+        "default": "USD"
+      },
+      "validation_rules": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Specific validation rules to apply",
+        "default": ["math_consistency", "date_validity", "format_compliance"]
+      },
+      "tolerance_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Acceptable variance percentage for mathematical validations (0-5)",
+        "default": 0.01
+      }
+    },
+    "error_messages": [
+      "Mathematical inconsistency detected: Sum of subtotal and tax does not equal total amount within tolerance",
+      "Invalid date format: Invoice date is not in a recognized date format",
+      "Missing critical data:

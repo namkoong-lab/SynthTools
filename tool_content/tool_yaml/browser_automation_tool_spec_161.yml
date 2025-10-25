@@ -1,0 +1,815 @@
+field_name: browser_automation
+subfield: web_scraping_and_data_extraction
+task: Monitor and collect real-time data from news websites and social media feeds
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to the broad scope of monitoring multiple heterogeneous sources (news websites, social media), high coordination requirements between data collection, parsing, filtering, and storage components, significant infrastructure needs for real-time processing, and the critical impact of errors in missing important data or collecting inaccurate information.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** within the 15-20 range to handle the complexity of real-time multi-source data monitoring and extraction.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **URL Health Checker** - Consumes: URLs → Produces: availability status
+  2. **Content Change Detector** - Consumes: URLs, content hashes → Produces: change notifications
+  3. **HTML Content Extractor** - Consumes: URLs, CSS selectors → Produces: raw HTML content
+  4. **RSS Feed Parser** - Consumes: RSS URLs → Produces: structured feed data
+  5. **Social Media Crawler** - Consumes: platform configs, search terms → Produces: social posts
+  6. **Content Parser** - Consumes: raw HTML/text, parsing rules → Produces: structured data
+  7. **Data Deduplicator** - Consumes: content arrays, similarity threshold → Produces: unique content
+  8. **Sentiment Analyzer** - Consumes: text content → Produces: sentiment scores
+  9. **Keyword Filter** - Consumes: content, keywords → Produces: filtered content
+  10. **Content Validator** - Consumes: structured data, validation rules → Produces: validation results
+  11. **Rate Limiter** - Consumes: request configs, timing rules → Produces: throttling controls
+  12. **Data Storage Manager** - Consumes: structured data, storage configs → Produces: storage confirmation
+  13. **Alert Generator** - Consumes: content, alert rules → Produces: notifications
+  14. **Monitoring Dashboard** - Consumes: metrics, data summaries → Produces: status reports
+  15. **Content Scheduler** - Consumes: source configs, schedules → Produces: execution plans
+  16. **Error Logger** - Consumes: error events, context → Produces: error records
+  17. **Data Exporter** - Consumes: stored data, export formats → Produces: exported files
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic news monitoring: URL Health Checker → HTML Content Extractor → Content Parser → Data Storage Manager
+  2. RSS feed collection: RSS Feed Parser → Content Validator → Data Storage Manager
+
+  **Medium Plans:**
+  1. Social media monitoring: Social Media Crawler → Content Parser → Sentiment Analyzer → Keyword Filter → Data Storage Manager → Alert Generator
+  2. Change detection workflow: Content Change Detector → HTML Content Extractor → Content Parser → Data Deduplicator → Data Storage Manager
+
+  **Complex Plans:**
+  1. Full real-time monitoring: Content Scheduler → Rate Limiter → (URL Health Checker + Social Media Crawler + RSS Feed Parser) → Content Parser → Data Deduplicator → Sentiment Analyzer → Keyword Filter → Content Validator → Data Storage Manager → Alert Generator → Error Logger
+  2. Comprehensive data pipeline: Content Scheduler → Multiple crawlers → Content Parser → Data Deduplicator → Content Validator → Sentiment Analyzer → Keyword Filter → Data Storage Manager → Monitoring Dashboard → Data Exporter → Alert Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "URL Health Checker",
+    "tool_description": "Validates the accessibility and response status of target URLs to ensure they are available for data extraction.",
+    "parameters": {
+      "urls": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of URLs to check for availability",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Request timeout in seconds (1-60)",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Invalid URL format: Ensure all URLs are properly formatted with http:// or https:// protocol.",
+      "Timeout value out of range: timeout_seconds must be between 1 and 60.",
+      "Empty URL list: At least one URL must be provided in the urls array."
+    ],
+    "usage": "Provide an array of URLs to check their availability. Optionally set a custom timeout. The tool returns the status of each URL.",
+    "output_details": {
+      "checked_urls": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of URLs that were checked"
+      },
+      "status_codes": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "HTTP status codes for each URL"
+      },
+      "available_count": {
+        "type": "integer",
+        "description": "Number of successfully accessible URLs"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Content Change Detector",
+    "tool_description": "Monitors web pages for content changes by comparing current content hashes with previously stored hashes.",
+    "parameters": {
+      "urls": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of URLs to monitor for changes",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "previous_hashes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Previously computed content hashes for comparison"
+      },
+      "check_interval_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum interval between checks in minutes (1-1440)",
+        "default": 15
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: urls and previous_hashes arrays must have the same length.",
+      "Invalid check interval: check_interval_minutes must be between 1 and 1440.",
+      "Invalid hash format: Previous hashes must be valid hash strings."
+    ],
+    "usage": "Provide URLs to monitor and their previous content hashes. The tool compares current content with previous state and identifies changes.",
+    "output_details": {
+      "changed_urls": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "URLs where content has changed"
+      },
+      "new_hashes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Updated content hashes for all URLs"
+      },
+      "change_count": {
+        "type": "integer",
+        "description": "Number of URLs with detected changes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "HTML Content Extractor",
+    "tool_description": "Extracts specific content from web pages using CSS selectors and returns cleaned HTML or text content.",
+    "parameters": {
+      "url": {
+        "type": "string",
+        "required": true,
+        "description": "Target URL to extract content from"
+      },
+      "css_selectors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "CSS selectors to identify content elements",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "extract_text_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to return text content only or include HTML tags",
+        "default": true
+      },
+      "max_content_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum length of extracted content (100-10000 characters)",
+        "default": 5000
+      }
+    },
+    "error_messages": [
+      "Invalid URL: Provide a valid HTTP or HTTPS URL.",
+      "Invalid CSS selector: One or more CSS selectors are malformed.",
+      "Content length limit exceeded: max_content_length must be between 100 and 10000.",
+      "Page load failed: Unable to load the specified URL."
+    ],
+    "usage": "Provide a URL and CSS selectors to extract specific content. Set extract_text_only to false if HTML formatting is needed.",
+    "output_details": {
+      "extracted_content": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Content extracted using each CSS selector"
+      },
+      "extraction_timestamp": {
+        "type": "string",
+        "description": "When the content was extracted in ISO 8601 format"
+      },
+      "content_hash": {
+        "type": "string",
+        "description": "Hash of the extracted content for change detection"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "RSS Feed Parser",
+    "tool_description": "Parses RSS and Atom feeds to extract structured article data including titles, descriptions, links, and publication dates.",
+    "parameters": {
+      "feed_urls": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of RSS/Atom feed URLs to parse",
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "max_items_per_feed": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of items to extract from each feed (1-100)",
+        "default": 20
+      },
+      "include_content": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include full article content if available",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid feed URL: One or more feed URLs are not valid RSS/Atom feeds.",
+      "Feed parsing failed: Unable to parse one or more feeds due to format issues.",
+      "Items limit out of range: max_items_per_feed must be between 1 and 100.",
+      "Network error: Unable to access one or more feed URLs."
+    ],
+    "usage": "Provide RSS/Atom feed URLs to parse. Optionally limit items per feed and include full content. Returns structured feed data.",
+    "output_details": {
+      "feed_titles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Titles of the processed feeds"
+      },
+      "article_titles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Titles of extracted articles"
+      },
+      "article_links": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "URLs of extracted articles"
+      },
+      "publication_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Publication dates in ISO 8601 format"
+      },
+      "total_articles": {
+        "type": "integer",
+        "description": "Total number of articles extracted"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Social Media Crawler",
+    "tool_description": "Crawls social media platforms using their APIs or public interfaces to collect posts, comments, and engagement data based on search terms or hashtags.",
+    "parameters": {
+      "platforms": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Social media platforms to crawl (twitter, facebook, instagram, linkedin, reddit)",
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "search_terms": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Keywords or hashtags to search for",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "max_posts_per_term": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum posts to collect per search term (1-500)",
+        "default": 50
+      },
+      "time_range_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Time range in hours to look back (1-168)",
+        "default": 24
+      },
+      "include_replies": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include replies and comments",
+        "default": false
+      },
+      "language_code": {
+        "type": "string",
+        "required": false,
+        "description": "Language code for filtering (e.g., 'en', 'es', 'fr')",
+        "default": "en"
+      },
+      "api_key": {
+        "type": "string",
+        "required": true,
+        "description": "API key for accessing social media platforms"
+      }
+    },
+    "error_messages": [
+      "Unsupported platform: Only twitter, facebook, instagram, linkedin, reddit are supported.",
+      "Invalid API key: Provide a valid API key for the selected platforms.",
+      "Posts limit out of range: max_posts_per_term must be between 1 and 500.",
+      "Invalid time range: time_range_hours must be between 1 and 168.",
+      "Rate limit exceeded: API rate limit reached, reduce request frequency.",
+      "Invalid language code: Use a valid ISO 639-1 language code."
+    ],
+    "usage": "Specify platforms and search terms along with API credentials. Configure post limits and time ranges as needed. The tool returns collected social media posts.",
+    "output_details": {
+      "posts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Collected post content"
+      },
+      "post_urls": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "URLs of the collected posts"
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Post timestamps in ISO 8601 format"
+      },
+      "platforms_used": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Platforms from which posts were collected"
+      },
+      "total_posts_collected": {
+        "type": "integer",
+        "description": "Total number of posts collected across all platforms"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Content Parser",
+    "tool_description": "Parses raw HTML or text content using customizable parsing rules to extract structured data like headlines, dates, authors, and body text.",
+    "parameters": {
+      "content": {
+        "type": "string",
+        "required": true,
+        "description": "Raw content to parse (HTML or plain text)"
+      },
+      "content_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of content: 'html', 'text', or 'json'"
+      },
+      "parsing_rules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Parsing rules in format 'field:selector' or 'field:regex'",
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "extract_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract meta tags and metadata",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid content type: Use 'html', 'text', or 'json'.",
+      "Malformed parsing rules: Rules must be in format 'field:selector' or 'field:regex'.",
+      "Content parsing failed: Unable to parse the provided content with given rules.",
+      "Empty content: Content parameter cannot be empty."
+    ],
+    "usage": "Provide raw content and specify parsing rules to extract structured fields. Use CSS selectors for HTML or regex patterns for text content.",
+    "output_details": {
+      "parsed_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Successfully parsed field names"
+      },
+      "field_values": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Extracted values for each parsed field"
+      },
+      "metadata": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Extracted metadata if requested"
+      },
+      "parsing_success": {
+        "type": "boolean",
+        "description": "Whether parsing completed successfully"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Deduplicator",
+    "tool_description": "Removes duplicate content from datasets using similarity algorithms and customizable thresholds to ensure unique data collection.",
+    "parameters": {
+      "content_array": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of content items to deduplicate",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Similarity threshold for duplicate detection (0.1-1.0)",
+        "default": 0.8
+      },
+      "comparison_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for comparison: 'exact', 'fuzzy', or 'semantic'",
+        "default": "fuzzy"
+      }
+    },
+    "error_messages": [
+      "Invalid similarity threshold: Value must be between 0.1 and 1.0.",
+      "Unsupported comparison method: Use 'exact', 'fuzzy', or 'semantic'.",
+      "Empty content array: At least one content item must be provided.",
+      "Content array too large: Maximum 1000 items allowed."
+    ],
+    "usage": "Provide an array of content to deduplicate. Adjust similarity threshold and comparison method based on your deduplication needs.",
+    "output_details": {
+      "unique_content": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Deduplicated content items"
+      },
+      "duplicate_count": {
+        "type": "integer",
+        "description": "Number of duplicates removed"
+      },
+      "unique_count": {
+        "type": "integer",
+        "description": "Number of unique items retained"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sentiment Analyzer",
+    "tool_description": "Analyzes the emotional tone and sentiment of text content, providing sentiment scores and classifications for monitoring public opinion.",
+    "parameters": {
+      "text_content": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of text content to analyze for sentiment",
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "analysis_model": {
+        "type": "string",
+        "required": false,
+        "description": "Sentiment analysis model: 'basic', 'advanced', or 'domain_specific'",
+        "default": "basic"
+      },
+      "include_emotions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include detailed emotion analysis",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Unsupported analysis model: Use 'basic', 'advanced', or 'domain_specific'.",
+      "Text content limit exceeded: Maximum 200 text items allowed.",
+      "Empty text content: At least one text item must be provided.",
+      "Text analysis failed: Unable to process one or more text items."
+    ],
+    "usage": "Provide text content for sentiment analysis. Choose analysis model based on accuracy needs and enable emotion detection if required.",
+    "output_details": {
+      "sentiment_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Sentiment scores ranging from -1 (negative) to 1 (positive)"
+      },
+      "sentiment_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Sentiment classifications (positive, negative, neutral)"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence levels for each sentiment prediction"
+      },
+      "average_sentiment": {
+        "type": "number",
+        "description": "Overall average sentiment score"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Keyword Filter",
+    "tool_description": "Filters content based on keyword matches, relevance scoring, and inclusion/exclusion rules to focus on relevant information.",
+    "parameters": {
+      "content_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Content items to filter",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "include_keywords": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Keywords that content must contain",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "exclude_keywords": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Keywords that should exclude content",
+        "default": null
+      },
+      "match_type": {
+        "type": "string",
+        "required": false,
+        "description": "Keyword matching type: 'exact', 'partial', or 'fuzzy'",
+        "default": "partial"
+      },
+      "minimum_relevance_score": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum relevance score to include content (0-1)",
+        "default": 0.3
+      }
+    },
+    "error_messages": [
+      "Invalid match type: Use 'exact', 'partial', or 'fuzzy'.",
+      "Relevance score out of range: minimum_relevance_score must be between 0 and 1.",
+      "Too many keywords: Maximum 50 include keywords and 50 exclude keywords allowed.",
+      "Empty keyword list: At least one include keyword must be provided."
+    ],
+    "usage": "Provide content and include keywords for filtering. Optionally add exclude keywords and adjust match type and relevance threshold.",
+    "output_details": {
+      "filtered_content": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Content items that passed the keyword filter"
+      },
+      "relevance_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Relevance scores for each filtered item"
+      },
+      "matched_keywords": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Keywords that were matched in the content"
+      },
+      "filtered_count": {
+        "type": "integer",
+        "description": "Number of items that passed the filter"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Content Validator",
+    "tool_description": "Validates structured content against predefined rules and schemas to ensure data quality and consistency before storage.",
+    "parameters": {
+      "content_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Structured content data to validate",
+        "minItems": 1,
+        "maxItems": 300
+      },
+      "validation_rules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Validation rules in format 'field:rule_type:parameters'",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "strict_mode": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to reject content that fails any validation rule",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Malformed validation rules: Rules must be in format 'field:rule_type:parameters'.",
+      "Unsupported rule type: Use supported validation rule types (required, length, format, range).",
+      "Content validation failed: One or more content items failed validation rules.",
+      "Empty validation rules: At least one validation rule must be provided."
+    ],
+    "usage": "Provide content data and validation rules to check data quality. Use strict_mode to reject content that fails validation.",
+    "output_details": {
+      "valid_content": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Content items that passed validation"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Validation errors for failed items"
+      },
+      "valid_count": {
+        "type": "integer",
+        "description": "Number of items that passed validation"
+      },
+      "error_count": {
+        "type": "integer",
+        "description": "Number of items that failed validation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Rate Limiter",
+    "tool_description": "Controls request rates and timing to comply with website rate limits and avoid being blocked during data collection.",
+    "parameters": {
+      "requests_per_minute": {
+        "type": "integer",
+        "required": true,
+        "description": "Maximum requests allowed per minute (1-300)"
+      },
+      "burst_limit": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum requests allowed in a burst (1-50)",
+        "default": 5
+      },
+      "delay_between_requests": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum delay between requests in seconds (0.1-60)",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Invalid requests per minute: Value must be between 1 and 300.",
+      "Invalid burst limit: burst_limit must be between 1 and 50.",
+      "Invalid delay: delay_between_requests must be between 0.1 and 60 seconds.",
+      "Rate limit configuration conflict: burst_limit should be less than requests_per_minute."
+    ],
+    "usage": "Configure rate limiting parameters to control request frequency. The tool enforces delays and limits to prevent blocking.",
+    "output_details": {
+      "current_rate": {
+        "type": "number",
+        "description": "Current requests per minute rate"
+      },
+      "next_request_allowed": {
+        "type": "string",
+        "description": "Timestamp when next request is allowed in ISO 8601 format"
+      },
+      "rate_limit_active": {
+        "type": "boolean",
+        "description": "Whether rate limiting is currently active"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Storage Manager",
+    "tool_description": "Manages storage of collected data with support for multiple formats, compression, and metadata tagging for efficient retrieval.",
+    "parameters": {
+      "data_content": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Data content to store",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "storage_format": {
+        "type": "string",
+        "required": true,
+        "description": "Storage format: 'json', 'csv', 'xml', or 'database'"
+      },
+      "storage_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path or location where data should be stored"
+      },
+      "metadata_tags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Metadata tags for categorizing stored data",
+        "default": null
+      },
+      "compress_data": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to compress data for storage efficiency",
+        "default": false
+      },
+      "backup_copies": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of backup copies to maintain (0-5)",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Unsupported storage format: Use 'json', 'csv', 'xml', or 'database'.",
+      "Invalid storage path: Provide a valid file path or database connection string.",
+      "Data storage failed: Unable to store data at the specified location.",
+      "Backup copies out of range: backup_copies must be between 0 and 5.",
+      "Insufficient permissions: No write access to the specified storage location."
+    ],
+    "usage": "Provide data content, format, and storage location. Optionally add metadata tags and configure compression and backups.",
+    "output_details": {
+      "storage_success": {
+        "type": "boolean",
+        "description": "Whether data was successfully stored"
+      },
+      "stored_item_count": {
+        "type": "integer",
+        "description": "Number of data items successfully stored"
+      },
+      "storage_timestamp": {
+        "type": "string",
+        "description": "When data was stored in ISO 8601 format"
+      },
+      "storage_location": {
+        "type": "string",
+        "description": "Final storage location or identifier"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Generator",
+    "tool_description": "Generates alerts and notifications based on content analysis results, keyword matches, or threshold breaches in monitored data.",
+    "parameters": {
+      "content_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Content items to evaluate for alerts",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "alert_rules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Alert rules in format 'condition:threshold:action'",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "alert_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Notification channels: 'email', 'sms', 'webhook', 'slack'",
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Alert priority: 'low', 'medium', 'high', or 'critical'",
+        "default": "medium"
+      },
+      "suppress_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to suppress duplicate alerts within time window",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Malformed alert rules: Rules must be in format 'condition:threshold:action'.",
+      "Unsupported alert channel: Use 'email', 'sms', 'webhook', or 'slack'.",
+      "Invalid priority level: Use 'low', 'medium', 'high

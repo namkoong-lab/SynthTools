@@ -1,0 +1,884 @@
+field_name: anti_fraud_and_risk_scoring
+subfield: Identity Verification and Authentication
+task: Document verification and authenticity validation
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves medium complexity due to the need for multi-modal analysis (text extraction, image processing, biometric validation), cross-referencing with multiple databases, and the critical nature of accuracy in fraud prevention. The scope includes various document types, potential forgery detection, and real-time validation requirements.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the various aspects of document verification: data extraction, image analysis, validation checks, database lookups, and authenticity verification.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  - Document Image Preprocessor → Image Quality Analyzer
+  - OCR Text Extractor → Text Field Validator
+  - Metadata Extractor → Security Feature Detector
+  - Database Lookup Tool → Identity Cross Referencer
+  - Biometric Face Matcher → Document Template Validator
+  - Fraud Risk Calculator → Verification Report Generator
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans (2-4 tools):
+  1. Basic text verification: OCR Text Extractor → Text Field Validator → Verification Report Generator
+  2. Image quality check: Document Image Preprocessor → Image Quality Analyzer
+
+  Medium plans (5-8 tools):
+  1. Standard document verification: Document Image Preprocessor → OCR Text Extractor → Text Field Validator → Database Lookup Tool → Verification Report Generator
+  2. Enhanced security check: Security Feature Detector → Document Template Validator → Fraud Risk Calculator → Verification Report Generator
+
+  Complex plans (9+ tools):
+  1. Full verification pipeline: Document Image Preprocessor → Image Quality Analyzer → OCR Text Extractor → Metadata Extractor → Security Feature Detector → Document Template Validator → Database Lookup Tool → Identity Cross Referencer → Biometric Face Matcher → Text Field Validator → Fraud Risk Calculator → Verification Report Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Document Image Preprocessor",
+    "tool_description": "Preprocesses document images by correcting orientation, enhancing contrast, removing noise, and standardizing resolution for optimal analysis.",
+    "parameters": {
+      "image_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded image data of the document"
+      },
+      "auto_rotate": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to automatically correct document orientation"
+      },
+      "enhance_contrast": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to enhance image contrast for better readability"
+      }
+    },
+    "error_messages": [
+      "Invalid image format: Provide a valid base64 encoded image in JPEG, PNG, or TIFF format.",
+      "Image too large: Image size must be less than 10MB when decoded.",
+      "Corrupted image data: The provided base64 data appears to be corrupted or incomplete."
+    ],
+    "usage": "Provide base64 encoded document image data. Optionally disable auto_rotate or enhance_contrast if needed. The tool returns preprocessed image data ready for further analysis.",
+    "output_details": {
+      "processed_image": {
+        "type": "string",
+        "description": "Base64 encoded preprocessed image data"
+      },
+      "rotation_applied": {
+        "type": "number",
+        "description": "Degrees of rotation applied to correct orientation"
+      },
+      "quality_score": {
+        "type": "number",
+        "description": "Image quality score from 0-100 after preprocessing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "OCR Text Extractor",
+    "tool_description": "Extracts text content from document images using optical character recognition, with support for multiple languages and document layouts.",
+    "parameters": {
+      "image_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded image data to extract text from"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "default": "eng",
+        "description": "OCR language code (eng, spa, fra, deu, etc.)"
+      },
+      "document_type": {
+        "type": "string",
+        "required": false,
+        "default": "generic",
+        "description": "Type of document: passport, license, id_card, generic"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.7,
+        "description": "Minimum confidence score for text recognition (0.0-1.0)"
+      }
+    },
+    "error_messages": [
+      "OCR processing failed: Unable to extract text from the provided image. Ensure image quality is sufficient.",
+      "Unsupported language: The specified language code is not supported. Use standard ISO language codes.",
+      "Invalid confidence threshold: Confidence threshold must be between 0.0 and 1.0.",
+      "Document type not recognized: Use one of [passport, license, id_card, generic]."
+    ],
+    "usage": "Provide preprocessed image data and specify document type and language if known. The tool extracts all readable text with confidence scores.",
+    "output_details": {
+      "extracted_text": {
+        "type": "string",
+        "description": "Full text content extracted from the document"
+      },
+      "field_data": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of structured field values like name, number, dates"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each extracted field (0.0-1.0)"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Time taken for OCR processing in milliseconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Text Field Validator",
+    "tool_description": "Validates extracted text fields against expected formats, patterns, and business rules for document authenticity.",
+    "parameters": {
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document being validated"
+      },
+      "extracted_fields": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of field values extracted from the document",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "field_names": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of field names corresponding to extracted values",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "country_code": {
+        "type": "string",
+        "required": false,
+        "default": "US",
+        "description": "ISO country code for locale-specific validation rules"
+      },
+      "strict_validation": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to apply strict format validation rules"
+      }
+    },
+    "error_messages": [
+      "Field count mismatch: The number of field names must match the number of extracted fields.",
+      "Invalid document type: Document type must be specified and recognized by the system.",
+      "Unsupported country code: Use a valid ISO 3166-1 alpha-2 country code.",
+      "Empty field data: At least one field value must be provided for validation."
+    ],
+    "usage": "Provide document type, extracted field values, and corresponding field names. The tool validates each field against expected patterns and formats.",
+    "output_details": {
+      "validation_results": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Boolean array indicating validation success for each field"
+      },
+      "error_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed error messages for failed validations"
+      },
+      "overall_validity": {
+        "type": "boolean",
+        "description": "Whether all fields passed validation"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Overall confidence in document authenticity (0.0-1.0)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Security Feature Detector",
+    "tool_description": "Detects and validates security features in documents such as watermarks, holograms, microprinting, and UV-reactive elements.",
+    "parameters": {
+      "image_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded document image data"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document to check security features for"
+      },
+      "country_code": {
+        "type": "string",
+        "required": true,
+        "description": "ISO country code for country-specific security features"
+      },
+      "feature_types": {
+        "type": "array",
+        "required": false,
+        "default": ["watermark", "hologram", "microprint"],
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of security feature types to detect",
+        "maxItems": 10
+      },
+      "sensitivity": {
+        "type": "number",
+        "required": false,
+        "default": 0.8,
+        "description": "Detection sensitivity level (0.0-1.0)"
+      }
+    },
+    "error_messages": [
+      "Security feature detection failed: Unable to analyze security features in the provided image.",
+      "Unknown document type: The specified document type is not in the security features database.",
+      "Invalid country code: Use a valid ISO 3166-1 alpha-2 country code.",
+      "Unsupported feature type: One or more specified feature types are not supported.",
+      "Invalid sensitivity value: Sensitivity must be between 0.0 and 1.0."
+    ],
+    "usage": "Provide document image, type, and country code. Optionally specify which security features to detect and sensitivity level.",
+    "output_details": {
+      "detected_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of security features found in the document"
+      },
+      "feature_confidence": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each detected feature (0.0-1.0)"
+      },
+      "missing_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Expected security features that were not detected"
+      },
+      "authenticity_score": {
+        "type": "number",
+        "description": "Overall authenticity score based on security features (0.0-1.0)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Database Lookup Tool",
+    "tool_description": "Performs lookups against government and institutional databases to verify document numbers, personal information, and validity status.",
+    "parameters": {
+      "document_number": {
+        "type": "string",
+        "required": true,
+        "description": "Document identification number to lookup"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document for appropriate database selection"
+      },
+      "issuing_authority": {
+        "type": "string",
+        "required": true,
+        "description": "Authority or country that issued the document"
+      },
+      "personal_info": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of personal information fields for cross-reference",
+        "maxItems": 20
+      },
+      "check_revocation": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to check if document has been revoked or reported stolen"
+      },
+      "api_timeout": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Timeout for database queries in seconds"
+      }
+    },
+    "error_messages": [
+      "Database connection failed: Unable to connect to the verification database. Check network connectivity.",
+      "Invalid document number format: The document number format is invalid for the specified document type.",
+      "Unsupported document type: The document type is not supported by available databases.",
+      "Unknown issuing authority: The specified issuing authority is not recognized.",
+      "Query timeout: Database lookup exceeded the specified timeout period.",
+      "Access denied: Insufficient permissions to access the requested database."
+    ],
+    "usage": "Provide document number, type, and issuing authority. Optionally include personal information for cross-verification and set timeout preferences.",
+    "output_details": {
+      "verification_status": {
+        "type": "string",
+        "description": "Status: valid, invalid, expired, revoked, or unknown"
+      },
+      "database_match": {
+        "type": "boolean",
+        "description": "Whether document was found in official databases"
+      },
+      "personal_info_match": {
+        "type": "boolean",
+        "description": "Whether personal information matches database records"
+      },
+      "issue_date": {
+        "type": "string",
+        "description": "Official issue date from database (ISO 8601 format)"
+      },
+      "expiry_date": {
+        "type": "string",
+        "description": "Official expiry date from database (ISO 8601 format)"
+      },
+      "additional_info": {
+        "type": "string",
+        "description": "Additional verification details or warnings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Biometric Face Matcher",
+    "tool_description": "Compares facial biometric features between document photo and live/reference images to verify identity authenticity.",
+    "parameters": {
+      "document_photo": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded photo extracted from the document"
+      },
+      "reference_photo": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded reference photo for comparison"
+      }
+    },
+    "error_messages": [
+      "Face detection failed: Unable to detect a clear face in one or both images.",
+      "Poor image quality: Image quality is too low for reliable biometric matching.",
+      "Invalid image format: Both images must be valid base64 encoded image data."
+    ],
+    "usage": "Provide both document photo and reference photo as base64 encoded images. The tool performs facial biometric comparison and returns similarity scores.",
+    "output_details": {
+      "match_score": {
+        "type": "number",
+        "description": "Similarity score between faces (0.0-1.0)"
+      },
+      "match_result": {
+        "type": "boolean",
+        "description": "Whether faces are considered a match based on threshold"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence level: high, medium, low, or insufficient"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document Template Validator",
+    "tool_description": "Validates document layout, design elements, fonts, and formatting against official templates to detect potential forgeries.",
+    "parameters": {
+      "image_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded document image data"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document for template comparison"
+      },
+      "issuing_country": {
+        "type": "string",
+        "required": true,
+        "description": "Country that issued the document"
+      },
+      "issue_year": {
+        "type": "integer",
+        "required": false,
+        "default": null,
+        "description": "Year document was issued for version-specific validation"
+      },
+      "validation_strictness": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Validation strictness: low, medium, or high"
+      }
+    },
+    "error_messages": [
+      "Template not found: No official template available for the specified document type and country.",
+      "Invalid issue year: The specified issue year is outside the valid range for this document type.",
+      "Template analysis failed: Unable to perform layout analysis on the provided image.",
+      "Unsupported validation strictness: Use low, medium, or high for validation strictness."
+    ],
+    "usage": "Provide document image, type, and issuing country. Optionally specify issue year and validation strictness for more precise template matching.",
+    "output_details": {
+      "template_match": {
+        "type": "boolean",
+        "description": "Whether document matches official template"
+      },
+      "layout_score": {
+        "type": "number",
+        "description": "Layout similarity score (0.0-1.0)"
+      },
+      "font_analysis": {
+        "type": "string",
+        "description": "Font validation results and discrepancies"
+      },
+      "design_elements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of design element validation results"
+      },
+      "forgery_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of potential forgery indicators found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Quality Analyzer",
+    "tool_description": "Analyzes document image quality including resolution, clarity, lighting, and potential tampering indicators.",
+    "parameters": {
+      "image_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded image data to analyze"
+      },
+      "minimum_resolution": {
+        "type": "integer",
+        "required": false,
+        "default": 300,
+        "description": "Minimum required DPI resolution"
+      }
+    },
+    "error_messages": [
+      "Image analysis failed: Unable to analyze the provided image data.",
+      "Invalid minimum resolution: Resolution value must be between 72 and 1200 DPI."
+    ],
+    "usage": "Provide document image data and optionally set minimum resolution requirements. The tool analyzes various quality metrics.",
+    "output_details": {
+      "resolution_dpi": {
+        "type": "integer",
+        "description": "Detected image resolution in DPI"
+      },
+      "clarity_score": {
+        "type": "number",
+        "description": "Image clarity score (0.0-1.0)"
+      },
+      "lighting_quality": {
+        "type": "string",
+        "description": "Lighting assessment: excellent, good, fair, poor"
+      },
+      "tampering_detected": {
+        "type": "boolean",
+        "description": "Whether potential image tampering was detected"
+      },
+      "overall_quality": {
+        "type": "string",
+        "description": "Overall quality rating: excellent, good, acceptable, poor"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Metadata Extractor",
+    "tool_description": "Extracts and analyzes image metadata including EXIF data, creation timestamps, device information, and modification history.",
+    "parameters": {
+      "image_data": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded image data with metadata"
+      },
+      "extract_device_info": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to extract device and camera information"
+      },
+      "check_modifications": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to check for signs of digital modifications"
+      }
+    },
+    "error_messages": [
+      "Metadata extraction failed: Unable to extract metadata from the provided image.",
+      "No metadata found: The image contains no extractable metadata information.",
+      "Corrupted metadata: The metadata appears to be corrupted or incomplete."
+    ],
+    "usage": "Provide image data and specify which metadata components to extract. The tool returns comprehensive metadata analysis.",
+    "output_details": {
+      "creation_timestamp": {
+        "type": "string",
+        "description": "Original image creation timestamp (ISO 8601 format)"
+      },
+      "device_model": {
+        "type": "string",
+        "description": "Camera or device model used to capture the image"
+      },
+      "gps_coordinates": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "GPS coordinates if available [latitude, longitude]"
+      },
+      "modification_detected": {
+        "type": "boolean",
+        "description": "Whether digital modifications were detected"
+      },
+      "software_used": {
+        "type": "string",
+        "description": "Software used to create or edit the image"
+      },
+      "suspicious_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of suspicious metadata indicators"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Identity Cross Referencer",
+    "tool_description": "Cross-references extracted personal information across multiple databases and watchlists to detect identity fraud or suspicious patterns.",
+    "parameters": {
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "First name from the document"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Last name from the document"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Date of birth in ISO 8601 format",
+        "format": "date-time"
+      },
+      "document_number": {
+        "type": "string",
+        "required": true,
+        "description": "Document identification number"
+      },
+      "address": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Address information if available"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Phone number if available"
+      },
+      "email": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Email address if available"
+      },
+      "check_watchlists": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to check against fraud and sanctions watchlists"
+      },
+      "include_social_media": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include social media profile checks"
+      },
+      "search_depth": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Search depth: basic, standard, or comprehensive"
+      }
+    },
+    "error_messages": [
+      "Insufficient personal information: First name, last name, date of birth, and document number are required.",
+      "Invalid date format: Date of birth must be in ISO 8601 format.",
+      "Database access error: Unable to access one or more identity databases.",
+      "Invalid search depth: Use basic, standard, or comprehensive for search depth.",
+      "Watchlist check failed: Unable to complete watchlist verification due to service unavailability."
+    ],
+    "usage": "Provide required personal information and document number. Optionally include additional contact information and specify search parameters for comprehensive identity verification.",
+    "output_details": {
+      "identity_confirmed": {
+        "type": "boolean",
+        "description": "Whether identity was confirmed across databases"
+      },
+      "watchlist_matches": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of watchlist matches or alerts"
+      },
+      "database_matches": {
+        "type": "integer",
+        "description": "Number of databases where identity was found"
+      },
+      "inconsistencies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of data inconsistencies found across sources"
+      },
+      "risk_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of identity fraud risk indicators"
+      },
+      "verification_score": {
+        "type": "number",
+        "description": "Overall identity verification confidence score (0.0-1.0)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fraud Risk Calculator",
+    "tool_description": "Calculates comprehensive fraud risk scores based on document analysis results, identity verification, and behavioral patterns.",
+    "parameters": {
+      "document_authenticity_score": {
+        "type": "number",
+        "required": true,
+        "description": "Document authenticity score from previous validations (0.0-1.0)"
+      },
+      "identity_verification_score": {
+        "type": "number",
+        "required": true,
+        "description": "Identity verification confidence score (0.0-1.0)"
+      },
+      "biometric_match_score": {
+        "type": "number",
+        "required": true,
+        "description": "Biometric matching confidence score (0.0-1.0)"
+      },
+      "database_verification_status": {
+        "type": "string",
+        "required": true,
+        "description": "Database verification result: verified, partial, failed, or unavailable"
+      },
+      "security_features_score": {
+        "type": "number",
+        "required": true,
+        "description": "Security features validation score (0.0-1.0)"
+      },
+      "template_validation_score": {
+        "type": "number",
+        "required": true,
+        "description": "Template matching confidence score (0.0-1.0)"
+      },
+      "image_quality_score": {
+        "type": "number",
+        "required": true,
+        "description": "Image quality assessment score (0.0-1.0)"
+      },
+      "metadata_risk_indicators": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of metadata-based risk indicators",
+        "maxItems": 20
+      },
+      "watchlist_alerts": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": "Number of watchlist alerts or matches"
+      },
+      "risk_tolerance": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Risk tolerance level: low, medium, or high"
+      }
+    },
+    "error_messages": [
+      "Invalid score values: All score parameters must be between 0.0 and 1.0.",
+      "Invalid database status: Use verified, partial, failed, or unavailable for database verification status.",
+      "Invalid risk tolerance: Use low, medium, or high for risk tolerance setting.",
+      "Calculation error: Unable to compute fraud risk score due to insufficient or invalid input data."
+    ],
+    "usage": "Provide all required validation scores and status from previous verification steps. Optionally include risk indicators and set risk tolerance level.",
+    "output_details": {
+      "overall_risk_score": {
+        "type": "number",
+        "description": "Overall fraud risk score (0.0-1.0, where 1.0 is highest risk)"
+      },
+      "risk_category": {
+        "type": "string",
+        "description": "Risk category: low, medium, high, or critical"
+      },
+      "contributing_factors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of factors contributing to the risk score"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Recommended action: approve, manual_review, or reject"
+      },
+      "confidence_level": {
+        "type": "number",
+        "description": "Confidence in the risk assessment (0.0-1.0)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Verification Report Generator",
+    "tool_description": "Generates comprehensive verification reports summarizing all analysis results, risk assessments, and recommendations for document authenticity validation.",
+    "parameters": {
+      "document_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the document verification session"
+      },
+      "verification_results": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of verification results from all analysis tools",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "risk_assessment": {
+        "type": "string",
+        "required": true,
+        "description": "Overall risk assessment result"
+      },
+      "recommendation": {
+        "type": "string",
+        "required": true,
+        "description": "Final recommendation based on all analyses"
+      },
+      "include_technical_details": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include technical analysis details in the report"
+      },
+      "report_format": {
+        "type": "string",
+        "required": false,
+        "default": "summary",
+        "description": "Report format: summary, detailed, or compliance"
+      }
+    },
+    "error_messages": [
+      "Missing verification results: At least one verification result must be provided.",
+      "Invalid report format: Use summary, detailed, or compliance for report format.",
+      "Document ID required: A unique document identifier must be provided.",
+      "Report generation failed: Unable to generate report due to incomplete or invalid data."
+    ],
+    "usage": "Provide document ID, verification results from all tools, risk assessment, and final recommendation. Optionally specify report format and level of detail.",
+    "output_details": {
+      "report_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated report"
+      },
+      "verification_summary": {
+        "type": "string",
+        "description": "Executive summary of verification results"
+      },
+      "detailed_findings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of detailed findings from each verification step"
+      },
+      "risk_score": {
+        "type": "number",
+        "description": "Final calculated risk score (0.0-1.0)"
+      },
+      "final_decision": {
+        "type": "string",
+        "description": "Final verification decision: approved, rejected, or manual_review"
+      },
+      "timestamp": {
+        "type": "string",
+        "

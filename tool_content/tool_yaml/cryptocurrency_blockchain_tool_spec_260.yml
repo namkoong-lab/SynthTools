@@ -1,0 +1,779 @@
+field_name: cryptocurrency_blockchain
+subfield: Wallet Management and Key Security
+task: Create and initialize new cryptocurrency wallets across multiple blockchain networks
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task is of **medium** difficulty. It involves moderate complexity with multiple blockchain protocols, cryptographic key generation, security considerations, and coordination between different network types. While the core wallet creation process is well-established, handling multiple networks, ensuring proper key derivation, and managing security parameters across different blockchain architectures introduces coordination challenges and moderate risk if keys are compromised.
+
+  STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target **12 tools** within the 10-15 range. This accounts for key generation, wallet creation across different networks, validation, backup, and security management functionalities.
+
+  STEP 3 — List all tool names and dependencies
+
+  Tools and their data flow:
+  1. **Entropy Generator** → produces random entropy
+  2. **Mnemonic Creator** → consumes entropy → produces mnemonic phrases
+  3. **Seed Deriver** → consumes mnemonic → produces master seeds
+  4. **Key Pair Generator** → consumes seeds → produces private/public keys
+  5. **Address Generator** → consumes public keys → produces wallet addresses
+  6. **Network Validator** → consumes network specs → validates compatibility
+  7. **Multi Network Creator** → consumes addresses/keys → produces multi-chain wallets
+  8. **Wallet Backup Creator** → consumes wallet data → produces backup files
+  9. **Security Checker** → consumes wallet config → validates security settings
+  10. **Balance Initializer** → consumes addresses → checks initial balances
+  11. **Wallet Metadata Manager** → consumes wallet info → produces metadata records
+  12. **Configuration Validator** → consumes all parameters → validates complete setup
+
+  STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  - Single network wallet creation: Entropy Generator → Mnemonic Creator → Seed Deriver → Key Pair Generator → Address Generator
+  - Basic validation: Network Validator → Security Checker → Configuration Validator
+
+  **Medium plans:**
+  - Complete single wallet: Entropy Generator → Mnemonic Creator → Seed Deriver → Key Pair Generator → Address Generator → Wallet Backup Creator → Balance Initializer
+  - Multi-network setup: Network Validator → Multi Network Creator → Wallet Metadata Manager → Security Checker
+
+  **Complex plans:**
+  - Full multi-chain wallet deployment: Entropy Generator → Mnemonic Creator → Seed Deriver → Key Pair Generator → Address Generator → Network Validator → Multi Network Creator → Wallet Backup Creator → Security Checker → Balance Initializer → Wallet Metadata Manager → Configuration Validator
+  - Secure enterprise setup: Security Checker → Entropy Generator → Mnemonic Creator → Seed Deriver → Key Pair Generator → Network Validator → Multi Network Creator → Wallet Backup Creator → Wallet Metadata Manager → Configuration Validator
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Entropy Generator",
+    "tool_description": "Generates cryptographically secure random entropy for wallet creation using specified entropy sources and bit lengths.",
+    "parameters": {
+      "entropy_bits": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of entropy bits to generate (128, 160, 192, 224, or 256)"
+      },
+      "source_type": {
+        "type": "string",
+        "required": false,
+        "description": "Entropy source: system, hardware, or hybrid",
+        "default": "system"
+      }
+    },
+    "error_messages": [
+      "Invalid entropy bits: Must be one of 128, 160, 192, 224, or 256 bits.",
+      "Entropy source unavailable: The specified source_type is not available on this system.",
+      "Insufficient entropy: System entropy pool is too low for secure generation."
+    ],
+    "usage": "Specify entropy_bits (128-256) and optionally source_type. The tool generates cryptographically secure random entropy for wallet seed creation.",
+    "output_details": {
+      "entropy_hex": {
+        "type": "string",
+        "description": "Generated entropy in hexadecimal format"
+      },
+      "entropy_bits": {
+        "type": "integer",
+        "description": "Number of bits in the generated entropy"
+      },
+      "source_used": {
+        "type": "string",
+        "description": "Actual entropy source used for generation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Mnemonic Creator",
+    "tool_description": "Creates BIP39 mnemonic phrases from entropy data with support for multiple languages and custom word lists.",
+    "parameters": {
+      "entropy_hex": {
+        "type": "string",
+        "required": true,
+        "description": "Hexadecimal entropy string from entropy generator"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Language for mnemonic words: english, japanese, chinese_simplified, chinese_traditional, french, italian, korean, spanish",
+        "default": "english"
+      },
+      "validate_checksum": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate BIP39 checksum",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid entropy format: Entropy must be a valid hexadecimal string with length divisible by 32 bits.",
+      "Unsupported language: Use one of the supported BIP39 languages.",
+      "Checksum validation failed: The generated mnemonic failed BIP39 checksum validation."
+    ],
+    "usage": "Provide entropy_hex from entropy generator and optionally specify language and checksum validation. Returns BIP39 compliant mnemonic phrase.",
+    "output_details": {
+      "mnemonic_phrase": {
+        "type": "string",
+        "description": "Generated BIP39 mnemonic phrase"
+      },
+      "word_count": {
+        "type": "integer",
+        "description": "Number of words in the mnemonic"
+      },
+      "language": {
+        "type": "string",
+        "description": "Language used for the mnemonic"
+      },
+      "checksum_valid": {
+        "type": "boolean",
+        "description": "Whether the mnemonic passes BIP39 checksum validation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Seed Deriver",
+    "tool_description": "Derives master seeds from mnemonic phrases using BIP39 standard with optional passphrases and custom derivation parameters.",
+    "parameters": {
+      "mnemonic_phrase": {
+        "type": "string",
+        "required": true,
+        "description": "BIP39 mnemonic phrase for seed derivation"
+      },
+      "passphrase": {
+        "type": "string",
+        "required": false,
+        "description": "Optional passphrase for additional security",
+        "default": ""
+      },
+      "iterations": {
+        "type": "integer",
+        "required": false,
+        "description": "PBKDF2 iterations (minimum 2048)",
+        "default": 2048
+      }
+    },
+    "error_messages": [
+      "Invalid mnemonic phrase: Mnemonic must be valid BIP39 format with correct word count and checksum.",
+      "Insufficient iterations: PBKDF2 iterations must be at least 2048 for security.",
+      "Seed derivation failed: Unable to derive seed from provided mnemonic and passphrase."
+    ],
+    "usage": "Input a valid BIP39 mnemonic_phrase and optionally add a passphrase for extra security. Specify iterations for PBKDF2 key stretching.",
+    "output_details": {
+      "master_seed": {
+        "type": "string",
+        "description": "Derived master seed in hexadecimal format"
+      },
+      "seed_length": {
+        "type": "integer",
+        "description": "Length of the derived seed in bytes"
+      },
+      "derivation_path": {
+        "type": "string",
+        "description": "BIP32 derivation path used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Key Pair Generator",
+    "tool_description": "Generates cryptographic key pairs for multiple blockchain networks using derived seeds and specified derivation paths.",
+    "parameters": {
+      "master_seed": {
+        "type": "string",
+        "required": true,
+        "description": "Master seed in hexadecimal format"
+      },
+      "blockchain_type": {
+        "type": "string",
+        "required": true,
+        "description": "Target blockchain: bitcoin, ethereum, binance_smart_chain, polygon, avalanche, solana, cardano"
+      },
+      "derivation_path": {
+        "type": "string",
+        "required": false,
+        "description": "BIP32/44 derivation path",
+        "default": "m/44'/0'/0'/0/0"
+      },
+      "key_format": {
+        "type": "string",
+        "required": false,
+        "description": "Private key format: hex, wif, or raw",
+        "default": "hex"
+      },
+      "compressed_pubkey": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to use compressed public key format",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid master seed: Seed must be a valid hexadecimal string of appropriate length.",
+      "Unsupported blockchain: Use one of the supported blockchain types.",
+      "Invalid derivation path: Path must follow BIP32/44 format (e.g., m/44'/0'/0'/0/0).",
+      "Key generation failed: Unable to generate key pair for specified blockchain and parameters.",
+      "Invalid key format: Format must be hex, wif, or raw."
+    ],
+    "usage": "Provide master_seed and blockchain_type. Optionally customize derivation_path, key_format, and compressed_pubkey settings for specific blockchain requirements.",
+    "output_details": {
+      "private_key": {
+        "type": "string",
+        "description": "Generated private key in specified format"
+      },
+      "public_key": {
+        "type": "string",
+        "description": "Generated public key in hexadecimal format"
+      },
+      "blockchain_type": {
+        "type": "string",
+        "description": "Target blockchain network"
+      },
+      "derivation_path": {
+        "type": "string",
+        "description": "Used derivation path"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Address Generator",
+    "tool_description": "Generates blockchain addresses from public keys with support for multiple address formats and network specifications.",
+    "parameters": {
+      "public_key": {
+        "type": "string",
+        "required": true,
+        "description": "Public key in hexadecimal format"
+      },
+      "blockchain_type": {
+        "type": "string",
+        "required": true,
+        "description": "Target blockchain: bitcoin, ethereum, binance_smart_chain, polygon, avalanche, solana, cardano"
+      },
+      "address_format": {
+        "type": "string",
+        "required": false,
+        "description": "Address format: legacy, segwit, native_segwit for Bitcoin; checksummed for Ethereum-based",
+        "default": "native_segwit"
+      },
+      "network": {
+        "type": "string",
+        "required": false,
+        "description": "Network type: mainnet or testnet",
+        "default": "mainnet"
+      }
+    },
+    "error_messages": [
+      "Invalid public key: Public key must be a valid hexadecimal string with correct length for the blockchain.",
+      "Unsupported blockchain: Use one of the supported blockchain types.",
+      "Invalid address format: Format not supported for the specified blockchain.",
+      "Network not supported: Network must be mainnet or testnet.",
+      "Address generation failed: Unable to generate address from provided public key."
+    ],
+    "usage": "Input public_key and blockchain_type. Specify address_format for Bitcoin (legacy/segwit/native_segwit) or Ethereum (checksummed). Choose mainnet or testnet.",
+    "output_details": {
+      "wallet_address": {
+        "type": "string",
+        "description": "Generated wallet address"
+      },
+      "address_format": {
+        "type": "string",
+        "description": "Address format used"
+      },
+      "network": {
+        "type": "string",
+        "description": "Network type (mainnet/testnet)"
+      },
+      "blockchain_type": {
+        "type": "string",
+        "description": "Target blockchain network"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Network Validator",
+    "tool_description": "Validates blockchain network configurations and checks compatibility with wallet creation parameters across multiple networks.",
+    "parameters": {
+      "networks": {
+        "type": "array",
+        "required": true,
+        "description": "List of blockchain networks to validate",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "derivation_paths": {
+        "type": "array",
+        "required": true,
+        "description": "Corresponding derivation paths for each network",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "address_formats": {
+        "type": "array",
+        "required": true,
+        "description": "Address formats for each network",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "check_rpc": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check RPC endpoint connectivity",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: networks, derivation_paths, and address_formats must have the same length.",
+      "Unsupported network: One or more networks are not supported.",
+      "Invalid derivation path: One or more derivation paths are not valid BIP32/44 format.",
+      "Incompatible address format: Address format is not compatible with the corresponding network.",
+      "RPC connectivity failed: Unable to connect to one or more network RPC endpoints."
+    ],
+    "usage": "Provide arrays of networks, derivation_paths, and address_formats of equal length. Optionally enable RPC connectivity checking.",
+    "output_details": {
+      "validation_results": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Validation result for each network (true/false)"
+      },
+      "compatible_networks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of successfully validated networks"
+      },
+      "error_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Error messages for failed validations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi Network Creator",
+    "tool_description": "Creates multi-blockchain wallet instances by coordinating key pairs and addresses across multiple networks with unified management.",
+    "parameters": {
+      "master_seed": {
+        "type": "string",
+        "required": true,
+        "description": "Master seed for all network wallet generation"
+      },
+      "target_networks": {
+        "type": "array",
+        "required": true,
+        "description": "Blockchain networks to create wallets for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 8
+      },
+      "wallet_name": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier name for the multi-network wallet"
+      },
+      "custom_derivations": {
+        "type": "array",
+        "required": false,
+        "description": "Custom derivation paths for each network (optional)",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "enable_testnet": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to create testnet versions alongside mainnet",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid master seed: Master seed must be a valid hexadecimal string.",
+      "Insufficient networks: At least 2 networks required for multi-network wallet.",
+      "Too many networks: Maximum 8 networks supported per wallet.",
+      "Network creation failed: Failed to create wallet for one or more networks.",
+      "Derivation mismatch: custom_derivations array length must match target_networks length.",
+      "Duplicate wallet name: A wallet with this name already exists."
+    ],
+    "usage": "Provide master_seed, target_networks (2-8), and wallet_name. Optionally specify custom_derivations and enable_testnet for comprehensive setup.",
+    "output_details": {
+      "wallet_id": {
+        "type": "string",
+        "description": "Unique identifier for the created multi-network wallet"
+      },
+      "created_networks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Successfully created network wallets"
+      },
+      "network_addresses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Generated addresses for each network"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "ISO 8601 timestamp of wallet creation"
+      },
+      "testnet_enabled": {
+        "type": "boolean",
+        "description": "Whether testnet wallets were also created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Wallet Backup Creator",
+    "tool_description": "Creates encrypted backup files containing wallet data, recovery information, and metadata with multiple backup format options.",
+    "parameters": {
+      "wallet_data": {
+        "type": "string",
+        "required": true,
+        "description": "Serialized wallet data to backup"
+      },
+      "mnemonic_phrase": {
+        "type": "string",
+        "required": true,
+        "description": "Mnemonic phrase for recovery"
+      },
+      "backup_password": {
+        "type": "string",
+        "required": true,
+        "description": "Password for encrypting the backup file"
+      },
+      "backup_format": {
+        "type": "string",
+        "required": false,
+        "description": "Backup format: json, keystore, or encrypted_json",
+        "default": "encrypted_json"
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include wallet metadata in backup",
+        "default": true
+      },
+      "compression_level": {
+        "type": "integer",
+        "required": false,
+        "description": "Compression level (0-9, 0=none, 9=maximum)",
+        "default": 6
+      }
+    },
+    "error_messages": [
+      "Invalid wallet data: Wallet data must be properly formatted and non-empty.",
+      "Invalid mnemonic: Mnemonic phrase must be valid BIP39 format.",
+      "Weak backup password: Password must be at least 12 characters with mixed case, numbers, and symbols.",
+      "Unsupported backup format: Use json, keystore, or encrypted_json.",
+      "Compression level invalid: Level must be between 0-9.",
+      "Backup creation failed: Unable to create backup file due to encryption or compression error."
+    ],
+    "usage": "Provide wallet_data, mnemonic_phrase, and backup_password. Choose backup_format and compression settings. The tool creates an encrypted backup file.",
+    "output_details": {
+      "backup_filename": {
+        "type": "string",
+        "description": "Generated backup file name"
+      },
+      "backup_size": {
+        "type": "integer",
+        "description": "Size of backup file in bytes"
+      },
+      "encryption_method": {
+        "type": "string",
+        "description": "Encryption algorithm used"
+      },
+      "backup_hash": {
+        "type": "string",
+        "description": "SHA256 hash of the backup file for integrity verification"
+      },
+      "creation_time": {
+        "type": "string",
+        "description": "Backup creation timestamp"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Security Checker",
+    "tool_description": "Performs comprehensive security validation of wallet configurations, key strength, and implementation security best practices.",
+    "parameters": {
+      "entropy_bits": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of entropy bits used in wallet generation"
+      },
+      "mnemonic_phrase": {
+        "type": "string",
+        "required": true,
+        "description": "Mnemonic phrase to validate"
+      },
+      "private_keys": {
+        "type": "array",
+        "required": true,
+        "description": "Private keys to check for security issues",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "backup_password": {
+        "type": "string",
+        "required": false,
+        "description": "Backup password to validate strength",
+        "default": null
+      },
+      "check_randomness": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform statistical randomness tests",
+        "default": true
+      },
+      "security_level": {
+        "type": "string",
+        "required": false,
+        "description": "Security level to validate against: basic, standard, or high",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Insufficient entropy: Entropy bits below minimum security threshold for specified security level.",
+      "Weak mnemonic: Mnemonic phrase fails security validation or contains common weak patterns.",
+      "Compromised private key: One or more private keys match known compromised keys database.",
+      "Poor randomness quality: Statistical tests indicate insufficient randomness in key generation.",
+      "Weak backup password: Password does not meet security requirements for the specified security level.",
+      "Invalid security level: Use basic, standard, or high."
+    ],
+    "usage": "Provide entropy_bits, mnemonic_phrase, and private_keys array. Optionally include backup_password and set security_level and randomness checking preferences.",
+    "output_details": {
+      "security_score": {
+        "type": "integer",
+        "description": "Overall security score (0-100)"
+      },
+      "passed_checks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of passed security checks"
+      },
+      "failed_checks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of failed security checks"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Security improvement recommendations"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Overall risk assessment: low, medium, or high"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Balance Initializer",
+    "tool_description": "Checks initial balances and transaction history for newly created wallet addresses across multiple blockchain networks.",
+    "parameters": {
+      "wallet_addresses": {
+        "type": "array",
+        "required": true,
+        "description": "Wallet addresses to check balances for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "blockchain_networks": {
+        "type": "array",
+        "required": true,
+        "description": "Corresponding blockchain networks for each address",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "check_tokens": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check for token balances (ERC-20, BEP-20, etc.)",
+        "default": false
+      },
+      "include_pending": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include pending transactions",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: wallet_addresses and blockchain_networks must have the same length.",
+      "Invalid address format: One or more addresses are not valid for their corresponding blockchain.",
+      "Network connection failed: Unable to connect to blockchain network for balance checking.",
+      "RPC timeout: Request timeout while fetching balance information.",
+      "Too many addresses: Maximum 15 addresses can be checked in a single request."
+    ],
+    "usage": "Provide wallet_addresses and corresponding blockchain_networks arrays. Optionally enable token balance checking and pending transaction inclusion.",
+    "output_details": {
+      "balance_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Balance information for each address"
+      },
+      "native_balances": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Native token balances for each address"
+      },
+      "token_balances": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Token balance summaries (if enabled)"
+      },
+      "check_timestamp": {
+        "type": "string",
+        "description": "Timestamp when balances were checked"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Wallet Metadata Manager",
+    "tool_description": "Manages wallet metadata including labels, creation details, network configurations, and organizational information for wallet tracking.",
+    "parameters": {
+      "wallet_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique wallet identifier"
+      },
+      "wallet_name": {
+        "type": "string",
+        "required": true,
+        "description": "Human-readable wallet name"
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "description": "Wallet description or purpose",
+        "default": ""
+      },
+      "tags": {
+        "type": "array",
+        "required": false,
+        "description": "Organizational tags for the wallet",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "creator_id": {
+        "type": "string",
+        "required": false,
+        "description": "Identifier of the wallet creator",
+        "default": "system"
+      },
+      "network_list": {
+        "type": "array",
+        "required": true,
+        "description": "List of blockchain networks in this wallet",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "wallet_type": {
+        "type": "string",
+        "required": false,
+        "description": "Wallet type: personal, business, or test",
+        "default": "personal"
+      }
+    },
+    "error_messages": [
+      "Invalid wallet ID: Wallet ID must be a non-empty string with valid format.",
+      "Duplicate wallet name: A wallet with this name already exists for the creator.",
+      "Too many tags: Maximum 10 tags allowed per wallet.",
+      "Invalid wallet type: Type must be personal, business, or test.",
+      "Network list empty: At least one network must be specified.",
+      "Metadata save failed: Unable to save wallet metadata to storage."
+    ],
+    "usage": "Provide wallet_id, wallet_name, and network_list. Optionally add description, tags, creator_id, and wallet_type for comprehensive metadata management.",
+    "output_details": {
+      "metadata_id": {
+        "type": "string",
+        "description": "Unique metadata record identifier"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "Metadata creation timestamp"
+      },
+      "wallet_summary": {
+        "type": "string",
+        "description": "Summary of wallet configuration"
+      },
+      "network_count": {
+        "type": "integer",
+        "description": "Number of networks configured"
+      },
+      "metadata_hash": {
+        "type": "string",
+        "description": "Hash of metadata for integrity verification"
+      }
+    }
+  }
+  ```

@@ -1,0 +1,851 @@
+field_name: appraisals_and_valuations
+subfield: Real Estate Property Appraisal
+task: Property data collection and verification
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  Property data collection and verification is a medium difficulty task. It requires coordination across multiple data sources with varying reliability, involves regulatory compliance requirements, and has moderate risk since inaccurate property data can lead to significant valuation errors. The scope encompasses physical characteristics, legal records, market conditions, and regulatory constraints.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the comprehensive workflow of property data collection and verification, including data gathering, validation, compliance checking, and reporting.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools with their upstream dependencies and downstream affordances:
+  1. Property Record Fetcher → consumes property identifiers → produces basic property records
+  2. MLS Data Retriever → consumes property address/MLS number → produces market listing data
+  3. Tax Assessment Collector → consumes property ID/address → produces tax assessment records
+  4. Zoning Information Gatherer → consumes property coordinates/address → produces zoning classifications
+  5. Comparable Sales Analyzer → consumes property characteristics → produces comparable property data
+  6. Property Characteristic Validator → consumes collected property data → produces validation results
+  7. Legal Document Verifier → consumes legal documents/references → produces verification status
+  8. Photo Documentation Manager → consumes property images → produces organized photo records
+  9. Market Condition Assessor → consumes location/timeframe → produces market analysis
+  10. Data Completeness Checker → consumes all collected data → produces completeness report
+  11. Cross Reference Validator → consumes multiple data sources → produces consistency analysis
+  12. Property Report Generator → consumes all verified data → produces comprehensive property report
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  - Basic property lookup: Property Record Fetcher → Data Completeness Checker → Property Report Generator
+  - Quick market check: MLS Data Retriever → Market Condition Assessor → Property Report Generator
+
+  Medium plans:
+  - Standard verification: Property Record Fetcher → Tax Assessment Collector → Property Characteristic Validator → Cross Reference Validator → Property Report Generator
+  - Market analysis workflow: MLS Data Retriever → Comparable Sales Analyzer → Market Condition Assessor → Data Completeness Checker → Property Report Generator
+
+  Complex plans:
+  - Full due diligence: Property Record Fetcher → MLS Data Retriever → Tax Assessment Collector → Zoning Information Gatherer → Legal Document Verifier → Photo Documentation Manager → Property Characteristic Validator → Cross Reference Validator → Data Completeness Checker → Property Report Generator
+  - Comprehensive appraisal prep: All tools in sequence with multiple validation checkpoints and cross-referencing between legal, tax, and market data sources
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Property Record Fetcher",
+    "tool_description": "Retrieves basic property records from public databases using various property identifiers such as address, parcel number, or APN.",
+    "parameters": {
+      "property_address": {
+        "type": "string",
+        "required": false,
+        "description": "Full property address including street, city, state, and ZIP code",
+        "default": null
+      },
+      "parcel_number": {
+        "type": "string",
+        "required": false,
+        "description": "Official parcel identification number",
+        "default": null
+      },
+      "apn": {
+        "type": "string",
+        "required": false,
+        "description": "Assessor's Parcel Number",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "No identifier provided: At least one of property_address, parcel_number, or apn must be provided.",
+      "Property not found: No records found for the provided identifier(s). Verify the accuracy of the input data.",
+      "Multiple properties found: The provided identifier matches multiple properties. Use a more specific identifier such as parcel_number or apn.",
+      "Database unavailable: Public records database is temporarily unavailable. Retry after some time."
+    ],
+    "usage": "Provide at least one property identifier (address, parcel number, or APN) to retrieve basic property information from public records databases.",
+    "output_details": {
+      "property_id": {
+        "type": "string",
+        "description": "Unique property identifier from the database"
+      },
+      "address": {
+        "type": "string",
+        "description": "Standardized property address"
+      },
+      "owner_name": {
+        "type": "string",
+        "description": "Current property owner name"
+      },
+      "property_type": {
+        "type": "string",
+        "description": "Property classification (residential, commercial, industrial, etc.)"
+      },
+      "lot_size": {
+        "type": "number",
+        "description": "Lot size in square feet"
+      },
+      "building_area": {
+        "type": "number",
+        "description": "Total building area in square feet"
+      },
+      "year_built": {
+        "type": "integer",
+        "description": "Year the property was constructed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "MLS Data Retriever",
+    "tool_description": "Accesses Multiple Listing Service databases to retrieve current and historical listing information, pricing data, and market activity for properties.",
+    "parameters": {
+      "mls_number": {
+        "type": "string",
+        "required": false,
+        "description": "MLS listing number",
+        "default": null
+      },
+      "property_address": {
+        "type": "string",
+        "required": false,
+        "description": "Property address for MLS search",
+        "default": null
+      },
+      "search_radius": {
+        "type": "number",
+        "required": false,
+        "description": "Search radius in miles for similar properties",
+        "default": 0.5
+      },
+      "include_sold": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include recently sold properties in results",
+        "default": true
+      },
+      "date_range_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days back to search for listings",
+        "default": 180
+      }
+    },
+    "error_messages": [
+      "No search criteria provided: Either mls_number or property_address must be provided.",
+      "MLS access denied: Invalid credentials or subscription expired. Verify MLS access permissions.",
+      "Invalid search radius: Search radius must be between 0.1 and 5.0 miles.",
+      "No MLS data found: No listings found matching the search criteria. Try expanding search parameters."
+    ],
+    "usage": "Provide either an MLS number for specific listing data or a property address to search for current and recent listings in the area.",
+    "output_details": {
+      "current_listing": {
+        "type": "string",
+        "description": "Current listing status and details"
+      },
+      "listing_price": {
+        "type": "number",
+        "description": "Current or most recent listing price"
+      },
+      "days_on_market": {
+        "type": "integer",
+        "description": "Number of days the property has been listed"
+      },
+      "price_history": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Historical price changes and dates"
+      },
+      "nearby_listings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Similar properties currently or recently listed in the area"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tax Assessment Collector",
+    "tool_description": "Gathers property tax assessment records, including assessed values, tax history, exemptions, and assessment methodologies from county assessor databases.",
+    "parameters": {
+      "property_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique property identifier or APN"
+      },
+      "county": {
+        "type": "string",
+        "required": true,
+        "description": "County name where the property is located"
+      },
+      "state": {
+        "type": "string",
+        "required": true,
+        "description": "State abbreviation (e.g., CA, NY, TX)"
+      },
+      "years_back": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of years of tax history to retrieve",
+        "default": 5
+      },
+      "include_exemptions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include information about tax exemptions",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid property ID: Property ID not found in county assessor records. Verify the property identifier.",
+      "County not supported: The specified county is not available in our database. Check county name spelling.",
+      "Invalid state code: Use standard two-letter state abbreviations (e.g., CA, NY, TX).",
+      "Assessment data unavailable: Tax assessment records are not available for the specified time period.",
+      "Years back out of range: years_back must be between 1 and 20."
+    ],
+    "usage": "Provide the property ID, county, and state to retrieve comprehensive tax assessment information. Optionally specify how many years of history to include.",
+    "output_details": {
+      "current_assessed_value": {
+        "type": "number",
+        "description": "Current total assessed value"
+      },
+      "land_value": {
+        "type": "number",
+        "description": "Assessed value of land only"
+      },
+      "improvement_value": {
+        "type": "number",
+        "description": "Assessed value of improvements/structures"
+      },
+      "annual_tax_amount": {
+        "type": "number",
+        "description": "Current annual property tax amount"
+      },
+      "tax_rate": {
+        "type": "number",
+        "description": "Effective tax rate as percentage"
+      },
+      "assessment_history": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Historical assessed values and dates"
+      },
+      "exemptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Active tax exemptions and their values"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Zoning Information Gatherer",
+    "tool_description": "Retrieves current zoning classifications, permitted uses, restrictions, and planned developments for properties from municipal planning databases.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Property latitude coordinate"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Property longitude coordinate"
+      },
+      "municipality": {
+        "type": "string",
+        "required": true,
+        "description": "City or municipality name"
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be between -90 and 90, longitude must be between -180 and 180.",
+      "Municipality not found: The specified municipality is not in our zoning database. Check spelling and ensure it's a recognized jurisdiction.",
+      "Zoning data unavailable: No zoning information available for this location. The area may be unincorporated or data may be pending update.",
+      "Coordinate precision error: Coordinates appear to be outside the specified municipality boundaries."
+    ],
+    "usage": "Provide precise GPS coordinates and municipality name to retrieve comprehensive zoning information for the property location.",
+    "output_details": {
+      "zoning_code": {
+        "type": "string",
+        "description": "Official zoning designation code"
+      },
+      "zoning_description": {
+        "type": "string",
+        "description": "Detailed description of zoning classification"
+      },
+      "permitted_uses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of permitted land uses under current zoning"
+      },
+      "restrictions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Zoning restrictions and limitations"
+      },
+      "future_land_use": {
+        "type": "string",
+        "description": "Planned future land use designation if different from current"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Comparable Sales Analyzer",
+    "tool_description": "Identifies and analyzes comparable property sales within specified criteria including location, size, age, and property type to support valuation analysis.",
+    "parameters": {
+      "subject_property_address": {
+        "type": "string",
+        "required": true,
+        "description": "Address of the subject property"
+      },
+      "property_type": {
+        "type": "string",
+        "required": true,
+        "description": "Property type (single-family, condo, townhouse, commercial, etc.)"
+      },
+      "square_footage": {
+        "type": "integer",
+        "required": true,
+        "description": "Subject property square footage"
+      },
+      "bedrooms": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of bedrooms (for residential properties)",
+        "default": null
+      },
+      "bathrooms": {
+        "type": "number",
+        "required": false,
+        "description": "Number of bathrooms (for residential properties)",
+        "default": null
+      },
+      "lot_size": {
+        "type": "number",
+        "required": false,
+        "description": "Lot size in square feet",
+        "default": null
+      },
+      "year_built": {
+        "type": "integer",
+        "required": false,
+        "description": "Year the subject property was built",
+        "default": null
+      },
+      "search_radius": {
+        "type": "number",
+        "required": false,
+        "description": "Search radius in miles for comparable properties",
+        "default": 1.0
+      },
+      "sale_date_range": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of months back to search for sales",
+        "default": 6
+      },
+      "size_variance_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Allowable size variance percentage for comparables",
+        "default": 25.0
+      },
+      "max_comparables": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of comparable sales to return",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Invalid property address: The subject property address cannot be located or verified.",
+      "Invalid property type: Property type must be one of [single-family, condo, townhouse, duplex, commercial, industrial, land].",
+      "Invalid square footage: Square footage must be a positive integer greater than 0.",
+      "Search parameters out of range: search_radius must be 0.25-5.0 miles, sale_date_range must be 1-24 months, size_variance_percent must be 10-50%.",
+      "Insufficient comparable sales: Not enough comparable sales found with current criteria. Consider expanding search parameters.",
+      "Max comparables out of range: max_comparables must be between 3 and 50."
+    ],
+    "usage": "Provide subject property details including address, type, and size. Optionally adjust search criteria to find the most relevant comparable sales for valuation analysis.",
+    "output_details": {
+      "comparable_count": {
+        "type": "integer",
+        "description": "Number of comparable sales found"
+      },
+      "average_sale_price": {
+        "type": "number",
+        "description": "Average sale price of comparable properties"
+      },
+      "price_per_sqft_range": {
+        "type": "string",
+        "description": "Range of price per square foot values"
+      },
+      "comparable_sales": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Details of each comparable sale including address, price, date, and key characteristics"
+      },
+      "market_trends": {
+        "type": "string",
+        "description": "Analysis of pricing trends based on comparable sales"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Property Characteristic Validator",
+    "tool_description": "Cross-validates property characteristics across multiple data sources to identify discrepancies and ensure accuracy of collected property information.",
+    "parameters": {
+      "property_records": {
+        "type": "array",
+        "required": true,
+        "description": "Array of property data records from different sources",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "critical_fields": {
+        "type": "array",
+        "required": true,
+        "description": "List of property fields to validate (e.g., square_footage, bedrooms, year_built)",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "tolerance_percentages": {
+        "type": "array",
+        "required": false,
+        "description": "Acceptable variance percentages for numerical fields in same order as critical_fields",
+        "items": {
+          "type": "number"
+        },
+        "default": null
+      },
+      "validation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Validation strictness level: basic, standard, or strict",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Insufficient data sources: At least 2 property records are required for validation.",
+      "Invalid critical fields: One or more specified fields are not recognized property characteristics.",
+      "Tolerance mismatch: Number of tolerance_percentages must match number of critical_fields if provided.",
+      "Invalid validation level: Validation level must be one of [basic, standard, strict].",
+      "Tolerance out of range: Tolerance percentages must be between 0 and 50.",
+      "Data format error: Property records must be in proper format for comparison."
+    ],
+    "usage": "Provide multiple property data records and specify which fields to validate. Optionally set tolerance levels for numerical comparisons and choose validation strictness.",
+    "output_details": {
+      "validation_summary": {
+        "type": "string",
+        "description": "Overall validation result summary"
+      },
+      "field_consistency": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Consistency status for each validated field"
+      },
+      "discrepancies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of identified discrepancies with details"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Overall confidence score for property data accuracy (0-100)"
+      },
+      "recommended_values": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended values for fields with discrepancies"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Legal Document Verifier",
+    "tool_description": "Verifies the authenticity and current status of legal documents related to property ownership, liens, easements, and encumbrances through official record checks.",
+    "parameters": {
+      "document_references": {
+        "type": "array",
+        "required": true,
+        "description": "Array of legal document references or recording numbers",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "county_recorder_office": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the county recorder's office or jurisdiction"
+      },
+      "state": {
+        "type": "string",
+        "required": true,
+        "description": "State where documents are recorded (two-letter abbreviation)"
+      },
+      "document_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of documents to verify (deed, mortgage, lien, easement, etc.)",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "verification_depth": {
+        "type": "string",
+        "required": false,
+        "description": "Level of verification: basic, standard, or comprehensive",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid document reference: One or more document references are not found in official records.",
+      "Recorder office not accessible: Cannot access the specified county recorder's office database.",
+      "Invalid state code: State must be a valid two-letter abbreviation.",
+      "Document type not supported: One or more specified document types are not recognized.",
+      "Verification level invalid: Verification depth must be one of [basic, standard, comprehensive].",
+      "Too many documents: Maximum of 50 document references can be processed at once."
+    ],
+    "usage": "Provide document recording numbers or references along with the county and state information. Specify document types and verification level for targeted verification.",
+    "output_details": {
+      "verification_status": {
+        "type": "string",
+        "description": "Overall verification status of submitted documents"
+      },
+      "verified_documents": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of successfully verified documents with details"
+      },
+      "unverified_documents": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of documents that could not be verified with reasons"
+      },
+      "document_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Current status of each document (active, satisfied, expired, etc.)"
+      },
+      "last_verification_date": {
+        "type": "string",
+        "description": "Date and time when verification was completed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Photo Documentation Manager",
+    "tool_description": "Organizes, categorizes, and validates property photographs with metadata extraction, quality assessment, and compliance checking for appraisal documentation standards.",
+    "parameters": {
+      "photo_paths": {
+        "type": "array",
+        "required": true,
+        "description": "Array of file paths to property photographs",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "property_address": {
+        "type": "string",
+        "required": true,
+        "description": "Address of the photographed property for organization"
+      },
+      "required_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Required photo categories (exterior_front, interior_kitchen, etc.)",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "minimum_resolution": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum acceptable image resolution in pixels",
+        "default": 1024
+      },
+      "auto_categorize": {
+        "type": "boolean",
+        "required": false,
+        "description": "Automatically categorize photos based on content analysis",
+        "default": true
+      },
+      "extract_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Extract and validate photo metadata including date, GPS, camera info",
+        "default": true
+      },
+      "quality_check": {
+        "type": "boolean",
+        "required": false,
+        "description": "Perform quality assessment for clarity, lighting, and composition",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Photos not found: One or more specified photo paths do not exist or are inaccessible.",
+      "Invalid file format: All photos must be in supported formats (JPEG, PNG, TIFF).",
+      "Resolution too low: One or more photos do not meet the minimum resolution requirement.",
+      "Missing required categories: Photos for required categories are missing from the collection.",
+      "Metadata extraction failed: Unable to extract metadata from one or more photos.",
+      "Quality assessment failed: Photos do not meet minimum quality standards for appraisal documentation.",
+      "Too many photos: Maximum of 100 photos can be processed at once."
+    ],
+    "usage": "Provide paths to property photos and the property address. Optionally specify required photo categories, quality standards, and processing options for comprehensive photo documentation.",
+    "output_details": {
+      "total_photos_processed": {
+        "type": "integer",
+        "description": "Number of photos successfully processed"
+      },
+      "photo_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Categorized list of photos by type (exterior, interior, detail, etc.)"
+      },
+      "quality_summary": {
+        "type": "string",
+        "description": "Overall quality assessment of the photo collection"
+      },
+      "missing_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required photo categories that are missing"
+      },
+      "metadata_summary": {
+        "type": "string",
+        "description": "Summary of extracted metadata including date ranges and equipment used"
+      },
+      "compliance_status": {
+        "type": "string",
+        "description": "Compliance status with appraisal photo documentation standards"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Market Condition Assessor",
+    "tool_description": "Analyzes current market conditions including supply, demand, pricing trends, and economic factors that may impact property values in a specific area and timeframe.",
+    "parameters": {
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Geographic area for market analysis (city, zip code, or neighborhood)"
+      },
+      "property_type": {
+        "type": "string",
+        "required": true,
+        "description": "Property type for market analysis focus"
+      },
+      "analysis_period_months": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of months to analyze for trends",
+        "default": 12
+      },
+      "include_foreclosures": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include foreclosure sales in market analysis",
+        "default": false
+      },
+      "market_segments": {
+        "type": "array",
+        "required": false,
+        "description": "Specific market segments to analyze (luxury, starter, mid-range, etc.)",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid location: The specified location cannot be found or is not supported for market analysis.",
+      "Invalid property type: Property type must be one of the supported categories.",
+      "Analysis period out of range: Analysis period must be between 3 and 60 months.",
+      "Insufficient market data: Not enough recent sales data available for reliable market analysis.",
+      "Invalid market segment: One or more specified market segments are not recognized."
+    ],
+    "usage": "Specify the location and property type for market analysis. Optionally set the analysis timeframe and market segments to focus the assessment on relevant market conditions.",
+    "output_details": {
+      "market_trend": {
+        "type": "string",
+        "description": "Overall market trend direction (appreciating, stable, declining)"
+      },
+      "average_days_on_market": {
+        "type": "integer",
+        "description": "Average number of days properties stay on the market"
+      },
+      "inventory_levels": {
+        "type": "string",
+        "description": "Current inventory levels (low, balanced, high)"
+      },
+      "price_trend_percentage": {
+        "type": "number",
+        "description": "Percentage change in average prices over analysis period"
+      },
+      "absorption_rate": {
+        "type": "number",
+        "description": "Rate at which available properties are sold (months of supply)"
+      },
+      "market_factors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Key economic and market factors influencing property values"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Completeness Checker",
+    "tool_description": "Evaluates the completeness and quality of collected property data against appraisal standards and identifies missing or insufficient information for comprehensive property analysis.",
+    "parameters": {
+      "property_data_package": {
+        "type": "string",
+        "required": true,
+        "description": "Comprehensive property data package containing all collected information"
+      },
+      "appraisal_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of appraisal being conducted (residential, commercial, industrial, agricultural)"
+      },
+      "required_data_elements": {
+        "type": "array",
+        "required": false,
+        "description": "Specific data elements required for this appraisal",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "regulatory_standard": {
+        "type": "string",
+        "required": false,
+        "description": "Applicable regulatory standard (USPAP, FHA, VA, Fannie Mae, etc.)",
+        "default": "USPAP"
+      },
+      "completeness_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum completeness percentage required (0-100)",
+        "default": 85.0
+      }
+    },
+    "error_messages": [
+      "Invalid data package: The property data package is empty or in an unrecognized format.",
+      "Invalid appraisal type: Appraisal type must be one of [residential, commercial, industrial, agricultural].",
+      "Unrecognized regulatory standard: The specified regulatory standard is not supported.",
+      "Completeness threshold out of range: Threshold must be between 50 and 100 percent.",
+      "Required data elements invalid: One or more specified required data elements are not recognized."
+    ],
+    "usage": "Provide the complete property data package and specify the appraisal type. Optionally set specific requirements and standards to evaluate data completeness against professional standards.",
+    "output_details": {
+      "completeness_percentage": {
+        "type": "number",
+        "description": "Overall data completeness percentage"
+      },
+      "missing_critical_data": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of missing critical data elements"
+      },
+      "incomplete_sections": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Property data sections that are incomplete"
+      },
+      "data_quality_issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Identified data quality issues and inconsistencies"
+      },
+      "compliance_status": {
+        "type": "string",
+        "description": "Compliance status with specified regulatory standards"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"

@@ -1,0 +1,811 @@
+field_name: financial_trading
+subfield: portfolio_construction_and_optimization
+task: Risk assessment and portfolio volatility modeling
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves complex mathematical modeling, statistical analysis, and financial theory application. The scope includes multiple risk types (market, credit, liquidity), volatility forecasting methods, correlation modeling, and portfolio optimization constraints. The task has moderate ambiguity in risk model selection and requires coordination between data processing, statistical modeling, and optimization components. Errors can have significant financial impact, and it requires substantial market data infrastructure. **Difficulty: Hard**
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting 17 tools within the 15-20 range. This allows for comprehensive coverage of data ingestion, statistical analysis, risk modeling, portfolio construction, and validation workflows while maintaining tool composability and avoiding overlap.
+
+  **STEP 3 — Tool names and dependencies**
+
+  Tools with their upstream dependencies (consumes) and downstream affordances (produces):
+  1. **Historical Price Data Fetcher** → produces: price time series
+  2. **Return Calculator** → consumes: price data → produces: return series
+  3. **Volatility Estimator** → consumes: return series → produces: volatility measures
+  4. **Correlation Matrix Calculator** → consumes: multiple return series → produces: correlation matrix
+  5. **Covariance Matrix Builder** → consumes: volatilities, correlations → produces: covariance matrix
+  6. **VaR Calculator** → consumes: portfolio weights, returns → produces: VaR estimates
+  7. **Expected Shortfall Calculator** → consumes: portfolio weights, returns → produces: ES estimates
+  8. **Beta Calculator** → consumes: asset returns, benchmark returns → produces: beta coefficients
+  9. **Drawdown Analyzer** → consumes: portfolio returns → produces: drawdown metrics
+  10. **Monte Carlo Risk Simulator** → consumes: return parameters → produces: simulated scenarios
+  11. **Portfolio Optimizer** → consumes: returns, covariance, constraints → produces: optimal weights
+  12. **Risk Budget Allocator** → consumes: risk contributions → produces: risk-based weights
+  13. **Sharpe Ratio Calculator** → consumes: returns, risk-free rate → produces: risk-adjusted returns
+  14. **Portfolio Performance Attribution** → consumes: portfolio data → produces: attribution analysis
+  15. **Stress Test Engine** → consumes: portfolio, scenarios → produces: stress results
+  16. **Risk Report Generator** → consumes: risk metrics → produces: formatted reports
+  17. **Portfolio Rebalancing Optimizer** → consumes: current weights, targets → produces: rebalancing plan
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Portfolio Risk Assessment**: Historical Price Data Fetcher → Return Calculator → Volatility Estimator → VaR Calculator → Risk Report Generator
+  2. **Quick Correlation Analysis**: Historical Price Data Fetcher → Return Calculator → Correlation Matrix Calculator → Risk Report Generator
+
+  **Medium Plans:**
+  1. **Standard Portfolio Optimization**: Historical Price Data Fetcher → Return Calculator → Volatility Estimator → Correlation Matrix Calculator → Covariance Matrix Builder → Portfolio Optimizer → Sharpe Ratio Calculator → Risk Report Generator
+  2. **Comprehensive Risk Analysis**: Return Calculator → VaR Calculator → Expected Shortfall Calculator → Drawdown Analyzer → Beta Calculator → Risk Report Generator
+
+  **Complex Plans:**
+  1. **Full Risk Management Workflow**: Historical Price Data Fetcher → Return Calculator → Volatility Estimator → Correlation Matrix Calculator → Covariance Matrix Builder → Portfolio Optimizer → VaR Calculator → Expected Shortfall Calculator → Monte Carlo Risk Simulator → Stress Test Engine → Portfolio Performance Attribution → Risk Report Generator
+  2. **Advanced Portfolio Construction**: Historical Price Data Fetcher → Return Calculator → Covariance Matrix Builder → Risk Budget Allocator → Portfolio Optimizer → Monte Carlo Risk Simulator → Stress Test Engine → Portfolio Rebalancing Optimizer → Performance Attribution → Risk Report Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Historical Price Data Fetcher",
+    "tool_description": "Retrieves historical price data for specified financial instruments over a given time period with configurable frequency and data source.",
+    "parameters": {
+      "tickers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of ticker symbols to fetch data for",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for data retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for data retrieval",
+        "format": "date-time"
+      },
+      "frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Data frequency: daily, weekly, monthly",
+        "default": "daily"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date and both must be valid ISO 8601 format.",
+      "Invalid tickers: One or more ticker symbols not found or invalid format.",
+      "Invalid frequency: Must be one of [daily, weekly, monthly].",
+      "Insufficient data: Requested date range contains insufficient trading data for analysis."
+    ],
+    "usage": "Provide array of ticker symbols and date range. Optionally specify frequency. Returns time series price data for each ticker.",
+    "output_details": {
+      "tickers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of successfully retrieved tickers"
+      },
+      "dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of date-time strings for price observations"
+      },
+      "prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Flattened array of closing prices ordered by ticker then date"
+      },
+      "data_points": {
+        "type": "integer",
+        "description": "Total number of price observations retrieved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Calculator",
+    "tool_description": "Calculates returns from price data using various methods including simple, logarithmic, and excess returns with configurable periods.",
+    "parameters": {
+      "prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of price values in chronological order",
+        "minItems": 2
+      },
+      "return_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of return calculation: simple, log, excess",
+        "default": "simple"
+      },
+      "periods": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of periods for return calculation",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Insufficient price data: Need at least 2 price points for return calculation.",
+      "Invalid return type: Must be one of [simple, log, excess].",
+      "Invalid periods: Must be positive integer less than or equal to price array length minus 1.",
+      "Invalid price data: Prices must be positive numbers."
+    ],
+    "usage": "Provide price array and specify return calculation method. Returns calculated return series with one fewer observation than input prices.",
+    "output_details": {
+      "returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Calculated return values"
+      },
+      "return_count": {
+        "type": "integer",
+        "description": "Number of return observations calculated"
+      },
+      "mean_return": {
+        "type": "number",
+        "description": "Average return over the period"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Volatility Estimator",
+    "tool_description": "Estimates volatility using multiple methods including historical standard deviation, EWMA, GARCH models, and realized volatility with customizable parameters and windows.",
+    "parameters": {
+      "returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of return values",
+        "minItems": 10
+      },
+      "method": {
+        "type": "string",
+        "required": true,
+        "description": "Volatility estimation method: historical, ewma, garch, realized"
+      },
+      "window": {
+        "type": "integer",
+        "required": false,
+        "description": "Rolling window size for historical method",
+        "default": 30
+      },
+      "decay_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Decay factor for EWMA method (0 < value < 1)",
+        "default": 0.94
+      },
+      "annualize": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to annualize volatility estimate",
+        "default": true
+      },
+      "periods_per_year": {
+        "type": "integer",
+        "required": false,
+        "description": "Trading periods per year for annualization",
+        "default": 252
+      },
+      "garch_p": {
+        "type": "integer",
+        "required": false,
+        "description": "GARCH model p parameter",
+        "default": 1
+      },
+      "garch_q": {
+        "type": "integer",
+        "required": false,
+        "description": "GARCH model q parameter",
+        "default": 1
+      },
+      "confidence_interval": {
+        "type": "number",
+        "required": false,
+        "description": "Confidence level for volatility bands (0 < value < 1)",
+        "default": 0.95
+      }
+    },
+    "error_messages": [
+      "Insufficient return data: Need at least 10 return observations for reliable volatility estimation.",
+      "Invalid method: Must be one of [historical, ewma, garch, realized].",
+      "Invalid window size: Window must be positive integer less than return array length.",
+      "Invalid decay factor: Must be between 0 and 1 exclusive for EWMA method.",
+      "Invalid GARCH parameters: p and q must be positive integers, typically 1-3.",
+      "Invalid confidence interval: Must be between 0 and 1 exclusive.",
+      "GARCH convergence error: Model failed to converge, try different parameters or more data."
+    ],
+    "usage": "Provide return array and volatility estimation method. Configure method-specific parameters as needed. Returns volatility estimate with confidence bands.",
+    "output_details": {
+      "volatility": {
+        "type": "number",
+        "description": "Estimated volatility value"
+      },
+      "volatility_lower": {
+        "type": "number",
+        "description": "Lower confidence bound for volatility"
+      },
+      "volatility_upper": {
+        "type": "number",
+        "description": "Upper confidence bound for volatility"
+      },
+      "method_used": {
+        "type": "string",
+        "description": "Volatility estimation method applied"
+      },
+      "is_annualized": {
+        "type": "boolean",
+        "description": "Whether the volatility is annualized"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Correlation Matrix Calculator",
+    "tool_description": "Calculates correlation matrix from multiple return series using Pearson, Spearman, or Kendall methods with statistical significance testing.",
+    "parameters": {
+      "return_matrix": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Flattened matrix of returns (assets x time periods)",
+        "minItems": 4
+      },
+      "asset_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of assets in the return matrix"
+      },
+      "time_periods": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of time periods in the return matrix"
+      },
+      "method": {
+        "type": "string",
+        "required": false,
+        "description": "Correlation method: pearson, spearman, kendall",
+        "default": "pearson"
+      },
+      "significance_level": {
+        "type": "number",
+        "required": false,
+        "description": "Significance level for correlation testing (0 < value < 1)",
+        "default": 0.05
+      }
+    },
+    "error_messages": [
+      "Invalid matrix dimensions: return_matrix length must equal asset_count × time_periods.",
+      "Insufficient data: Need at least 10 time periods for reliable correlation estimation.",
+      "Invalid correlation method: Must be one of [pearson, spearman, kendall].",
+      "Invalid significance level: Must be between 0 and 1 exclusive.",
+      "Singular matrix error: One or more return series has zero variance."
+    ],
+    "usage": "Provide flattened return matrix with asset count and time periods. Specify correlation method and significance level. Returns correlation matrix with significance indicators.",
+    "output_details": {
+      "correlation_matrix": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Flattened correlation matrix (asset_count × asset_count)"
+      },
+      "p_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "P-values for correlation significance testing"
+      },
+      "significant_correlations": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Boolean indicators for statistically significant correlations"
+      },
+      "method_used": {
+        "type": "string",
+        "description": "Correlation calculation method applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Covariance Matrix Builder",
+    "tool_description": "Constructs covariance matrix from volatilities and correlations with optional shrinkage estimators and regularization techniques.",
+    "parameters": {
+      "volatilities": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of asset volatilities",
+        "minItems": 2
+      },
+      "correlation_matrix": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Flattened correlation matrix"
+      },
+      "shrinkage_method": {
+        "type": "string",
+        "required": false,
+        "description": "Shrinkage method: none, ledoit_wolf, oas, constant_correlation",
+        "default": "none"
+      },
+      "shrinkage_intensity": {
+        "type": "number",
+        "required": false,
+        "description": "Manual shrinkage intensity (0 ≤ value ≤ 1)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Dimension mismatch: correlation_matrix length must equal volatilities length squared.",
+      "Invalid volatilities: All volatility values must be positive.",
+      "Invalid correlation matrix: Matrix must be symmetric and positive semi-definite.",
+      "Invalid shrinkage method: Must be one of [none, ledoit_wolf, oas, constant_correlation].",
+      "Invalid shrinkage intensity: Must be between 0 and 1 inclusive when specified."
+    ],
+    "usage": "Provide volatility array and correlation matrix. Optionally apply shrinkage techniques to improve estimation. Returns covariance matrix and diagnostic information.",
+    "output_details": {
+      "covariance_matrix": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Flattened covariance matrix"
+      },
+      "condition_number": {
+        "type": "number",
+        "description": "Matrix condition number for numerical stability assessment"
+      },
+      "is_positive_definite": {
+        "type": "boolean",
+        "description": "Whether the covariance matrix is positive definite"
+      },
+      "shrinkage_applied": {
+        "type": "number",
+        "description": "Actual shrinkage intensity applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VaR Calculator",
+    "tool_description": "Calculates Value at Risk using parametric, historical simulation, or Monte Carlo methods with multiple confidence levels and time horizons.",
+    "parameters": {
+      "returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of portfolio or asset returns",
+        "minItems": 30
+      },
+      "confidence_levels": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Confidence levels for VaR calculation",
+        "default": [0.95, 0.99]
+      },
+      "method": {
+        "type": "string",
+        "required": true,
+        "description": "VaR calculation method: parametric, historical, monte_carlo"
+      },
+      "time_horizon": {
+        "type": "integer",
+        "required": false,
+        "description": "Time horizon in days for VaR calculation",
+        "default": 1
+      },
+      "portfolio_value": {
+        "type": "number",
+        "required": false,
+        "description": "Current portfolio value for absolute VaR calculation",
+        "default": 1000000
+      },
+      "monte_carlo_simulations": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of Monte Carlo simulations",
+        "default": 10000
+      },
+      "distribution": {
+        "type": "string",
+        "required": false,
+        "description": "Assumed distribution for parametric method: normal, t_student",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Insufficient return data: Need at least 30 return observations for reliable VaR estimation.",
+      "Invalid confidence levels: All values must be between 0 and 1 exclusive.",
+      "Invalid VaR method: Must be one of [parametric, historical, monte_carlo].",
+      "Invalid time horizon: Must be positive integer.",
+      "Invalid portfolio value: Must be positive number.",
+      "Invalid simulation count: Monte Carlo simulations must be at least 1000.",
+      "Invalid distribution: Must be one of [normal, t_student] for parametric method."
+    ],
+    "usage": "Provide return array and specify VaR method. Configure confidence levels, time horizon, and method-specific parameters. Returns VaR estimates and diagnostic information.",
+    "output_details": {
+      "var_estimates": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "VaR estimates for each confidence level"
+      },
+      "confidence_levels": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence levels used in calculation"
+      },
+      "method_used": {
+        "type": "string",
+        "description": "VaR calculation method applied"
+      },
+      "time_horizon": {
+        "type": "integer",
+        "description": "Time horizon used in calculation"
+      },
+      "backtesting_violations": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Number of VaR violations for each confidence level"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expected Shortfall Calculator",
+    "tool_description": "Calculates Expected Shortfall (Conditional VaR) using various methods with multiple confidence levels and distributional assumptions.",
+    "parameters": {
+      "returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of portfolio or asset returns",
+        "minItems": 30
+      },
+      "confidence_levels": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Confidence levels for ES calculation",
+        "default": [0.95, 0.99]
+      },
+      "method": {
+        "type": "string",
+        "required": true,
+        "description": "ES calculation method: parametric, historical, monte_carlo"
+      },
+      "portfolio_value": {
+        "type": "number",
+        "required": false,
+        "description": "Current portfolio value for absolute ES calculation",
+        "default": 1000000
+      }
+    },
+    "error_messages": [
+      "Insufficient return data: Need at least 30 return observations for reliable ES estimation.",
+      "Invalid confidence levels: All values must be between 0 and 1 exclusive.",
+      "Invalid ES method: Must be one of [parametric, historical, monte_carlo].",
+      "Invalid portfolio value: Must be positive number.",
+      "Extreme tail insufficient: Not enough observations in tail for historical ES calculation."
+    ],
+    "usage": "Provide return array and specify ES method. Configure confidence levels and portfolio value. Returns Expected Shortfall estimates and tail risk measures.",
+    "output_details": {
+      "expected_shortfall": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Expected Shortfall estimates for each confidence level"
+      },
+      "confidence_levels": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence levels used in calculation"
+      },
+      "tail_observations": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Number of tail observations for each confidence level"
+      },
+      "coherence_check": {
+        "type": "boolean",
+        "description": "Whether ES estimates satisfy coherence properties"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Beta Calculator",
+    "tool_description": "Calculates systematic risk beta coefficients for assets relative to benchmark using various regression methods and rolling windows.",
+    "parameters": {
+      "asset_returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of asset returns",
+        "minItems": 20
+      },
+      "benchmark_returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of benchmark returns",
+        "minItems": 20
+      },
+      "method": {
+        "type": "string",
+        "required": false,
+        "description": "Beta calculation method: ols, rolling, ewma",
+        "default": "ols"
+      },
+      "window_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Rolling window size for rolling beta calculation",
+        "default": 60
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 20 paired return observations for beta calculation.",
+      "Mismatched arrays: Asset and benchmark return arrays must have same length.",
+      "Invalid method: Must be one of [ols, rolling, ewma].",
+      "Invalid window size: Must be positive integer less than return array length.",
+      "Zero benchmark variance: Benchmark returns show no variation."
+    ],
+    "usage": "Provide asset and benchmark return arrays. Specify calculation method and window parameters. Returns beta coefficient with statistical significance measures.",
+    "output_details": {
+      "beta": {
+        "type": "number",
+        "description": "Estimated beta coefficient"
+      },
+      "alpha": {
+        "type": "number",
+        "description": "Estimated alpha coefficient"
+      },
+      "r_squared": {
+        "type": "number",
+        "description": "R-squared of the regression"
+      },
+      "t_statistic": {
+        "type": "number",
+        "description": "T-statistic for beta coefficient"
+      },
+      "p_value": {
+        "type": "number",
+        "description": "P-value for beta significance test"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Drawdown Analyzer",
+    "tool_description": "Analyzes portfolio drawdowns including maximum drawdown, drawdown duration, recovery periods, and underwater curve analysis.",
+    "parameters": {
+      "returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of portfolio returns",
+        "minItems": 10
+      },
+      "initial_value": {
+        "type": "number",
+        "required": false,
+        "description": "Initial portfolio value",
+        "default": 100
+      },
+      "percentile_levels": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Percentile levels for drawdown analysis",
+        "default": [0.95, 0.99]
+      }
+    },
+    "error_messages": [
+      "Insufficient return data: Need at least 10 return observations for drawdown analysis.",
+      "Invalid initial value: Must be positive number.",
+      "Invalid percentile levels: All values must be between 0 and 1 exclusive.",
+      "All positive returns: No drawdowns found in the return series."
+    ],
+    "usage": "Provide return array with optional initial portfolio value and percentile levels. Returns comprehensive drawdown statistics and recovery metrics.",
+    "output_details": {
+      "max_drawdown": {
+        "type": "number",
+        "description": "Maximum drawdown percentage"
+      },
+      "max_drawdown_duration": {
+        "type": "integer",
+        "description": "Duration of maximum drawdown in periods"
+      },
+      "recovery_time": {
+        "type": "integer",
+        "description": "Time to recover from maximum drawdown"
+      },
+      "drawdown_periods": {
+        "type": "integer",
+        "description": "Total number of periods in drawdown"
+      },
+      "average_drawdown": {
+        "type": "number",
+        "description": "Average drawdown magnitude"
+      },
+      "drawdown_percentiles": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Drawdown values at specified percentile levels"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Monte Carlo Risk Simulator",
+    "tool_description": "Performs Monte Carlo simulations for portfolio risk assessment using various stochastic processes and correlation structures with scenario generation and path analysis.",
+    "parameters": {
+      "expected_returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Expected returns for each asset",
+        "minItems": 1
+      },
+      "covariance_matrix": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Flattened covariance matrix"
+      },
+      "portfolio_weights": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Portfolio weights for each asset",
+        "minItems": 1
+      },
+      "num_simulations": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of Monte Carlo simulations",
+        "default": 10000
+      },
+      "time_horizon": {
+        "type": "integer",
+        "required": false,
+        "description": "Investment time horizon in periods",
+        "default": 252
+      },
+      "num_paths": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of price paths to simulate",
+        "default": 1000
+      },
+      "initial_portfolio_value": {
+        "type": "number",
+        "required": false,
+        "description": "Initial portfolio value",
+        "default": 1000000
+      },
+      "random_seed": {
+        "type": "integer",
+        "required": false,
+        "description": "Random seed for reproducibility",
+        "default": "None"
+      },
+      "confidence_levels": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Confidence levels for risk metrics",
+        "default": [0.05, 0.95]
+      },
+      "antithetic_variates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Use antithetic variates for variance reduction",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Dimension mismatch: Covariance matrix size must equal (expected_returns length)².",
+      "Invalid portfolio weights: Must sum to 1 and all be non-negative.",
+      "Invalid simulation parameters: num_simulations and num_paths must be positive integers ≥ 100.",
+      "Invalid time horizon: Must be positive integer.",
+      "Invalid covariance matrix: Must be symmetric and positive semi-definite.",
+      "Invalid confidence levels: All values must be between 0 and 1 exclusive.",
+      "Insufficient memory: Reduce num_simulations or num_paths for available computational resources."
+    ],
+    "usage": "Provide expected returns, covariance matrix, and portfolio weights. Configure simulation parameters including number of simulations, time horizon, and confidence levels. Returns simulated portfolio statistics and risk measures.",
+    "output_details": {
+      "simulated_returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of simulated portfolio returns"
+      },
+      "portfolio_percentiles": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Portfolio value percentiles at specified confidence levels"
+      },
+      "probability_of_loss": {
+        "type": "number",
+        "description": "Probability of portfolio loss over time horizon"
+      },
+      "expected_portfolio_value": {
+        "type": "number",
+        "description": "Expected portfolio value at time horizon"
+      },
+      "portfolio_volatility": {
+        "type": "number",
+        "description": "Simulated portfolio volatility"
+      },
+      "simulation_statistics": {
+        "type": "string",
+        "description": "Summary statistics of simulation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Portfolio Optimizer",
+    "tool_description": "Optimizes portfolio weights using various objective functions and constraints including mean-variance, risk parity, minimum variance, and maximum Sharpe ratio optimization.",
+    "parameters": {
+      "expected_returns": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Expected returns for each asset",
+        "minItems": 2
+      },
+      "covariance_matrix": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Flattened covariance matrix"
+      },
+      "objective": {
+        "type": "string",
+        "required": true,
+        "description": "Optimization objective: mean_variance, min_variance, max_sharpe, risk_parity"
+      },
+      "risk_free_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Risk-free rate for Sharpe ratio calculation",
+        "default": 0.02
+      },
+      "target_return": {
+        "type": "number",
+        "required": false,
+        "description": "Target return for mean-variance optimization",
+        "default": "None"
+      },
+      "weight_bounds": {
+        "type": "array",
+        "items": {"type": "number

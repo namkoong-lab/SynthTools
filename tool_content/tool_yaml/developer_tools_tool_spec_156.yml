@@ -1,0 +1,856 @@
+field_name: developer_tools
+subfield: Code Version Control and Collaboration
+task: Repository Management and Branch Operations
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves moderate complexity with multiple interconnected workflows including branch creation/merging, conflict resolution, repository setup, and collaboration features. The coordination between different git operations and potential for destructive actions makes this a medium difficulty task.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the essential repository management and branching operations comprehensively.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their flow:
+  - Repository Initializer → creates new repos
+  - Branch Creator → creates branches from existing commits
+  - Branch Merger → merges branches, consumes conflict resolution
+  - Conflict Resolver → resolves merge conflicts
+  - Commit Author → creates commits from staged changes
+  - File Stager → stages files for commits
+  - Remote Repository Manager → manages remote connections
+  - Branch Lister → lists available branches
+  - Commit History Viewer → shows commit logs
+  - File Differ → shows file differences between versions
+  - Tag Creator → creates version tags on commits
+  - Repository Status Checker → shows current repo state
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  1. Basic branching: Branch Lister → Branch Creator → File Stager → Commit Author
+  2. View changes: Repository Status Checker → File Differ → Commit History Viewer
+
+  Medium plans:
+  1. Feature development: Branch Creator → File Stager → Commit Author → Branch Merger → Tag Creator
+  2. Collaboration setup: Repository Initializer → Remote Repository Manager → Branch Creator → File Stager → Commit Author
+
+  Complex plans:
+  1. Full merge workflow: Branch Lister → Branch Creator → File Stager → Commit Author → Branch Merger → Conflict Resolver → Commit Author → Tag Creator
+  2. Repository migration: Repository Initializer → Remote Repository Manager → Commit History Viewer → Branch Lister → Branch Creator → File Stager → Commit Author
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Repository Initializer",
+    "tool_description": "Initializes a new Git repository in a specified directory with optional remote origin setup and initial commit configuration.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Local filesystem path where the repository should be initialized"
+      },
+      "repository_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the repository"
+      },
+      "remote_url": {
+        "type": "string",
+        "required": false,
+        "description": "Remote repository URL to set as origin",
+        "default": "None"
+      },
+      "default_branch": {
+        "type": "string",
+        "required": false,
+        "description": "Name of the default branch",
+        "default": "main"
+      },
+      "create_readme": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to create an initial README.md file",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid repository path: The specified path does not exist or is not writable. Ensure the parent directory exists and has write permissions.",
+      "Repository already exists: A Git repository already exists at the specified path. Choose a different path or delete the existing repository.",
+      "Invalid remote URL: The provided remote URL format is invalid. Use a valid Git URL format (https:// or git@).",
+      "Invalid branch name: Branch names cannot contain spaces or special characters except hyphens and underscores."
+    ],
+    "usage": "Provide a valid repository_path and repository_name. Optionally specify remote_url, default_branch, and create_readme. The tool will initialize the repository and return configuration details.",
+    "output_details": {
+      "repository_path": {
+        "type": "string",
+        "description": "Full path to the initialized repository"
+      },
+      "default_branch": {
+        "type": "string",
+        "description": "Name of the default branch created"
+      },
+      "remote_configured": {
+        "type": "boolean",
+        "description": "Whether a remote origin was successfully configured"
+      },
+      "initial_commit_hash": {
+        "type": "string",
+        "description": "SHA hash of the initial commit if files were created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Branch Creator",
+    "tool_description": "Creates a new Git branch from a specified source branch or commit, with options for immediate checkout and upstream tracking.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Git repository"
+      },
+      "branch_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the new branch to create"
+      },
+      "source_branch": {
+        "type": "string",
+        "required": false,
+        "description": "Source branch or commit hash to branch from",
+        "default": "HEAD"
+      },
+      "checkout_immediately": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to switch to the new branch after creation",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path. Initialize a repository first.",
+      "Branch already exists: A branch with this name already exists. Use a different name or delete the existing branch.",
+      "Invalid source reference: The specified source branch or commit hash does not exist in the repository.",
+      "Invalid branch name: Branch names cannot contain spaces, start with hyphens, or contain Git-reserved characters.",
+      "Uncommitted changes: Cannot switch branches with uncommitted changes. Commit or stash changes first."
+    ],
+    "usage": "Specify repository_path and branch_name. Optionally set source_branch (defaults to current HEAD) and checkout_immediately. The tool creates the branch and optionally switches to it.",
+    "output_details": {
+      "branch_name": {
+        "type": "string",
+        "description": "Name of the created branch"
+      },
+      "source_commit": {
+        "type": "string",
+        "description": "SHA hash of the commit the branch was created from"
+      },
+      "current_branch": {
+        "type": "string",
+        "description": "Name of the currently active branch after operation"
+      },
+      "created_successfully": {
+        "type": "boolean",
+        "description": "Whether the branch was created successfully"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "File Stager",
+    "tool_description": "Stages specified files or directories for the next Git commit, with options for selective staging and unstaging operations.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Git repository"
+      },
+      "file_paths": {
+        "type": "array",
+        "required": true,
+        "description": "List of file or directory paths to stage",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "operation": {
+        "type": "string",
+        "required": false,
+        "description": "Operation to perform: add, remove, or reset",
+        "default": "add"
+      },
+      "include_untracked": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include untracked files when staging directories",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path.",
+      "File not found: One or more specified files do not exist in the repository.",
+      "Invalid operation: Operation must be 'add', 'remove', or 'reset'.",
+      "Permission denied: Cannot read or modify the specified files due to permission restrictions.",
+      "Binary file warning: Large binary files detected. Consider using Git LFS for better performance."
+    ],
+    "usage": "Provide repository_path and an array of file_paths to stage. Set operation to 'add' for staging, 'remove' for unstaging, or 'reset' to unstage all. Use include_untracked for directory operations.",
+    "output_details": {
+      "staged_files": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of successfully staged file paths"
+      },
+      "failed_files": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of files that failed to stage"
+      },
+      "operation_performed": {
+        "type": "string",
+        "description": "The staging operation that was performed"
+      },
+      "total_staged_count": {
+        "type": "integer",
+        "description": "Total number of files currently staged for commit"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Commit Author",
+    "tool_description": "Creates a Git commit with staged changes, including commit message, author information, and optional signing and tagging.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Git repository"
+      },
+      "commit_message": {
+        "type": "string",
+        "required": true,
+        "description": "Commit message describing the changes"
+      },
+      "author_name": {
+        "type": "string",
+        "required": false,
+        "description": "Author name for this commit",
+        "default": "None"
+      },
+      "author_email": {
+        "type": "string",
+        "required": false,
+        "description": "Author email for this commit",
+        "default": "None"
+      },
+      "allow_empty": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to allow commits with no staged changes",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path.",
+      "No staged changes: No files are staged for commit. Stage files first or use allow_empty=true.",
+      "Invalid commit message: Commit message cannot be empty or contain only whitespace.",
+      "Invalid email format: Author email must be in valid email format if provided.",
+      "Repository not configured: Git user name and email must be configured globally or provided as parameters."
+    ],
+    "usage": "Provide repository_path and commit_message. Optionally specify author_name, author_email, and allow_empty. Ensure files are staged before committing unless allow_empty is true.",
+    "output_details": {
+      "commit_hash": {
+        "type": "string",
+        "description": "SHA hash of the created commit"
+      },
+      "commit_message": {
+        "type": "string",
+        "description": "The commit message used"
+      },
+      "files_committed": {
+        "type": "integer",
+        "description": "Number of files included in the commit"
+      },
+      "author": {
+        "type": "string",
+        "description": "Author name and email used for the commit"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp when the commit was created",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Branch Merger",
+    "tool_description": "Merges a source branch into a target branch with configurable merge strategies, conflict detection, and rollback options.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Git repository"
+      },
+      "source_branch": {
+        "type": "string",
+        "required": true,
+        "description": "Branch to merge from"
+      },
+      "target_branch": {
+        "type": "string",
+        "required": true,
+        "description": "Branch to merge into"
+      },
+      "merge_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Merge strategy: merge, squash, or rebase",
+        "default": "merge"
+      },
+      "delete_source_after": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to delete the source branch after successful merge",
+        "default": false
+      },
+      "commit_message": {
+        "type": "string",
+        "required": false,
+        "description": "Custom merge commit message",
+        "default": "None"
+      },
+      "fast_forward_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Only allow fast-forward merges",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path.",
+      "Branch not found: One or both specified branches do not exist in the repository.",
+      "Merge conflicts detected: Automatic merge failed due to conflicts. Resolve conflicts manually and commit.",
+      "Invalid merge strategy: Strategy must be 'merge', 'squash', or 'rebase'.",
+      "Fast-forward not possible: Cannot fast-forward merge with the current branch states. Disable fast_forward_only.",
+      "Uncommitted changes: Cannot merge with uncommitted changes in the working directory.",
+      "Cannot merge into current branch: Switch to the target branch before merging, or specify a different target."
+    ],
+    "usage": "Specify repository_path, source_branch, and target_branch. Choose merge_strategy and set other options as needed. The tool will attempt the merge and report results or conflicts.",
+    "output_details": {
+      "merge_successful": {
+        "type": "boolean",
+        "description": "Whether the merge completed successfully"
+      },
+      "merge_commit_hash": {
+        "type": "string",
+        "description": "SHA hash of the merge commit if created"
+      },
+      "conflicts_detected": {
+        "type": "boolean",
+        "description": "Whether merge conflicts were detected"
+      },
+      "conflicted_files": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of files with merge conflicts"
+      },
+      "source_branch_deleted": {
+        "type": "boolean",
+        "description": "Whether the source branch was deleted after merge"
+      },
+      "strategy_used": {
+        "type": "string",
+        "description": "The merge strategy that was applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Conflict Resolver",
+    "tool_description": "Resolves Git merge conflicts by accepting changes from specific sources, applying custom resolutions, or marking conflicts as resolved.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Git repository with conflicts"
+      },
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the conflicted file to resolve"
+      },
+      "resolution_strategy": {
+        "type": "string",
+        "required": true,
+        "description": "How to resolve: ours, theirs, manual, or custom"
+      },
+      "custom_content": {
+        "type": "string",
+        "required": false,
+        "description": "Custom file content for manual resolution",
+        "default": "None"
+      },
+      "mark_resolved": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to mark the file as resolved after applying changes",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path.",
+      "File not in conflict: The specified file is not currently in a conflicted state.",
+      "File not found: The specified file does not exist in the repository.",
+      "Invalid resolution strategy: Strategy must be 'ours', 'theirs', 'manual', or 'custom'.",
+      "Custom content required: When using 'custom' strategy, custom_content parameter must be provided.",
+      "Resolution failed: Unable to apply the specified resolution due to file system errors."
+    ],
+    "usage": "Specify repository_path, file_path, and resolution_strategy. For 'custom' strategy, provide custom_content. The tool resolves the conflict and optionally marks it as resolved.",
+    "output_details": {
+      "file_resolved": {
+        "type": "boolean",
+        "description": "Whether the conflict was successfully resolved"
+      },
+      "resolution_applied": {
+        "type": "string",
+        "description": "The resolution strategy that was applied"
+      },
+      "marked_as_resolved": {
+        "type": "boolean",
+        "description": "Whether the file was marked as resolved in Git"
+      },
+      "remaining_conflicts": {
+        "type": "integer",
+        "description": "Number of conflicts remaining in the repository"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Remote Repository Manager",
+    "tool_description": "Manages Git remote repositories including adding, removing, renaming remotes, and performing push/pull operations with authentication support.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the local Git repository"
+      },
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Operation to perform: add, remove, rename, push, pull, or fetch"
+      },
+      "remote_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the remote (e.g., origin, upstream)"
+      },
+      "remote_url": {
+        "type": "string",
+        "required": false,
+        "description": "URL of the remote repository for add operations",
+        "default": "None"
+      },
+      "branch_name": {
+        "type": "string",
+        "required": false,
+        "description": "Specific branch for push/pull operations",
+        "default": "None"
+      },
+      "force_push": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to force push (use with caution)",
+        "default": false
+      },
+      "set_upstream": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to set upstream tracking for push operations",
+        "default": false
+      },
+      "username": {
+        "type": "string",
+        "required": false,
+        "description": "Username for authentication",
+        "default": "None"
+      },
+      "access_token": {
+        "type": "string",
+        "required": false,
+        "description": "Access token or password for authentication",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path.",
+      "Invalid operation: Operation must be one of: add, remove, rename, push, pull, or fetch.",
+      "Remote already exists: A remote with this name already exists. Use a different name or remove the existing remote.",
+      "Remote not found: The specified remote does not exist in the repository.",
+      "Invalid remote URL: The provided URL is not a valid Git repository URL.",
+      "Authentication failed: Unable to authenticate with the remote repository. Check credentials.",
+      "Network error: Unable to connect to the remote repository. Check internet connection and URL.",
+      "Push rejected: The push was rejected by the remote. Pull latest changes first or use force_push.",
+      "No upstream branch: No upstream branch is configured. Set set_upstream=true or specify branch_name."
+    ],
+    "usage": "Specify repository_path, operation, and remote_name. For 'add' operations, provide remote_url. For push/pull, optionally specify branch_name, and provide authentication credentials if required.",
+    "output_details": {
+      "operation_successful": {
+        "type": "boolean",
+        "description": "Whether the remote operation completed successfully"
+      },
+      "remote_name": {
+        "type": "string",
+        "description": "Name of the remote that was operated on"
+      },
+      "remote_url": {
+        "type": "string",
+        "description": "URL of the remote repository"
+      },
+      "branches_updated": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of branches that were updated during the operation"
+      },
+      "commits_transferred": {
+        "type": "integer",
+        "description": "Number of commits pushed or pulled"
+      },
+      "operation_performed": {
+        "type": "string",
+        "description": "The specific operation that was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Branch Lister",
+    "tool_description": "Lists all Git branches in a repository with filtering options, showing current branch, remote branches, and detailed branch information.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Git repository"
+      },
+      "include_remote": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include remote tracking branches",
+        "default": true
+      },
+      "show_merged": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to show branches that have been merged",
+        "default": true
+      },
+      "filter_pattern": {
+        "type": "string",
+        "required": false,
+        "description": "Pattern to filter branch names (supports wildcards)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path.",
+      "Invalid filter pattern: The provided filter pattern contains invalid characters or syntax.",
+      "Repository corrupted: Unable to read branch information due to repository corruption."
+    ],
+    "usage": "Provide repository_path and optionally configure filtering options. The tool returns a comprehensive list of branches with their status and metadata.",
+    "output_details": {
+      "current_branch": {
+        "type": "string",
+        "description": "Name of the currently checked out branch"
+      },
+      "local_branches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of local branch names"
+      },
+      "remote_branches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of remote branch names"
+      },
+      "merged_branches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of branches that have been merged into current branch"
+      },
+      "total_branches": {
+        "type": "integer",
+        "description": "Total number of branches found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Commit History Viewer",
+    "tool_description": "Displays Git commit history with filtering, formatting, and search options to analyze repository development over time.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Git repository"
+      },
+      "branch_name": {
+        "type": "string",
+        "required": false,
+        "description": "Branch to show history for",
+        "default": "HEAD"
+      },
+      "max_commits": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of commits to retrieve (1-1000)",
+        "default": 50
+      },
+      "since_date": {
+        "type": "string",
+        "required": false,
+        "description": "Show commits since this date",
+        "default": "None",
+        "format": "date-time"
+      },
+      "until_date": {
+        "type": "string",
+        "required": false,
+        "description": "Show commits until this date",
+        "default": "None",
+        "format": "date-time"
+      },
+      "author_filter": {
+        "type": "string",
+        "required": false,
+        "description": "Filter commits by author name or email",
+        "default": "None"
+      },
+      "message_search": {
+        "type": "string",
+        "required": false,
+        "description": "Search for commits containing this text in message",
+        "default": "None"
+      },
+      "file_path": {
+        "type": "string",
+        "required": false,
+        "description": "Show commits that modified this specific file",
+        "default": "None"
+      },
+      "show_stats": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include file change statistics",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path.",
+      "Invalid branch: The specified branch does not exist in the repository.",
+      "Invalid date format: Date parameters must be in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).",
+      "Invalid commit limit: max_commits must be between 1 and 1000.",
+      "File not found: The specified file path does not exist in the repository history."
+    ],
+    "usage": "Specify repository_path and optionally configure filtering parameters like branch_name, date ranges, author_filter, and search criteria. The tool returns formatted commit history.",
+    "output_details": {
+      "commits": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of commit information strings with hash, author, date, and message"
+      },
+      "total_commits": {
+        "type": "integer",
+        "description": "Total number of commits returned"
+      },
+      "branch_analyzed": {
+        "type": "string",
+        "description": "Name of the branch that was analyzed"
+      },
+      "date_range": {
+        "type": "string",
+        "description": "Date range of the commits shown"
+      },
+      "authors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of unique authors in the commit history"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "File Differ",
+    "tool_description": "Shows differences between file versions across commits, branches, or working directory, with configurable output formats and context.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Git repository"
+      },
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the file to compare"
+      },
+      "source_ref": {
+        "type": "string",
+        "required": false,
+        "description": "Source commit, branch, or tag for comparison",
+        "default": "HEAD"
+      },
+      "target_ref": {
+        "type": "string",
+        "required": false,
+        "description": "Target commit, branch, or tag for comparison",
+        "default": "working"
+      },
+      "context_lines": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of context lines to show around changes (0-20)",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path.",
+      "File not found: The specified file does not exist in one or both references.",
+      "Invalid reference: One or both of the specified references (commit/branch/tag) do not exist.",
+      "Invalid context lines: context_lines must be between 0 and 20.",
+      "Binary file detected: Cannot show differences for binary files."
+    ],
+    "usage": "Specify repository_path and file_path. Optionally set source_ref and target_ref to compare specific versions. Use context_lines to control the amount of surrounding code shown.",
+    "output_details": {
+      "has_differences": {
+        "type": "boolean",
+        "description": "Whether differences were found between the versions"
+      },
+      "diff_content": {
+        "type": "string",
+        "description": "The actual diff content showing changes"
+      },
+      "lines_added": {
+        "type": "integer",
+        "description": "Number of lines added"
+      },
+      "lines_removed": {
+        "type": "integer",
+        "description": "Number of lines removed"
+      },
+      "source_reference": {
+        "type": "string",
+        "description": "The source reference that was compared"
+      },
+      "target_reference": {
+        "type": "string",
+        "description": "The target reference that was compared"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tag Creator",
+    "tool_description": "Creates Git tags for marking specific commits as releases or milestones, with support for annotated tags, messages, and signing.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Git repository"
+      },
+      "tag_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the tag to create"
+      },
+      "commit_hash": {
+        "type": "string",
+        "required": false,
+        "description": "Specific commit to tag",
+        "default": "HEAD"
+      },
+      "tag_message": {
+        "type": "string",
+        "required": false,
+        "description": "Message for annotated tag",
+        "default": "None"
+      },
+      "annotated": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to create an annotated tag",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path.",
+      "Tag already exists: A tag with this name already exists. Use a different name or delete the existing tag.",
+      "Invalid commit hash: The specified commit hash does not exist in the repository.",
+      "Invalid tag name: Tag names cannot contain spaces or special characters except dots, hyphens, and underscores.",
+      "Empty tag message: Annotated tags require a non-empty message."
+    ],
+    "usage": "Specify repository_path and tag_name. Optionally set commit_hash (defaults to HEAD), tag_message for annotated tags, and annotated flag. The tool creates the tag and returns details.",
+    "output_details": {
+      "tag_created": {
+        "type": "boolean",
+        "description": "Whether the tag was created successfully"
+      },
+      "tag_name": {
+        "type": "string",
+        "description": "Name of the created tag"
+      },
+      "tagged_commit": {
+        "type": "string",
+        "description": "SHA hash of the commit that was tagged"
+      },
+      "tag_type": {
+        "type": "string",
+        "description": "Type of tag created (annotated or lightweight)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Repository Status Checker",
+    "tool_description": "Provides comprehensive status information about a Git repository including working directory changes, staging area, and branch status.",
+    "parameters": {
+      "repository_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Git repository"
+      },
+      "include_untracked": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include untracked files in the status",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Repository not found: No Git repository exists at the specified path.",
+      "Repository corrupted: Unable to read repository status due to corruption.",
+      "Permission denied: Cannot access repository files due to permission restrictions."
+    ],
+    "usage": "Provide

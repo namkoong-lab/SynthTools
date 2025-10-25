@@ -1,0 +1,795 @@
+field_name: agriculture_environmental
+subfield: Crop Production Management
+task: Weather monitoring and climate data analysis for planting and harvesting decisions
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium complexity due to the need to integrate multiple weather data sources, analyze complex temporal patterns, correlate environmental factors with crop growth stages, and provide actionable recommendations that directly impact agricultural outcomes where timing errors can significantly affect yields.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'm targeting 12 tools to cover weather data acquisition, analysis, modeling, and decision support while maintaining clear separation of concerns.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tool Names with Dependencies:**
+  1. Weather Data Fetcher (consumes: location/time → produces: raw weather data)
+  2. Historical Climate Analyzer (consumes: historical weather data → produces: climate patterns)
+  3. Crop Growth Stage Tracker (consumes: planting date, crop type → produces: growth stage timeline)
+  4. Weather Pattern Detector (consumes: weather time series → produces: pattern classifications)
+  5. Soil Moisture Estimator (consumes: weather data, soil type → produces: moisture levels)
+  6. Growing Degree Calculator (consumes: temperature data, crop requirements → produces: accumulated heat units)
+  7. Frost Risk Assessor (consumes: temperature forecasts → produces: frost probability)
+  8. Precipitation Analyzer (consumes: rainfall data → produces: precipitation statistics)
+  9. Planting Window Optimizer (consumes: weather forecasts, crop requirements → produces: optimal planting dates)
+  10. Harvest Timing Predictor (consumes: growth stage, weather forecast → produces: harvest recommendations)
+  11. Climate Risk Evaluator (consumes: multiple weather metrics → produces: risk assessment)
+  12. Weather Alert Generator (consumes: current conditions, thresholds → produces: actionable alerts)
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Basic Weather Check: Weather Data Fetcher → Weather Alert Generator → immediate weather decisions
+  - Frost Protection: Weather Data Fetcher → Frost Risk Assessor → protective action recommendations
+
+  **Medium Plans:**
+  - Planting Decision: Weather Data Fetcher → Historical Climate Analyzer → Growing Degree Calculator → Planting Window Optimizer
+  - Harvest Planning: Crop Growth Stage Tracker → Weather Data Fetcher → Precipitation Analyzer → Harvest Timing Predictor
+
+  **Complex Plans:**
+  - Comprehensive Crop Management: Weather Data Fetcher → Historical Climate Analyzer → Weather Pattern Detector → Soil Moisture Estimator → Growing Degree Calculator → Crop Growth Stage Tracker → Climate Risk Evaluator → integrated management recommendations
+  - Season Planning Pipeline: Historical Climate Analyzer → Weather Pattern Detector → Planting Window Optimizer → Crop Growth Stage Tracker → Harvest Timing Predictor → Weather Alert Generator → full season optimization
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Weather Data Fetcher",
+    "tool_description": "Retrieves current and historical weather data including temperature, precipitation, humidity, wind speed, and pressure for specified locations and time periods.",
+    "parameters": {
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Latitude coordinate (-90 to 90)"
+      },
+      "longitude": {
+        "type": "number",
+        "required": true,
+        "description": "Longitude coordinate (-180 to 180)"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for data retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for data retrieval",
+        "format": "date-time"
+      },
+      "data_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Data frequency: hourly, daily, or weekly",
+        "default": "daily"
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be between -90 and 90, longitude between -180 and 180.",
+      "Invalid date range: Start date must be before end date, and dates cannot be more than 10 years apart.",
+      "Unsupported frequency: Use 'hourly', 'daily', or 'weekly'.",
+      "Data unavailable: Weather data not available for specified location or time period."
+    ],
+    "usage": "Provide latitude, longitude, start_date, and end_date. Optionally specify data_frequency. Returns comprehensive weather measurements for the specified location and time range.",
+    "output_details": {
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of datetime strings for each data point"
+      },
+      "temperatures": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Temperature values in Celsius"
+      },
+      "precipitation": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Precipitation amounts in millimeters"
+      },
+      "humidity": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Relative humidity percentages"
+      },
+      "wind_speed": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Wind speed in kilometers per hour"
+      },
+      "location_name": {
+        "type": "string",
+        "description": "Nearest location identifier"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Historical Climate Analyzer",
+    "tool_description": "Analyzes historical weather patterns to identify seasonal trends, averages, and variability for agricultural planning.",
+    "parameters": {
+      "weather_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of historical temperature values",
+        "items": {"type": "number"}
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Corresponding timestamps for weather data",
+        "items": {"type": "string"}
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of analysis: seasonal_trends, monthly_averages, or variability_assessment"
+      },
+      "years_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum years of data required for reliable analysis (5-30)",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least the specified years_threshold of historical data for reliable analysis.",
+      "Data mismatch: Weather data and timestamps arrays must have the same length.",
+      "Invalid analysis type: Use 'seasonal_trends', 'monthly_averages', or 'variability_assessment'.",
+      "Invalid years threshold: Must be between 5 and 30 years."
+    ],
+    "usage": "Input historical weather data with timestamps and specify analysis type. The tool calculates long-term patterns, seasonal averages, and climate variability metrics.",
+    "output_details": {
+      "analysis_summary": {
+        "type": "string",
+        "description": "Summary of climate analysis findings"
+      },
+      "seasonal_averages": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Average values for each season or month"
+      },
+      "variability_index": {
+        "type": "number",
+        "description": "Climate variability score (0-100)"
+      },
+      "trend_direction": {
+        "type": "string",
+        "description": "Overall trend: increasing, decreasing, or stable"
+      },
+      "confidence_level": {
+        "type": "number",
+        "description": "Statistical confidence in analysis (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Crop Growth Stage Tracker",
+    "tool_description": "Tracks crop development stages based on planting date, variety, and accumulated growing conditions to predict phenological events.",
+    "parameters": {
+      "crop_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of crop: corn, wheat, soybeans, rice, cotton, potatoes, tomatoes, or barley"
+      },
+      "variety": {
+        "type": "string",
+        "required": true,
+        "description": "Crop variety or cultivar name"
+      },
+      "planting_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when crop was planted",
+        "format": "date-time"
+      },
+      "current_date": {
+        "type": "string",
+        "required": true,
+        "description": "Current date for stage calculation",
+        "format": "date-time"
+      },
+      "accumulated_gdd": {
+        "type": "number",
+        "required": true,
+        "description": "Accumulated growing degree days since planting"
+      },
+      "moisture_stress": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether crop is experiencing moisture stress",
+        "default": false
+      },
+      "nutrient_stress": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether crop is experiencing nutrient stress",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Unsupported crop type: Use one of the supported crop types from the list.",
+      "Invalid planting date: Planting date cannot be in the future or more than 1 year ago.",
+      "Invalid current date: Current date must be after planting date.",
+      "Invalid GDD value: Accumulated growing degree days must be non-negative.",
+      "Insufficient GDD data: Need at least some accumulated growing degree days to determine stage."
+    ],
+    "usage": "Provide crop details, planting date, current date, and accumulated growing degree days. Optional stress indicators help refine predictions. Returns current growth stage and timing predictions.",
+    "output_details": {
+      "current_stage": {
+        "type": "string",
+        "description": "Current phenological growth stage"
+      },
+      "stage_progress": {
+        "type": "number",
+        "description": "Progress through current stage (0-100%)"
+      },
+      "days_since_planting": {
+        "type": "integer",
+        "description": "Number of days since planting"
+      },
+      "next_stage": {
+        "type": "string",
+        "description": "Next expected growth stage"
+      },
+      "estimated_days_to_next": {
+        "type": "integer",
+        "description": "Estimated days until next stage"
+      },
+      "maturity_estimate": {
+        "type": "string",
+        "description": "Estimated maturity date",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weather Pattern Detector",
+    "tool_description": "Identifies weather patterns and anomalies in time series data to detect drought, excessive rainfall, heat waves, and other agriculturally significant events.",
+    "parameters": {
+      "weather_variable": {
+        "type": "string",
+        "required": true,
+        "description": "Weather variable to analyze: temperature, precipitation, or humidity"
+      },
+      "data_values": {
+        "type": "array",
+        "required": true,
+        "description": "Time series of weather measurements",
+        "items": {"type": "number"},
+        "minItems": 30
+      },
+      "detection_sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Sensitivity level: low, medium, or high",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Unsupported weather variable: Use 'temperature', 'precipitation', or 'humidity'.",
+      "Insufficient data points: Need at least 30 data points for reliable pattern detection.",
+      "Invalid sensitivity level: Use 'low', 'medium', or 'high'.",
+      "Data quality issues: Remove outliers or fill missing values before analysis."
+    ],
+    "usage": "Provide weather variable type and time series data. Set detection sensitivity to control pattern identification threshold. Returns identified patterns and their agricultural significance.",
+    "output_details": {
+      "patterns_detected": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of detected weather patterns"
+      },
+      "pattern_strength": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Strength scores for each detected pattern (0-1)"
+      },
+      "anomaly_periods": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Date ranges of anomalous weather periods"
+      },
+      "agricultural_impact": {
+        "type": "string",
+        "description": "Assessment of agricultural implications"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Soil Moisture Estimator",
+    "tool_description": "Estimates soil moisture levels based on precipitation, temperature, evapotranspiration, and soil characteristics for irrigation planning.",
+    "parameters": {
+      "soil_type": {
+        "type": "string",
+        "required": true,
+        "description": "Soil classification: clay, loam, sand, silt, or clay_loam"
+      },
+      "precipitation_mm": {
+        "type": "number",
+        "required": true,
+        "description": "Recent precipitation amount in millimeters"
+      },
+      "temperature_c": {
+        "type": "number",
+        "required": true,
+        "description": "Average temperature in Celsius"
+      },
+      "humidity_percent": {
+        "type": "number",
+        "required": true,
+        "description": "Relative humidity percentage (0-100)"
+      },
+      "wind_speed_kmh": {
+        "type": "number",
+        "required": true,
+        "description": "Wind speed in kilometers per hour"
+      },
+      "days_since_rain": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days since last significant rainfall"
+      },
+      "crop_cover": {
+        "type": "string",
+        "required": false,
+        "description": "Vegetation cover: bare, sparse, moderate, or dense",
+        "default": "moderate"
+      },
+      "initial_moisture": {
+        "type": "number",
+        "required": false,
+        "description": "Initial soil moisture percentage (0-100)",
+        "default": "50"
+      }
+    },
+    "error_messages": [
+      "Invalid soil type: Use 'clay', 'loam', 'sand', 'silt', or 'clay_loam'.",
+      "Invalid weather parameters: Temperature must be between -50 and 60°C, humidity 0-100%, wind speed 0-200 km/h.",
+      "Invalid precipitation: Must be non-negative value in millimeters.",
+      "Invalid time period: Days since rain must be non-negative integer less than 365.",
+      "Invalid crop cover: Use 'bare', 'sparse', 'moderate', or 'dense'.",
+      "Invalid initial moisture: Must be between 0 and 100 percent."
+    ],
+    "usage": "Input soil type, recent weather conditions, and time factors. Optional crop cover and initial moisture help refine estimates. Returns soil moisture levels and irrigation recommendations.",
+    "output_details": {
+      "estimated_moisture_percent": {
+        "type": "number",
+        "description": "Estimated current soil moisture percentage"
+      },
+      "moisture_category": {
+        "type": "string",
+        "description": "Moisture level: dry, adequate, or saturated"
+      },
+      "irrigation_needed": {
+        "type": "boolean",
+        "description": "Whether irrigation is recommended"
+      },
+      "evapotranspiration_rate": {
+        "type": "number",
+        "description": "Daily ET rate in mm/day"
+      },
+      "days_until_irrigation": {
+        "type": "integer",
+        "description": "Estimated days before irrigation needed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Growing Degree Calculator",
+    "tool_description": "Calculates accumulated growing degree days (GDD) and heat units for crop development based on temperature thresholds and crop requirements.",
+    "parameters": {
+      "daily_min_temps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of daily minimum temperatures in Celsius",
+        "items": {"type": "number"}
+      },
+      "daily_max_temps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of daily maximum temperatures in Celsius",
+        "items": {"type": "number"}
+      },
+      "base_temperature": {
+        "type": "number",
+        "required": true,
+        "description": "Base temperature threshold for crop growth in Celsius"
+      },
+      "upper_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Upper temperature threshold above which growth stops",
+        "default": "35"
+      }
+    },
+    "error_messages": [
+      "Temperature array mismatch: Daily minimum and maximum temperature arrays must have the same length.",
+      "Invalid temperature values: Maximum temperatures must be greater than or equal to minimum temperatures.",
+      "Invalid base temperature: Base temperature must be between 0 and 25°C.",
+      "Invalid upper threshold: Upper threshold must be greater than base temperature and less than 50°C.",
+      "Insufficient data: Need at least 1 day of temperature data."
+    ],
+    "usage": "Provide arrays of daily minimum and maximum temperatures along with crop-specific base temperature. Optional upper threshold caps excessive heat. Returns cumulative growing degree days.",
+    "output_details": {
+      "daily_gdd": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Growing degree days for each day"
+      },
+      "cumulative_gdd": {
+        "type": "number",
+        "description": "Total accumulated growing degree days"
+      },
+      "average_daily_gdd": {
+        "type": "number",
+        "description": "Average GDD per day over the period"
+      },
+      "effective_growing_days": {
+        "type": "integer",
+        "description": "Number of days with positive GDD accumulation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Frost Risk Assessor",
+    "tool_description": "Evaluates frost risk based on temperature forecasts, dew point, wind conditions, and provides protection recommendations for crops.",
+    "parameters": {
+      "forecasted_min_temp": {
+        "type": "number",
+        "required": true,
+        "description": "Forecasted minimum temperature in Celsius"
+      },
+      "dew_point": {
+        "type": "number",
+        "required": true,
+        "description": "Dew point temperature in Celsius"
+      },
+      "wind_speed": {
+        "type": "number",
+        "required": true,
+        "description": "Wind speed in kilometers per hour"
+      },
+      "cloud_cover": {
+        "type": "string",
+        "required": true,
+        "description": "Cloud cover level: clear, partly_cloudy, mostly_cloudy, or overcast"
+      },
+      "crop_sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Crop frost sensitivity: very_sensitive, sensitive, moderate, or tolerant",
+        "default": "sensitive"
+      }
+    },
+    "error_messages": [
+      "Invalid temperature range: Minimum temperature should be between -20 and 10°C for frost assessment.",
+      "Invalid dew point: Dew point should be within reasonable range (-25 to 15°C).",
+      "Invalid wind speed: Wind speed must be non-negative and less than 100 km/h.",
+      "Invalid cloud cover: Use 'clear', 'partly_cloudy', 'mostly_cloudy', or 'overcast'.",
+      "Invalid crop sensitivity: Use 'very_sensitive', 'sensitive', 'moderate', or 'tolerant'."
+    ],
+    "usage": "Input forecasted minimum temperature, dew point, wind speed, and cloud cover conditions. Specify crop sensitivity level for tailored recommendations. Returns frost probability and protection advice.",
+    "output_details": {
+      "frost_probability": {
+        "type": "number",
+        "description": "Probability of frost occurrence (0-1)"
+      },
+      "frost_severity": {
+        "type": "string",
+        "description": "Expected frost severity: none, light, moderate, or severe"
+      },
+      "protection_needed": {
+        "type": "boolean",
+        "description": "Whether frost protection measures are recommended"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of recommended protection actions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Precipitation Analyzer",
+    "tool_description": "Analyzes precipitation patterns, intensity, and distribution to assess water availability and flood/drought risks for agricultural planning.",
+    "parameters": {
+      "precipitation_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of precipitation measurements in millimeters",
+        "items": {"type": "number"},
+        "minItems": 10
+      },
+      "time_period_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days covered by the precipitation data (7-365)"
+      },
+      "crop_water_needs": {
+        "type": "number",
+        "required": false,
+        "description": "Weekly crop water requirement in millimeters",
+        "default": "25"
+      }
+    },
+    "error_messages": [
+      "Insufficient precipitation data: Need at least 10 data points for meaningful analysis.",
+      "Invalid time period: Time period must be between 7 and 365 days.",
+      "Invalid crop water needs: Weekly water requirement must be between 5 and 100 mm.",
+      "Data inconsistency: Number of precipitation data points should match the specified time period."
+    ],
+    "usage": "Provide precipitation data array and corresponding time period. Optional crop water needs help assess adequacy. Returns precipitation statistics and water balance assessment.",
+    "output_details": {
+      "total_precipitation": {
+        "type": "number",
+        "description": "Total precipitation in millimeters"
+      },
+      "average_daily": {
+        "type": "number",
+        "description": "Average daily precipitation in millimeters"
+      },
+      "dry_spell_days": {
+        "type": "integer",
+        "description": "Longest consecutive days without precipitation"
+      },
+      "intensity_category": {
+        "type": "string",
+        "description": "Overall precipitation intensity: low, normal, or high"
+      },
+      "water_balance": {
+        "type": "string",
+        "description": "Water balance status: deficit, adequate, or surplus"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Planting Window Optimizer",
+    "tool_description": "Determines optimal planting dates based on weather forecasts, soil conditions, frost risk, and crop requirements to maximize yield potential.",
+    "parameters": {
+      "crop_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of crop to plant: corn, wheat, soybeans, rice, cotton, potatoes, tomatoes, or barley"
+      },
+      "latitude": {
+        "type": "number",
+        "required": true,
+        "description": "Farm latitude for day length calculations (-90 to 90)"
+      },
+      "soil_temperature": {
+        "type": "number",
+        "required": true,
+        "description": "Current soil temperature in Celsius"
+      },
+      "soil_moisture": {
+        "type": "number",
+        "required": true,
+        "description": "Current soil moisture percentage (0-100)"
+      },
+      "frost_risk_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days until last expected frost"
+      },
+      "weather_forecast_days": {
+        "type": "array",
+        "required": true,
+        "description": "Forecasted daily temperatures for next 14 days",
+        "items": {"type": "number"},
+        "minItems": 7,
+        "maxItems": 14
+      },
+      "field_workability": {
+        "type": "string",
+        "required": true,
+        "description": "Current field condition: too_wet, marginal, good, or excellent"
+      },
+      "earliest_desired_date": {
+        "type": "string",
+        "required": false,
+        "description": "Earliest acceptable planting date",
+        "format": "date-time",
+        "default": "None"
+      },
+      "latest_desired_date": {
+        "type": "string",
+        "required": false,
+        "description": "Latest acceptable planting date",
+        "format": "date-time",
+        "default": "None"
+      },
+      "risk_tolerance": {
+        "type": "string",
+        "required": false,
+        "description": "Risk tolerance level: conservative, moderate, or aggressive",
+        "default": "moderate"
+      }
+    },
+    "error_messages": [
+      "Unsupported crop type: Use one of the supported crop types from the list.",
+      "Invalid latitude: Must be between -90 and 90 degrees.",
+      "Invalid soil conditions: Soil temperature must be between -10 and 40°C, moisture between 0-100%.",
+      "Invalid frost risk: Frost risk days must be non-negative integer less than 180.",
+      "Insufficient forecast: Need 7-14 days of temperature forecast data.",
+      "Invalid field workability: Use 'too_wet', 'marginal', 'good', or 'excellent'.",
+      "Invalid date range: If specified, earliest date must be before latest date.",
+      "Invalid risk tolerance: Use 'conservative', 'moderate', or 'aggressive'."
+    ],
+    "usage": "Provide crop type, location, current soil conditions, frost risk, weather forecast, and field workability. Optional date constraints and risk tolerance refine recommendations. Returns optimal planting windows.",
+    "output_details": {
+      "optimal_planting_date": {
+        "type": "string",
+        "description": "Recommended optimal planting date",
+        "format": "date-time"
+      },
+      "planting_window_start": {
+        "type": "string",
+        "description": "Start of acceptable planting window",
+        "format": "date-time"
+      },
+      "planting_window_end": {
+        "type": "string",
+        "description": "End of acceptable planting window",
+        "format": "date-time"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence in recommendation (0-1)"
+      },
+      "limiting_factors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Factors limiting planting timing"
+      },
+      "yield_potential": {
+        "type": "string",
+        "description": "Expected yield potential: low, moderate, or high"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Harvest Timing Predictor",
+    "tool_description": "Predicts optimal harvest timing based on crop maturity, weather conditions, and quality factors to maximize yield and minimize losses.",
+    "parameters": {
+      "crop_maturity_stage": {
+        "type": "string",
+        "required": true,
+        "description": "Current crop maturity: early, mid, late, or ready"
+      },
+      "moisture_content": {
+        "type": "number",
+        "required": true,
+        "description": "Current crop moisture content percentage"
+      },
+      "weather_forecast": {
+        "type": "array",
+        "required": true,
+        "description": "Daily precipitation forecast for next 10 days in mm",
+        "items": {"type": "number"},
+        "minItems": 7,
+        "maxItems": 10
+      }
+    },
+    "error_messages": [
+      "Invalid maturity stage: Use 'early', 'mid', 'late', or 'ready'.",
+      "Invalid moisture content: Must be between 10 and 50 percent.",
+      "Insufficient weather forecast: Need 7-10 days of precipitation forecast.",
+      "Premature harvest assessment: Crop must be at least at 'mid' maturity stage for harvest timing."
+    ],
+    "usage": "Provide current crop maturity stage, moisture content, and precipitation forecast. Returns optimal harvest timing recommendations based on weather windows and crop conditions.",
+    "output_details": {
+      "recommended_harvest_date": {
+        "type": "string",
+        "description": "Recommended harvest start date",
+        "format": "date-time"
+      },
+      "harvest_urgency": {
+        "type": "string",
+        "description": "Harvest urgency level: low, moderate, or high"
+      },
+      "weather_window_days": {
+        "type": "integer",
+        "description": "Number of favorable weather days available"
+      },
+      "quality_risk": {
+        "type": "string",
+        "description": "Risk to crop quality if delayed: minimal, moderate, or severe"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Climate Risk Evaluator",
+    "tool_description": "Evaluates overall climate-related risks to crop production by integrating multiple weather factors and provides comprehensive risk assessment and mitigation strategies.",
+    "parameters": {
+      "temperature_trend": {
+        "type": "string",
+        "required": true,
+        "description": "Recent temperature trend: cooling, stable, or warming"
+      },
+      "precipitation_trend": {
+        "type": "string",
+        "required": true,
+        "description": "Recent precipitation trend: decreasing, stable, or increasing"
+      },
+      "extreme_events_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of extreme weather events in past season (0-20)"
+      },
+      "drought_risk": {
+        "type": "string",
+        "required": true,
+        "description": "Current drought risk level: low, moderate, high, or severe"
+      },
+      "flood_risk": {
+        "type": "string",
+        "required": true,
+        "description": "Current flood risk level: low, moderate, high, or severe"
+      },
+      "frost_frequency": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of frost events in past year (0-50)"
+      },
+      "crop_vulnerability": {
+        "type": "string",
+        "required": true,
+        "description": "Crop climate vulnerability: low, moderate, high, or very_high"
+      },
+      "adaptation_measures": {
+        "type": "array",
+        "required": false,
+        "description": "Current adaptation measures in place",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid trend values: Use 'cooling/decreasing', 'stable', or 'warming/increasing' for temperature and precipitation trends.",
+      "Invalid extreme events count: Must be between 0 and 20 events per season.",
+      "Invalid risk levels: Use 'low', 'moderate', 'high', or 'severe' for drought and flood risks.",
+      "Invalid frost frequency: Must be between 0 and 50 frost events per year.",
+      "Invalid vulnerability level: Use 'low', 'moderate', 'high', or 'very_high' for crop vulnerability."
+    ],
+    "usage": "Input current climate trends, extreme event frequencies, risk levels, and crop vulnerability. Optional adaptation measures help refine risk assessment.

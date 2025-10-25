@@ -1,0 +1,29 @@
+{
+  "Tool Call": {
+    "migration_scripts": [
+      "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(255));",
+      "CREATE INDEX idx_users_name ON users(name);",
+      "ALTER TABLE users ADD COLUMN email VARCHAR(255);",
+      "CREATE TABLE orders (id INT PRIMARY KEY, user_id INT, FOREIGN KEY (user_id) REFERENCES users(id));",
+      "INSERT INTO users (id, name, email) VALUES (1, 'Admin', 'admin@example.com');",
+      "UPDATE users SET email = LOWER(email) WHERE email IS NOT NULL;"
+    ],
+    "dependency_graph": "{\"users_table\": [], \"users_index\": [\"users_table\"], \"users_email\": [\"users_table\"], \"orders_table\": [\"users_table\"], \"admin_user\": [\"users_email\"], \"email_cleanup\": [\"admin_user\"]}",
+    "batch_strategy": "risk_based",
+    "max_batch_size": 3,
+    "risk_tolerance": "conservative"
+  },
+  "Return Data": {
+    "batch_count": 4,
+    "batch_plan": "{\"batch_1\": {\"migrations\": [\"users_table\"], \"risk_level\": \"low\", \"dependencies\": []}, \"batch_2\": {\"migrations\": [\"users_index\", \"users_email\"], \"risk_level\": \"low\", \"dependencies\": [\"batch_1\"]}, \"batch_3\": {\"migrations\": [\"orders_table\", \"admin_user\"], \"risk_level\": \"medium\", \"dependencies\": [\"batch_2\"]}, \"batch_4\": {\"migrations\": [\"email_cleanup\"], \"risk_level\": \"low\", \"dependencies\": [\"batch_3\"]}}",
+    "execution_order": [
+      "batch_1",
+      "batch_2",
+      "batch_3",
+      "batch_4"
+    ],
+    "parallel_batches": [
+      "batch_2"
+    ]
+  }
+}

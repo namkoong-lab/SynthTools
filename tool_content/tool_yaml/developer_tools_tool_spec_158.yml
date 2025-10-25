@@ -1,0 +1,678 @@
+field_name: developer_tools
+subfield: Integrated Development Environments and Code Editors
+task: Code editing and syntax management
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves moderate complexity with multiple interconnected subproblems including syntax parsing, error detection, code formatting, refactoring, and file management. The scope requires handling various programming languages and maintaining code integrity across operations. Dependencies exist between syntax validation, formatting, and refactoring operations. Errors can significantly impact code functionality, making precision critical.
+
+  **STEP 2 — Set a tool budget**
+
+  Based on the medium difficulty assessment, I'm targeting 12 tools to cover the essential code editing and syntax management workflows comprehensively.
+
+  **STEP 3 — Tool names and dependencies**
+
+  Tools and their data flow:
+  - File Reader → provides source code → Syntax Validator, Code Formatter, Refactor Tool
+  - Syntax Validator → provides error locations → Error Highlighter, Auto Fixer
+  - Code Formatter → provides formatted code → File Writer
+  - Refactor Tool → provides transformed code → Syntax Validator, File Writer
+  - Auto Completer → provides suggestions → consumed by editor interface
+  - Code Snippet Manager → provides reusable code → File Writer
+  - Find Replace Tool → provides modified code → Syntax Validator
+  - Comment Manager → provides documented code → File Writer
+  - Bracket Matcher → provides bracket pairs → Error Highlighter
+  - Language Detector → provides language info → Syntax Validator, Code Formatter
+  - Multi-file Editor → coordinates operations → all file-based tools
+  - File Writer → persists all code changes
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  1. Basic editing: File Reader → Find Replace Tool → File Writer
+  2. Quick formatting: File Reader → Code Formatter → File Writer
+
+  Medium plans:
+  1. Code cleanup: File Reader → Syntax Validator → Auto Fixer → Code Formatter → File Writer
+  2. Safe refactoring: File Reader → Language Detector → Refactor Tool → Syntax Validator → File Writer
+
+  Complex plans:
+  1. Complete code review: File Reader → Language Detector → Syntax Validator → Error Highlighter → Auto Fixer → Code Formatter → Comment Manager → File Writer
+  2. Multi-file project restructure: Multi-file Editor → Language Detector → Syntax Validator → Refactor Tool → Find Replace Tool → Code Formatter → File Writer
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "File Reader",
+    "tool_description": "Reads source code files and extracts content with metadata for editing operations.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the source code file to read"
+      },
+      "encoding": {
+        "type": "string",
+        "required": false,
+        "description": "File encoding format",
+        "default": "utf-8"
+      }
+    },
+    "error_messages": [
+      "File not found: Ensure the file path exists and is accessible.",
+      "Permission denied: Check file read permissions.",
+      "Encoding error: Verify the file encoding matches the specified encoding parameter."
+    ],
+    "usage": "Provide the file_path to read source code content. Optionally specify encoding if different from UTF-8.",
+    "output_details": {
+      "content": {
+        "type": "string",
+        "description": "The complete text content of the file"
+      },
+      "line_count": {
+        "type": "integer",
+        "description": "Total number of lines in the file"
+      },
+      "file_size": {
+        "type": "integer",
+        "description": "File size in bytes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Syntax Validator",
+    "tool_description": "Validates source code syntax and identifies errors, warnings, and style violations for a specified programming language.",
+    "parameters": {
+      "source_code": {
+        "type": "string",
+        "required": true,
+        "description": "The source code content to validate"
+      },
+      "language": {
+        "type": "string",
+        "required": true,
+        "description": "Programming language (python, javascript, java, cpp, csharp, go, rust, typescript)"
+      },
+      "strictness_level": {
+        "type": "string",
+        "required": false,
+        "description": "Validation strictness: lenient, standard, strict",
+        "default": "standard"
+      },
+      "check_style": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include style guideline checks",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Unsupported language: Use one of [python, javascript, java, cpp, csharp, go, rust, typescript].",
+      "Invalid strictness level: Use lenient, standard, or strict.",
+      "Empty source code: Provide non-empty source code content.",
+      "Parse error: Source code contains syntax that cannot be parsed."
+    ],
+    "usage": "Provide source_code and language parameters. Optionally adjust strictness_level and check_style for different validation behaviors.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the syntax is valid"
+      },
+      "errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of syntax error messages with line numbers"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of warning messages"
+      },
+      "style_issues": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of style violation messages"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Code Formatter",
+    "tool_description": "Formats source code according to language-specific style guidelines and custom formatting preferences.",
+    "parameters": {
+      "source_code": {
+        "type": "string",
+        "required": true,
+        "description": "The source code to format"
+      },
+      "language": {
+        "type": "string",
+        "required": true,
+        "description": "Programming language for formatting rules"
+      },
+      "indent_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of spaces for indentation (2-8)",
+        "default": 4
+      },
+      "use_tabs": {
+        "type": "boolean",
+        "required": false,
+        "description": "Use tabs instead of spaces for indentation",
+        "default": false
+      },
+      "max_line_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum line length before wrapping (50-200)",
+        "default": 80
+      }
+    },
+    "error_messages": [
+      "Invalid indent_size: Must be between 2 and 8.",
+      "Invalid max_line_length: Must be between 50 and 200.",
+      "Unsupported language: Language not supported for formatting.",
+      "Malformed code: Code contains syntax errors that prevent formatting."
+    ],
+    "usage": "Provide source_code and language, then optionally customize formatting with indent_size, use_tabs, and max_line_length parameters.",
+    "output_details": {
+      "formatted_code": {
+        "type": "string",
+        "description": "The formatted source code"
+      },
+      "changes_made": {
+        "type": "integer",
+        "description": "Number of formatting changes applied"
+      },
+      "formatting_summary": {
+        "type": "string",
+        "description": "Summary of formatting operations performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Find Replace Tool",
+    "tool_description": "Performs find and replace operations on source code with support for regex patterns and case sensitivity options.",
+    "parameters": {
+      "source_code": {
+        "type": "string",
+        "required": true,
+        "description": "The source code to search and modify"
+      },
+      "find_pattern": {
+        "type": "string",
+        "required": true,
+        "description": "The text or regex pattern to find"
+      },
+      "replace_text": {
+        "type": "string",
+        "required": true,
+        "description": "The replacement text"
+      },
+      "use_regex": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to treat find_pattern as a regular expression",
+        "default": false
+      },
+      "case_sensitive": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether the search should be case sensitive",
+        "default": true
+      },
+      "replace_all": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to replace all occurrences or just the first",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid regex pattern: The find_pattern contains invalid regex syntax.",
+      "Empty find pattern: Provide a non-empty find_pattern.",
+      "Pattern not found: The find_pattern was not found in the source code."
+    ],
+    "usage": "Specify source_code, find_pattern, and replace_text. Use regex and case sensitivity options as needed for precise matching.",
+    "output_details": {
+      "modified_code": {
+        "type": "string",
+        "description": "The source code after replacements"
+      },
+      "replacements_made": {
+        "type": "integer",
+        "description": "Number of replacements performed"
+      },
+      "match_locations": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Line numbers where matches were found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Auto Completer",
+    "tool_description": "Provides intelligent code completion suggestions based on context, language syntax, and common patterns.",
+    "parameters": {
+      "source_code": {
+        "type": "string",
+        "required": true,
+        "description": "The current source code content"
+      },
+      "cursor_position": {
+        "type": "integer",
+        "required": true,
+        "description": "Character position where completion is needed"
+      },
+      "language": {
+        "type": "string",
+        "required": true,
+        "description": "Programming language for context-aware suggestions"
+      },
+      "max_suggestions": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of suggestions to return (1-20)",
+        "default": 10
+      },
+      "include_snippets": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include code snippet suggestions",
+        "default": true
+      },
+      "context_scope": {
+        "type": "string",
+        "required": false,
+        "description": "Completion scope: local, file, project",
+        "default": "file"
+      }
+    },
+    "error_messages": [
+      "Invalid cursor_position: Position must be within the source code bounds.",
+      "Invalid max_suggestions: Must be between 1 and 20.",
+      "Unsupported context_scope: Use local, file, or project.",
+      "Parsing error: Unable to analyze source code context for suggestions."
+    ],
+    "usage": "Provide source_code, cursor_position, and language. Customize suggestion behavior with max_suggestions, include_snippets, and context_scope.",
+    "output_details": {
+      "suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of completion suggestions"
+      },
+      "suggestion_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Types of suggestions (keyword, variable, function, snippet)"
+      },
+      "context_info": {
+        "type": "string",
+        "description": "Information about the current code context"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Refactor Tool",
+    "tool_description": "Performs code refactoring operations such as renaming variables, extracting methods, and restructuring code while preserving functionality.",
+    "parameters": {
+      "source_code": {
+        "type": "string",
+        "required": true,
+        "description": "The source code to refactor"
+      },
+      "refactor_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of refactoring: rename, extract_method, inline_variable, move_method, extract_class"
+      },
+      "target_identifier": {
+        "type": "string",
+        "required": true,
+        "description": "The identifier (variable, method, class) to refactor"
+      },
+      "new_name": {
+        "type": "string",
+        "required": false,
+        "description": "New name for rename operations",
+        "default": null
+      },
+      "start_line": {
+        "type": "integer",
+        "required": false,
+        "description": "Starting line for extraction operations",
+        "default": null
+      },
+      "end_line": {
+        "type": "integer",
+        "required": false,
+        "description": "Ending line for extraction operations",
+        "default": null
+      },
+      "language": {
+        "type": "string",
+        "required": true,
+        "description": "Programming language for language-specific refactoring rules"
+      },
+      "preserve_comments": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve comments during refactoring",
+        "default": true
+      },
+      "update_references": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to update all references to the refactored element",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid refactor_type: Use rename, extract_method, inline_variable, move_method, or extract_class.",
+      "Target identifier not found: The specified identifier does not exist in the source code.",
+      "Invalid line range: start_line must be less than or equal to end_line and within code bounds.",
+      "Missing required parameter: new_name is required for rename operations.",
+      "Refactoring conflict: The operation would create naming conflicts or syntax errors."
+    ],
+    "usage": "Specify source_code, refactor_type, target_identifier, and language. Provide additional parameters like new_name or line ranges based on the refactoring type.",
+    "output_details": {
+      "refactored_code": {
+        "type": "string",
+        "description": "The code after refactoring operations"
+      },
+      "changes_summary": {
+        "type": "string",
+        "description": "Summary of refactoring changes made"
+      },
+      "affected_lines": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Line numbers that were modified"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Error Highlighter",
+    "tool_description": "Highlights and categorizes syntax errors, warnings, and issues in source code with precise location information.",
+    "parameters": {
+      "source_code": {
+        "type": "string",
+        "required": true,
+        "description": "The source code to analyze for highlighting"
+      },
+      "error_list": {
+        "type": "array",
+        "required": true,
+        "description": "List of error messages to highlight",
+        "items": {"type": "string"}
+      },
+      "highlight_severity": {
+        "type": "string",
+        "required": false,
+        "description": "Minimum severity to highlight: info, warning, error",
+        "default": "warning"
+      }
+    },
+    "error_messages": [
+      "Empty error_list: Provide at least one error message to highlight.",
+      "Invalid highlight_severity: Use info, warning, or error.",
+      "Malformed error messages: Error messages must contain line number information."
+    ],
+    "usage": "Provide source_code and error_list from syntax validation. Optionally set highlight_severity to filter which issues to highlight.",
+    "output_details": {
+      "highlighted_lines": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Line numbers with highlighted errors"
+      },
+      "highlight_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Types of highlights applied (error, warning, info)"
+      },
+      "total_highlights": {
+        "type": "integer",
+        "description": "Total number of highlights applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Auto Fixer",
+    "tool_description": "Automatically fixes common syntax errors and style issues in source code based on language-specific rules.",
+    "parameters": {
+      "source_code": {
+        "type": "string",
+        "required": true,
+        "description": "The source code containing errors to fix"
+      },
+      "language": {
+        "type": "string",
+        "required": true,
+        "description": "Programming language for language-specific fix rules"
+      },
+      "fix_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of fixes to apply: syntax, style, imports, formatting",
+        "items": {"type": "string"},
+        "default": ["syntax", "style"]
+      },
+      "aggressive_fixes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply potentially behavior-changing fixes",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Unsupported language: Language not supported for automatic fixes.",
+      "Invalid fix_types: Use syntax, style, imports, or formatting.",
+      "Cannot fix errors: Code contains errors that cannot be automatically resolved.",
+      "Unsafe fixes detected: Enable aggressive_fixes to apply potentially risky fixes."
+    ],
+    "usage": "Provide source_code and language, then specify which fix_types to apply. Use aggressive_fixes carefully as it may change code behavior.",
+    "output_details": {
+      "fixed_code": {
+        "type": "string",
+        "description": "The source code after applying automatic fixes"
+      },
+      "fixes_applied": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of fixes that were applied"
+      },
+      "unfixable_issues": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of issues that could not be automatically fixed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Comment Manager",
+    "tool_description": "Manages code comments including adding documentation, removing comments, and updating comment blocks.",
+    "parameters": {
+      "source_code": {
+        "type": "string",
+        "required": true,
+        "description": "The source code to manage comments for"
+      },
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "Comment operation: add, remove, update, generate_docs"
+      },
+      "comment_text": {
+        "type": "string",
+        "required": false,
+        "description": "Comment text for add/update operations",
+        "default": null
+      },
+      "target_line": {
+        "type": "integer",
+        "required": false,
+        "description": "Line number for comment operations",
+        "default": null
+      },
+      "comment_style": {
+        "type": "string",
+        "required": false,
+        "description": "Comment style: line, block, docstring",
+        "default": "line"
+      }
+    },
+    "error_messages": [
+      "Invalid operation: Use add, remove, update, or generate_docs.",
+      "Missing comment_text: Required for add and update operations.",
+      "Invalid target_line: Line number must exist in the source code.",
+      "Invalid comment_style: Use line, block, or docstring."
+    ],
+    "usage": "Specify source_code and operation type. Provide comment_text and target_line for specific comment operations.",
+    "output_details": {
+      "modified_code": {
+        "type": "string",
+        "description": "Source code with comment modifications applied"
+      },
+      "comments_modified": {
+        "type": "integer",
+        "description": "Number of comment modifications made"
+      },
+      "operation_summary": {
+        "type": "string",
+        "description": "Summary of comment operations performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bracket Matcher",
+    "tool_description": "Identifies matching brackets, braces, and parentheses in source code and detects mismatched pairs.",
+    "parameters": {
+      "source_code": {
+        "type": "string",
+        "required": true,
+        "description": "The source code to analyze for bracket matching"
+      },
+      "bracket_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of brackets to match: parentheses, square, curly, angle",
+        "items": {"type": "string"},
+        "default": ["parentheses", "square", "curly"]
+      },
+      "highlight_mismatches": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to highlight mismatched brackets",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid bracket_types: Use parentheses, square, curly, or angle.",
+      "Empty source code: Provide non-empty source code for analysis.",
+      "Parsing error: Unable to analyze bracket structure due to syntax errors."
+    ],
+    "usage": "Provide source_code and optionally specify which bracket_types to analyze. Enable highlight_mismatches to identify problematic brackets.",
+    "output_details": {
+      "matched_pairs": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of successfully matched bracket pairs with positions"
+      },
+      "mismatched_brackets": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of unmatched brackets with positions"
+      },
+      "bracket_balance": {
+        "type": "boolean",
+        "description": "Whether all brackets are properly balanced"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "File Writer",
+    "tool_description": "Writes modified source code content to files with backup options and encoding specifications.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path where the source code should be written"
+      },
+      "content": {
+        "type": "string",
+        "required": true,
+        "description": "The source code content to write to the file"
+      },
+      "create_backup": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to create a backup of existing file",
+        "default": true
+      },
+      "encoding": {
+        "type": "string",
+        "required": false,
+        "description": "File encoding format",
+        "default": "utf-8"
+      },
+      "overwrite": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to overwrite existing files",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Permission denied: Check write permissions for the file path.",
+      "File exists: File already exists and overwrite is set to false.",
+      "Invalid encoding: Specified encoding is not supported.",
+      "Backup creation failed: Unable to create backup of existing file."
+    ],
+    "usage": "Provide file_path and content to write. Optionally configure backup creation, encoding, and overwrite behavior.",
+    "output_details": {
+      "write_success": {
+        "type": "boolean",
+        "description": "Whether the file was successfully written"
+      },
+      "backup_path": {
+        "type": "string",
+        "description": "Path to backup file if created"
+      },
+      "bytes_written": {
+        "type": "integer",
+        "description": "Number of bytes written to the file"
+      }
+    }
+  }
+  ```

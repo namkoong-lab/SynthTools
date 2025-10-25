@@ -1,0 +1,836 @@
+field_name: ecommerce_and_retail
+subfield: Order Processing and Fulfillment
+task: Picking list generation and optimization
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task is of **medium** difficulty. It involves moderate coordination between inventory systems, order management, and warehouse operations, requires optimization algorithms for route planning, and has clear business impact from errors (wrong items, delays). The scope includes multiple integrated subproblems but follows established warehouse management patterns.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'll target **12 tools** within the 10-15 range to cover inventory validation, order processing, route optimization, picking list generation, and performance tracking.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Order Batch Validator** - Consumes: order data → Produces: validated order batches
+  2. **Inventory Availability Checker** - Consumes: item lists → Produces: availability status
+  3. **Warehouse Location Mapper** - Consumes: item SKUs → Produces: storage locations
+  4. **Pick Path Optimizer** - Consumes: locations, constraints → Produces: optimized routes
+  5. **Picking List Generator** - Consumes: orders, routes → Produces: formatted pick lists
+  6. **Item Priority Classifier** - Consumes: order details → Produces: priority rankings
+  7. **Batch Size Calculator** - Consumes: orders, constraints → Produces: optimal batch sizes
+  8. **Pick Time Estimator** - Consumes: routes, items → Produces: time estimates
+  9. **Capacity Validator** - Consumes: batches, resources → Produces: feasibility checks
+  10. **Pick List Formatter** - Consumes: pick data → Produces: formatted documents
+  11. **Performance Analyzer** - Consumes: historical data → Produces: efficiency metrics
+  12. **Exception Handler** - Consumes: error conditions → Produces: resolution recommendations
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Pick List Creation**: Order Batch Validator → Inventory Availability Checker → Picking List Generator (validates orders, checks stock, generates basic lists)
+  2. **Location Mapping**: Warehouse Location Mapper → Pick List Formatter (maps item locations and formats output)
+
+  **Medium Plans:**
+  1. **Optimized Picking**: Order Batch Validator → Warehouse Location Mapper → Pick Path Optimizer → Picking List Generator → Pick Time Estimator (creates optimized pick routes with time estimates)
+  2. **Priority Processing**: Item Priority Classifier → Batch Size Calculator → Capacity Validator → Picking List Generator (handles urgent orders with capacity planning)
+
+  **Complex Plans:**
+  1. **Full Optimization Pipeline**: Order Batch Validator → Inventory Availability Checker → Item Priority Classifier → Batch Size Calculator → Warehouse Location Mapper → Pick Path Optimizer → Capacity Validator → Picking List Generator → Pick Time Estimator → Performance Analyzer (complete end-to-end optimization)
+  2. **Exception Management Workflow**: All validation tools → Exception Handler → resolution tools → Performance Analyzer (handles complex scenarios with error recovery and analysis)
+
+  ## STEP 5 — Tools
+
+  ```json
+  {
+    "tool_name": "Order Batch Validator",
+    "tool_description": "Validates and groups incoming orders into batches for efficient picking, checking for data completeness and business rule compliance.",
+    "parameters": {
+      "order_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of order IDs to validate and batch",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "max_batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of orders per batch",
+        "default": 50
+      },
+      "priority_threshold": {
+        "type": "string",
+        "required": false,
+        "description": "Priority level threshold: low, medium, high, urgent",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Invalid order ID format: Order IDs must be non-empty strings.",
+      "Batch size exceeded: max_batch_size must be between 1 and 200.",
+      "Invalid priority threshold: Use one of [low, medium, high, urgent].",
+      "Order not found: One or more order IDs do not exist in the system."
+    ],
+    "usage": "Provide an array of order_ids to validate and batch. Optionally set max_batch_size and priority_threshold to control batching behavior.",
+    "output_details": {
+      "valid_batches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of batch IDs for valid order groups"
+      },
+      "invalid_orders": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of order IDs that failed validation"
+      },
+      "batch_count": {
+        "type": "integer",
+        "description": "Total number of batches created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Availability Checker",
+    "tool_description": "Checks real-time inventory availability for requested items and identifies shortages or substitution opportunities.",
+    "parameters": {
+      "sku_list": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of SKUs to check availability for",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "quantities": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Required quantities for each SKU",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "warehouse_id": {
+        "type": "string",
+        "required": true,
+        "description": "Warehouse identifier to check inventory in"
+      },
+      "include_reserved": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include reserved inventory in availability check",
+        "default": false
+      },
+      "check_substitutes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Check for available substitute items",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "SKU list and quantities mismatch: Arrays must have the same length.",
+      "Invalid warehouse ID: Warehouse identifier not found.",
+      "Invalid quantity: All quantities must be positive integers.",
+      "SKU not found: One or more SKUs do not exist in the system.",
+      "Empty input: SKU list and quantities cannot be empty."
+    ],
+    "usage": "Provide sku_list and corresponding quantities arrays along with warehouse_id. Set include_reserved and check_substitutes flags to control availability logic.",
+    "output_details": {
+      "available_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "SKUs with sufficient inventory"
+      },
+      "shortage_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "SKUs with insufficient inventory"
+      },
+      "substitute_suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended substitute SKUs for shortages"
+      },
+      "total_available": {
+        "type": "integer",
+        "description": "Count of items with full availability"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Warehouse Location Mapper",
+    "tool_description": "Maps SKUs to their physical warehouse locations and retrieves location metadata for picking optimization.",
+    "parameters": {
+      "sku_list": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of SKUs to map to warehouse locations",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "warehouse_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target warehouse identifier"
+      },
+      "zone_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Filter results to specific warehouse zones",
+        "default": null
+      },
+      "include_coordinates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include XYZ coordinates in location data",
+        "default": true
+      },
+      "sort_by_zone": {
+        "type": "boolean",
+        "required": false,
+        "description": "Sort results by warehouse zone",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid warehouse ID: Warehouse not found in system.",
+      "SKU location not found: One or more SKUs have no assigned locations.",
+      "Invalid zone filter: Specified zones do not exist in warehouse.",
+      "Empty SKU list: Must provide at least one SKU to map.",
+      "Location mapping error: Unable to retrieve location data for warehouse."
+    ],
+    "usage": "Provide sku_list and warehouse_id to get location mappings. Use zone_filter to restrict to specific areas, include_coordinates for detailed positioning, and sort_by_zone for organized output.",
+    "output_details": {
+      "location_mappings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of SKU-to-location mapping strings"
+      },
+      "zone_summary": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Summary of items by warehouse zone"
+      },
+      "unmapped_skus": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "SKUs without assigned locations"
+      },
+      "total_locations": {
+        "type": "integer",
+        "description": "Total number of unique locations involved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pick Path Optimizer",
+    "tool_description": "Optimizes picking routes through warehouse locations to minimize travel time and distance while respecting operational constraints.",
+    "parameters": {
+      "location_list": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of warehouse locations to visit",
+        "minItems": 2,
+        "maxItems": 200
+      },
+      "start_location": {
+        "type": "string",
+        "required": true,
+        "description": "Starting location for the pick route"
+      },
+      "end_location": {
+        "type": "string",
+        "required": false,
+        "description": "Ending location for the pick route",
+        "default": null
+      },
+      "optimization_method": {
+        "type": "string",
+        "required": false,
+        "description": "Route optimization algorithm: nearest_neighbor, genetic, simulated_annealing",
+        "default": "nearest_neighbor"
+      },
+      "max_route_time": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum route time in minutes",
+        "default": 120
+      },
+      "avoid_congestion": {
+        "type": "boolean",
+        "required": false,
+        "description": "Avoid high-traffic warehouse areas",
+        "default": true
+      },
+      "vehicle_type": {
+        "type": "string",
+        "required": false,
+        "description": "Picker vehicle type: cart, forklift, walker",
+        "default": "cart"
+      }
+    },
+    "error_messages": [
+      "Invalid location: One or more locations do not exist in warehouse layout.",
+      "Route too long: Optimized route exceeds max_route_time constraint.",
+      "Invalid optimization method: Use one of [nearest_neighbor, genetic, simulated_annealing].",
+      "Start location required: Must specify a valid starting location.",
+      "Invalid vehicle type: Use one of [cart, forklift, walker].",
+      "Insufficient locations: Need at least 2 locations to optimize a route."
+    ],
+    "usage": "Provide location_list and start_location for basic optimization. Set optimization_method, max_route_time, avoid_congestion, and vehicle_type to customize the route planning algorithm.",
+    "output_details": {
+      "optimized_route": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Ordered list of locations in optimized sequence"
+      },
+      "estimated_time": {
+        "type": "integer",
+        "description": "Estimated total route time in minutes"
+      },
+      "total_distance": {
+        "type": "number",
+        "description": "Total route distance in meters"
+      },
+      "optimization_score": {
+        "type": "number",
+        "description": "Route efficiency score (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Picking List Generator",
+    "tool_description": "Generates formatted picking lists combining order details, optimized routes, and operational instructions for warehouse staff.",
+    "parameters": {
+      "batch_id": {
+        "type": "string",
+        "required": true,
+        "description": "Batch identifier for the orders to include"
+      },
+      "route_sequence": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Optimized location sequence for picking",
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "picker_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of assigned picker"
+      },
+      "list_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output format: standard, detailed, mobile_optimized",
+        "default": "standard"
+      },
+      "include_images": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include product images in picking list",
+        "default": false
+      },
+      "group_by_location": {
+        "type": "boolean",
+        "required": false,
+        "description": "Group items by warehouse location",
+        "default": true
+      },
+      "priority_override": {
+        "type": "string",
+        "required": false,
+        "description": "Override batch priority: low, medium, high, urgent",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid batch ID: Batch not found or contains no valid orders.",
+      "Invalid picker ID: Picker identifier not found in system.",
+      "Invalid list format: Use one of [standard, detailed, mobile_optimized].",
+      "Route sequence error: Location sequence does not match batch requirements.",
+      "Invalid priority override: Use one of [low, medium, high, urgent].",
+      "Empty route sequence: Must provide at least one location in route."
+    ],
+    "usage": "Provide batch_id, route_sequence, and picker_id to generate the picking list. Customize with list_format, include_images, group_by_location, and priority_override options.",
+    "output_details": {
+      "picking_list_id": {
+        "type": "string",
+        "description": "Unique identifier for generated picking list"
+      },
+      "formatted_list": {
+        "type": "string",
+        "description": "Complete formatted picking list content"
+      },
+      "item_count": {
+        "type": "integer",
+        "description": "Total number of items to pick"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Estimated completion time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Item Priority Classifier",
+    "tool_description": "Classifies order items by priority based on customer requirements, delivery deadlines, and business rules.",
+    "parameters": {
+      "order_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of order item identifiers to classify",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "delivery_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Delivery deadline for each item (ISO 8601 format)",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "customer_tiers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Customer tier levels for priority weighting",
+        "default": null
+      },
+      "item_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Item values for priority calculation",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: order_items and delivery_dates must have same length.",
+      "Invalid date format: Delivery dates must be valid ISO 8601 date-time strings.",
+      "Invalid customer tier: Use recognized customer tier values.",
+      "Negative item value: Item values must be non-negative numbers.",
+      "Empty input arrays: Must provide at least one order item to classify."
+    ],
+    "usage": "Provide order_items and corresponding delivery_dates. Optionally include customer_tiers and item_values for enhanced priority calculation.",
+    "output_details": {
+      "priority_classifications": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Priority levels assigned to each item"
+      },
+      "urgent_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Items classified as urgent priority"
+      },
+      "standard_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Items with standard priority"
+      },
+      "priority_score": {
+        "type": "number",
+        "description": "Overall batch priority score"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Size Calculator",
+    "tool_description": "Calculates optimal batch sizes for picking operations based on order characteristics, resource constraints, and efficiency targets.",
+    "parameters": {
+      "total_orders": {
+        "type": "integer",
+        "required": true,
+        "description": "Total number of orders to batch"
+      },
+      "available_pickers": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of available picking staff"
+      },
+      "average_items_per_order": {
+        "type": "number",
+        "required": true,
+        "description": "Average number of items per order"
+      },
+      "target_completion_time": {
+        "type": "integer",
+        "required": true,
+        "description": "Target completion time in minutes"
+      },
+      "picker_capacity": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum items per picker per batch",
+        "default": 50
+      },
+      "equipment_constraints": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Equipment limitations affecting batch size",
+        "default": null
+      },
+      "priority_distribution": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "description": "Percentage distribution across priority levels",
+        "minItems": 3,
+        "maxItems": 4,
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid order count: total_orders must be a positive integer.",
+      "Invalid picker count: available_pickers must be a positive integer.",
+      "Invalid items per order: average_items_per_order must be greater than 0.",
+      "Invalid completion time: target_completion_time must be positive.",
+      "Invalid picker capacity: picker_capacity must be between 1 and 200.",
+      "Invalid priority distribution: Values must sum to 100 and be non-negative."
+    ],
+    "usage": "Provide total_orders, available_pickers, average_items_per_order, and target_completion_time for basic calculation. Add picker_capacity, equipment_constraints, and priority_distribution for advanced optimization.",
+    "output_details": {
+      "optimal_batch_size": {
+        "type": "integer",
+        "description": "Recommended number of orders per batch"
+      },
+      "recommended_batches": {
+        "type": "integer",
+        "description": "Total number of batches to create"
+      },
+      "efficiency_score": {
+        "type": "number",
+        "description": "Predicted efficiency score for batch configuration"
+      },
+      "resource_utilization": {
+        "type": "number",
+        "description": "Percentage of picker resources utilized"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pick Time Estimator",
+    "tool_description": "Estimates picking time for routes and batches based on historical performance data, item characteristics, and route complexity.",
+    "parameters": {
+      "route_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of locations in picking route",
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "item_quantities": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Quantity of items at each location",
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "picker_skill_level": {
+        "type": "string",
+        "required": false,
+        "description": "Picker experience level: novice, intermediate, expert",
+        "default": "intermediate"
+      },
+      "item_complexity": {
+        "type": "string",
+        "required": false,
+        "description": "Average item handling complexity: simple, medium, complex",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: route_locations and item_quantities must have same length.",
+      "Invalid skill level: Use one of [novice, intermediate, expert].",
+      "Invalid complexity level: Use one of [simple, medium, complex].",
+      "Invalid quantities: All quantities must be positive integers.",
+      "Empty route: Must provide at least one location and quantity."
+    ],
+    "usage": "Provide route_locations and corresponding item_quantities. Set picker_skill_level and item_complexity to adjust time estimates based on picker capability and item difficulty.",
+    "output_details": {
+      "total_estimated_time": {
+        "type": "integer",
+        "description": "Total estimated picking time in minutes"
+      },
+      "travel_time": {
+        "type": "integer",
+        "description": "Estimated travel time between locations"
+      },
+      "pick_time": {
+        "type": "integer",
+        "description": "Estimated time for item picking activities"
+      },
+      "confidence_level": {
+        "type": "number",
+        "description": "Confidence level of time estimate (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Capacity Validator",
+    "tool_description": "Validates that picking batches and routes are feasible given current warehouse capacity, equipment availability, and operational constraints.",
+    "parameters": {
+      "batch_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of batch requirement specifications",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "available_equipment": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of available picking equipment",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "staff_availability": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Available staff with skill levels",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "time_window": {
+        "type": "string",
+        "required": true,
+        "description": "Available time window for operations",
+        "format": "date-time"
+      },
+      "storage_constraints": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Storage and staging area limitations",
+        "default": null
+      },
+      "concurrent_operations": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of simultaneous picking operations allowed",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Insufficient equipment: Not enough equipment available for batch requirements.",
+      "Staff shortage: Insufficient qualified staff for planned operations.",
+      "Time constraint violation: Batches cannot be completed within time window.",
+      "Storage capacity exceeded: Batch requirements exceed staging area capacity.",
+      "Invalid concurrent operations: Must be between 1 and 20.",
+      "Invalid time window format: Time window must be valid ISO 8601 date-time."
+    ],
+    "usage": "Provide batch_requirements, available_equipment, staff_availability, and time_window to validate operational feasibility. Include storage_constraints and concurrent_operations for detailed capacity planning.",
+    "output_details": {
+      "feasibility_status": {
+        "type": "boolean",
+        "description": "Whether all batches are feasible with current capacity"
+      },
+      "capacity_utilization": {
+        "type": "number",
+        "description": "Percentage of total capacity that would be utilized"
+      },
+      "bottleneck_resources": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Resources that limit overall capacity"
+      },
+      "recommended_adjustments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Suggestions to improve feasibility"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pick List Formatter",
+    "tool_description": "Formats picking lists into various output formats suitable for different devices, printer types, and operational workflows.",
+    "parameters": {
+      "raw_pick_data": {
+        "type": "string",
+        "required": true,
+        "description": "Unformatted picking list data to process"
+      },
+      "output_format": {
+        "type": "string",
+        "required": true,
+        "description": "Target output format: pdf, html, csv, json, thermal_print"
+      },
+      "device_target": {
+        "type": "string",
+        "required": false,
+        "description": "Target device: desktop, tablet, mobile, printer",
+        "default": "desktop"
+      },
+      "include_barcodes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include barcode elements in formatted output",
+        "default": true
+      },
+      "sort_order": {
+        "type": "string",
+        "required": false,
+        "description": "Item sorting: location, priority, sku, quantity",
+        "default": "location"
+      }
+    },
+    "error_messages": [
+      "Invalid output format: Use one of [pdf, html, csv, json, thermal_print].",
+      "Invalid device target: Use one of [desktop, tablet, mobile, printer].",
+      "Invalid sort order: Use one of [location, priority, sku, quantity].",
+      "Empty pick data: raw_pick_data cannot be empty or null.",
+      "Format conversion error: Unable to convert data to requested format."
+    ],
+    "usage": "Provide raw_pick_data and specify output_format for basic formatting. Set device_target, include_barcodes, and sort_order to customize the formatted output for specific use cases.",
+    "output_details": {
+      "formatted_content": {
+        "type": "string",
+        "description": "Formatted picking list in requested format"
+      },
+      "format_type": {
+        "type": "string",
+        "description": "Confirmed output format used"
+      },
+      "file_size": {
+        "type": "integer",
+        "description": "Size of formatted content in bytes"
+      },
+      "validation_status": {
+        "type": "boolean",
+        "description": "Whether formatted content passed validation checks"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Analyzer",
+    "tool_description": "Analyzes picking performance metrics, identifies efficiency trends, and provides recommendations for optimization based on historical data.",
+    "parameters": {
+      "analysis_period_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for performance analysis",
+        "format": "date-time"
+      },
+      "analysis_period_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for performance analysis",
+        "format": "date-time"
+      },
+      "picker_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Specific picker IDs to analyze",
+        "default": null
+      },
+      "warehouse_zones": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Warehouse zones to include in analysis",
+        "default": null
+      },
+      "metrics_focus": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Specific metrics to analyze: time, accuracy, efficiency, throughput",
+        "default": null
+      },
+      "comparison_benchmark": {
+        "type": "string",
+        "required": false,
+        "description": "Benchmark for comparison: historical, target, industry",
+        "default": "historical"
+      },
+      "include_recommendations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include optimization recommendations in output",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid date range: analysis_period_start must be before analysis_period_end.",
+      "Invalid date format: Dates must be valid ISO 8601 date-time strings.",
+      "Invalid metrics focus: Use metrics from [time, accuracy, efficiency, throughput].",
+      "Invalid benchmark: Use one of [historical, target, industry].",
+      "Insufficient data: Not enough historical data for meaningful analysis.",
+      "Picker not found: One or more picker IDs do not exist in system."
+    ],
+    "usage": "Provide analysis_period_start and analysis_period_end for the analysis timeframe. Filter by picker_ids and warehouse_zones, specify metrics_focus, set comparison_benchmark, and enable include_recommendations for comprehensive analysis.",
+    "output_details": {
+      "performance_summary": {
+        "type": "string",
+        "description": "Overall performance summary for the analysis period"
+      },
+      "efficiency_trends": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Efficiency trend data points over time"
+      },
+      "top_performers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Best performing pickers or zones"
+      },
+      "improvement_areas": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Areas identified for improvement"
+      },
+      "optimization_recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Specific recommendations for optimization"
+      }
+    }
+  }

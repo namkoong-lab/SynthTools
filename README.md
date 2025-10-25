@@ -1,5 +1,16 @@
-## SYNTHTOOLS: A FRAMEWORK FOR SCALING SYNTHETIC TOOLS FOR AGENT DEVELOPMENT
+# Scaling Tools and Tasks and Show Values in Training on Them
 
-This is a public repo for the paper SYNTHTOOLS: A FRAMEWORK FOR SCALING SYNTHETIC TOOLS FOR AGENT DEVELOPMENT. We release the prompts as well as an executable simulator pipeline.
+## Setup
 
-More code and resources to come!
+Run `bash setup.sh` to setup venv with uv.
+
+Run `source .venv/bin/activate` to activate the environment.
+
+## Configs
+
+Add your api keys to `/configs/api_keys.json`
+
+## Start
+
+Run `python simulate_tool.py`
+

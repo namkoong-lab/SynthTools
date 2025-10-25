@@ -1,0 +1,848 @@
+field_name: student_services_and_campus_life
+subfield: academic_advising_and_planning
+task: course_scheduling_and_enrollment_planning
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is of **medium** difficulty. It involves moderate complexity in handling multiple interconnected constraints (prerequisites, time conflicts, capacity limits), coordinating between student preferences and institutional requirements, and managing dependencies between different academic elements. While not requiring advanced algorithms, it demands careful orchestration of various validation and optimization processes.
+
+  **STEP 2 — Set a tool budget**
+
+  For a medium difficulty task, I'll target **12 tools** to provide comprehensive coverage of course scheduling and enrollment planning workflows.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Course Catalog Fetcher** - Consumes: semester, department filters → Produces: available courses with details
+  2. **Prerequisite Validator** - Consumes: student transcript, target courses → Produces: eligibility status
+  3. **Schedule Conflict Checker** - Consumes: course time slots → Produces: conflict analysis
+  4. **Course Capacity Monitor** - Consumes: course IDs → Produces: enrollment availability
+  5. **Degree Requirement Analyzer** - Consumes: student record, degree program → Produces: remaining requirements
+  6. **Academic Load Calculator** - Consumes: course list, student status → Produces: credit hour analysis
+  7. **Schedule Generator** - Consumes: course preferences, constraints → Produces: possible schedules
+  8. **Enrollment Priority Checker** - Consumes: student info, courses → Produces: registration priority
+  9. **Alternative Course Finder** - Consumes: unavailable courses, requirements → Produces: substitute options
+  10. **Schedule Optimizer** - Consumes: multiple schedules, preferences → Produces: ranked schedule options
+  11. **Waitlist Manager** - Consumes: full courses, student preferences → Produces: waitlist positions
+  12. **Enrollment Timeline Planner** - Consumes: registration dates, course priorities → Produces: enrollment strategy
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Check single course eligibility: Course Catalog Fetcher → Prerequisite Validator → Course Capacity Monitor
+  - Validate current schedule: Schedule Conflict Checker → Academic Load Calculator
+
+  **Medium Plans:**
+  - Plan next semester: Degree Requirement Analyzer → Course Catalog Fetcher → Prerequisite Validator → Schedule Generator → Schedule Conflict Checker
+  - Handle full courses: Course Capacity Monitor → Alternative Course Finder → Waitlist Manager
+
+  **Complex Plans:**
+  - Complete enrollment planning: Degree Requirement Analyzer → Course Catalog Fetcher → Prerequisite Validator → Schedule Generator → Schedule Conflict Checker → Academic Load Calculator → Schedule Optimizer → Enrollment Priority Checker → Enrollment Timeline Planner
+  - Backup planning: Course Capacity Monitor → Alternative Course Finder → Schedule Generator → Schedule Optimizer → Waitlist Manager → Enrollment Timeline Planner
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Course Catalog Fetcher",
+    "tool_description": "Retrieves available courses for a specific semester with filtering options by department, level, or course attributes.",
+    "parameters": {
+      "semester": {
+        "type": "string",
+        "required": true,
+        "description": "Semester identifier (e.g., 'Fall 2024', 'Spring 2025')"
+      },
+      "department_codes": {
+        "type": "array",
+        "required": false,
+        "description": "Filter by department codes (e.g., ['CS', 'MATH'])",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "course_level": {
+        "type": "string",
+        "required": false,
+        "description": "Filter by course level: undergraduate, graduate, or both",
+        "default": "both"
+      }
+    },
+    "error_messages": [
+      "Invalid semester format: Use format like 'Fall 2024' or 'Spring 2025'",
+      "Department code not found: One or more department codes are not recognized",
+      "Invalid course level: Use 'undergraduate', 'graduate', or 'both'"
+    ],
+    "usage": "Specify the semester and optionally filter by department codes or course level to get a list of available courses.",
+    "output_details": {
+      "course_count": {
+        "type": "integer",
+        "description": "Total number of courses found"
+      },
+      "course_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of course identifiers"
+      },
+      "course_titles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of course titles corresponding to course IDs"
+      },
+      "credit_hours": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Credit hours for each course"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Prerequisite Validator",
+    "tool_description": "Validates whether a student meets prerequisite requirements for specified courses based on their academic transcript.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique student identifier"
+      },
+      "target_courses": {
+        "type": "array",
+        "required": true,
+        "description": "List of course IDs to check prerequisites for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "completed_courses": {
+        "type": "array",
+        "required": true,
+        "description": "List of course IDs the student has completed",
+        "items": {"type": "string"}
+      },
+      "current_gpa": {
+        "type": "number",
+        "required": true,
+        "description": "Student's current cumulative GPA"
+      },
+      "current_credit_hours": {
+        "type": "integer",
+        "required": true,
+        "description": "Total credit hours completed by student"
+      }
+    },
+    "error_messages": [
+      "Invalid student ID: Student not found in system",
+      "Invalid course ID: One or more target courses not found in catalog",
+      "Invalid GPA: GPA must be between 0.0 and 4.0",
+      "Invalid credit hours: Credit hours must be non-negative integer"
+    ],
+    "usage": "Provide student ID, list of target courses, completed courses, current GPA, and credit hours to check prerequisite eligibility.",
+    "output_details": {
+      "eligible_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Course IDs for which student meets prerequisites"
+      },
+      "ineligible_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Course IDs for which student does not meet prerequisites"
+      },
+      "missing_prerequisites": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Required courses or conditions not yet met"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Conflict Checker",
+    "tool_description": "Analyzes a list of courses to identify time conflicts and overlapping class schedules.",
+    "parameters": {
+      "course_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of course IDs to check for conflicts",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 15
+      },
+      "include_travel_time": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to account for travel time between different buildings",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid course IDs: One or more courses not found in schedule database",
+      "Insufficient courses: Provide at least 2 courses to check conflicts",
+      "Schedule data unavailable: Course schedule information not available for one or more courses"
+    ],
+    "usage": "Provide a list of course IDs and optionally enable travel time consideration to identify scheduling conflicts.",
+    "output_details": {
+      "has_conflicts": {
+        "type": "boolean",
+        "description": "Whether any time conflicts were found"
+      },
+      "conflict_pairs": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Pairs of conflicting course IDs"
+      },
+      "conflict_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Description of each conflict (times, days, locations)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Course Capacity Monitor",
+    "tool_description": "Checks current enrollment status and availability for specified courses, including waitlist information.",
+    "parameters": {
+      "course_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of course IDs to check capacity for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "semester": {
+        "type": "string",
+        "required": true,
+        "description": "Semester identifier for enrollment data"
+      }
+    },
+    "error_messages": [
+      "Invalid course IDs: One or more courses not found",
+      "Invalid semester: Semester not found or not available for enrollment",
+      "Enrollment data unavailable: Current enrollment information not accessible"
+    ],
+    "usage": "Provide course IDs and semester to get current enrollment status and capacity information.",
+    "output_details": {
+      "course_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Course identifiers checked"
+      },
+      "current_enrollment": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Current number of enrolled students per course"
+      },
+      "max_capacity": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Maximum enrollment capacity per course"
+      },
+      "availability_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Status: open, closed, or waitlist_available"
+      },
+      "waitlist_length": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Current waitlist length for each course"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Degree Requirement Analyzer",
+    "tool_description": "Analyzes a student's progress toward degree completion and identifies remaining requirements across all categories.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique student identifier"
+      },
+      "degree_program": {
+        "type": "string",
+        "required": true,
+        "description": "Student's declared major/degree program"
+      },
+      "concentration": {
+        "type": "string",
+        "required": false,
+        "description": "Specific concentration or track within the degree",
+        "default": null
+      },
+      "graduation_semester": {
+        "type": "string",
+        "required": true,
+        "description": "Target graduation semester"
+      },
+      "completed_courses": {
+        "type": "array",
+        "required": true,
+        "description": "List of completed course IDs",
+        "items": {"type": "string"}
+      },
+      "current_courses": {
+        "type": "array",
+        "required": false,
+        "description": "List of currently enrolled course IDs",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "transfer_credits": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of accepted transfer credit hours",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Student not found: Invalid student ID",
+      "Invalid degree program: Program not found in catalog",
+      "Invalid concentration: Concentration not available for this degree program",
+      "Invalid graduation semester: Semester format incorrect or not available",
+      "Course validation failed: One or more completed courses not recognized"
+    ],
+    "usage": "Provide student information, degree program, completed courses, and target graduation semester to analyze remaining degree requirements.",
+    "output_details": {
+      "total_credits_needed": {
+        "type": "integer",
+        "description": "Total credit hours required for degree"
+      },
+      "credits_completed": {
+        "type": "integer",
+        "description": "Credit hours already completed"
+      },
+      "credits_remaining": {
+        "type": "integer",
+        "description": "Credit hours still needed"
+      },
+      "core_requirements_remaining": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of unfulfilled core requirements"
+      },
+      "elective_credits_needed": {
+        "type": "integer",
+        "description": "Number of elective credit hours still needed"
+      },
+      "on_track_for_graduation": {
+        "type": "boolean",
+        "description": "Whether student can graduate by target semester"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Academic Load Calculator",
+    "tool_description": "Calculates and validates academic course load considering credit hours, student status, and institutional policies.",
+    "parameters": {
+      "course_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of course IDs for load calculation",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "student_status": {
+        "type": "string",
+        "required": true,
+        "description": "Student classification: freshman, sophomore, junior, senior, graduate"
+      },
+      "enrollment_status": {
+        "type": "string",
+        "required": true,
+        "description": "Enrollment type: full-time, part-time, or audit"
+      },
+      "current_gpa": {
+        "type": "number",
+        "required": true,
+        "description": "Student's current cumulative GPA"
+      },
+      "has_financial_aid": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether student receives financial aid"
+      }
+    },
+    "error_messages": [
+      "Invalid course IDs: One or more courses not found",
+      "Invalid student status: Use freshman, sophomore, junior, senior, or graduate",
+      "Invalid enrollment status: Use full-time, part-time, or audit",
+      "Invalid GPA: GPA must be between 0.0 and 4.0",
+      "Load policy violation: Proposed schedule violates academic load policies"
+    ],
+    "usage": "Provide course list, student classification, enrollment status, GPA, and financial aid status to calculate and validate academic load.",
+    "output_details": {
+      "total_credit_hours": {
+        "type": "integer",
+        "description": "Total credit hours for proposed courses"
+      },
+      "load_classification": {
+        "type": "string",
+        "description": "Load type: underload, normal, overload, or excessive"
+      },
+      "meets_minimum_requirement": {
+        "type": "boolean",
+        "description": "Whether load meets minimum requirements for enrollment status"
+      },
+      "requires_advisor_approval": {
+        "type": "boolean",
+        "description": "Whether course load requires special approval"
+      },
+      "financial_aid_eligible": {
+        "type": "boolean",
+        "description": "Whether load maintains financial aid eligibility"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Generator",
+    "tool_description": "Generates multiple possible class schedules based on required courses, preferences, and constraints.",
+    "parameters": {
+      "required_courses": {
+        "type": "array",
+        "required": true,
+        "description": "List of course IDs that must be included",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "preferred_courses": {
+        "type": "array",
+        "required": false,
+        "description": "List of course IDs to include if possible",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "time_preferences": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred time slots: morning, afternoon, evening",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "avoid_days": {
+        "type": "array",
+        "required": false,
+        "description": "Days to avoid: monday, tuesday, wednesday, thursday, friday",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "max_gap_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum gap between classes in hours (1-6)",
+        "default": 4
+      },
+      "semester": {
+        "type": "string",
+        "required": true,
+        "description": "Target semester for schedule generation"
+      },
+      "max_schedules": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of schedule options to generate (1-10)",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Invalid course IDs: One or more courses not found or not offered in semester",
+      "Invalid time preferences: Use morning, afternoon, or evening",
+      "Invalid days: Use monday, tuesday, wednesday, thursday, or friday",
+      "Invalid gap hours: Must be between 1 and 6 hours",
+      "Invalid semester: Semester not found or not available",
+      "No valid schedules: Cannot generate schedules with given constraints",
+      "Invalid max schedules: Must be between 1 and 10"
+    ],
+    "usage": "Provide required courses and semester, optionally specify preferences for times, days to avoid, gap limits, and maximum number of schedules to generate.",
+    "output_details": {
+      "schedules_generated": {
+        "type": "integer",
+        "description": "Number of valid schedules created"
+      },
+      "schedule_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Unique identifiers for each generated schedule"
+      },
+      "total_credit_hours": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Credit hours for each schedule option"
+      },
+      "preference_match_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Score (0-1) indicating how well each schedule matches preferences"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Enrollment Priority Checker",
+    "tool_description": "Determines student's registration priority and enrollment windows for specified courses based on academic standing and policies.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique student identifier"
+      },
+      "target_courses": {
+        "type": "array",
+        "required": true,
+        "description": "Course IDs to check enrollment priority for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "semester": {
+        "type": "string",
+        "required": true,
+        "description": "Semester for enrollment priority check"
+      }
+    },
+    "error_messages": [
+      "Student not found: Invalid student ID",
+      "Invalid course IDs: One or more courses not found",
+      "Invalid semester: Semester not available for enrollment",
+      "Priority data unavailable: Cannot determine enrollment priority for student"
+    ],
+    "usage": "Provide student ID, target courses, and semester to determine registration priority and enrollment eligibility.",
+    "output_details": {
+      "overall_priority_level": {
+        "type": "string",
+        "description": "Student's priority tier: high, medium, or low"
+      },
+      "registration_window_start": {
+        "type": "string",
+        "description": "Date and time when student can begin registering",
+        "format": "date-time"
+      },
+      "registration_window_end": {
+        "type": "string",
+        "description": "Date and time when registration period ends",
+        "format": "date-time"
+      },
+      "course_specific_restrictions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Any special restrictions or requirements for specific courses"
+      },
+      "holds_blocking_registration": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Academic or administrative holds that prevent registration"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alternative Course Finder",
+    "tool_description": "Finds substitute courses when preferred options are unavailable, matching degree requirements and academic level.",
+    "parameters": {
+      "unavailable_courses": {
+        "type": "array",
+        "required": true,
+        "description": "Course IDs that are closed or unavailable",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "degree_program": {
+        "type": "string",
+        "required": true,
+        "description": "Student's degree program for requirement matching"
+      },
+      "semester": {
+        "type": "string",
+        "required": true,
+        "description": "Semester to find alternatives for"
+      },
+      "student_level": {
+        "type": "string",
+        "required": true,
+        "description": "Student academic level: freshman, sophomore, junior, senior, graduate"
+      }
+    },
+    "error_messages": [
+      "Invalid course IDs: One or more courses not recognized",
+      "Invalid degree program: Program not found in catalog",
+      "Invalid semester: Semester not available",
+      "Invalid student level: Use freshman, sophomore, junior, senior, or graduate",
+      "No alternatives found: No suitable substitute courses available"
+    ],
+    "usage": "Provide unavailable courses, degree program, semester, and student level to find appropriate substitute courses.",
+    "output_details": {
+      "alternative_courses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Course IDs of suitable alternatives"
+      },
+      "alternative_titles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Titles of alternative courses"
+      },
+      "requirement_matches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Which degree requirements each alternative fulfills"
+      },
+      "availability_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current enrollment status of each alternative"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Optimizer",
+    "tool_description": "Ranks and optimizes multiple schedule options based on student preferences, commute patterns, and academic priorities.",
+    "parameters": {
+      "schedule_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of schedule identifiers to optimize and rank",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "optimization_criteria": {
+        "type": "array",
+        "required": true,
+        "description": "Criteria for ranking: time_efficiency, professor_ratings, workload_distribution, commute_friendly",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 4
+      },
+      "commute_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Commute optimization: minimize_days, minimize_gaps, or balanced",
+        "default": "balanced"
+      },
+      "morning_preference": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether student prefers morning classes",
+        "default": true
+      },
+      "work_schedule_conflicts": {
+        "type": "array",
+        "required": false,
+        "description": "Time slots unavailable due to work (format: 'monday_9am-5pm')",
+        "items": {"type": "string"},
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid schedule IDs: One or more schedules not found",
+      "Invalid optimization criteria: Use time_efficiency, professor_ratings, workload_distribution, or commute_friendly",
+      "Invalid commute preference: Use minimize_days, minimize_gaps, or balanced",
+      "Invalid work schedule format: Use format like 'monday_9am-5pm'",
+      "Insufficient schedules: Provide at least 2 schedules to optimize"
+    ],
+    "usage": "Provide schedule IDs, optimization criteria, and preferences to get ranked schedule recommendations with detailed analysis.",
+    "output_details": {
+      "ranked_schedule_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Schedule IDs ranked from best to worst"
+      },
+      "optimization_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Overall optimization score (0-1) for each schedule"
+      },
+      "ranking_rationale": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Explanation of why each schedule ranked as it did"
+      },
+      "top_recommendation": {
+        "type": "string",
+        "description": "ID of the highest-ranked schedule"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Waitlist Manager",
+    "tool_description": "Manages waitlist registrations for full courses and provides position tracking and probability estimates.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique student identifier"
+      },
+      "course_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Course IDs to add to waitlist or check status",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 8
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: join, check_status, or remove"
+      },
+      "semester": {
+        "type": "string",
+        "required": true,
+        "description": "Semester for waitlist management"
+      }
+    },
+    "error_messages": [
+      "Student not found: Invalid student ID",
+      "Invalid course IDs: One or more courses not found",
+      "Invalid action: Use join, check_status, or remove",
+      "Invalid semester: Semester not available for waitlist",
+      "Waitlist full: Cannot join waitlist as it has reached maximum capacity",
+      "Not on waitlist: Cannot remove student from waitlist they are not on",
+      "Course not waitlist eligible: Course does not offer waitlist option"
+    ],
+    "usage": "Provide student ID, course IDs, action type, and semester to manage waitlist registrations and get status updates.",
+    "output_details": {
+      "waitlist_positions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Current position on waitlist for each course (null if not on waitlist)"
+      },
+      "enrollment_probabilities": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Estimated probability (0-1) of getting into each course"
+      },
+      "estimated_notification_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Estimated dates when spots might become available",
+        "format": "date-time"
+      },
+      "action_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Result of requested action for each course"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Enrollment Timeline Planner",
+    "tool_description": "Creates a strategic enrollment timeline with prioritized registration sequence and backup plans for optimal course scheduling.",
+    "parameters": {
+      "student_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique student identifier"
+      },
+      "priority_courses": {
+        "type": "array",
+        "required": true,
+        "description": "Course IDs in order of enrollment priority",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 12
+      },
+      "registration_start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Date and time when student can begin registering",
+        "format": "date-time"
+      },
+      "semester": {
+        "type": "string",
+        "required": true,
+        "description": "Target semester for enrollment planning"
+      },
+      "backup_courses": {
+        "type": "array",
+        "required": false,
+        "description": "Alternative course IDs if priority courses are unavailable",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "time_buffer_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Buffer time between registration attempts (1-30 minutes)",
+        "default": 5
+      },
+      "max_attempts_per_course": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum registration attempts per course (1-5)",
+        "default": 3
+      },
+      "include_waitlist_strategy": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include waitlist planning in timeline",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Student not found: Invalid student ID",
+      "Invalid course IDs: One or more courses not found",
+      "Invalid registration time: Time must be in future and in valid format",
+      "Invalid semester: Semester not available for enrollment",
+      "Invalid time buffer: Must be between 1 and 30 minutes",
+      "Invalid max attempts: Must be between 1 and 5 attempts",
+      "Registration window conflict: Registration time outside student's allowed window"
+    ],
+    "usage": "Provide student ID, priority courses, registration start time, and semester with optional backup courses and timing preferences to generate an enrollment timeline strategy.",
+    "output_details": {
+      "enrollment_sequence": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Ordered list of courses to attempt registration"
+      },
+      "scheduled_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Specific times to attempt each course registration",
+        "format": "date-time"
+      },
+      "backup_strategies": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Backup plans if primary courses are unavailable"
+      },
+      "waitlist_timeline": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "When to join waitlists and expected decision points"
+      },
+      "critical_decision_points": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key dates requiring student action or decisions",
+        "format":

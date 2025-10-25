@@ -1,0 +1,788 @@
+field_name: health_and_wellness
+subfield: Medical Imaging and Diagnostics
+task: Image acquisition and preprocessing from various medical imaging modalities
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves handling multiple complex imaging modalities (MRI, CT, X-ray, ultrasound), each with different technical requirements, file formats, and preprocessing pipelines. The scope includes image acquisition, quality assessment, artifact correction, standardization, and preparation for diagnostic analysis. Given the critical nature of medical imaging, errors can significantly impact patient care, and the task requires coordination between various preprocessing steps and strict adherence to medical imaging standards. This is a **hard** difficulty task.
+
+  **STEP 2 — Set a tool budget**
+
+  Based on the hard difficulty assessment, I'm targeting **17 tools** to cover the comprehensive workflow from image acquisition through preprocessing, quality control, and preparation for analysis.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  1. **DICOM Image Loader** → produces raw DICOM data
+  2. **Image Format Converter** → consumes raw images, produces standardized formats
+  3. **Image Quality Assessor** → consumes images, produces quality metrics
+  4. **Noise Reduction Filter** → consumes noisy images, produces cleaned images
+  5. **Contrast Enhancement Tool** → consumes low-contrast images, produces enhanced images
+  6. **Image Registration Tool** → consumes multiple images, produces aligned images
+  7. **Intensity Normalization Tool** → consumes images with varying intensities, produces normalized images
+  8. **Artifact Detection Tool** → consumes images, produces artifact reports
+  9. **ROI Extraction Tool** → consumes images and coordinates, produces cropped regions
+  10. **Image Resampling Tool** → consumes images, produces resampled images
+  11. **Histogram Equalization Tool** → consumes images, produces histogram-equalized images
+  12. **Edge Enhancement Filter** → consumes images, produces edge-enhanced images
+  13. **Image Metadata Extractor** → consumes DICOM files, produces metadata
+  14. **Multi-Modal Fusion Tool** → consumes multiple modality images, produces fused images
+  15. **Image Anonymization Tool** → consumes images with PHI, produces anonymized images
+  16. **Preprocessing Pipeline Manager** → consumes preprocessing parameters, orchestrates workflow
+  17. **Quality Control Reporter** → consumes processed images and metrics, produces QC reports
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  1. Basic X-ray preprocessing: DICOM Image Loader → Image Quality Assessor → Contrast Enhancement Tool → Quality Control Reporter
+  2. Single image cleanup: Noise Reduction Filter → Contrast Enhancement Tool → Image Quality Assessor
+
+  **Medium plans:**
+  1. CT scan standardization: DICOM Image Loader → Image Metadata Extractor → Intensity Normalization Tool → Image Resampling Tool → Histogram Equalization Tool → Quality Control Reporter
+  2. Multi-series MRI alignment: DICOM Image Loader → Image Registration Tool → Intensity Normalization Tool → Artifact Detection Tool → Quality Control Reporter
+
+  **Complex plans:**
+  1. Complete multi-modal preprocessing: DICOM Image Loader → Image Anonymization Tool → Image Quality Assessor → Artifact Detection Tool → Noise Reduction Filter → Intensity Normalization Tool → Image Registration Tool → Multi-Modal Fusion Tool → Preprocessing Pipeline Manager → Quality Control Reporter
+  2. Advanced diagnostic preparation: DICOM Image Loader → Image Metadata Extractor → Image Format Converter → Artifact Detection Tool → Noise Reduction Filter → Contrast Enhancement Tool → Edge Enhancement Filter → ROI Extraction Tool → Image Resampling Tool → Quality Control Reporter
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "DICOM Image Loader",
+    "tool_description": "Loads and validates DICOM medical imaging files from various modalities, extracting pixel data and essential header information for further processing.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Full path to the DICOM file to be loaded"
+      },
+      "modality_filter": {
+        "type": "string",
+        "required": false,
+        "description": "Filter by imaging modality (CT, MR, CR, DX, US, XA)",
+        "default": "None"
+      },
+      "validate_integrity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Perform integrity checks on DICOM structure",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "File not found: Ensure the file_path points to an existing DICOM file.",
+      "Invalid DICOM format: The file is not a valid DICOM file or is corrupted.",
+      "Modality mismatch: The file's modality does not match the specified modality_filter.",
+      "Integrity check failed: DICOM structure validation failed - file may be corrupted or incomplete."
+    ],
+    "usage": "Provide the file_path to a DICOM file. Optionally specify modality_filter to validate modality type and set validate_integrity to perform structural checks.",
+    "output_details": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the DICOM file was successfully loaded"
+      },
+      "image_shape": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Dimensions of the loaded image [height, width, slices]"
+      },
+      "modality": {
+        "type": "string",
+        "description": "Imaging modality of the loaded file"
+      },
+      "pixel_spacing": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Pixel spacing in mm [x, y, z]"
+      },
+      "study_id": {
+        "type": "string",
+        "description": "Study instance UID"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Quality Assessor",
+    "tool_description": "Evaluates medical image quality using multiple metrics including signal-to-noise ratio, contrast, sharpness, and artifact presence to determine suitability for diagnostic use.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the medical image file"
+      },
+      "modality": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging modality (CT, MR, CR, DX, US, XA)"
+      },
+      "assessment_level": {
+        "type": "string",
+        "required": false,
+        "description": "Depth of quality assessment (basic, standard, comprehensive)",
+        "default": "standard"
+      },
+      "noise_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Noise level threshold for quality pass/fail (0.0-1.0)",
+        "default": 0.1
+      },
+      "contrast_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum contrast ratio for quality pass (1.0-10.0)",
+        "default": 2.0
+      },
+      "sharpness_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum sharpness score for quality pass (0.0-1.0)",
+        "default": 0.3
+      },
+      "roi_coordinates": {
+        "type": "array",
+        "required": false,
+        "description": "Region of interest coordinates [x1, y1, x2, y2] for focused assessment",
+        "items": {
+          "type": "integer"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Image file not found: Ensure the image_path points to a valid image file.",
+      "Unsupported modality: Use one of [CT, MR, CR, DX, US, XA].",
+      "Invalid assessment level: Use one of [basic, standard, comprehensive].",
+      "Threshold out of range: noise_threshold and sharpness_threshold must be 0.0-1.0, contrast_threshold must be 1.0-10.0.",
+      "Invalid ROI coordinates: roi_coordinates must be [x1, y1, x2, y2] with x1<x2 and y1<y2.",
+      "ROI exceeds image bounds: Specified ROI coordinates extend beyond image dimensions."
+    ],
+    "usage": "Provide image_path and modality. Optionally set assessment_level for different depths of analysis and threshold values for pass/fail criteria. Use roi_coordinates to focus assessment on specific regions.",
+    "output_details": {
+      "overall_quality_score": {
+        "type": "number",
+        "description": "Overall quality score from 0.0 (poor) to 1.0 (excellent)"
+      },
+      "snr": {
+        "type": "number",
+        "description": "Signal-to-noise ratio"
+      },
+      "contrast_ratio": {
+        "type": "number",
+        "description": "Image contrast ratio"
+      },
+      "sharpness_score": {
+        "type": "number",
+        "description": "Image sharpness score"
+      },
+      "quality_pass": {
+        "type": "boolean",
+        "description": "Whether image meets quality thresholds"
+      },
+      "artifacts_detected": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of detected artifacts"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Quality improvement recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Noise Reduction Filter",
+    "tool_description": "Applies advanced denoising algorithms to medical images while preserving diagnostic features, supporting multiple filtering techniques optimized for different imaging modalities.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the input medical image"
+      },
+      "filter_type": {
+        "type": "string",
+        "required": true,
+        "description": "Denoising algorithm (gaussian, bilateral, non_local_means, wiener, total_variation)"
+      },
+      "strength": {
+        "type": "number",
+        "required": false,
+        "description": "Denoising strength (0.1-2.0, higher values remove more noise)",
+        "default": 1.0
+      },
+      "preserve_edges": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve edge information during denoising",
+        "default": true
+      },
+      "output_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path where the denoised image will be saved"
+      }
+    },
+    "error_messages": [
+      "Input image not found: Ensure image_path points to a valid image file.",
+      "Unsupported filter type: Use one of [gaussian, bilateral, non_local_means, wiener, total_variation].",
+      "Invalid strength value: strength must be between 0.1 and 2.0.",
+      "Output path invalid: Ensure output_path is a valid writable location.",
+      "Memory insufficient: Image too large for selected denoising algorithm."
+    ],
+    "usage": "Provide image_path, filter_type, and output_path. Adjust strength to control denoising intensity and set preserve_edges to maintain diagnostic edge information.",
+    "output_details": {
+      "processing_success": {
+        "type": "boolean",
+        "description": "Whether denoising was completed successfully"
+      },
+      "noise_reduction_score": {
+        "type": "number",
+        "description": "Quantitative measure of noise reduction achieved"
+      },
+      "edge_preservation_score": {
+        "type": "number",
+        "description": "Score indicating how well edges were preserved"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Time taken for denoising in seconds"
+      },
+      "output_file_size": {
+        "type": "integer",
+        "description": "Size of output file in bytes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Registration Tool",
+    "tool_description": "Performs spatial alignment of medical images from same or different time points, supporting rigid, affine, and deformable registration for multi-modal and temporal image analysis.",
+    "parameters": {
+      "fixed_image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the reference (fixed) image"
+      },
+      "moving_image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image to be registered (moving)"
+      },
+      "registration_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of registration (rigid, affine, deformable, multi_modal)"
+      },
+      "similarity_metric": {
+        "type": "string",
+        "required": false,
+        "description": "Similarity metric for optimization (correlation, mutual_information, mean_squares)",
+        "default": "correlation"
+      },
+      "interpolation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Interpolation method (linear, cubic, nearest_neighbor)",
+        "default": "linear"
+      },
+      "max_iterations": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum optimization iterations (10-1000)",
+        "default": 200
+      },
+      "convergence_tolerance": {
+        "type": "number",
+        "required": false,
+        "description": "Convergence tolerance for optimization (1e-6 to 1e-3)",
+        "default": 1e-4
+      },
+      "output_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path for the registered output image"
+      },
+      "transform_output_path": {
+        "type": "string",
+        "required": false,
+        "description": "Path to save transformation parameters",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Fixed image not found: Ensure fixed_image_path points to a valid image file.",
+      "Moving image not found: Ensure moving_image_path points to a valid image file.",
+      "Unsupported registration type: Use one of [rigid, affine, deformable, multi_modal].",
+      "Invalid similarity metric: Use one of [correlation, mutual_information, mean_squares].",
+      "Invalid interpolation method: Use one of [linear, cubic, nearest_neighbor].",
+      "Invalid iteration count: max_iterations must be between 10 and 1000.",
+      "Invalid convergence tolerance: convergence_tolerance must be between 1e-6 and 1e-3.",
+      "Registration failed: Unable to find optimal alignment - check image compatibility."
+    ],
+    "usage": "Provide fixed_image_path, moving_image_path, registration_type, and output_path. Optionally specify similarity_metric, interpolation_method, optimization parameters, and transform_output_path to save transformation.",
+    "output_details": {
+      "registration_success": {
+        "type": "boolean",
+        "description": "Whether registration completed successfully"
+      },
+      "final_similarity_score": {
+        "type": "number",
+        "description": "Final similarity metric value"
+      },
+      "iterations_completed": {
+        "type": "integer",
+        "description": "Number of optimization iterations performed"
+      },
+      "transformation_parameters": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Transformation parameters applied"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Registration processing time in seconds"
+      },
+      "alignment_quality": {
+        "type": "string",
+        "description": "Qualitative assessment of alignment quality"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Intensity Normalization Tool",
+    "tool_description": "Standardizes image intensities across different scanners, acquisition protocols, and time points using histogram matching, Z-score normalization, or percentile-based methods.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the input image for normalization"
+      },
+      "normalization_method": {
+        "type": "string",
+        "required": true,
+        "description": "Normalization technique (z_score, min_max, histogram_matching, percentile, whitening)"
+      },
+      "reference_image_path": {
+        "type": "string",
+        "required": false,
+        "description": "Reference image path for histogram matching",
+        "default": "None"
+      },
+      "target_range": {
+        "type": "array",
+        "required": false,
+        "description": "Target intensity range [min, max] for min_max normalization",
+        "items": {
+          "type": "number"
+        },
+        "default": "None"
+      },
+      "percentile_range": {
+        "type": "array",
+        "required": false,
+        "description": "Percentile range [low, high] for robust normalization",
+        "items": {
+          "type": "number"
+        },
+        "default": "None"
+      },
+      "mask_path": {
+        "type": "string",
+        "required": false,
+        "description": "Path to mask for region-specific normalization",
+        "default": "None"
+      },
+      "output_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path for the normalized output image"
+      }
+    },
+    "error_messages": [
+      "Input image not found: Ensure image_path points to a valid image file.",
+      "Unsupported normalization method: Use one of [z_score, min_max, histogram_matching, percentile, whitening].",
+      "Reference image required: histogram_matching method requires reference_image_path.",
+      "Reference image not found: Ensure reference_image_path points to a valid image file.",
+      "Invalid target range: target_range must be [min, max] with min < max.",
+      "Invalid percentile range: percentile_range must be [low, high] with 0 <= low < high <= 100.",
+      "Mask file not found: Ensure mask_path points to a valid mask file.",
+      "Incompatible dimensions: Image and mask dimensions must match."
+    ],
+    "usage": "Provide image_path, normalization_method, and output_path. For histogram_matching, include reference_image_path. For min_max, specify target_range. For percentile-based methods, set percentile_range. Use mask_path for region-specific normalization.",
+    "output_details": {
+      "normalization_success": {
+        "type": "boolean",
+        "description": "Whether normalization completed successfully"
+      },
+      "original_intensity_range": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Original image intensity range [min, max]"
+      },
+      "normalized_intensity_range": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Normalized image intensity range [min, max]"
+      },
+      "mean_intensity": {
+        "type": "number",
+        "description": "Mean intensity of normalized image"
+      },
+      "std_intensity": {
+        "type": "number",
+        "description": "Standard deviation of normalized intensities"
+      },
+      "histogram_similarity": {
+        "type": "number",
+        "description": "Similarity score with reference (if applicable)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contrast Enhancement Tool",
+    "tool_description": "Improves image contrast using adaptive histogram equalization, CLAHE, or gamma correction to enhance visibility of anatomical structures and pathological features.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the input image"
+      },
+      "enhancement_method": {
+        "type": "string",
+        "required": true,
+        "description": "Contrast enhancement technique (clahe, adaptive_histogram, gamma_correction, unsharp_masking)"
+      },
+      "clip_limit": {
+        "type": "number",
+        "required": false,
+        "description": "Clip limit for CLAHE (0.1-10.0)",
+        "default": 2.0
+      },
+      "gamma_value": {
+        "type": "number",
+        "required": false,
+        "description": "Gamma correction value (0.1-3.0)",
+        "default": 1.0
+      },
+      "output_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path for the enhanced output image"
+      }
+    },
+    "error_messages": [
+      "Input image not found: Ensure image_path points to a valid image file.",
+      "Unsupported enhancement method: Use one of [clahe, adaptive_histogram, gamma_correction, unsharp_masking].",
+      "Invalid clip limit: clip_limit must be between 0.1 and 10.0.",
+      "Invalid gamma value: gamma_value must be between 0.1 and 3.0.",
+      "Output path invalid: Ensure output_path is a valid writable location."
+    ],
+    "usage": "Provide image_path, enhancement_method, and output_path. For CLAHE, adjust clip_limit to control enhancement strength. For gamma correction, set gamma_value (>1 brightens, <1 darkens).",
+    "output_details": {
+      "enhancement_success": {
+        "type": "boolean",
+        "description": "Whether contrast enhancement completed successfully"
+      },
+      "contrast_improvement": {
+        "type": "number",
+        "description": "Quantitative measure of contrast improvement"
+      },
+      "histogram_spread": {
+        "type": "number",
+        "description": "Measure of histogram distribution after enhancement"
+      },
+      "dynamic_range": {
+        "type": "number",
+        "description": "Dynamic range of enhanced image"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Artifact Detection Tool",
+    "tool_description": "Automatically detects and classifies common imaging artifacts including motion blur, metal artifacts, streaking, ghosting, and acquisition-related distortions in medical images.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the medical image to analyze for artifacts"
+      },
+      "modality": {
+        "type": "string",
+        "required": true,
+        "description": "Imaging modality (CT, MR, CR, DX, US, XA)"
+      },
+      "detection_sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Artifact detection sensitivity (low, medium, high)",
+        "default": "medium"
+      },
+      "artifact_types": {
+        "type": "array",
+        "required": false,
+        "description": "Specific artifact types to detect",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Image file not found: Ensure image_path points to a valid image file.",
+      "Unsupported modality: Use one of [CT, MR, CR, DX, US, XA].",
+      "Invalid detection sensitivity: Use one of [low, medium, high].",
+      "Unsupported artifact type: Check artifact_types against supported list for the specified modality."
+    ],
+    "usage": "Provide image_path and modality. Optionally set detection_sensitivity and specify artifact_types to focus detection on specific artifacts. The tool returns detailed artifact analysis.",
+    "output_details": {
+      "artifacts_found": {
+        "type": "boolean",
+        "description": "Whether any artifacts were detected"
+      },
+      "artifact_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Types of artifacts detected"
+      },
+      "severity_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Severity scores for each detected artifact (0-1)"
+      },
+      "affected_regions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Image regions affected by artifacts"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommendations for artifact correction or reacquisition"
+      },
+      "diagnostic_impact": {
+        "type": "string",
+        "description": "Assessment of artifacts' impact on diagnostic quality"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "ROI Extraction Tool",
+    "tool_description": "Extracts regions of interest from medical images based on coordinates, anatomical landmarks, or automatic segmentation, with support for multiple ROI shapes and batch processing.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the input medical image"
+      },
+      "roi_method": {
+        "type": "string",
+        "required": true,
+        "description": "ROI extraction method (coordinates, landmark, automatic, template_matching)"
+      },
+      "coordinates": {
+        "type": "array",
+        "required": false,
+        "description": "ROI coordinates [x1, y1, x2, y2] for rectangular region",
+        "items": {
+          "type": "integer"
+        },
+        "default": "None"
+      },
+      "roi_shape": {
+        "type": "string",
+        "required": false,
+        "description": "Shape of ROI (rectangle, circle, polygon)",
+        "default": "rectangle"
+      },
+      "anatomical_structure": {
+        "type": "string",
+        "required": false,
+        "description": "Target anatomical structure for automatic extraction",
+        "default": "None"
+      },
+      "output_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory path for extracted ROI images"
+      },
+      "padding": {
+        "type": "integer",
+        "required": false,
+        "description": "Padding pixels around ROI (0-50)",
+        "default": 0
+      },
+      "maintain_aspect_ratio": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to maintain original aspect ratio",
+        "default": true
+      },
+      "output_size": {
+        "type": "array",
+        "required": false,
+        "description": "Desired output size [width, height] for extracted ROI",
+        "items": {
+          "type": "integer"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Input image not found: Ensure image_path points to a valid image file.",
+      "Invalid ROI method: Use one of [coordinates, landmark, automatic, template_matching].",
+      "Invalid coordinates: coordinates must be [x1, y1, x2, y2] with x1<x2 and y1<y2.",
+      "Coordinates exceed image bounds: ROI coordinates extend beyond image dimensions.",
+      "Unsupported ROI shape: Use one of [rectangle, circle, polygon].",
+      "Invalid padding value: padding must be between 0 and 50 pixels.",
+      "Invalid output size: output_size must be positive integers [width, height].",
+      "Output directory invalid: Ensure output_directory is a valid writable location.",
+      "Anatomical structure not recognized: Specified anatomical_structure is not supported."
+    ],
+    "usage": "Provide image_path, roi_method, and output_directory. For coordinate-based extraction, specify coordinates and roi_shape. For automatic extraction, set anatomical_structure. Use padding and output_size to control extracted region properties.",
+    "output_details": {
+      "extraction_success": {
+        "type": "boolean",
+        "description": "Whether ROI extraction completed successfully"
+      },
+      "extracted_roi_count": {
+        "type": "integer",
+        "description": "Number of ROIs successfully extracted"
+      },
+      "roi_dimensions": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Dimensions of extracted ROI [width, height]"
+      },
+      "roi_coordinates": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Final coordinates of extracted ROI"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence score for automatic extraction methods"
+      },
+      "output_files": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Paths to extracted ROI image files"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Format Converter",
+    "tool_description": "Converts medical images between different formats while preserving metadata and ensuring compatibility with various imaging systems and analysis software.",
+    "parameters": {
+      "input_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the input image file"
+      },
+      "output_format": {
+        "type": "string",
+        "required": true,
+        "description": "Target output format (DICOM, NIFTI, PNG, TIFF, JPEG, BMP, ANALYZE)"
+      },
+      "output_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path for the converted output file"
+      },
+      "preserve_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve original image metadata",
+        "default": true
+      },
+      "compression_level": {
+        "type": "integer",
+        "required": false,
+        "description": "Compression level for applicable formats (0-9)",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Input file not found: Ensure input_path points to a valid image file.",
+      "Unsupported output format: Use one of [DICOM, NIFTI, PNG, TIFF, JPEG, BMP, ANALYZE].",
+      "Invalid compression level: compression_level must be between 0 and 9.",
+      "Metadata preservation failed: Unable to preserve metadata in target format.",
+      "Conversion failed: Unable to convert image - check format compatibility."
+    ],
+    "usage": "Provide input_path, output_format, and output_path. Set preserve_metadata to retain original metadata where possible. Adjust compression_level for file size optimization.",
+    "output_details": {
+      "conversion_success": {
+        "type": "boolean",
+        "description": "Whether format conversion completed successfully"
+      },
+      "output_file_size": {
+        "type": "integer",
+        "description": "Size of converted file in bytes"
+      },
+      "metadata_preserved": {
+        "type": "boolean",
+        "description": "Whether original metadata was preserved"
+      },
+      "compression_ratio": {
+        "type": "number",
+        "description": "Compression ratio achieved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name":

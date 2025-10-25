@@ -1,0 +1,842 @@
+field_name: libraries_and_archives
+subfield: Cataloging and Metadata Creation
+task: Create and manage bibliographic records for new acquisitions
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves structured data management with established standards (MARC, Dublin Core), requires coordination between multiple metadata sources, and has moderate risk since errors could affect discoverability and access to library materials.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the various workflows involved in bibliographic record creation and management.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **ISBN Data Extractor** - Consumes: ISBN → Produces: basic bibliographic data
+  2. **MARC Record Creator** - Consumes: bibliographic data → Produces: MARC21 records
+  3. **Authority Record Validator** - Consumes: author/subject data → Produces: validated authority forms
+  4. **Duplicate Record Detector** - Consumes: bibliographic data → Produces: potential duplicates list
+  5. **Classification Number Generator** - Consumes: subject/topic data → Produces: call numbers
+  6. **Physical Description Parser** - Consumes: item details → Produces: standardized physical descriptions
+  7. **Subject Heading Mapper** - Consumes: keywords/topics → Produces: controlled subject headings
+  8. **Holdings Record Creator** - Consumes: item location data → Produces: holdings records
+  9. **Quality Control Validator** - Consumes: complete records → Produces: validation reports
+  10. **Batch Record Processor** - Consumes: multiple records → Produces: processed batch results
+  11. **Metadata Crosswalk Converter** - Consumes: metadata in various formats → Produces: converted metadata
+  12. **Record Merge Tool** - Consumes: duplicate records → Produces: merged authoritative record
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple workflows:**
+  1. Single item cataloging: ISBN Data Extractor → MARC Record Creator → Quality Control Validator
+  2. Basic subject assignment: Subject Heading Mapper → Classification Number Generator → MARC Record Creator
+
+  **Medium workflows:**
+  1. New acquisition processing: ISBN Data Extractor → Duplicate Record Detector → Authority Record Validator → MARC Record Creator → Holdings Record Creator → Quality Control Validator
+  2. Legacy conversion: Metadata Crosswalk Converter → Authority Record Validator → Subject Heading Mapper → MARC Record Creator → Quality Control Validator
+
+  **Complex workflows:**
+  1. Full cataloging workflow: ISBN Data Extractor → Duplicate Record Detector → Physical Description Parser → Authority Record Validator → Subject Heading Mapper → Classification Number Generator → MARC Record Creator → Holdings Record Creator → Quality Control Validator → Batch Record Processor
+  2. Deduplication project: Duplicate Record Detector → Authority Record Validator → Subject Heading Mapper → Record Merge Tool → Quality Control Validator → Batch Record Processor
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "ISBN Data Extractor",
+    "tool_description": "Extracts bibliographic metadata from ISBN using online databases and returns structured publication information.",
+    "parameters": {
+      "isbn": {
+        "type": "string",
+        "required": true,
+        "description": "10 or 13 digit ISBN with or without hyphens"
+      },
+      "preferred_source": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred metadata source: worldcat, loc, openlibrary",
+        "default": "worldcat"
+      }
+    },
+    "error_messages": [
+      "Invalid ISBN format: Provide a valid 10 or 13 digit ISBN",
+      "ISBN not found: The ISBN does not exist in available databases",
+      "Source unavailable: The specified metadata source is currently unavailable"
+    ],
+    "usage": "Provide an ISBN to retrieve basic bibliographic information from online sources. Optionally specify a preferred metadata source.",
+    "output_details": {
+      "title": {
+        "type": "string",
+        "description": "Main title of the publication"
+      },
+      "author": {
+        "type": "string",
+        "description": "Primary author or creator"
+      },
+      "publisher": {
+        "type": "string",
+        "description": "Publisher name"
+      },
+      "publication_year": {
+        "type": "string",
+        "description": "Year of publication"
+      },
+      "subject_keywords": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Subject keywords or topics"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "MARC Record Creator",
+    "tool_description": "Creates a complete MARC21 bibliographic record from structured metadata inputs following current cataloging standards.",
+    "parameters": {
+      "title": {
+        "type": "string",
+        "required": true,
+        "description": "Main title of the resource"
+      },
+      "author": {
+        "type": "string",
+        "required": true,
+        "description": "Primary author in authorized form"
+      },
+      "publisher": {
+        "type": "string",
+        "required": true,
+        "description": "Publisher name"
+      },
+      "publication_year": {
+        "type": "string",
+        "required": true,
+        "description": "Publication year (YYYY format)"
+      },
+      "isbn": {
+        "type": "string",
+        "required": false,
+        "description": "ISBN if available",
+        "default": "None"
+      },
+      "physical_description": {
+        "type": "string",
+        "required": false,
+        "description": "Physical description in standardized format",
+        "default": "None"
+      },
+      "subject_headings": {
+        "type": "array",
+        "required": false,
+        "description": "Controlled subject headings",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "call_number": {
+        "type": "string",
+        "required": false,
+        "description": "Classification number",
+        "default": "None"
+      },
+      "language_code": {
+        "type": "string",
+        "required": false,
+        "description": "Three-letter language code",
+        "default": "eng"
+      },
+      "material_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of material: book, serial, electronic, audiovisual, map",
+        "default": "book"
+      },
+      "cataloger_code": {
+        "type": "string",
+        "required": true,
+        "description": "Cataloger identification code"
+      },
+      "encoding_level": {
+        "type": "string",
+        "required": false,
+        "description": "Cataloging completeness level: full, minimal, core",
+        "default": "full"
+      }
+    },
+    "error_messages": [
+      "Missing required field: Ensure title, author, publisher, publication_year, and cataloger_code are provided",
+      "Invalid publication year: Use YYYY format for publication year",
+      "Invalid material type: Use one of [book, serial, electronic, audiovisual, map]",
+      "Invalid encoding level: Use one of [full, minimal, core]",
+      "Invalid language code: Provide a valid three-letter ISO language code"
+    ],
+    "usage": "Provide basic bibliographic data and cataloger information to generate a complete MARC21 record. Include optional fields like ISBN, subjects, and call number for richer records.",
+    "output_details": {
+      "marc_record": {
+        "type": "string",
+        "description": "Complete MARC21 record in MARCXML format"
+      },
+      "record_id": {
+        "type": "string",
+        "description": "Generated unique record identifier"
+      },
+      "creation_date": {
+        "type": "string",
+        "description": "Record creation timestamp"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Authority Record Validator",
+    "tool_description": "Validates and standardizes author names and corporate bodies against authority files, returning authorized forms.",
+    "parameters": {
+      "name_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of name: personal, corporate, geographic, uniform_title"
+      },
+      "name_string": {
+        "type": "string",
+        "required": true,
+        "description": "Name or heading to validate"
+      },
+      "authority_source": {
+        "type": "string",
+        "required": false,
+        "description": "Authority source: lcnaf, viaf, local",
+        "default": "lcnaf"
+      },
+      "fuzzy_match": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable fuzzy matching for similar names",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid name type: Use one of [personal, corporate, geographic, uniform_title]",
+      "Name string too short: Provide at least 2 characters for validation",
+      "Authority source unavailable: The specified authority source is not accessible",
+      "No matches found: No authority records match the provided name"
+    ],
+    "usage": "Provide a name and specify the name type to validate against authority files. Enable fuzzy matching to find similar authorized forms.",
+    "output_details": {
+      "authorized_form": {
+        "type": "string",
+        "description": "Authorized form of the name"
+      },
+      "authority_id": {
+        "type": "string",
+        "description": "Authority record identifier"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Match confidence score (0-1)"
+      },
+      "alternate_forms": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative authorized forms found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Duplicate Record Detector",
+    "tool_description": "Identifies potential duplicate records in the catalog by comparing key bibliographic elements.",
+    "parameters": {
+      "title": {
+        "type": "string",
+        "required": true,
+        "description": "Title to search for duplicates"
+      },
+      "author": {
+        "type": "string",
+        "required": false,
+        "description": "Author name for comparison",
+        "default": "None"
+      },
+      "isbn": {
+        "type": "string",
+        "required": false,
+        "description": "ISBN for exact matching",
+        "default": "None"
+      },
+      "publication_year": {
+        "type": "string",
+        "required": false,
+        "description": "Publication year for comparison",
+        "default": "None"
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Similarity threshold (0.1-1.0) for duplicate detection",
+        "default": 0.8
+      }
+    },
+    "error_messages": [
+      "Title too short: Provide at least 3 characters for meaningful comparison",
+      "Invalid similarity threshold: Use a value between 0.1 and 1.0",
+      "No catalog access: Unable to access the library catalog for comparison",
+      "Search timeout: Duplicate detection search exceeded time limit"
+    ],
+    "usage": "Provide title and optionally author, ISBN, or publication year to search for potential duplicates. Adjust similarity threshold to control match sensitivity.",
+    "output_details": {
+      "duplicates_found": {
+        "type": "boolean",
+        "description": "Whether potential duplicates were found"
+      },
+      "duplicate_count": {
+        "type": "integer",
+        "description": "Number of potential duplicates identified"
+      },
+      "duplicate_records": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Record IDs of potential duplicates"
+      },
+      "similarity_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Similarity scores for each potential duplicate"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Classification Number Generator",
+    "tool_description": "Generates appropriate call numbers using Dewey Decimal or Library of Congress classification systems based on subject content.",
+    "parameters": {
+      "subject_terms": {
+        "type": "array",
+        "required": true,
+        "description": "Subject terms or keywords describing the content",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "classification_system": {
+        "type": "string",
+        "required": true,
+        "description": "Classification system to use: dewey, lcc"
+      },
+      "author_lastname": {
+        "type": "string",
+        "required": false,
+        "description": "Author's last name for cutter number generation",
+        "default": "None"
+      },
+      "publication_year": {
+        "type": "string",
+        "required": false,
+        "description": "Publication year for call number",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid classification system: Use either 'dewey' or 'lcc'",
+      "Insufficient subject terms: Provide at least one subject term",
+      "Subject terms too vague: Provide more specific subject terminology",
+      "Classification tables unavailable: Cannot access classification schedules"
+    ],
+    "usage": "Provide subject terms and choose a classification system to generate appropriate call numbers. Include author and year for complete call number construction.",
+    "output_details": {
+      "call_number": {
+        "type": "string",
+        "description": "Complete generated call number"
+      },
+      "classification_number": {
+        "type": "string",
+        "description": "Base classification number without author/year"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence in classification accuracy: high, medium, low"
+      },
+      "subject_match": {
+        "type": "string",
+        "description": "Primary subject area identified"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Physical Description Parser",
+    "tool_description": "Standardizes physical description information into proper MARC format following cataloging conventions.",
+    "parameters": {
+      "pages": {
+        "type": "string",
+        "required": false,
+        "description": "Page count or pagination information",
+        "default": "None"
+      },
+      "dimensions": {
+        "type": "string",
+        "required": false,
+        "description": "Physical dimensions (height x width)",
+        "default": "None"
+      },
+      "illustrations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether item contains illustrations",
+        "default": false
+      },
+      "material_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of material: book, cd, dvd, map, poster"
+      },
+      "binding_type": {
+        "type": "string",
+        "required": false,
+        "description": "Binding type: hardcover, paperback, spiral",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid material type: Use one of [book, cd, dvd, map, poster]",
+      "Invalid dimension format: Use format like '24 cm' or '24 x 18 cm'",
+      "Page format error: Provide pagination in standard format (e.g., 'xii, 345 p.')",
+      "Conflicting information: Physical attributes don't match the specified material type"
+    ],
+    "usage": "Provide physical characteristics of the item to generate standardized MARC physical description field. Material type is required to determine appropriate formatting.",
+    "output_details": {
+      "physical_description": {
+        "type": "string",
+        "description": "Standardized physical description for MARC field 300"
+      },
+      "extent": {
+        "type": "string",
+        "description": "Extent information (pages, volumes, etc.)"
+      },
+      "other_details": {
+        "type": "string",
+        "description": "Other physical details (illustrations, color, etc.)"
+      },
+      "dimensions": {
+        "type": "string",
+        "description": "Standardized dimensions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Subject Heading Mapper",
+    "tool_description": "Maps keywords and topics to controlled subject headings using Library of Congress Subject Headings or other controlled vocabularies.",
+    "parameters": {
+      "keywords": {
+        "type": "array",
+        "required": true,
+        "description": "Keywords or topics to map to subject headings",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "vocabulary": {
+        "type": "string",
+        "required": false,
+        "description": "Controlled vocabulary: lcsh, mesh, fast, local",
+        "default": "lcsh"
+      },
+      "max_headings": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of subject headings to return (1-10)",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Invalid vocabulary: Use one of [lcsh, mesh, fast, local]",
+      "Keywords too generic: Provide more specific terminology for better mapping",
+      "Maximum headings exceeded: Set max_headings between 1 and 10",
+      "Vocabulary unavailable: The specified controlled vocabulary is not accessible"
+    ],
+    "usage": "Provide keywords or topics to map to controlled subject headings. Specify the vocabulary system and maximum number of headings desired.",
+    "output_details": {
+      "subject_headings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Mapped controlled subject headings"
+      },
+      "heading_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Authority record numbers for the headings"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each mapping"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Holdings Record Creator",
+    "tool_description": "Creates holdings records that link bibliographic records to specific library locations and item information.",
+    "parameters": {
+      "bibliographic_id": {
+        "type": "string",
+        "required": true,
+        "description": "Bibliographic record identifier"
+      },
+      "location_code": {
+        "type": "string",
+        "required": true,
+        "description": "Library location code"
+      },
+      "call_number": {
+        "type": "string",
+        "required": true,
+        "description": "Call number for shelving"
+      },
+      "copy_number": {
+        "type": "integer",
+        "required": false,
+        "description": "Copy number if multiple copies exist",
+        "default": 1
+      },
+      "barcode": {
+        "type": "string",
+        "required": false,
+        "description": "Item barcode for circulation",
+        "default": "None"
+      },
+      "acquisition_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date item was acquired",
+        "format": "date-time"
+      },
+      "item_status": {
+        "type": "string",
+        "required": false,
+        "description": "Current item status: available, processing, missing, damaged",
+        "default": "available"
+      }
+    },
+    "error_messages": [
+      "Invalid bibliographic ID: The bibliographic record does not exist",
+      "Invalid location code: The specified location is not recognized",
+      "Duplicate barcode: The barcode is already assigned to another item",
+      "Invalid status: Use one of [available, processing, missing, damaged]",
+      "Invalid date format: Use ISO 8601 date-time format for acquisition_date"
+    ],
+    "usage": "Link a bibliographic record to physical item information by providing the bibliographic ID, location, and item details. Barcode is optional but recommended for circulation.",
+    "output_details": {
+      "holdings_id": {
+        "type": "string",
+        "description": "Generated holdings record identifier"
+      },
+      "item_id": {
+        "type": "string",
+        "description": "Generated item identifier"
+      },
+      "creation_status": {
+        "type": "string",
+        "description": "Record creation status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quality Control Validator",
+    "tool_description": "Validates bibliographic records for completeness, accuracy, and adherence to cataloging standards, generating detailed error reports.",
+    "parameters": {
+      "marc_record": {
+        "type": "string",
+        "required": true,
+        "description": "MARC record to validate (MARCXML format)"
+      },
+      "validation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Validation strictness: basic, standard, strict",
+        "default": "standard"
+      },
+      "cataloging_rules": {
+        "type": "string",
+        "required": false,
+        "description": "Cataloging rules to apply: rda, aacr2",
+        "default": "rda"
+      },
+      "check_authorities": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate against authority files",
+        "default": true
+      },
+      "institution_profile": {
+        "type": "string",
+        "required": false,
+        "description": "Institution-specific validation profile",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid MARC format: Provide a valid MARCXML formatted record",
+      "Invalid validation level: Use one of [basic, standard, strict]",
+      "Invalid cataloging rules: Use either 'rda' or 'aacr2'",
+      "Authority validation failed: Unable to access authority files for validation",
+      "Institution profile not found: The specified validation profile does not exist"
+    ],
+    "usage": "Provide a MARC record for comprehensive quality validation. Choose validation level and cataloging rules, and enable authority checking for thorough validation.",
+    "output_details": {
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Whether the record passed validation"
+      },
+      "error_count": {
+        "type": "integer",
+        "description": "Total number of errors found"
+      },
+      "warning_count": {
+        "type": "integer",
+        "description": "Total number of warnings found"
+      },
+      "error_messages": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed error messages"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Validation warnings"
+      },
+      "quality_score": {
+        "type": "number",
+        "description": "Overall record quality score (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Record Processor",
+    "tool_description": "Processes multiple bibliographic records in batch operations, applying consistent updates, corrections, or validations across record sets.",
+    "parameters": {
+      "record_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of record identifiers to process",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 1000
+      },
+      "operation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Batch operation: validate, update_field, delete_field, export, duplicate_check"
+      },
+      "field_tag": {
+        "type": "string",
+        "required": false,
+        "description": "MARC field tag for field-specific operations",
+        "default": "None"
+      },
+      "new_value": {
+        "type": "string",
+        "required": false,
+        "description": "New value for update operations",
+        "default": "None"
+      },
+      "export_format": {
+        "type": "string",
+        "required": false,
+        "description": "Export format: marc, dublin_core, csv",
+        "default": "marc"
+      },
+      "backup_records": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to create backup before processing",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid operation type: Use one of [validate, update_field, delete_field, export, duplicate_check]",
+      "Too many records: Maximum 1000 records per batch operation",
+      "Invalid field tag: Provide a valid MARC field tag (e.g., '245', '100')",
+      "Missing required parameter: Field operations require field_tag parameter",
+      "Batch operation failed: Some records could not be processed"
+    ],
+    "usage": "Provide record IDs and operation type for batch processing. Include additional parameters like field_tag and new_value for field-specific operations.",
+    "output_details": {
+      "processed_count": {
+        "type": "integer",
+        "description": "Number of records successfully processed"
+      },
+      "failed_count": {
+        "type": "integer",
+        "description": "Number of records that failed processing"
+      },
+      "success_rate": {
+        "type": "number",
+        "description": "Success percentage of the batch operation"
+      },
+      "failed_records": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "IDs of records that failed processing"
+      },
+      "operation_log": {
+        "type": "string",
+        "description": "Detailed log of batch operation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Metadata Crosswalk Converter",
+    "tool_description": "Converts metadata between different schema formats such as Dublin Core, MODS, MARC, and institutional formats.",
+    "parameters": {
+      "source_metadata": {
+        "type": "string",
+        "required": true,
+        "description": "Source metadata in original format"
+      },
+      "source_format": {
+        "type": "string",
+        "required": true,
+        "description": "Source metadata format: dublin_core, mods, marc, csv, json"
+      },
+      "target_format": {
+        "type": "string",
+        "required": true,
+        "description": "Target metadata format: dublin_core, mods, marc, csv, json"
+      },
+      "mapping_profile": {
+        "type": "string",
+        "required": false,
+        "description": "Specific mapping profile to use for conversion",
+        "default": "standard"
+      },
+      "preserve_unmapped": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve fields that cannot be mapped",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid source format: Use one of [dublin_core, mods, marc, csv, json]",
+      "Invalid target format: Use one of [dublin_core, mods, marc, csv, json]",
+      "Same format conversion: Source and target formats cannot be identical",
+      "Malformed source metadata: The source metadata is not valid for the specified format",
+      "Mapping profile not found: The specified mapping profile does not exist"
+    ],
+    "usage": "Provide metadata in the source format and specify both source and target formats for conversion. Use mapping profiles for specialized conversion requirements.",
+    "output_details": {
+      "converted_metadata": {
+        "type": "string",
+        "description": "Metadata converted to target format"
+      },
+      "conversion_status": {
+        "type": "string",
+        "description": "Status of conversion: success, partial, failed"
+      },
+      "mapped_fields": {
+        "type": "integer",
+        "description": "Number of fields successfully mapped"
+      },
+      "unmapped_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Fields that could not be mapped to target format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Record Merge Tool",
+    "tool_description": "Merges duplicate bibliographic records by combining the best elements from each record and maintaining data integrity.",
+    "parameters": {
+      "primary_record_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the record to serve as primary/master record"
+      },
+      "duplicate_record_ids": {
+        "type": "array",
+        "required": true,
+        "description": "IDs of duplicate records to merge into primary",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "merge_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Merge strategy: keep_primary, best_data, manual_review",
+        "default": "best_data"
+      },
+      "preserve_holdings": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve all holdings records",
+        "default": true
+      },
+      "cataloger_review": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to flag for cataloger review before finalizing",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Primary record not found: The specified primary record does not exist",
+      "Duplicate record not found: One or more duplicate records do not exist",
+      "Invalid merge strategy: Use one of [keep_primary, best_data, manual_review]",
+      "Too many duplicates: Maximum 10 duplicate records can be merged at once",
+      "Merge conflict detected: Records have conflicting data that requires manual review"
+    ],
+    "usage": "Specify a primary record and one or more duplicate records to merge. Choose merge strategy and whether to preserve holdings or require cataloger review.",
+    "output_details": {
+      "merged_record_id": {
+        "type": "string",
+        "description": "ID of the final merged record"
+      },
+      "merge_status": {
+        "type": "string",
+        "description": "Status of merge operation"
+      },
+      "deleted_record_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "IDs of records deleted after merge"
+      },
+      "conflicts_found": {
+        "type": "integer",
+        "description": "Number of data conflicts encountered"
+      },
+      "holdings_transferred": {
+        "type": "integer",
+        "description": "Number of holdings records transferred to merged record"
+      }
+    }
+  }
+  ```

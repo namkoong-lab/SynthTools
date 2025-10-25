@@ -1,0 +1,836 @@
+field_name: reading_and_book_clubs
+subfield: Reading Progress Tracking
+task: Log reading sessions with time spent, pages read, and comprehension notes
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves multiple coordinated subproblems (session logging, progress tracking, note management, analytics), moderate data requirements for storing reading history, and some complexity in managing relationships between books, sessions, and comprehension data. However, the scope is well-defined and the risk of errors is relatively low.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools within the 10-15 range to handle the various aspects of reading session management, progress tracking, and comprehension note organization.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Create Reading Session** - Consumes: book info, time data, pages → Produces: session record
+  2. **Update Session Progress** - Consumes: session ID, progress data → Produces: updated session
+  3. **Add Comprehension Note** - Consumes: session/book ID, note content → Produces: note record
+  4. **Calculate Reading Statistics** - Consumes: session history → Produces: reading metrics
+  5. **Generate Progress Report** - Consumes: book/time filters → Produces: progress summary
+  6. **Set Reading Goals** - Consumes: goal parameters → Produces: goal tracking setup
+  7. **Track Reading Streak** - Consumes: session dates → Produces: streak statistics
+  8. **Categorize Reading Notes** - Consumes: notes, categories → Produces: organized notes
+  9. **Export Session Data** - Consumes: session filters, format → Produces: exported data
+  10. **Search Reading History** - Consumes: search criteria → Produces: filtered sessions
+  11. **Estimate Reading Time** - Consumes: pages, reading speed → Produces: time estimates
+  12. **Validate Session Data** - Consumes: session parameters → Produces: validation results
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  - Log basic session: Create Reading Session + Update Session Progress
+  - Add notes: Create Reading Session + Add Comprehension Note
+
+  Medium plans:
+  - Complete session workflow: Create Reading Session + Update Session Progress + Add Comprehension Note + Calculate Reading Statistics
+  - Goal tracking: Set Reading Goals + Track Reading Streak + Generate Progress Report
+
+  Complex plans:
+  - Full analytics workflow: Search Reading History + Calculate Reading Statistics + Generate Progress Report + Categorize Reading Notes + Export Session Data
+  - Comprehensive session management: Validate Session Data + Create Reading Session + Update Session Progress + Add Comprehension Note + Estimate Reading Time + Track Reading Streak
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Create Reading Session",
+    "tool_description": "Creates a new reading session record with book information, start time, and initial progress data.",
+    "parameters": {
+      "book_title": {
+        "type": "string",
+        "required": true,
+        "description": "Title of the book being read"
+      },
+      "book_author": {
+        "type": "string",
+        "required": true,
+        "description": "Author of the book"
+      },
+      "session_start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Start time of the reading session",
+        "format": "date-time"
+      },
+      "starting_page": {
+        "type": "integer",
+        "required": true,
+        "description": "Page number where the session started (must be >= 1)"
+      },
+      "total_pages": {
+        "type": "integer",
+        "required": true,
+        "description": "Total number of pages in the book (must be >= starting_page)"
+      },
+      "book_genre": {
+        "type": "string",
+        "required": false,
+        "description": "Genre category of the book",
+        "default": "General"
+      }
+    },
+    "error_messages": [
+      "Invalid page numbers: starting_page must be >= 1 and total_pages must be >= starting_page.",
+      "Missing required book information: book_title and book_author cannot be empty.",
+      "Invalid session start time: Provide a valid ISO 8601 date-time format.",
+      "Session start time in future: session_start_time cannot be more than 1 hour in the future."
+    ],
+    "usage": "Provide book_title, book_author, session_start_time, starting_page, and total_pages to create a new reading session. Optionally specify book_genre for better categorization.",
+    "output_details": {
+      "session_id": {
+        "type": "string",
+        "description": "Unique identifier for the created reading session"
+      },
+      "book_id": {
+        "type": "string",
+        "description": "Unique identifier for the book record"
+      },
+      "status": {
+        "type": "string",
+        "description": "Session creation status message"
+      },
+      "initial_progress_percent": {
+        "type": "number",
+        "description": "Initial reading progress as percentage of total book"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Update Session Progress",
+    "tool_description": "Updates an existing reading session with time spent, pages read, and completion status.",
+    "parameters": {
+      "session_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the reading session to update"
+      },
+      "ending_page": {
+        "type": "integer",
+        "required": true,
+        "description": "Page number where the session ended (must be >= starting page)"
+      },
+      "session_end_time": {
+        "type": "string",
+        "required": true,
+        "description": "End time of the reading session",
+        "format": "date-time"
+      },
+      "reading_quality": {
+        "type": "integer",
+        "required": false,
+        "description": "Self-assessed reading quality on scale 1-5",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Session not found: No reading session exists with the provided session_id.",
+      "Invalid ending page: ending_page must be >= starting_page from the original session.",
+      "Invalid session duration: session_end_time must be after session_start_time.",
+      "Session already completed: This reading session has already been marked as completed.",
+      "Invalid quality rating: reading_quality must be an integer between 1 and 5."
+    ],
+    "usage": "Provide session_id, ending_page, and session_end_time to update session progress. Optionally rate reading_quality from 1-5 for session assessment.",
+    "output_details": {
+      "session_id": {
+        "type": "string",
+        "description": "Identifier of the updated session"
+      },
+      "pages_read": {
+        "type": "integer",
+        "description": "Number of pages read during this session"
+      },
+      "minutes_spent": {
+        "type": "integer",
+        "description": "Total minutes spent reading in this session"
+      },
+      "reading_speed": {
+        "type": "number",
+        "description": "Pages per minute reading speed for this session"
+      },
+      "progress_percent": {
+        "type": "number",
+        "description": "Updated reading progress as percentage of total book"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Add Comprehension Note",
+    "tool_description": "Adds a comprehension note linked to a specific reading session or book with categorization and importance rating.",
+    "parameters": {
+      "session_id": {
+        "type": "string",
+        "required": false,
+        "description": "Reading session ID to link the note to",
+        "default": null
+      },
+      "book_id": {
+        "type": "string",
+        "required": false,
+        "description": "Book ID to link the note to (required if session_id not provided)",
+        "default": null
+      },
+      "note_content": {
+        "type": "string",
+        "required": true,
+        "description": "The comprehension note text content"
+      },
+      "note_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of note: summary, question, insight, quote, or reflection"
+      },
+      "page_reference": {
+        "type": "integer",
+        "required": false,
+        "description": "Specific page number this note references",
+        "default": null
+      },
+      "importance_level": {
+        "type": "integer",
+        "required": false,
+        "description": "Importance rating from 1-5",
+        "default": 3
+      },
+      "tags": {
+        "type": "array",
+        "required": false,
+        "description": "Tags for organizing notes",
+        "items": {"type": "string"},
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Missing link reference: Either session_id or book_id must be provided.",
+      "Invalid note type: note_type must be one of [summary, question, insight, quote, reflection].",
+      "Empty note content: note_content cannot be empty or only whitespace.",
+      "Session/Book not found: The provided session_id or book_id does not exist.",
+      "Invalid importance level: importance_level must be an integer between 1 and 5.",
+      "Invalid page reference: page_reference must be a positive integer within the book's page range.",
+      "Too many tags: Maximum 10 tags allowed per note."
+    ],
+    "usage": "Provide either session_id or book_id, along with note_content and note_type. Optionally add page_reference, importance_level, and tags for better organization.",
+    "output_details": {
+      "note_id": {
+        "type": "string",
+        "description": "Unique identifier for the created note"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the note was created"
+      },
+      "linked_to": {
+        "type": "string",
+        "description": "What the note is linked to (session or book)"
+      },
+      "word_count": {
+        "type": "integer",
+        "description": "Number of words in the note content"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Calculate Reading Statistics",
+    "tool_description": "Calculates comprehensive reading statistics including speed, consistency, and progress metrics from historical session data.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for statistics calculation",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for statistics calculation",
+        "format": "date-time"
+      },
+      "book_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific book IDs to include (empty array for all books)",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "include_incomplete": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include incomplete reading sessions",
+        "default": true
+      },
+      "group_by": {
+        "type": "string",
+        "required": false,
+        "description": "Group statistics by: daily, weekly, monthly, or book",
+        "default": "daily"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date.",
+      "Date range too large: Maximum date range is 2 years.",
+      "No data available: No reading sessions found in the specified date range.",
+      "Invalid book IDs: One or more book_ids do not exist.",
+      "Invalid grouping option: group_by must be one of [daily, weekly, monthly, book]."
+    ],
+    "usage": "Provide start_date and end_date to calculate reading statistics. Optionally filter by specific book_ids, include incomplete sessions, and group results by time period or book.",
+    "output_details": {
+      "total_pages_read": {
+        "type": "integer",
+        "description": "Total number of pages read in the time period"
+      },
+      "total_time_minutes": {
+        "type": "integer",
+        "description": "Total reading time in minutes"
+      },
+      "average_reading_speed": {
+        "type": "number",
+        "description": "Average pages per minute reading speed"
+      },
+      "total_sessions": {
+        "type": "integer",
+        "description": "Total number of reading sessions"
+      },
+      "books_completed": {
+        "type": "integer",
+        "description": "Number of books completed in the time period"
+      },
+      "longest_streak_days": {
+        "type": "integer",
+        "description": "Longest consecutive days of reading"
+      },
+      "average_session_duration": {
+        "type": "number",
+        "description": "Average session length in minutes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Generate Progress Report",
+    "tool_description": "Generates a detailed progress report for specified books or time periods with visual progress indicators and milestone tracking.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: book_progress, weekly_summary, monthly_summary, or annual_review"
+      },
+      "target_date": {
+        "type": "string",
+        "required": true,
+        "description": "Target date for the report",
+        "format": "date-time"
+      },
+      "book_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific book IDs for book_progress reports",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "include_goals": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include progress toward reading goals",
+        "default": true
+      },
+      "include_notes_summary": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include summary of comprehension notes",
+        "default": false
+      },
+      "format": {
+        "type": "string",
+        "required": false,
+        "description": "Report format: summary or detailed",
+        "default": "summary"
+      }
+    },
+    "error_messages": [
+      "Invalid report type: report_type must be one of [book_progress, weekly_summary, monthly_summary, annual_review].",
+      "Invalid target date: Provide a valid ISO 8601 date-time format.",
+      "Missing book IDs: book_ids required for book_progress report type.",
+      "Invalid book IDs: One or more book_ids do not exist.",
+      "No data available: No reading data found for the specified parameters.",
+      "Invalid format: format must be either 'summary' or 'detailed'."
+    ],
+    "usage": "Specify report_type and target_date to generate a progress report. For book-specific reports, provide book_ids. Optionally include goals and notes summary for comprehensive reporting.",
+    "output_details": {
+      "report_title": {
+        "type": "string",
+        "description": "Title of the generated report"
+      },
+      "report_period": {
+        "type": "string",
+        "description": "Time period covered by the report"
+      },
+      "summary_text": {
+        "type": "string",
+        "description": "Executive summary of reading progress"
+      },
+      "key_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of key reading metrics and achievements"
+      },
+      "goal_progress": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Progress updates for active reading goals"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommendations for improving reading habits"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Set Reading Goals",
+    "tool_description": "Creates and manages reading goals with specific targets, deadlines, and progress tracking for books, pages, or time-based objectives.",
+    "parameters": {
+      "goal_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name/description of the reading goal"
+      },
+      "goal_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of goal: books_count, pages_count, reading_time, or streak_days"
+      },
+      "target_value": {
+        "type": "integer",
+        "required": true,
+        "description": "Target value to achieve (number of books, pages, minutes, or days)"
+      },
+      "deadline": {
+        "type": "string",
+        "required": true,
+        "description": "Goal deadline",
+        "format": "date-time"
+      },
+      "start_date": {
+        "type": "string",
+        "required": false,
+        "description": "Goal start date (defaults to current date)",
+        "format": "date-time",
+        "default": null
+      },
+      "book_filters": {
+        "type": "array",
+        "required": false,
+        "description": "Book genres or categories to include in goal",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "reminder_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Reminder frequency: daily, weekly, or monthly",
+        "default": "weekly"
+      },
+      "priority_level": {
+        "type": "integer",
+        "required": false,
+        "description": "Goal priority level from 1-5",
+        "default": 3
+      },
+      "auto_extend": {
+        "type": "boolean",
+        "required": false,
+        "description": "Automatically extend deadline if not met",
+        "default": false
+      },
+      "milestone_intervals": {
+        "type": "array",
+        "required": false,
+        "description": "Percentage milestones for progress tracking (e.g., [25, 50, 75])",
+        "items": {"type": "integer"},
+        "default": [25, 50, 75, 100]
+      }
+    },
+    "error_messages": [
+      "Invalid goal type: goal_type must be one of [books_count, pages_count, reading_time, streak_days].",
+      "Invalid target value: target_value must be a positive integer.",
+      "Invalid deadline: deadline must be a future date in ISO 8601 format.",
+      "Invalid date range: start_date must be before deadline.",
+      "Empty goal name: goal_name cannot be empty or only whitespace.",
+      "Invalid priority level: priority_level must be an integer between 1 and 5.",
+      "Invalid reminder frequency: reminder_frequency must be one of [daily, weekly, monthly].",
+      "Invalid milestones: milestone_intervals must contain integers between 1 and 100.",
+      "Too many milestones: Maximum 10 milestone intervals allowed."
+    ],
+    "usage": "Provide goal_name, goal_type, target_value, and deadline to create a reading goal. Customize with start_date, book_filters, reminder settings, priority, and milestone tracking.",
+    "output_details": {
+      "goal_id": {
+        "type": "string",
+        "description": "Unique identifier for the created goal"
+      },
+      "estimated_daily_target": {
+        "type": "number",
+        "description": "Suggested daily progress to meet the goal"
+      },
+      "days_remaining": {
+        "type": "integer",
+        "description": "Number of days until the deadline"
+      },
+      "success_probability": {
+        "type": "number",
+        "description": "Estimated probability of achieving goal based on historical data"
+      },
+      "next_milestone": {
+        "type": "integer",
+        "description": "Next milestone percentage to reach"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Track Reading Streak",
+    "tool_description": "Monitors and analyzes reading streaks, tracking consecutive days of reading activity with streak statistics and motivation metrics.",
+    "parameters": {
+      "user_timezone": {
+        "type": "string",
+        "required": true,
+        "description": "User's timezone for accurate daily tracking (e.g., 'America/New_York')"
+      },
+      "minimum_pages": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum pages to read to count toward streak",
+        "default": 1
+      },
+      "minimum_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum minutes to read to count toward streak",
+        "default": 5
+      },
+      "include_weekends": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether weekends count toward streak requirements",
+        "default": true
+      },
+      "grace_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of missed days allowed before breaking streak",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid timezone: Provide a valid timezone string (e.g., 'America/New_York').",
+      "Invalid minimum requirements: minimum_pages and minimum_minutes must be positive integers.",
+      "Invalid grace days: grace_days must be a non-negative integer (0-7).",
+      "No reading data: No reading sessions found to calculate streak information."
+    ],
+    "usage": "Provide user_timezone to track reading streaks. Optionally set minimum_pages, minimum_minutes, weekend inclusion, and grace_days for streak requirements.",
+    "output_details": {
+      "current_streak": {
+        "type": "integer",
+        "description": "Current consecutive days of reading"
+      },
+      "longest_streak": {
+        "type": "integer",
+        "description": "Longest streak ever achieved"
+      },
+      "total_reading_days": {
+        "type": "integer",
+        "description": "Total number of days with reading activity"
+      },
+      "streak_percentage": {
+        "type": "number",
+        "description": "Percentage of days with reading activity in last 30 days"
+      },
+      "days_since_last_read": {
+        "type": "integer",
+        "description": "Number of days since last reading session"
+      },
+      "streak_status": {
+        "type": "string",
+        "description": "Current streak status: active, at_risk, or broken"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Categorize Reading Notes",
+    "tool_description": "Organizes and categorizes existing comprehension notes using automated classification and manual category assignment with tagging support.",
+    "parameters": {
+      "note_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific note IDs to categorize (empty for all notes)",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "book_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Categorize notes from specific books only",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "auto_categorize": {
+        "type": "boolean",
+        "required": false,
+        "description": "Use automatic categorization based on note content",
+        "default": true
+      },
+      "custom_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Custom category names to assign",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "merge_similar": {
+        "type": "boolean",
+        "required": false,
+        "description": "Identify and group similar notes together",
+        "default": false
+      },
+      "importance_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Only categorize notes with importance level >= threshold",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "No notes found: No notes exist matching the specified criteria.",
+      "Invalid note IDs: One or more note_ids do not exist.",
+      "Invalid book IDs: One or more book_ids do not exist.",
+      "Invalid importance threshold: importance_threshold must be between 1 and 5.",
+      "Too many custom categories: Maximum 20 custom categories allowed.",
+      "Empty category names: Custom category names cannot be empty."
+    ],
+    "usage": "Optionally specify note_ids or book_ids to categorize specific notes. Enable auto_categorize for automatic classification, or provide custom_categories for manual assignment.",
+    "output_details": {
+      "categorized_notes": {
+        "type": "integer",
+        "description": "Number of notes that were categorized"
+      },
+      "categories_created": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of categories created or used"
+      },
+      "similar_note_groups": {
+        "type": "integer",
+        "description": "Number of similar note groups identified"
+      },
+      "processing_summary": {
+        "type": "string",
+        "description": "Summary of the categorization process"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Export Session Data",
+    "tool_description": "Exports reading session data and related information in various formats for backup, analysis, or sharing purposes.",
+    "parameters": {
+      "export_format": {
+        "type": "string",
+        "required": true,
+        "description": "Export format: csv, json, or pdf"
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for data export",
+        "format": "date-time",
+        "default": null
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date for data export",
+        "format": "date-time",
+        "default": null
+      },
+      "include_notes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include comprehension notes in export",
+        "default": false
+      },
+      "include_statistics": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include calculated statistics in export",
+        "default": true
+      },
+      "book_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Export data for specific books only",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "compression": {
+        "type": "boolean",
+        "required": false,
+        "description": "Compress export file (zip format)",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid export format: export_format must be one of [csv, json, pdf].",
+      "Invalid date range: date_range_start must be before date_range_end.",
+      "No data to export: No reading sessions found matching the specified criteria.",
+      "Invalid book filter: One or more book IDs in book_filter do not exist.",
+      "Export too large: Data size exceeds maximum export limit (100MB)."
+    ],
+    "usage": "Specify export_format to export reading data. Optionally filter by date range and books, include notes and statistics, and enable compression for large exports.",
+    "output_details": {
+      "export_filename": {
+        "type": "string",
+        "description": "Name of the generated export file"
+      },
+      "file_size_mb": {
+        "type": "number",
+        "description": "Size of the export file in megabytes"
+      },
+      "records_exported": {
+        "type": "integer",
+        "description": "Number of reading session records exported"
+      },
+      "notes_exported": {
+        "type": "integer",
+        "description": "Number of comprehension notes exported"
+      },
+      "export_timestamp": {
+        "type": "string",
+        "description": "When the export was created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Search Reading History",
+    "tool_description": "Searches through reading history using flexible criteria including book metadata, session details, notes content, and reading patterns.",
+    "parameters": {
+      "search_query": {
+        "type": "string",
+        "required": false,
+        "description": "Text search query for books, authors, or notes content",
+        "default": ""
+      },
+      "search_fields": {
+        "type": "array",
+        "required": false,
+        "description": "Fields to search in: title, author, genre, notes, or all",
+        "items": {"type": "string"},
+        "default": ["all"]
+      },
+      "date_from": {
+        "type": "string",
+        "required": false,
+        "description": "Search sessions from this date onwards",
+        "format": "date-time",
+        "default": null
+      },
+      "date_to": {
+        "type": "string",
+        "required": false,
+        "description": "Search sessions up to this date",
+        "format": "date-time",
+        "default": null
+      },
+      "min_pages_read": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum pages read in session",
+        "default": null
+      },
+      "max_pages_read": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum pages read in session",
+        "default": null
+      },
+      "reading_quality_min": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum reading quality rating (1-5)",
+        "default": null
+      },
+      "book_status": {
+        "type": "string",
+        "required": false,
+        "description": "Book completion status: completed, in_progress, or any",
+        "default": "any"
+      },
+      "sort_by": {
+        "type": "string",
+        "required": false,
+        "description": "Sort results by: date, pages_read, reading_time, or relevance",
+        "default": "date"
+      },
+      "limit": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of results to return",
+        "default": 50
+      }
+    },
+    "error_messages": [
+      "Invalid search fields: search_fields must contain only [title, author, genre, notes, all].",
+      "Invalid date range: date_from must be before date_to.",
+      "Invalid page range: min_pages_read must be less than max_pages_read.",
+      "Invalid quality range: reading_quality_min must be between 1 and 5.",
+      "Invalid book status: book_status must be one of [completed, in_progress, any].",
+      "Invalid sort option: sort_by must be one of [date, pages_read, reading_time, relevance].",
+      "Invalid limit: limit must be between 1 and 1000."
+    ],
+    "usage": "Provide search_query and specify search_fields to find relevant reading sessions. Use date ranges, page counts, quality ratings, and status filters to refine results.",
+    "output_details": {
+      "total_results": {
+        "type": "integer",
+        "description": "Total number of matching results"
+      },
+      "returned_results": {
+        "type": "integer",
+        "description": "Number of results returned (limited by limit parameter)"
+      },
+      "session_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of matching reading session IDs"
+      },
+      "

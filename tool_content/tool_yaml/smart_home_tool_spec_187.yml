@@ -1,0 +1,814 @@
+field_name: smart_home
+subfield: Climate Control and HVAC Management
+task: Control and schedule HVAC system operations including heating, cooling, and ventilation modes
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium difficulty. It involves coordinating multiple HVAC components (heating, cooling, ventilation) with various scheduling constraints, sensor inputs, and energy optimization considerations. While the core operations are well-defined, the complexity arises from managing dependencies between different systems, handling seasonal variations, and balancing comfort with energy efficiency.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools within the 10-15 range. This allows for comprehensive coverage of HVAC operations including temperature control, scheduling, sensor management, energy optimization, and system monitoring.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their dependencies:**
+  1. **Temperature Sensor Reader** - Consumes: sensor IDs → Produces: temperature readings
+  2. **HVAC Mode Controller** - Consumes: mode settings → Produces: system state changes
+  3. **Schedule Creator** - Consumes: time/temperature preferences → Produces: schedule configurations
+  4. **Schedule Executor** - Consumes: schedules, current time → Produces: HVAC commands
+  5. **Thermostat Adjuster** - Consumes: target temperatures → Produces: thermostat settings
+  6. **Energy Usage Monitor** - Consumes: system status → Produces: energy consumption data
+  7. **Climate Zone Manager** - Consumes: zone preferences → Produces: zone-specific controls
+  8. **Filter Status Checker** - Consumes: system info → Produces: maintenance alerts
+  9. **Weather Integration Tool** - Consumes: location data → Produces: weather-based adjustments
+  10. **Emergency Override Controller** - Consumes: safety conditions → Produces: emergency responses
+  11. **Energy Optimizer** - Consumes: usage patterns → Produces: efficiency recommendations
+  12. **System Status Reporter** - Consumes: all system data → Produces: comprehensive status reports
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Temperature Control**: Temperature Sensor Reader → Thermostat Adjuster → HVAC Mode Controller
+  2. **Simple Scheduling**: Schedule Creator → Schedule Executor → HVAC Mode Controller
+
+  **Medium Plans:**
+  1. **Zoned Climate Control**: Temperature Sensor Reader → Climate Zone Manager → Thermostat Adjuster → HVAC Mode Controller → System Status Reporter
+  2. **Energy-Aware Operation**: Energy Usage Monitor → Energy Optimizer → Weather Integration Tool → Schedule Executor → HVAC Mode Controller
+
+  **Complex Plans:**
+  1. **Complete HVAC Management**: Weather Integration Tool → Temperature Sensor Reader → Energy Usage Monitor → Energy Optimizer → Schedule Executor → Climate Zone Manager → Thermostat Adjuster → HVAC Mode Controller → System Status Reporter
+  2. **Predictive Maintenance & Control**: Filter Status Checker → Temperature Sensor Reader → Weather Integration Tool → Energy Usage Monitor → Schedule Creator → Schedule Executor → Emergency Override Controller → System Status Reporter
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Temperature Sensor Reader",
+    "tool_description": "Reads temperature data from multiple sensors throughout the home to provide current temperature readings for different zones and rooms.",
+    "parameters": {
+      "sensor_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of sensor IDs to read from",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "unit": {
+        "type": "string",
+        "required": false,
+        "description": "Temperature unit preference (celsius or fahrenheit)",
+        "default": "fahrenheit"
+      }
+    },
+    "error_messages": [
+      "Invalid sensor ID: One or more sensor IDs are not recognized in the system.",
+      "Sensor communication error: Unable to connect to specified sensors - check sensor connectivity.",
+      "Invalid unit: Unit must be either 'celsius' or 'fahrenheit'."
+    ],
+    "usage": "Provide an array of sensor_ids to read from and optionally specify the temperature unit. Returns current temperature readings for each sensor.",
+    "output_details": {
+      "sensor_readings": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Temperature readings from each sensor in the specified unit"
+      },
+      "sensor_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Corresponding sensor IDs for each reading"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the readings were taken"
+      },
+      "unit": {
+        "type": "string",
+        "description": "Unit of temperature measurements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "HVAC Mode Controller",
+    "tool_description": "Controls the primary operating mode of the HVAC system including heating, cooling, ventilation, and system on/off states.",
+    "parameters": {
+      "mode": {
+        "type": "string",
+        "required": true,
+        "description": "HVAC operating mode: heat, cool, auto, ventilate, off"
+      },
+      "fan_speed": {
+        "type": "string",
+        "required": false,
+        "description": "Fan speed setting: low, medium, high, auto",
+        "default": "auto"
+      },
+      "zone_id": {
+        "type": "string",
+        "required": false,
+        "description": "Specific zone to control, if applicable",
+        "default": "main"
+      }
+    },
+    "error_messages": [
+      "Invalid mode: Mode must be one of [heat, cool, auto, ventilate, off].",
+      "Invalid fan speed: Fan speed must be one of [low, medium, high, auto].",
+      "Zone not found: The specified zone_id does not exist in the system.",
+      "System not responding: HVAC system is not responding to commands - check system status."
+    ],
+    "usage": "Set the mode parameter to desired HVAC operation, optionally specify fan_speed and zone_id. The tool will change the system mode and return the new status.",
+    "output_details": {
+      "current_mode": {
+        "type": "string",
+        "description": "The active HVAC mode after the change"
+      },
+      "fan_speed": {
+        "type": "string",
+        "description": "Current fan speed setting"
+      },
+      "zone_affected": {
+        "type": "string",
+        "description": "Zone that was controlled"
+      },
+      "system_status": {
+        "type": "string",
+        "description": "Overall system status (running, idle, error)"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the mode change was applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Creator",
+    "tool_description": "Creates detailed HVAC schedules with time-based temperature and mode settings for daily, weekly, or custom time periods.",
+    "parameters": {
+      "schedule_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name identifier for the schedule"
+      },
+      "schedule_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of schedule: daily, weekly, weekend, weekday, custom"
+      },
+      "time_slots": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of time slots in HH:MM format",
+        "minItems": 1,
+        "maxItems": 24
+      },
+      "target_temperatures": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Target temperatures for each time slot",
+        "minItems": 1,
+        "maxItems": 24
+      },
+      "modes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "HVAC modes for each time slot",
+        "minItems": 1,
+        "maxItems": 24
+      },
+      "days_of_week": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": false,
+        "description": "Days to apply schedule (1=Monday, 7=Sunday)",
+        "default": [1, 2, 3, 4, 5, 6, 7]
+      },
+      "start_date": {
+        "type": "string",
+        "required": false,
+        "description": "Schedule start date",
+        "format": "date-time",
+        "default": "None"
+      },
+      "end_date": {
+        "type": "string",
+        "required": false,
+        "description": "Schedule end date",
+        "format": "date-time",
+        "default": "None"
+      },
+      "priority": {
+        "type": "integer",
+        "required": false,
+        "description": "Schedule priority (1-10, higher is more important)",
+        "default": 5
+      },
+      "zones": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Zones this schedule applies to",
+        "default": ["main"]
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: time_slots, target_temperatures, and modes arrays must have the same length.",
+      "Invalid time format: Time slots must be in HH:MM format (24-hour).",
+      "Invalid schedule type: Must be one of [daily, weekly, weekend, weekday, custom].",
+      "Invalid temperature range: Temperatures must be between 40-90°F (4-32°C).",
+      "Invalid mode: Modes must be one of [heat, cool, auto, ventilate, off].",
+      "Invalid day of week: Days must be integers 1-7.",
+      "Invalid date range: start_date must be before end_date.",
+      "Invalid priority: Priority must be between 1-10."
+    ],
+    "usage": "Provide schedule_name, schedule_type, and arrays of time_slots, target_temperatures, and modes. Optionally specify days_of_week, date ranges, priority, and zones. Arrays must have matching lengths.",
+    "output_details": {
+      "schedule_id": {
+        "type": "string",
+        "description": "Unique identifier for the created schedule"
+      },
+      "schedule_name": {
+        "type": "string",
+        "description": "Name of the created schedule"
+      },
+      "total_slots": {
+        "type": "integer",
+        "description": "Number of time slots in the schedule"
+      },
+      "applicable_zones": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Zones where this schedule will be active"
+      },
+      "next_activation": {
+        "type": "string",
+        "description": "Next time this schedule will activate"
+      },
+      "created_timestamp": {
+        "type": "string",
+        "description": "When the schedule was created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Schedule Executor",
+    "tool_description": "Executes active HVAC schedules by checking current time against schedule parameters and triggering appropriate system commands.",
+    "parameters": {
+      "schedule_id": {
+        "type": "string",
+        "required": false,
+        "description": "Specific schedule to execute, if not provided executes all active schedules",
+        "default": "None"
+      },
+      "force_execution": {
+        "type": "boolean",
+        "required": false,
+        "description": "Force execution even if not at scheduled time",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Schedule not found: The specified schedule_id does not exist.",
+      "No active schedules: No schedules are currently active or enabled.",
+      "Execution conflict: Multiple schedules conflict for the same zone and time.",
+      "System unavailable: HVAC system is not available for command execution."
+    ],
+    "usage": "Optionally provide schedule_id to execute a specific schedule, or leave blank to execute all active schedules. Set force_execution to true to override time checks.",
+    "output_details": {
+      "executed_schedules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of schedule IDs that were executed"
+      },
+      "commands_sent": {
+        "type": "integer",
+        "description": "Number of HVAC commands issued"
+      },
+      "zones_affected": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Zones that received new commands"
+      },
+      "execution_timestamp": {
+        "type": "string",
+        "description": "When the execution occurred"
+      },
+      "next_execution": {
+        "type": "string",
+        "description": "Next scheduled execution time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Thermostat Adjuster",
+    "tool_description": "Adjusts thermostat set points for heating and cooling temperatures across different zones with validation and safety checks.",
+    "parameters": {
+      "zone_id": {
+        "type": "string",
+        "required": true,
+        "description": "Zone identifier for thermostat adjustment"
+      },
+      "heat_setpoint": {
+        "type": "number",
+        "required": false,
+        "description": "Heating temperature setpoint",
+        "default": "None"
+      },
+      "cool_setpoint": {
+        "type": "number",
+        "required": false,
+        "description": "Cooling temperature setpoint",
+        "default": "None"
+      },
+      "hold_mode": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to hold the temperature indefinitely",
+        "default": false
+      },
+      "hold_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Hold duration in minutes (if hold_mode is true)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid zone: The specified zone_id does not exist in the system.",
+      "Temperature out of range: Setpoints must be between 40-90°F (4-32°C).",
+      "Invalid temperature spread: Cool setpoint must be at least 3°F higher than heat setpoint.",
+      "No setpoint provided: At least one of heat_setpoint or cool_setpoint must be specified.",
+      "Invalid hold duration: Hold duration must be between 1-1440 minutes when hold_mode is true."
+    ],
+    "usage": "Provide zone_id and at least one setpoint (heat_setpoint or cool_setpoint). Optionally enable hold_mode and specify hold_duration. Setpoints must maintain proper temperature spread.",
+    "output_details": {
+      "zone_id": {
+        "type": "string",
+        "description": "Zone that was adjusted"
+      },
+      "previous_heat_setpoint": {
+        "type": "number",
+        "description": "Previous heating setpoint"
+      },
+      "previous_cool_setpoint": {
+        "type": "number",
+        "description": "Previous cooling setpoint"
+      },
+      "new_heat_setpoint": {
+        "type": "number",
+        "description": "New heating setpoint"
+      },
+      "new_cool_setpoint": {
+        "type": "number",
+        "description": "New cooling setpoint"
+      },
+      "hold_active": {
+        "type": "boolean",
+        "description": "Whether hold mode is currently active"
+      },
+      "adjustment_timestamp": {
+        "type": "string",
+        "description": "When the adjustment was made"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Energy Usage Monitor",
+    "tool_description": "Monitors and reports HVAC energy consumption patterns, costs, and efficiency metrics over specified time periods.",
+    "parameters": {
+      "monitoring_period": {
+        "type": "string",
+        "required": true,
+        "description": "Time period to monitor: hour, day, week, month, custom"
+      },
+      "start_time": {
+        "type": "string",
+        "required": false,
+        "description": "Start time for custom monitoring period",
+        "format": "date-time",
+        "default": "None"
+      },
+      "end_time": {
+        "type": "string",
+        "required": false,
+        "description": "End time for custom monitoring period",
+        "format": "date-time",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid monitoring period: Must be one of [hour, day, week, month, custom].",
+      "Missing time range: start_time and end_time are required when monitoring_period is 'custom'.",
+      "Invalid time range: start_time must be before end_time.",
+      "Data unavailable: Energy monitoring data is not available for the specified period."
+    ],
+    "usage": "Specify monitoring_period (hour, day, week, month, or custom). For custom periods, provide both start_time and end_time. Returns energy usage statistics for the specified timeframe.",
+    "output_details": {
+      "total_energy_kwh": {
+        "type": "number",
+        "description": "Total energy consumption in kilowatt-hours"
+      },
+      "heating_energy_kwh": {
+        "type": "number",
+        "description": "Energy used for heating"
+      },
+      "cooling_energy_kwh": {
+        "type": "number",
+        "description": "Energy used for cooling"
+      },
+      "fan_energy_kwh": {
+        "type": "number",
+        "description": "Energy used by fans/ventilation"
+      },
+      "estimated_cost": {
+        "type": "number",
+        "description": "Estimated energy cost in dollars"
+      },
+      "efficiency_rating": {
+        "type": "string",
+        "description": "Efficiency rating (excellent, good, fair, poor)"
+      },
+      "monitoring_period": {
+        "type": "string",
+        "description": "The monitoring period that was analyzed"
+      },
+      "report_timestamp": {
+        "type": "string",
+        "description": "When the report was generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Climate Zone Manager",
+    "tool_description": "Manages individual climate zones within the home, including zone configuration, temperature preferences, and independent control settings.",
+    "parameters": {
+      "zone_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier for the climate zone to manage"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: create, update, delete, enable, disable, status"
+      },
+      "zone_name": {
+        "type": "string",
+        "required": false,
+        "description": "Human-readable name for the zone",
+        "default": "None"
+      },
+      "sensors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Sensor IDs associated with this zone",
+        "default": []
+      },
+      "damper_position": {
+        "type": "integer",
+        "required": false,
+        "description": "Damper position percentage (0-100)",
+        "default": "None"
+      },
+      "priority": {
+        "type": "integer",
+        "required": false,
+        "description": "Zone priority for resource allocation (1-10)",
+        "default": 5
+      },
+      "min_temp": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum allowed temperature for this zone",
+        "default": "None"
+      },
+      "max_temp": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum allowed temperature for this zone",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Action must be one of [create, update, delete, enable, disable, status].",
+      "Zone not found: The specified zone_id does not exist for update/delete/enable/disable/status actions.",
+      "Zone already exists: Cannot create zone - zone_id already exists.",
+      "Invalid damper position: Damper position must be between 0-100.",
+      "Invalid priority: Priority must be between 1-10.",
+      "Invalid temperature range: min_temp must be less than max_temp and within system limits.",
+      "Sensor not found: One or more specified sensor IDs do not exist.",
+      "Cannot delete active zone: Zone is currently active and cannot be deleted."
+    ],
+    "usage": "Provide zone_id and action. For create/update actions, specify additional parameters like zone_name, sensors, damper_position, priority, and temperature limits as needed.",
+    "output_details": {
+      "zone_id": {
+        "type": "string",
+        "description": "The zone identifier that was managed"
+      },
+      "action_performed": {
+        "type": "string",
+        "description": "The action that was executed"
+      },
+      "zone_status": {
+        "type": "string",
+        "description": "Current status of the zone (active, inactive, disabled, deleted)"
+      },
+      "current_temperature": {
+        "type": "number",
+        "description": "Current temperature in the zone"
+      },
+      "damper_position": {
+        "type": "integer",
+        "description": "Current damper position percentage"
+      },
+      "associated_sensors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Sensors currently associated with the zone"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the zone management action was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Filter Status Checker",
+    "tool_description": "Monitors HVAC filter condition, tracks replacement schedules, and provides maintenance alerts based on usage and time elapsed.",
+    "parameters": {
+      "check_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of check to perform: current_status, maintenance_due, replacement_history, reset_timer"
+      },
+      "filter_location": {
+        "type": "string",
+        "required": false,
+        "description": "Specific filter location to check",
+        "default": "main"
+      }
+    },
+    "error_messages": [
+      "Invalid check type: check_type must be one of [current_status, maintenance_due, replacement_history, reset_timer].",
+      "Filter location not found: The specified filter_location does not exist in the system.",
+      "Sensor malfunction: Unable to read filter status - check filter monitoring sensors."
+    ],
+    "usage": "Specify check_type to determine what filter information to retrieve. Optionally specify filter_location for multi-filter systems. Use 'reset_timer' after replacing a filter.",
+    "output_details": {
+      "filter_location": {
+        "type": "string",
+        "description": "The filter location that was checked"
+      },
+      "filter_condition": {
+        "type": "string",
+        "description": "Current filter condition (clean, dirty, very_dirty, replace_now)"
+      },
+      "days_since_replacement": {
+        "type": "integer",
+        "description": "Number of days since last filter replacement"
+      },
+      "estimated_life_remaining": {
+        "type": "integer",
+        "description": "Estimated days before replacement needed"
+      },
+      "maintenance_required": {
+        "type": "boolean",
+        "description": "Whether maintenance is currently required"
+      },
+      "last_replacement_date": {
+        "type": "string",
+        "description": "Date when filter was last replaced"
+      },
+      "check_timestamp": {
+        "type": "string",
+        "description": "When the filter check was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weather Integration Tool",
+    "tool_description": "Retrieves current weather conditions and forecasts to optimize HVAC operations based on external temperature, humidity, and weather patterns.",
+    "parameters": {
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Location for weather data (city, state or ZIP code)"
+      },
+      "forecast_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of hours ahead to forecast (1-168)",
+        "default": 24
+      },
+      "include_humidity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include humidity data in the response",
+        "default": true
+      },
+      "include_wind": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include wind speed data in the response",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid location: Location not found or incorrectly formatted.",
+      "Invalid forecast range: forecast_hours must be between 1-168 (1 week).",
+      "Weather service unavailable: Unable to connect to weather service.",
+      "API limit exceeded: Too many weather requests - try again later."
+    ],
+    "usage": "Provide location as city/state or ZIP code. Optionally specify forecast_hours and whether to include humidity and wind data. Returns current conditions and forecast.",
+    "output_details": {
+      "current_temperature": {
+        "type": "number",
+        "description": "Current outdoor temperature"
+      },
+      "current_humidity": {
+        "type": "number",
+        "description": "Current humidity percentage"
+      },
+      "forecast_temperatures": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Forecasted temperatures for requested hours"
+      },
+      "forecast_humidity": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Forecasted humidity for requested hours"
+      },
+      "weather_conditions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Weather condition descriptions for each forecast hour"
+      },
+      "hvac_recommendation": {
+        "type": "string",
+        "description": "Recommended HVAC adjustment based on weather"
+      },
+      "data_timestamp": {
+        "type": "string",
+        "description": "When the weather data was retrieved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Emergency Override Controller",
+    "tool_description": "Provides emergency safety controls for HVAC systems including fire safety shutdowns, extreme temperature protection, and system failure responses.",
+    "parameters": {
+      "emergency_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of emergency: fire_alarm, extreme_cold, extreme_heat, system_failure, gas_leak, power_outage, manual_override"
+      },
+      "override_action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to take: shutdown, emergency_heat, emergency_cool, ventilate_only, reset_system"
+      },
+      "duration_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Duration to maintain override (1-1440 minutes)",
+        "default": 60
+      },
+      "authorization_code": {
+        "type": "string",
+        "required": false,
+        "description": "Authorization code for manual overrides",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid emergency type: Must be one of [fire_alarm, extreme_cold, extreme_heat, system_failure, gas_leak, power_outage, manual_override].",
+      "Invalid override action: Must be one of [shutdown, emergency_heat, emergency_cool, ventilate_only, reset_system].",
+      "Invalid duration: Duration must be between 1-1440 minutes.",
+      "Authorization required: Manual override requires valid authorization_code.",
+      "System locked: System is in safety lockout and cannot accept override commands.",
+      "Conflicting emergency: Another emergency override is already active."
+    ],
+    "usage": "Specify emergency_type and override_action. Set duration_minutes for temporary overrides. Manual overrides require authorization_code. Use cautiously as this bypasses normal safety checks.",
+    "output_details": {
+      "emergency_type": {
+        "type": "string",
+        "description": "Type of emergency that was processed"
+      },
+      "action_taken": {
+        "type": "string",
+        "description": "Override action that was implemented"
+      },
+      "override_active": {
+        "type": "boolean",
+        "description": "Whether the emergency override is currently active"
+      },
+      "duration_remaining": {
+        "type": "integer",
+        "description": "Minutes remaining for the override"
+      },
+      "system_status": {
+        "type": "string",
+        "description": "Current HVAC system status after override"
+      },
+      "safety_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Any safety alerts or warnings generated"
+      },
+      "override_timestamp": {
+        "type": "string",
+        "description": "When the emergency override was activated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Energy Optimizer",
+    "tool_description": "Analyzes HVAC energy usage patterns and provides optimization recommendations to reduce energy consumption while maintaining comfort levels.",
+    "parameters": {
+      "optimization_goal": {
+        "type": "string",
+        "required": true,
+        "description": "Primary optimization objective: minimize_cost, minimize_usage, balance_comfort, peak_shaving"
+      },
+      "comfort_priority": {
+        "type": "integer",
+        "required": false,
+        "description": "Comfort priority level (1-10, higher means less energy savings)",
+        "default": 7
+      },
+      "analysis_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of historical days to analyze (7-90)",
+        "default": 30
+      },
+      "electricity_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Electricity rate per kWh in dollars",
+        "default": "None"
+      },
+      "peak_hours": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": false,
+        "description": "Peak rate hours (0-23) for time-of-use optimization",
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid optimization goal: Must be one of [minimize_cost, minimize_usage, balance_comfort, peak_shaving].",
+      "Invalid comfort priority: Must be between 1-10.",
+      "Invalid analysis period: analysis_days must be between 7-90.",
+      "Invalid electricity rate: Rate must be a positive number.",
+      "Invalid peak hours: Peak hours must be integers between 0-23.",
+      "Insufficient data: Not enough historical data for analysis."
+    ],
+    "usage": "Specify optimization_goal and optionally set comfort_priority, analysis_days, electricity_rate, and peak_hours. The tool analyzes usage patterns and returns optimization recommendations.",
+    "output_details": {
+      "current_efficiency_score": {
+        "type": "number",
+        "description": "Current system efficiency score (0-100)"
+      },
+      "potential_savings_percent": {
+        "type": "number",
+        "description": "Estimated energy savings percentage with optimizations"
+      },
+      "monthly_cost_savings": {
+        "type": "number",
+        "description": "Estimated monthly

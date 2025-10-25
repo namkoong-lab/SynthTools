@@ -1,0 +1,801 @@
+field_name: ecommerce_and_retail
+subfield: Order Processing and Fulfillment
+task: Order status updates and customer notifications
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves managing order lifecycle states, coordinating with multiple systems (inventory, shipping, payment), handling various notification channels, and ensuring data consistency across customer touchpoints. The moderate complexity stems from integration requirements, real-time synchronization needs, and the critical nature of accurate customer communications. **Difficulty: Medium**
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools to cover order tracking, status management, notification delivery, customer communication preferences, and integration with fulfillment systems.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Order Status Retriever** - Consumes: order_id → Produces: current status, timestamps, details
+  2. **Order Status Updater** - Consumes: order_id, new_status, metadata → Produces: updated status confirmation
+  3. **Customer Notification Sender** - Consumes: customer_id, message_content, channel → Produces: delivery confirmation
+  4. **Notification Template Generator** - Consumes: order_data, template_type → Produces: formatted message content
+  5. **Customer Preference Manager** - Consumes: customer_id, preferences → Produces: communication settings
+  6. **Order History Tracker** - Consumes: order_id, event_data → Produces: audit trail entry
+  7. **Shipping Status Integrator** - Consumes: tracking_number, carrier → Produces: shipping updates
+  8. **Inventory Status Checker** - Consumes: product_ids, quantities → Produces: availability status
+  9. **Payment Status Validator** - Consumes: order_id, payment_details → Produces: payment verification
+  10. **Notification Queue Manager** - Consumes: notification_data, priority → Produces: queue status
+  11. **Customer Contact Resolver** - Consumes: customer_id → Produces: contact information
+  12. **Delivery Exception Handler** - Consumes: order_id, exception_type → Produces: resolution actions
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Status Check**: Order Status Retriever → Customer Notification Sender (check order, send update)
+  2. **Template Notification**: Notification Template Generator → Customer Notification Sender (create and send templated message)
+
+  **Medium Plans:**
+  1. **Standard Order Update**: Order Status Updater → Order History Tracker → Notification Template Generator → Customer Notification Sender (update status, log change, create message, notify customer)
+  2. **Shipping Integration Update**: Shipping Status Integrator → Order Status Updater → Customer Preference Manager → Notification Template Generator → Customer Notification Sender (get shipping update, update order, check preferences, create message, send notification)
+
+  **Complex Plans:**
+  1. **Full Order Processing Workflow**: Inventory Status Checker → Payment Status Validator → Order Status Updater → Order History Tracker → Customer Preference Manager → Customer Contact Resolver → Notification Template Generator → Notification Queue Manager → Customer Notification Sender (verify inventory and payment, update status, log changes, get preferences and contacts, create messages, queue and send notifications)
+  2. **Exception Handling Workflow**: Order Status Retriever → Delivery Exception Handler → Order Status Updater → Order History Tracker → Customer Contact Resolver → Notification Template Generator → Customer Notification Sender → Notification Queue Manager (detect issue, handle exception, update status, log incident, get contact info, create alert message, send priority notification, manage queue)
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Order Status Retriever",
+    "tool_description": "Retrieves current status information for a specific order including timestamps, stage details, and tracking information.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the order to retrieve status information"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include complete status change history",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Order not found: The provided order_id does not exist in the system. Verify the order identifier is correct.",
+      "Database connection error: Unable to retrieve order data. Retry the request after a brief delay.",
+      "Access denied: Insufficient permissions to view this order. Ensure proper authorization."
+    ],
+    "usage": "Provide order_id to get current order status. Set include_history to true if you need the complete status change timeline.",
+    "output_details": {
+      "order_id": {
+        "type": "string",
+        "description": "The order identifier that was queried"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "Current status of the order (e.g., pending, processing, shipped, delivered)"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of the last status update",
+        "format": "date-time"
+      },
+      "tracking_number": {
+        "type": "string",
+        "description": "Shipping tracking number if available"
+      },
+      "status_history": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Chronological list of status changes if include_history is true"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order Status Updater",
+    "tool_description": "Updates the status of an order with new information, timestamps, and optional metadata about the status change.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the order to update"
+      },
+      "new_status": {
+        "type": "string",
+        "required": true,
+        "description": "New status to set for the order (pending, confirmed, processing, shipped, delivered, cancelled, returned)"
+      },
+      "update_reason": {
+        "type": "string",
+        "required": false,
+        "description": "Reason for the status change",
+        "default": "System update"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": false,
+        "description": "Tracking number to associate with the order if applicable",
+        "default": null
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "required": false,
+        "description": "Estimated delivery date and time",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid status transition: The requested status change is not allowed from the current order state. Check valid status progression rules.",
+      "Order not found: The provided order_id does not exist. Verify the order identifier is correct.",
+      "Invalid status value: The new_status must be one of [pending, confirmed, processing, shipped, delivered, cancelled, returned].",
+      "Database update failed: Unable to save status changes. Retry the operation after a brief delay."
+    ],
+    "usage": "Provide order_id and new_status to update order status. Include update_reason for audit purposes. Add tracking_number and estimated_delivery for shipping-related updates.",
+    "output_details": {
+      "order_id": {
+        "type": "string",
+        "description": "The order identifier that was updated"
+      },
+      "previous_status": {
+        "type": "string",
+        "description": "The status before the update"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "The new current status after update"
+      },
+      "updated_timestamp": {
+        "type": "string",
+        "description": "Timestamp when the status was updated",
+        "format": "date-time"
+      },
+      "update_success": {
+        "type": "boolean",
+        "description": "Whether the update operation was successful"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Notification Sender",
+    "tool_description": "Sends notifications to customers through specified communication channels (email, SMS, push notification) with delivery confirmation.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer to notify"
+      },
+      "message_content": {
+        "type": "string",
+        "required": true,
+        "description": "The notification message content to send"
+      },
+      "channel": {
+        "type": "string",
+        "required": true,
+        "description": "Communication channel: email, sms, push, or all"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Notification priority level: low, normal, high, urgent",
+        "default": "normal"
+      },
+      "subject_line": {
+        "type": "string",
+        "required": false,
+        "description": "Subject line for email notifications",
+        "default": "Order Update"
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist in the system. Verify the customer identifier is correct.",
+      "Invalid channel: Channel must be one of [email, sms, push, all]. Check the channel parameter value.",
+      "Message too long: The message_content exceeds maximum length limits for the selected channel. Shorten the message content.",
+      "Delivery failed: Unable to deliver notification via the specified channel. Check customer contact information and channel availability.",
+      "Invalid priority: Priority must be one of [low, normal, high, urgent]. Correct the priority parameter."
+    ],
+    "usage": "Provide customer_id, message_content, and channel to send notifications. Set priority for urgent messages and include subject_line for email notifications.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent notification"
+      },
+      "customer_id": {
+        "type": "string",
+        "description": "The customer who received the notification"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Status of notification delivery (sent, delivered, failed, pending)"
+      },
+      "channels_used": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of communication channels through which notification was sent"
+      },
+      "sent_timestamp": {
+        "type": "string",
+        "description": "Timestamp when notification was sent",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Template Generator",
+    "tool_description": "Generates formatted notification messages using predefined templates and order-specific data for consistent customer communications.",
+    "parameters": {
+      "template_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification template: order_confirmed, shipped, delivered, delayed, cancelled, returned, payment_failed"
+      },
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order identifier to populate template data"
+      },
+      "customer_name": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's name for personalization"
+      },
+      "order_total": {
+        "type": "number",
+        "required": false,
+        "description": "Total order amount for financial templates",
+        "default": null
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": false,
+        "description": "Shipping tracking number for shipping-related templates",
+        "default": null
+      },
+      "delivery_date": {
+        "type": "string",
+        "required": false,
+        "description": "Expected or actual delivery date",
+        "format": "date-time",
+        "default": null
+      },
+      "product_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of product names in the order",
+        "default": null
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Language code for template localization (en, es, fr, de)",
+        "default": "en"
+      },
+      "include_links": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include tracking and account links in the message",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid template type: Template type must be one of [order_confirmed, shipped, delivered, delayed, cancelled, returned, payment_failed].",
+      "Missing required data: Some template variables cannot be populated. Ensure all required parameters for the template type are provided.",
+      "Template generation failed: Unable to generate message content. Check template type and provided data parameters.",
+      "Unsupported language: Language code must be one of [en, es, fr, de]. Use a supported language code.",
+      "Order data not accessible: Cannot retrieve order information for template population. Verify order_id exists and is accessible."
+    ],
+    "usage": "Provide template_type, order_id, and customer_name to generate a formatted notification message. Include relevant optional parameters based on template type (e.g., tracking_number for shipped template).",
+    "output_details": {
+      "message_content": {
+        "type": "string",
+        "description": "Generated notification message with populated order data"
+      },
+      "subject_line": {
+        "type": "string",
+        "description": "Generated subject line for email notifications"
+      },
+      "template_used": {
+        "type": "string",
+        "description": "The template type that was used for generation"
+      },
+      "language": {
+        "type": "string",
+        "description": "Language code of the generated content"
+      },
+      "character_count": {
+        "type": "integer",
+        "description": "Total character count of the generated message"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Preference Manager",
+    "tool_description": "Manages and retrieves customer communication preferences including preferred channels, frequency settings, and opt-out preferences.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: get, update, or reset preferences"
+      },
+      "email_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether customer wants email notifications",
+        "default": null
+      },
+      "sms_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether customer wants SMS notifications",
+        "default": null
+      },
+      "push_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether customer wants push notifications",
+        "default": null
+      },
+      "preferred_language": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred language for notifications (en, es, fr, de)",
+        "default": null
+      },
+      "notification_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Frequency preference: all, major_updates_only, minimal",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist in the system. Verify the customer identifier is correct.",
+      "Invalid action: Action must be one of [get, update, reset]. Correct the action parameter value.",
+      "Invalid language code: Preferred language must be one of [en, es, fr, de]. Use a supported language code.",
+      "Invalid frequency setting: Notification frequency must be one of [all, major_updates_only, minimal].",
+      "Update failed: Unable to save preference changes. Retry the operation after a brief delay."
+    ],
+    "usage": "Provide customer_id and action. For 'get' action, only customer_id is needed. For 'update' action, include the preference parameters to modify. Use 'reset' to restore default preferences.",
+    "output_details": {
+      "customer_id": {
+        "type": "string",
+        "description": "The customer identifier that was processed"
+      },
+      "email_enabled": {
+        "type": "boolean",
+        "description": "Current email notification preference"
+      },
+      "sms_enabled": {
+        "type": "boolean",
+        "description": "Current SMS notification preference"
+      },
+      "push_enabled": {
+        "type": "boolean",
+        "description": "Current push notification preference"
+      },
+      "preferred_language": {
+        "type": "string",
+        "description": "Current preferred language setting"
+      },
+      "notification_frequency": {
+        "type": "string",
+        "description": "Current notification frequency preference"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order History Tracker",
+    "tool_description": "Records and manages detailed audit trail entries for order events, status changes, and system interactions for compliance and debugging.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the order"
+      },
+      "event_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of event to record: status_change, payment, shipment, delivery, cancellation, return, system_update"
+      },
+      "event_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the event that occurred"
+      },
+      "user_id": {
+        "type": "string",
+        "required": false,
+        "description": "Identifier of user or system that triggered the event",
+        "default": "system"
+      },
+      "additional_data": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Additional key-value pairs as strings for extra event context",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Order not found: The provided order_id does not exist in the system. Verify the order identifier is correct.",
+      "Invalid event type: Event type must be one of [status_change, payment, shipment, delivery, cancellation, return, system_update].",
+      "History write failed: Unable to record the event in order history. Retry the operation after a brief delay.",
+      "Invalid additional data format: Additional data must be an array of strings. Format data correctly before submission."
+    ],
+    "usage": "Provide order_id, event_type, and event_description to record an audit trail entry. Include user_id for user-initiated events and additional_data for extra context.",
+    "output_details": {
+      "history_entry_id": {
+        "type": "string",
+        "description": "Unique identifier for the created history entry"
+      },
+      "order_id": {
+        "type": "string",
+        "description": "The order identifier for which history was recorded"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp when the event was recorded",
+        "format": "date-time"
+      },
+      "event_recorded": {
+        "type": "boolean",
+        "description": "Whether the event was successfully recorded"
+      },
+      "entry_sequence": {
+        "type": "integer",
+        "description": "Sequential number of this entry in the order's history"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Status Integrator",
+    "tool_description": "Integrates with shipping carriers to retrieve real-time tracking information and delivery updates for order fulfillment.",
+    "parameters": {
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping tracking number to query"
+      },
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping carrier name: fedex, ups, usps, dhl, amazon"
+      }
+    },
+    "error_messages": [
+      "Invalid tracking number: The tracking number format is invalid for the specified carrier. Verify the tracking number is correct.",
+      "Unsupported carrier: Carrier must be one of [fedex, ups, usps, dhl, amazon]. Use a supported carrier name.",
+      "Carrier API error: Unable to retrieve tracking information from carrier system. Retry after a brief delay.",
+      "Tracking not found: No tracking information found for the provided tracking number and carrier combination."
+    ],
+    "usage": "Provide tracking_number and carrier to retrieve current shipping status and location information from the carrier's tracking system.",
+    "output_details": {
+      "tracking_number": {
+        "type": "string",
+        "description": "The tracking number that was queried"
+      },
+      "carrier": {
+        "type": "string",
+        "description": "The shipping carrier used"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "Current shipping status (in_transit, out_for_delivery, delivered, exception, etc.)"
+      },
+      "current_location": {
+        "type": "string",
+        "description": "Current location of the package"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery date and time",
+        "format": "date-time"
+      },
+      "delivery_date": {
+        "type": "string",
+        "description": "Actual delivery date if package has been delivered",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Status Checker",
+    "tool_description": "Checks real-time inventory availability for products to validate order fulfillment capability and stock levels.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of product identifiers to check inventory status",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "quantities": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "required": true,
+        "description": "Required quantities for each product (must match product_ids array length)",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "warehouse_id": {
+        "type": "string",
+        "required": false,
+        "description": "Specific warehouse to check inventory (if not provided, checks all warehouses)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: The product_ids and quantities arrays must have the same number of elements.",
+      "Invalid product ID: One or more product identifiers do not exist in the inventory system.",
+      "Invalid quantities: All quantity values must be positive integers greater than 0.",
+      "Warehouse not found: The specified warehouse_id does not exist in the system.",
+      "Inventory system unavailable: Unable to access inventory data. Retry after a brief delay."
+    ],
+    "usage": "Provide product_ids array and corresponding quantities array to check stock availability. Optionally specify warehouse_id to check inventory at a specific location.",
+    "output_details": {
+      "check_timestamp": {
+        "type": "string",
+        "description": "Timestamp when inventory check was performed",
+        "format": "date-time"
+      },
+      "overall_availability": {
+        "type": "boolean",
+        "description": "Whether all requested products and quantities are available"
+      },
+      "product_statuses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Availability status for each product (available, insufficient, out_of_stock)"
+      },
+      "available_quantities": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Current available quantities for each product"
+      },
+      "warehouse_checked": {
+        "type": "string",
+        "description": "Warehouse ID that was checked, or 'all' if all warehouses were checked"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Status Validator",
+    "tool_description": "Validates and retrieves payment status information for orders including transaction details and authorization status.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order identifier to check payment status"
+      },
+      "payment_method": {
+        "type": "string",
+        "required": false,
+        "description": "Payment method to validate: credit_card, debit_card, paypal, bank_transfer, digital_wallet",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Order not found: The provided order_id does not exist in the system. Verify the order identifier is correct.",
+      "Invalid payment method: Payment method must be one of [credit_card, debit_card, paypal, bank_transfer, digital_wallet].",
+      "Payment system unavailable: Unable to access payment processing system. Retry after a brief delay.",
+      "No payment information: No payment data found for the specified order."
+    ],
+    "usage": "Provide order_id to retrieve payment status. Optionally specify payment_method to validate a specific payment type.",
+    "output_details": {
+      "order_id": {
+        "type": "string",
+        "description": "The order identifier that was validated"
+      },
+      "payment_status": {
+        "type": "string",
+        "description": "Current payment status (pending, authorized, captured, failed, refunded, cancelled)"
+      },
+      "payment_method": {
+        "type": "string",
+        "description": "Payment method used for the order"
+      },
+      "transaction_id": {
+        "type": "string",
+        "description": "Payment processor transaction identifier"
+      },
+      "payment_amount": {
+        "type": "number",
+        "description": "Total payment amount processed"
+      },
+      "last_payment_update": {
+        "type": "string",
+        "description": "Timestamp of the last payment status update",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Queue Manager",
+    "tool_description": "Manages notification delivery queues with priority handling, scheduling, and delivery status tracking for optimal customer communication timing.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Queue action: add, remove, get_status, process, clear"
+      },
+      "notification_id": {
+        "type": "string",
+        "required": false,
+        "description": "Notification identifier for specific operations",
+        "default": null
+      },
+      "customer_id": {
+        "type": "string",
+        "required": false,
+        "description": "Customer identifier for queue filtering",
+        "default": null
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Queue priority level: low, normal, high, urgent",
+        "default": "normal"
+      },
+      "scheduled_time": {
+        "type": "string",
+        "required": false,
+        "description": "Scheduled delivery time for delayed notifications",
+        "format": "date-time",
+        "default": null
+      },
+      "message_content": {
+        "type": "string",
+        "required": false,
+        "description": "Notification message content for add action",
+        "default": null
+      },
+      "delivery_channel": {
+        "type": "string",
+        "required": false,
+        "description": "Delivery channel: email, sms, push, all",
+        "default": "email"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Action must be one of [add, remove, get_status, process, clear]. Correct the action parameter.",
+      "Missing required parameters: For 'add' action, customer_id and message_content are required.",
+      "Notification not found: The specified notification_id does not exist in the queue.",
+      "Invalid priority level: Priority must be one of [low, normal, high, urgent].",
+      "Invalid scheduled time: Scheduled time must be in the future. Use a future date-time value.",
+      "Queue operation failed: Unable to perform the requested queue operation. Retry after a brief delay."
+    ],
+    "usage": "Use 'add' action with customer_id, message_content, and delivery_channel to queue notifications. Use 'process' to trigger queue processing. Use 'get_status' with notification_id to check delivery status.",
+    "output_details": {
+      "action_performed": {
+        "type": "string",
+        "description": "The action that was executed"
+      },
+      "queue_size": {
+        "type": "integer",
+        "description": "Current number of notifications in queue"
+      },
+      "notification_id": {
+        "type": "string",
+        "description": "Notification identifier for tracking"
+      },
+      "queue_position": {
+        "type": "integer",
+        "description": "Position in queue for added notifications"
+      },
+      "processing_status": {
+        "type": "string",
+        "description": "Current processing status (queued, processing, sent, failed)"
+      },
+      "estimated_delivery_time": {
+        "type": "string",
+        "description": "Estimated time when notification will be delivered",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Contact Resolver",
+    "tool_description": "Resolves and validates customer contact information including email addresses, phone numbers, and delivery preferences for accurate communications.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer"
+      },
+      "contact_type": {
+        "type": "string",
+        "required": false,
+        "description": "Specific contact type to retrieve: email, phone, address, all",
+        "default": "all"
+      },
+      "validate_contacts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate contact information for deliverability",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist in the system. Verify the customer identifier is correct.",
+      "Invalid contact type: Contact type must be one of [email, phone, address, all]. Correct the contact_type parameter.",
+      "Contact validation failed: Unable to validate contact information. Contact data may be outdated or invalid.",
+      "No contact information: No contact data found for the specified customer and contact type."
+    ],
+    "usage": "Provide customer_id to retrieve contact information. Use contact_type to get specific contact details. Set validate_contacts to false to skip deliverability validation.",
+    "output_details": {
+      "customer_id": {
+        "type": "string",
+        "description": "The customer identifier that was resolved"
+      },
+      "email_address": {
+        "type": "string",
+        "description": "Primary email address for the customer"
+      },
+      "phone_number": {
+        "type": "string",
+        "description": "Primary phone number for the customer"
+      },
+      "shipping_address": {
+        "type": "string",
+        "description": "Default shipping address as formatted string"
+      },
+      "contact_validation_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Validation status for each contact method (valid, invalid, unverified)"
+      },
+      "preferre

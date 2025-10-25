@@ -1,0 +1,777 @@
+field_name: data_annotation_and_labeling
+subfield: object_detection_annotation
+task: Image preprocessing and quality validation for object detection datasets
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves medium complexity due to the need to handle diverse image formats, validate quality across multiple dimensions (resolution, blur, lighting), detect potential annotation issues, and coordinate preprocessing steps that depend on each other. The scope includes technical image processing, quality assessment, and dataset validation with moderate risk of errors affecting downstream model performance.
+
+  ## STEP 2 — Set a tool budget
+
+  Based on the medium difficulty assessment, I'm targeting 12 tools to cover the various preprocessing, validation, and quality control workflows needed for object detection annotation tasks.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Image Format Converter** - Consumes: raw images → Produces: standardized format images
+  2. **Image Metadata Extractor** - Consumes: image files → Produces: technical metadata
+  3. **Image Quality Analyzer** - Consumes: images → Produces: quality metrics
+  4. **Image Resolution Validator** - Consumes: images, requirements → Produces: validation results
+  5. **Batch Image Resizer** - Consumes: images, target dimensions → Produces: resized images
+  6. **Image Brightness Adjuster** - Consumes: images, parameters → Produces: brightness-corrected images
+  7. **Image Sharpness Enhancer** - Consumes: images, parameters → Produces: sharpened images
+  8. **Duplicate Image Detector** - Consumes: image dataset → Produces: duplicate identification
+  9. **Image Corruption Checker** - Consumes: images → Produces: corruption status
+  10. **Dataset Statistics Generator** - Consumes: image dataset → Produces: comprehensive statistics
+  11. **Quality Filter Applier** - Consumes: images, quality thresholds → Produces: filtered dataset
+  12. **Image Annotation Validator** - Consumes: images, annotation files → Produces: validation report
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple workflows:**
+  1. Basic format standardization: Image Format Converter → Image Metadata Extractor → Dataset Statistics Generator
+  2. Quick quality check: Image Quality Analyzer → Image Corruption Checker → Quality Filter Applier
+
+  **Medium workflows:**
+  1. Standard preprocessing pipeline: Image Format Converter → Batch Image Resizer → Image Quality Analyzer → Quality Filter Applier → Dataset Statistics Generator
+  2. Quality enhancement workflow: Image Quality Analyzer → Image Brightness Adjuster → Image Sharpness Enhancer → Image Quality Analyzer → Dataset Statistics Generator
+
+  **Complex workflows:**
+  1. Complete dataset validation: Image Metadata Extractor → Image Resolution Validator → Image Quality Analyzer → Duplicate Image Detector → Image Corruption Checker → Image Annotation Validator → Dataset Statistics Generator
+  2. Full preprocessing and validation: Image Format Converter → Batch Image Resizer → Image Brightness Adjuster → Image Quality Analyzer → Duplicate Image Detector → Quality Filter Applier → Image Annotation Validator → Dataset Statistics Generator
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Image Format Converter",
+    "tool_description": "Converts images from various formats to a standardized format suitable for object detection workflows, ensuring consistent file types across the dataset.",
+    "parameters": {
+      "input_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of input image file paths to convert"
+      },
+      "target_format": {
+        "type": "string",
+        "required": true,
+        "description": "Target image format (jpeg, png, bmp, tiff)"
+      },
+      "output_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory path where converted images will be saved"
+      },
+      "quality": {
+        "type": "integer",
+        "required": false,
+        "default": 95,
+        "description": "Image quality for lossy formats (1-100)"
+      }
+    },
+    "error_messages": [
+      "Invalid input path: One or more input image paths do not exist or are not accessible.",
+      "Unsupported format: Target format must be one of [jpeg, png, bmp, tiff].",
+      "Output directory error: Output directory does not exist or is not writable.",
+      "Quality parameter error: Quality must be an integer between 1 and 100.",
+      "Conversion failed: Image conversion failed due to corrupted or invalid source file."
+    ],
+    "usage": "Provide input_paths array with image file paths, specify target_format, and set output_directory. Optionally adjust quality for lossy formats. Tool converts all images to the specified format.",
+    "output_details": {
+      "converted_count": {
+        "type": "integer",
+        "description": "Number of successfully converted images"
+      },
+      "failed_count": {
+        "type": "integer",
+        "description": "Number of images that failed conversion"
+      },
+      "output_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of output file paths for successfully converted images"
+      },
+      "failed_files": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of input files that failed conversion"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Metadata Extractor",
+    "tool_description": "Extracts comprehensive metadata from image files including dimensions, color space, compression, and EXIF data for dataset analysis.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of image file paths to analyze"
+      },
+      "include_exif": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to extract EXIF metadata"
+      }
+    },
+    "error_messages": [
+      "Invalid image path: One or more image paths do not exist or are not accessible.",
+      "Unsupported image format: One or more files are not valid image formats.",
+      "Metadata extraction failed: Unable to extract metadata from corrupted image file."
+    ],
+    "usage": "Provide image_paths array with valid image file paths. Optionally disable EXIF extraction by setting include_exif to false. Tool returns detailed metadata for each image.",
+    "output_details": {
+      "metadata": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of JSON-formatted metadata strings for each image"
+      },
+      "total_images": {
+        "type": "integer",
+        "description": "Total number of images processed"
+      },
+      "average_width": {
+        "type": "number",
+        "description": "Average image width in pixels"
+      },
+      "average_height": {
+        "type": "number",
+        "description": "Average image height in pixels"
+      },
+      "format_distribution": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Distribution of image formats found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Quality Analyzer",
+    "tool_description": "Analyzes image quality metrics including sharpness, brightness, contrast, noise levels, and blur detection to assess suitability for object detection annotation.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of image file paths to analyze for quality"
+      },
+      "metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["sharpness", "brightness", "contrast", "noise"],
+        "description": "Quality metrics to compute: sharpness, brightness, contrast, noise, blur"
+      },
+      "sample_regions": {
+        "type": "integer",
+        "required": false,
+        "default": 9,
+        "description": "Number of image regions to sample for analysis (1-25)"
+      }
+    },
+    "error_messages": [
+      "Invalid image path: One or more image paths do not exist or are not accessible.",
+      "Invalid metrics: Metrics must be from [sharpness, brightness, contrast, noise, blur].",
+      "Sample regions error: sample_regions must be an integer between 1 and 25.",
+      "Analysis failed: Quality analysis failed due to corrupted or invalid image file."
+    ],
+    "usage": "Provide image_paths array and optionally specify which quality metrics to compute and number of sample_regions. Tool analyzes each image and returns quality scores.",
+    "output_details": {
+      "quality_scores": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of JSON-formatted quality score objects for each image"
+      },
+      "average_quality": {
+        "type": "number",
+        "description": "Overall average quality score across all images"
+      },
+      "low_quality_count": {
+        "type": "integer",
+        "description": "Number of images flagged as low quality"
+      },
+      "quality_distribution": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Distribution of quality scores across the dataset"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Resolution Validator",
+    "tool_description": "Validates image resolutions against specified requirements, identifying images that need resizing or filtering for object detection workflows.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of image file paths to validate"
+      },
+      "min_width": {
+        "type": "integer",
+        "required": true,
+        "description": "Minimum acceptable image width in pixels"
+      },
+      "min_height": {
+        "type": "integer",
+        "required": true,
+        "description": "Minimum acceptable image height in pixels"
+      },
+      "max_width": {
+        "type": "integer",
+        "required": false,
+        "default": null,
+        "description": "Maximum acceptable image width in pixels"
+      },
+      "max_height": {
+        "type": "integer",
+        "required": false,
+        "default": null,
+        "description": "Maximum acceptable image height in pixels"
+      },
+      "aspect_ratio_tolerance": {
+        "type": "number",
+        "required": false,
+        "default": 0.1,
+        "description": "Acceptable aspect ratio deviation (0.0-1.0)"
+      }
+    },
+    "error_messages": [
+      "Invalid image path: One or more image paths do not exist or are not accessible.",
+      "Invalid resolution parameters: min_width and min_height must be positive integers.",
+      "Invalid max resolution: max_width and max_height must be greater than their minimum counterparts.",
+      "Invalid aspect ratio tolerance: Must be a number between 0.0 and 1.0.",
+      "Validation failed: Unable to read image dimensions from corrupted file."
+    ],
+    "usage": "Provide image_paths, min_width, and min_height. Optionally set max_width, max_height, and aspect_ratio_tolerance. Tool validates each image against the specified resolution requirements.",
+    "output_details": {
+      "valid_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of image paths that meet resolution requirements"
+      },
+      "invalid_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of image paths that fail resolution requirements"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Summary of validation results including counts and reasons for failures"
+      },
+      "total_valid": {
+        "type": "integer",
+        "description": "Number of images that passed validation"
+      },
+      "total_invalid": {
+        "type": "integer",
+        "description": "Number of images that failed validation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Image Resizer",
+    "tool_description": "Resizes multiple images to specified dimensions while preserving aspect ratio or applying exact dimensions, with options for padding and interpolation methods.",
+    "parameters": {
+      "input_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of input image file paths to resize"
+      },
+      "target_width": {
+        "type": "integer",
+        "required": true,
+        "description": "Target width in pixels (must be positive)"
+      },
+      "target_height": {
+        "type": "integer",
+        "required": true,
+        "description": "Target height in pixels (must be positive)"
+      },
+      "preserve_aspect_ratio": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to preserve original aspect ratio"
+      },
+      "padding_color": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": false,
+        "default": [0, 0, 0],
+        "description": "RGB padding color values (0-255) when preserving aspect ratio"
+      },
+      "interpolation_method": {
+        "type": "string",
+        "required": false,
+        "default": "bilinear",
+        "description": "Interpolation method: nearest, bilinear, bicubic, lanczos"
+      },
+      "output_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory path where resized images will be saved"
+      },
+      "output_prefix": {
+        "type": "string",
+        "required": false,
+        "default": "resized_",
+        "description": "Prefix for output filenames"
+      }
+    },
+    "error_messages": [
+      "Invalid input path: One or more input image paths do not exist or are not accessible.",
+      "Invalid target dimensions: target_width and target_height must be positive integers.",
+      "Invalid padding color: padding_color must be an array of 3 integers between 0-255.",
+      "Invalid interpolation method: Must be one of [nearest, bilinear, bicubic, lanczos].",
+      "Output directory error: Output directory does not exist or is not writable.",
+      "Resize operation failed: Unable to resize image due to memory constraints or corruption."
+    ],
+    "usage": "Provide input_paths, target_width, target_height, and output_directory. Optionally configure preserve_aspect_ratio, padding_color, interpolation_method, and output_prefix. Tool resizes all images according to specifications.",
+    "output_details": {
+      "resized_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of output file paths for successfully resized images"
+      },
+      "failed_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of input images that failed resizing"
+      },
+      "resize_summary": {
+        "type": "string",
+        "description": "Summary of resize operation including success/failure counts"
+      },
+      "average_resize_ratio": {
+        "type": "number",
+        "description": "Average scaling factor applied across all images"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Brightness Adjuster",
+    "tool_description": "Adjusts brightness and exposure levels of images to optimize visibility for annotation, with histogram-based auto-correction and manual adjustment options.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of image file paths to adjust"
+      },
+      "adjustment_mode": {
+        "type": "string",
+        "required": true,
+        "description": "Adjustment mode: auto, manual, histogram_equalization"
+      },
+      "brightness_factor": {
+        "type": "number",
+        "required": false,
+        "default": 1.0,
+        "description": "Brightness multiplier for manual mode (0.1-3.0)"
+      },
+      "target_mean_brightness": {
+        "type": "integer",
+        "required": false,
+        "default": 128,
+        "description": "Target mean brightness for auto mode (0-255)"
+      },
+      "output_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory path where adjusted images will be saved"
+      }
+    },
+    "error_messages": [
+      "Invalid image path: One or more image paths do not exist or are not accessible.",
+      "Invalid adjustment mode: Must be one of [auto, manual, histogram_equalization].",
+      "Invalid brightness factor: brightness_factor must be a number between 0.1 and 3.0.",
+      "Invalid target brightness: target_mean_brightness must be an integer between 0 and 255.",
+      "Output directory error: Output directory does not exist or is not writable.",
+      "Brightness adjustment failed: Unable to process image due to corruption or memory constraints."
+    ],
+    "usage": "Provide image_paths, adjustment_mode, and output_directory. For manual mode, set brightness_factor. For auto mode, optionally set target_mean_brightness. Tool adjusts brightness according to the selected mode.",
+    "output_details": {
+      "adjusted_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of output file paths for successfully adjusted images"
+      },
+      "brightness_changes": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of brightness adjustment values applied to each image"
+      },
+      "failed_adjustments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of images that failed brightness adjustment"
+      },
+      "average_adjustment": {
+        "type": "number",
+        "description": "Average brightness adjustment applied across all images"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Sharpness Enhancer",
+    "tool_description": "Enhances image sharpness using various filtering techniques to improve clarity for object detection annotation, with automatic and manual enhancement modes.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of image file paths to enhance"
+      },
+      "enhancement_method": {
+        "type": "string",
+        "required": true,
+        "description": "Enhancement method: unsharp_mask, laplacian, high_pass, adaptive"
+      },
+      "strength": {
+        "type": "number",
+        "required": false,
+        "default": 1.0,
+        "description": "Enhancement strength factor (0.1-3.0)"
+      },
+      "output_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory path where enhanced images will be saved"
+      }
+    },
+    "error_messages": [
+      "Invalid image path: One or more image paths do not exist or are not accessible.",
+      "Invalid enhancement method: Must be one of [unsharp_mask, laplacian, high_pass, adaptive].",
+      "Invalid strength value: strength must be a number between 0.1 and 3.0.",
+      "Output directory error: Output directory does not exist or is not writable.",
+      "Enhancement failed: Unable to enhance image due to corruption or processing error."
+    ],
+    "usage": "Provide image_paths, enhancement_method, and output_directory. Optionally adjust strength parameter to control enhancement intensity. Tool applies the specified sharpening method to all images.",
+    "output_details": {
+      "enhanced_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of output file paths for successfully enhanced images"
+      },
+      "sharpness_improvements": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of sharpness improvement scores for each enhanced image"
+      },
+      "failed_enhancements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of images that failed enhancement"
+      },
+      "average_improvement": {
+        "type": "number",
+        "description": "Average sharpness improvement across all successfully enhanced images"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Duplicate Image Detector",
+    "tool_description": "Detects duplicate and near-duplicate images in a dataset using perceptual hashing and similarity matching to identify redundant content for removal.",
+    "parameters": {
+      "image_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory path containing images to check for duplicates"
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.95,
+        "description": "Similarity threshold for duplicate detection (0.7-1.0)"
+      },
+      "hash_algorithm": {
+        "type": "string",
+        "required": false,
+        "default": "phash",
+        "description": "Hashing algorithm: phash, ahash, dhash, whash"
+      },
+      "include_subfolders": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include images from subdirectories"
+      },
+      "max_images": {
+        "type": "integer",
+        "required": false,
+        "default": 10000,
+        "description": "Maximum number of images to process (1-50000)"
+      }
+    },
+    "error_messages": [
+      "Invalid directory path: image_directory does not exist or is not accessible.",
+      "Invalid similarity threshold: similarity_threshold must be a number between 0.7 and 1.0.",
+      "Invalid hash algorithm: Must be one of [phash, ahash, dhash, whash].",
+      "Invalid max_images value: max_images must be an integer between 1 and 50000.",
+      "No images found: No valid image files found in the specified directory.",
+      "Processing failed: Duplicate detection failed due to memory constraints or file access errors."
+    ],
+    "usage": "Provide image_directory path. Optionally configure similarity_threshold, hash_algorithm, include_subfolders, and max_images. Tool scans for duplicate images and returns similarity groups.",
+    "output_details": {
+      "duplicate_groups": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of JSON-formatted duplicate groups, each containing similar image paths"
+      },
+      "total_duplicates": {
+        "type": "integer",
+        "description": "Total number of duplicate images found"
+      },
+      "unique_images": {
+        "type": "integer",
+        "description": "Number of unique images in the dataset"
+      },
+      "space_savings": {
+        "type": "string",
+        "description": "Potential storage space savings from removing duplicates"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Time taken to complete duplicate detection in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Corruption Checker",
+    "tool_description": "Checks images for various types of corruption, file integrity issues, and readability problems that could interfere with annotation workflows.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of image file paths to check for corruption"
+      },
+      "check_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["file_integrity", "header_validity", "pixel_data", "format_compliance"],
+        "description": "Types of corruption checks to perform"
+      },
+      "repair_mode": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to attempt automatic repair of minor corruption"
+      }
+    },
+    "error_messages": [
+      "Invalid image path: One or more image paths do not exist or are not accessible.",
+      "Invalid check types: check_types must contain values from [file_integrity, header_validity, pixel_data, format_compliance].",
+      "File access error: Unable to read or access image file for corruption checking.",
+      "Memory error: Insufficient memory to perform corruption check on large image file."
+    ],
+    "usage": "Provide image_paths array. Optionally specify check_types to focus on specific corruption types and enable repair_mode for automatic fixes. Tool checks each image for corruption issues.",
+    "output_details": {
+      "corrupted_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of image paths that are corrupted"
+      },
+      "healthy_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of image paths that passed all corruption checks"
+      },
+      "corruption_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of JSON-formatted corruption details for each problematic image"
+      },
+      "repaired_images": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of images that were successfully repaired"
+      },
+      "corruption_rate": {
+        "type": "number",
+        "description": "Percentage of images found to be corrupted"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dataset Statistics Generator",
+    "tool_description": "Generates comprehensive statistical analysis of image datasets including distribution summaries, quality metrics, and dataset composition for object detection projects.",
+    "parameters": {
+      "dataset_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Root directory path of the image dataset"
+      },
+      "include_subdirectories": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include images from subdirectories"
+      },
+      "analysis_depth": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Analysis depth: basic, standard, comprehensive"
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "default": "json",
+        "description": "Output format for statistics: json, csv, html"
+      },
+      "generate_visualizations": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to generate statistical visualization charts"
+      },
+      "sample_size": {
+        "type": "integer",
+        "required": false,
+        "default": null,
+        "description": "Maximum number of images to sample for analysis"
+      }
+    },
+    "error_messages": [
+      "Invalid dataset directory: dataset_directory does not exist or is not accessible.",
+      "Invalid analysis depth: Must be one of [basic, standard, comprehensive].",
+      "Invalid output format: Must be one of [json, csv, html].",
+      "Invalid sample size: sample_size must be a positive integer if specified.",
+      "No images found: No valid image files found in the specified dataset directory.",
+      "Statistics generation failed: Unable to generate statistics due to file access or processing errors."
+    ],
+    "usage": "Provide dataset_directory path. Optionally configure include_subdirectories, analysis_depth, output_format, generate_visualizations, and sample_size. Tool analyzes the dataset and returns comprehensive statistics.",
+    "output_details": {
+      "total_images": {
+        "type": "integer",
+        "description": "Total number of images in the dataset"
+      },
+      "format_distribution": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Distribution of image formats in the dataset"
+      },
+      "resolution_statistics": {
+        "type": "string",
+        "description": "JSON-formatted resolution statistics including mean, median, min, max dimensions"
+      },
+      "file_size_statistics": {
+        "type": "string",
+        "description": "JSON-formatted file size statistics"
+      },
+      "quality_distribution": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Distribution of image quality scores across the dataset"
+      },
+      "dataset_health_score": {
+        "type": "number",
+        "description": "Overall dataset health score (0.0-1.0)"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of recommendations for dataset improvement"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quality Filter Applier",
+    "tool_description": "Filters images based on quality thresholds, removing or flagging images that don't meet minimum standards for object detection annotation workflows.",
+    "parameters": {
+      "image_paths": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of image file paths to filter"
+      },
+      "min_sharpness": {
+        "type": "number",
+        "required": false,
+        "default": 0.3,
+        "description": "Minimum sharpness score (0.0-1.0)"
+      },
+      "min_brightness": {
+        "type": "number",
+        "required": false,
+        "default": 0.1,
+        "description": "Minimum brightness score (0.0-1.0)"
+      },
+      "max_brightness": {
+        "type": "number",
+        "required": false,
+        "default": 0.9,
+        "description": "Maximum brightness score (0.0-1.0)"
+      },
+      "min_contrast": {
+        "type": "number",
+        "required": false,
+        "default": 0.2,
+        "description": "Minimum contrast score (0.0-1.0)"
+      },
+      "max_noise_level": {
+        "type": "number",
+        "required": false,
+        "default": 0.8,
+        "description": "Maximum acceptable noise level (0.0-1.0)"
+      },
+      "filter_action": {
+        "type": "string",
+        "required": false,
+        "default": "flag",
+        "description": "Action for filtered images: flag, remove, quarantine"
+      },
+      "output_directory": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Directory for quarantined images (required if filter_action is quarantine)"
+      }
+    },
+    "error_messages": [
+      "Invalid image path: One or more image paths do not exist or are not accessible.",
+      "Invalid quality thresholds: All quality threshold parameters must be numbers between 0.0 and 1.0.",
+      "Invalid brightness range: max_brightness must be greater than min_brightness.",
+      "Invalid filter action: Must be one of [flag, remove, quarantine].",
+      "Missing output directory: output_directory is required when filter_action is quarantine.",
+      "Filter operation failed: Unable to apply quality filters due to processing error."
+    ],
+    "usage": "Provide image_paths array and configure quality thresholds (min_sharpness, min_brightness, etc.). Set filter_action to determine how filtered images are handled. For quarantine action, specify output_directory.",
+    "output_details": {
+      "passed_images": {
+        "type": "array",

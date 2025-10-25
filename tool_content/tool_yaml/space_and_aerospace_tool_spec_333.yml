@@ -1,0 +1,776 @@
+field_name: space_and_aerospace
+subfield: Satellite Design and Manufacturing
+task: Orbital mechanics and trajectory planning for satellite missions
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard**. Orbital mechanics involves complex physics calculations, multi-body gravitational interactions, precise trajectory optimization, and mission-critical accuracy requirements. The scope includes orbital propagation, maneuver planning, collision avoidance, and ground track analysis across diverse mission profiles with significant computational and safety dependencies.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** to cover the comprehensive workflow from initial orbit determination through mission planning and optimization.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Orbital State Propagator** - Consumes: initial conditions, time span → Produces: propagated orbital states
+  2. **Keplerian Element Converter** - Consumes: position/velocity vectors → Produces: classical orbital elements
+  3. **Ground Track Generator** - Consumes: orbital states, Earth model → Produces: ground track coordinates
+  4. **Orbital Maneuver Planner** - Consumes: initial/target orbits → Produces: maneuver sequences
+  5. **Delta-V Calculator** - Consumes: maneuver parameters → Produces: fuel requirements
+  6. **Collision Risk Assessor** - Consumes: multiple orbital states → Produces: collision probabilities
+  7. **Coverage Area Analyzer** - Consumes: orbital states, sensor specs → Produces: coverage maps
+  8. **Launch Window Optimizer** - Consumes: mission constraints → Produces: optimal launch times
+  9. **Station Keeping Planner** - Consumes: reference orbit, perturbations → Produces: maintenance maneuvers
+  10. **Orbital Period Calculator** - Consumes: orbital parameters → Produces: period and frequency data
+  11. **Eclipse Time Predictor** - Consumes: orbital states, celestial bodies → Produces: eclipse schedules
+  12. **Attitude Requirements Generator** - Consumes: mission objectives, orbits → Produces: pointing requirements
+  13. **Perturbation Force Modeler** - Consumes: orbital state, environment → Produces: perturbation accelerations
+  14. **Mission Timeline Builder** - Consumes: orbital events, operations → Produces: mission schedules
+  15. **Orbit Determination Processor** - Consumes: tracking data → Produces: refined orbital states
+  16. **Trajectory Optimization Engine** - Consumes: mission constraints → Produces: optimal trajectories
+  17. **Orbital Debris Tracker** - Consumes: debris catalogs, orbital states → Produces: debris encounter risks
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic orbit analysis: Orbital State Propagator → Keplerian Element Converter → Orbital Period Calculator
+  2. Ground coverage check: Ground Track Generator → Coverage Area Analyzer
+
+  **Medium Plans:**
+  1. Mission planning: Launch Window Optimizer → Orbital Maneuver Planner → Delta-V Calculator → Mission Timeline Builder
+  2. Collision assessment: Orbital State Propagator → Collision Risk Assessor → Orbital Debris Tracker
+  3. Power analysis: Orbital State Propagator → Eclipse Time Predictor → Coverage Area Analyzer
+
+  **Complex Plans:**
+  1. Complete mission design: Launch Window Optimizer → Trajectory Optimization Engine → Orbital Maneuver Planner → Delta-V Calculator → Station Keeping Planner → Mission Timeline Builder
+  2. Comprehensive safety analysis: Orbit Determination Processor → Perturbation Force Modeler → Collision Risk Assessor → Orbital Debris Tracker → Station Keeping Planner
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Orbital State Propagator",
+    "tool_description": "Propagates satellite orbital states forward or backward in time using numerical integration with gravitational and perturbation forces.",
+    "parameters": {
+      "initial_position_km": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Initial position vector [x, y, z] in Earth-centered inertial coordinates (km)"
+      },
+      "initial_velocity_kmps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Initial velocity vector [vx, vy, vz] in km/s"
+      },
+      "start_time": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Initial epoch time in UTC ISO 8601 format"
+      },
+      "end_time": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Final propagation time in UTC ISO 8601 format"
+      },
+      "time_step_seconds": {
+        "type": "number",
+        "required": false,
+        "default": 60,
+        "description": "Output time step interval in seconds"
+      },
+      "include_j2_perturbation": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Include Earth oblateness J2 perturbation effects"
+      },
+      "include_atmospheric_drag": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Include atmospheric drag perturbations"
+      }
+    },
+    "error_messages": [
+      "Invalid initial conditions: Position magnitude must be > 6371 km (Earth radius) and velocity must be reasonable for orbital motion.",
+      "Time sequence error: start_time must be before end_time.",
+      "Invalid time step: time_step_seconds must be positive and < 86400 (1 day).",
+      "Orbital decay detected: Satellite has impacted Earth surface during propagation."
+    ],
+    "usage": "Provide initial position and velocity vectors in ECI coordinates, specify time range and optional perturbation settings. Returns time series of orbital states.",
+    "output_details": {
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of time stamps in UTC ISO 8601 format"
+      },
+      "positions_km": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "Array of position vectors [x,y,z] in km at each timestamp"
+      },
+      "velocities_kmps": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "Array of velocity vectors [vx,vy,vz] in km/s at each timestamp"
+      },
+      "orbital_energy": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Specific orbital energy at each timestamp (km²/s²)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Keplerian Element Converter",
+    "tool_description": "Converts between Cartesian position/velocity vectors and classical Keplerian orbital elements.",
+    "parameters": {
+      "position_km": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Position vector [x, y, z] in km"
+      },
+      "velocity_kmps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Velocity vector [vx, vy, vz] in km/s"
+      },
+      "reference_time": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Reference epoch time in UTC"
+      }
+    },
+    "error_messages": [
+      "Invalid state vectors: Position and velocity arrays must each contain exactly 3 numeric elements.",
+      "Hyperbolic orbit detected: Eccentricity >= 1.0 indicates non-elliptical orbit.",
+      "Degenerate orbit: Circular or equatorial orbits may have undefined elements."
+    ],
+    "usage": "Input Cartesian position and velocity vectors to obtain classical orbital elements. Handle special cases for circular and equatorial orbits.",
+    "output_details": {
+      "semi_major_axis_km": {
+        "type": "number",
+        "description": "Semi-major axis in kilometers"
+      },
+      "eccentricity": {
+        "type": "number",
+        "description": "Orbital eccentricity (0 = circular, <1 = elliptical)"
+      },
+      "inclination_deg": {
+        "type": "number",
+        "description": "Inclination angle in degrees"
+      },
+      "raan_deg": {
+        "type": "number",
+        "description": "Right ascension of ascending node in degrees"
+      },
+      "arg_perigee_deg": {
+        "type": "number",
+        "description": "Argument of perigee in degrees"
+      },
+      "true_anomaly_deg": {
+        "type": "number",
+        "description": "True anomaly in degrees"
+      },
+      "orbital_period_seconds": {
+        "type": "number",
+        "description": "Orbital period in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Ground Track Generator",
+    "tool_description": "Generates satellite ground track coordinates showing the path over Earth's surface for given orbital states.",
+    "parameters": {
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of UTC timestamps in ISO 8601 format"
+      },
+      "positions_km": {
+        "type": "array",
+        "items": {"type": "array"},
+        "required": true,
+        "description": "Array of ECI position vectors corresponding to timestamps"
+      },
+      "earth_rotation_rate": {
+        "type": "number",
+        "required": false,
+        "default": 7.2921159e-5,
+        "description": "Earth rotation rate in rad/s"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: timestamps and positions_km arrays must have equal length.",
+      "Invalid position data: Each position must be a 3-element array with numeric values.",
+      "Timestamps not chronological: Input timestamps must be in ascending order."
+    ],
+    "usage": "Provide synchronized arrays of timestamps and ECI positions. Tool accounts for Earth rotation to compute ground track coordinates.",
+    "output_details": {
+      "latitudes_deg": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of latitude coordinates in degrees (-90 to +90)"
+      },
+      "longitudes_deg": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of longitude coordinates in degrees (-180 to +180)"
+      },
+      "altitudes_km": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of altitudes above Earth surface in km"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Orbital Maneuver Planner",
+    "tool_description": "Plans orbital maneuvers to transfer between initial and target orbits, calculating required burn sequences and timing.",
+    "parameters": {
+      "initial_semi_major_axis_km": {
+        "type": "number",
+        "required": true,
+        "description": "Initial orbit semi-major axis in km"
+      },
+      "initial_eccentricity": {
+        "type": "number",
+        "required": true,
+        "description": "Initial orbit eccentricity"
+      },
+      "initial_inclination_deg": {
+        "type": "number",
+        "required": true,
+        "description": "Initial orbit inclination in degrees"
+      },
+      "target_semi_major_axis_km": {
+        "type": "number",
+        "required": true,
+        "description": "Target orbit semi-major axis in km"
+      },
+      "target_eccentricity": {
+        "type": "number",
+        "required": true,
+        "description": "Target orbit eccentricity"
+      },
+      "target_inclination_deg": {
+        "type": "number",
+        "required": true,
+        "description": "Target orbit inclination in degrees"
+      },
+      "maneuver_type": {
+        "type": "string",
+        "required": false,
+        "default": "hohmann",
+        "description": "Transfer type: hohmann, bielliptic, or plane_change"
+      },
+      "optimize_fuel": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Optimize for minimum fuel consumption"
+      },
+      "max_burn_duration_seconds": {
+        "type": "number",
+        "required": false,
+        "default": 3600,
+        "description": "Maximum allowed burn duration per maneuver"
+      },
+      "specific_impulse_seconds": {
+        "type": "number",
+        "required": false,
+        "default": 300,
+        "description": "Engine specific impulse in seconds"
+      },
+      "spacecraft_mass_kg": {
+        "type": "number",
+        "required": false,
+        "default": 1000,
+        "description": "Initial spacecraft mass in kg"
+      },
+      "thrust_newtons": {
+        "type": "number",
+        "required": false,
+        "default": 100,
+        "description": "Engine thrust in Newtons"
+      }
+    },
+    "error_messages": [
+      "Invalid orbital parameters: Semi-major axes must be > 6371 km, eccentricity must be >= 0 and < 1, inclination must be 0-180 degrees.",
+      "Impossible transfer: Target orbit cannot be reached with specified maneuver type.",
+      "Insufficient thrust: Engine thrust too low for required maneuver within time constraints.",
+      "Invalid engine parameters: specific_impulse_seconds must be > 0, thrust_newtons must be > 0, spacecraft_mass_kg must be > 0."
+    ],
+    "usage": "Specify initial and target orbital parameters, select maneuver type, and provide spacecraft/engine characteristics. Tool returns optimized maneuver sequence.",
+    "output_details": {
+      "maneuver_sequence": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Ordered list of maneuver descriptions"
+      },
+      "burn_times_seconds": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Burn duration for each maneuver in seconds"
+      },
+      "delta_v_kmps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Delta-V requirement for each maneuver in km/s"
+      },
+      "total_delta_v_kmps": {
+        "type": "number",
+        "description": "Total delta-V requirement in km/s"
+      },
+      "fuel_mass_kg": {
+        "type": "number",
+        "description": "Total fuel mass required in kg"
+      },
+      "transfer_time_seconds": {
+        "type": "number",
+        "description": "Total transfer time in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delta-V Calculator",
+    "tool_description": "Calculates delta-V requirements and fuel consumption for specific orbital maneuvers.",
+    "parameters": {
+      "maneuver_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of maneuver: orbit_raise, orbit_lower, plane_change, circularize, or custom"
+      },
+      "delta_v_kmps": {
+        "type": "number",
+        "required": true,
+        "description": "Required delta-V magnitude in km/s"
+      },
+      "specific_impulse_seconds": {
+        "type": "number",
+        "required": true,
+        "description": "Engine specific impulse in seconds"
+      },
+      "initial_mass_kg": {
+        "type": "number",
+        "required": true,
+        "description": "Initial spacecraft mass in kg"
+      }
+    },
+    "error_messages": [
+      "Invalid maneuver type: Use one of [orbit_raise, orbit_lower, plane_change, circularize, custom].",
+      "Invalid delta-V: delta_v_kmps must be positive and realistic (< 15 km/s for typical missions).",
+      "Invalid specific impulse: specific_impulse_seconds must be positive (typical range 200-450s).",
+      "Invalid mass: initial_mass_kg must be positive."
+    ],
+    "usage": "Specify maneuver type, required delta-V, engine specific impulse, and initial mass to calculate fuel requirements using rocket equation.",
+    "output_details": {
+      "fuel_mass_kg": {
+        "type": "number",
+        "description": "Required fuel mass in kg"
+      },
+      "final_mass_kg": {
+        "type": "number",
+        "description": "Final spacecraft mass after maneuver in kg"
+      },
+      "mass_ratio": {
+        "type": "number",
+        "description": "Initial to final mass ratio"
+      },
+      "fuel_fraction": {
+        "type": "number",
+        "description": "Fuel mass as fraction of initial mass"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Collision Risk Assessor",
+    "tool_description": "Assesses collision probability between satellite and other space objects using conjunction analysis.",
+    "parameters": {
+      "primary_position_km": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Primary satellite position vector [x,y,z] in km"
+      },
+      "primary_velocity_kmps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Primary satellite velocity vector [vx,vy,vz] in km/s"
+      },
+      "secondary_positions_km": {
+        "type": "array",
+        "items": {"type": "array"},
+        "required": true,
+        "description": "Array of secondary object position vectors"
+      },
+      "secondary_velocities_kmps": {
+        "type": "array",
+        "items": {"type": "array"},
+        "required": true,
+        "description": "Array of secondary object velocity vectors"
+      },
+      "analysis_duration_hours": {
+        "type": "number",
+        "required": false,
+        "default": 24,
+        "description": "Analysis time window in hours"
+      },
+      "collision_threshold_km": {
+        "type": "number",
+        "required": false,
+        "default": 1.0,
+        "description": "Minimum separation distance for collision risk in km"
+      },
+      "position_uncertainty_km": {
+        "type": "number",
+        "required": false,
+        "default": 0.1,
+        "description": "Position uncertainty (1-sigma) in km"
+      }
+    },
+    "error_messages": [
+      "Array dimension mismatch: secondary_positions_km and secondary_velocities_kmps must have equal length.",
+      "Invalid state vectors: All position and velocity vectors must contain exactly 3 numeric elements.",
+      "Invalid parameters: analysis_duration_hours must be > 0, collision_threshold_km must be > 0, position_uncertainty_km must be > 0."
+    ],
+    "usage": "Provide primary satellite state and arrays of secondary object states. Tool performs conjunction analysis over specified time window.",
+    "output_details": {
+      "collision_probabilities": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Collision probability for each secondary object"
+      },
+      "minimum_distances_km": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Minimum approach distances in km"
+      },
+      "closest_approach_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Times of closest approach in UTC ISO 8601 format"
+      },
+      "high_risk_objects": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Indices of objects with collision probability > 1e-6"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Coverage Area Analyzer",
+    "tool_description": "Analyzes ground coverage area and access times for satellite with specified sensor characteristics.",
+    "parameters": {
+      "satellite_positions_km": {
+        "type": "array",
+        "items": {"type": "array"},
+        "required": true,
+        "description": "Array of satellite ECI position vectors"
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Corresponding timestamps in UTC ISO 8601 format"
+      },
+      "sensor_fov_deg": {
+        "type": "number",
+        "required": true,
+        "description": "Sensor field of view half-angle in degrees"
+      },
+      "minimum_elevation_deg": {
+        "type": "number",
+        "required": false,
+        "default": 10,
+        "description": "Minimum elevation angle for ground access in degrees"
+      },
+      "target_latitude_deg": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Target ground point latitude in degrees"
+      },
+      "target_longitude_deg": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Target ground point longitude in degrees"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: satellite_positions_km and timestamps must have equal length.",
+      "Invalid sensor FOV: sensor_fov_deg must be between 0 and 90 degrees.",
+      "Invalid elevation: minimum_elevation_deg must be between 0 and 90 degrees.",
+      "Invalid coordinates: target_latitude_deg must be -90 to +90, target_longitude_deg must be -180 to +180."
+    ],
+    "usage": "Provide satellite trajectory data and sensor specifications. Optionally specify target coordinates for access analysis.",
+    "output_details": {
+      "coverage_area_km2": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Instantaneous coverage area at each timestamp in km²"
+      },
+      "access_intervals": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "Start and end times of access intervals"
+      },
+      "max_elevation_deg": {
+        "type": "number",
+        "description": "Maximum elevation angle achieved during pass"
+      },
+      "total_access_time_seconds": {
+        "type": "number",
+        "description": "Total access time in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Launch Window Optimizer",
+    "tool_description": "Determines optimal launch windows based on orbital mechanics constraints, target orbits, and mission requirements.",
+    "parameters": {
+      "launch_site_latitude_deg": {
+        "type": "number",
+        "required": true,
+        "description": "Launch site latitude in degrees"
+      },
+      "launch_site_longitude_deg": {
+        "type": "number",
+        "required": true,
+        "description": "Launch site longitude in degrees"
+      },
+      "target_inclination_deg": {
+        "type": "number",
+        "required": true,
+        "description": "Target orbital inclination in degrees"
+      },
+      "target_altitude_km": {
+        "type": "number",
+        "required": true,
+        "description": "Target orbital altitude in km"
+      },
+      "earliest_launch_time": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Earliest possible launch time in UTC"
+      },
+      "latest_launch_time": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Latest possible launch time in UTC"
+      },
+      "launch_azimuth_range_deg": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": false,
+        "default": [0, 360],
+        "description": "Allowed launch azimuth range [min, max] in degrees"
+      },
+      "optimize_for": {
+        "type": "string",
+        "required": false,
+        "default": "fuel_efficiency",
+        "description": "Optimization criterion: fuel_efficiency, mission_duration, or ground_track"
+      },
+      "avoid_populated_areas": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Avoid launch trajectories over populated areas"
+      },
+      "rendezvous_target": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Target spacecraft identifier for rendezvous missions"
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Latitude must be -90 to +90 degrees, longitude must be -180 to +180 degrees.",
+      "Invalid target parameters: target_inclination_deg must be 0-180 degrees, target_altitude_km must be > 150 km.",
+      "Invalid time range: earliest_launch_time must be before latest_launch_time.",
+      "Invalid azimuth range: launch_azimuth_range_deg must contain exactly 2 elements with min < max.",
+      "Impossible launch: Target inclination cannot be achieved from launch site latitude.",
+      "Invalid optimization criterion: Use one of [fuel_efficiency, mission_duration, ground_track]."
+    ],
+    "usage": "Specify launch site coordinates, target orbit parameters, and time constraints. Tool finds optimal launch opportunities within the specified window.",
+    "output_details": {
+      "optimal_launch_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended launch times in UTC ISO 8601 format"
+      },
+      "launch_azimuths_deg": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Required launch azimuth for each optimal time"
+      },
+      "delta_v_requirements_kmps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Delta-V requirement for each launch opportunity"
+      },
+      "window_duration_minutes": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Duration of each launch window in minutes"
+      },
+      "best_launch_time": {
+        "type": "string",
+        "description": "Single best launch time based on optimization criterion"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Station Keeping Planner",
+    "tool_description": "Plans station-keeping maneuvers to maintain satellite in desired orbital slot against perturbation forces.",
+    "parameters": {
+      "reference_semi_major_axis_km": {
+        "type": "number",
+        "required": true,
+        "description": "Reference orbit semi-major axis in km"
+      },
+      "reference_eccentricity": {
+        "type": "number",
+        "required": true,
+        "description": "Reference orbit eccentricity"
+      },
+      "reference_inclination_deg": {
+        "type": "number",
+        "required": true,
+        "description": "Reference orbit inclination in degrees"
+      },
+      "current_position_km": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Current satellite position [x,y,z] in km"
+      },
+      "current_velocity_kmps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Current satellite velocity [vx,vy,vz] in km/s"
+      },
+      "deadband_km": {
+        "type": "number",
+        "required": false,
+        "default": 10,
+        "description": "Allowable position deviation from reference orbit in km"
+      },
+      "planning_horizon_days": {
+        "type": "number",
+        "required": false,
+        "default": 30,
+        "description": "Station-keeping planning period in days"
+      },
+      "fuel_budget_kg": {
+        "type": "number",
+        "required": false,
+        "default": 100,
+        "description": "Available fuel for station-keeping in kg"
+      }
+    },
+    "error_messages": [
+      "Invalid reference orbit: Semi-major axis must be > 6371 km, eccentricity 0-1, inclination 0-180 degrees.",
+      "Invalid current state: Position and velocity vectors must contain exactly 3 numeric elements.",
+      "Invalid planning parameters: deadband_km must be > 0, planning_horizon_days must be > 0, fuel_budget_kg must be > 0."
+    ],
+    "usage": "Provide reference orbit parameters and current satellite state. Tool generates station-keeping maneuver plan within fuel budget constraints.",
+    "output_details": {
+      "maneuver_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Scheduled maneuver times in UTC ISO 8601 format"
+      },
+      "maneuver_delta_v_mps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Required delta-V for each maneuver in m/s"
+      },
+      "maneuver_directions": {
+        "type": "array",
+        "items": {"type": "array"},
+        "description": "Unit vectors for maneuver directions"
+      },
+      "fuel_consumption_kg": {
+        "type": "number",
+        "description": "Total fuel consumption for planned maneuvers in kg"
+      },
+      "station_keeping_effectiveness": {
+        "type": "number",
+        "description": "Percentage of time within deadband limits"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Orbital Period Calculator",
+    "tool_description": "Calculates orbital period, frequency, and related timing parameters for given orbital characteristics.",
+    "parameters": {
+      "semi_major_axis_km": {
+        "type": "number",
+        "required": true,
+        "description": "Orbital semi-major axis in kilometers"
+      },
+      "eccentricity": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Orbital eccentricity (0 for circular orbit)"
+      },
+      "central_body": {
+        "type": "string",
+        "required": false,
+        "default": "earth",
+        "description": "Central body: earth, moon, mars, or sun"
+      }
+    },
+    "error_messages": [
+      "Invalid semi-major axis: Must be greater than central body radius (Earth: 6371 km).",
+      "Invalid eccentricity: Must be >= 0 and < 1 for elliptical orbits.",
+      "Unsupported central body: Use one of [earth, moon, mars, sun]."
+    ],
+    "usage": "Specify orbital semi-major axis and optionally eccentricity and central body. Tool returns comprehensive orbital timing information.",
+    "output_details": {
+      "orbital_period_seconds": {
+        "type": "number",
+        "description": "Orbital period in seconds"

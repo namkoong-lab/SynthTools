@@ -1,0 +1,828 @@
+field_name: healthcare_medical
+subfield: Patient Registration and Scheduling
+task: Patient identity verification and insurance eligibility checking
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium complexity due to the need for integration with multiple external systems (insurance databases, identity verification services), handling sensitive patient data with strict compliance requirements (HIPAA), and coordinating real-time verification processes that can impact patient care workflows.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover identity verification, insurance eligibility checking, data validation, compliance monitoring, and workflow coordination.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Patient_Identity_Validator** - Consumes: patient demographics → Produces: identity verification status
+  2. **Insurance_Eligibility_Checker** - Consumes: insurance details, patient info → Produces: coverage status and benefits
+  3. **Document_Scanner** - Consumes: document images → Produces: extracted text data
+  4. **Identity_Document_Verifier** - Consumes: document data → Produces: document authenticity status
+  5. **Insurance_Card_Parser** - Consumes: insurance card image → Produces: structured insurance data
+  6. **Patient_Data_Normalizer** - Consumes: raw patient data → Produces: standardized patient record
+  7. **HIPAA_Compliance_Monitor** - Consumes: verification activities → Produces: compliance audit trail
+  8. **Real_Time_Benefits_Lookup** - Consumes: insurance info → Produces: current benefit details
+  9. **Patient_Match_Resolver** - Consumes: patient identifiers → Produces: unified patient record
+  10. **Verification_Status_Tracker** - Consumes: verification steps → Produces: workflow status
+  11. **Insurance_Network_Validator** - Consumes: provider and insurance data → Produces: network participation status
+  12. **Patient_Communication_Generator** - Consumes: verification results → Produces: patient notifications
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic identity check: Patient_Identity_Validator → HIPAA_Compliance_Monitor
+  2. Quick insurance lookup: Insurance_Card_Parser → Insurance_Eligibility_Checker
+
+  **Medium Plans:**
+  1. Standard verification workflow: Document_Scanner → Patient_Data_Normalizer → Patient_Identity_Validator → Insurance_Eligibility_Checker → Verification_Status_Tracker
+  2. Insurance validation flow: Insurance_Card_Parser → Real_Time_Benefits_Lookup → Insurance_Network_Validator → Patient_Communication_Generator
+
+  **Complex Plans:**
+  1. Complete patient onboarding: Document_Scanner → Identity_Document_Verifier → Patient_Data_Normalizer → Patient_Match_Resolver → Patient_Identity_Validator → Insurance_Card_Parser → Insurance_Eligibility_Checker → Real_Time_Benefits_Lookup → Insurance_Network_Validator → Verification_Status_Tracker → HIPAA_Compliance_Monitor → Patient_Communication_Generator
+  2. Comprehensive eligibility verification: Patient_Data_Normalizer → Patient_Match_Resolver → Insurance_Card_Parser → Insurance_Eligibility_Checker → Real_Time_Benefits_Lookup → Insurance_Network_Validator → HIPAA_Compliance_Monitor
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Patient_Identity_Validator",
+    "tool_description": "Validates patient identity by cross-referencing demographic information against authoritative databases and identity verification services.",
+    "parameters": {
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's first name as provided"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's last name as provided"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's date of birth in YYYY-MM-DD format",
+        "format": "date-time"
+      },
+      "ssn_last_four": {
+        "type": "string",
+        "required": true,
+        "description": "Last four digits of Social Security Number"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's primary phone number",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid SSN format: Last four digits must be exactly 4 numeric characters.",
+      "Invalid date format: Date of birth must be in YYYY-MM-DD format.",
+      "Missing required demographics: First name, last name, date of birth, and SSN last four are required.",
+      "Identity verification service unavailable: External verification service is temporarily down, try again later.",
+      "Insufficient data for verification: Additional identifying information may be required for positive verification."
+    ],
+    "usage": "Provide patient's first_name, last_name, date_of_birth, and ssn_last_four. Optionally include phone_number for enhanced verification accuracy.",
+    "output_details": {
+      "verification_status": {
+        "type": "string",
+        "description": "Status of identity verification: verified, unverified, or pending"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Verification confidence level from 0.0 to 1.0"
+      },
+      "verification_timestamp": {
+        "type": "string",
+        "description": "When verification was completed in ISO format"
+      },
+      "verification_id": {
+        "type": "string",
+        "description": "Unique identifier for this verification attempt"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Insurance_Eligibility_Checker",
+    "tool_description": "Checks patient insurance eligibility and coverage status by querying insurance provider databases in real-time.",
+    "parameters": {
+      "insurance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's insurance member ID number"
+      },
+      "insurance_provider": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the insurance provider or company"
+      },
+      "group_number": {
+        "type": "string",
+        "required": false,
+        "description": "Insurance group number if available",
+        "default": "None"
+      },
+      "patient_first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's first name for verification"
+      },
+      "patient_last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's last name for verification"
+      },
+      "patient_dob": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's date of birth for verification",
+        "format": "date-time"
+      },
+      "service_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of service to check eligibility for",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid insurance ID: Insurance member ID format is not recognized by the provider.",
+      "Insurance provider not found: The specified insurance provider is not in our network or database.",
+      "Patient demographic mismatch: Patient name or date of birth does not match insurance records.",
+      "Coverage inactive: Insurance coverage is not active for the specified service date.",
+      "Eligibility service timeout: Insurance provider's eligibility service did not respond within the timeout period.",
+      "Invalid service date: Service date must be within a reasonable range and properly formatted."
+    ],
+    "usage": "Provide insurance_id, insurance_provider, patient demographics, and service_date. Optionally include group_number for more accurate matching.",
+    "output_details": {
+      "eligibility_status": {
+        "type": "string",
+        "description": "Patient's eligibility status: active, inactive, or unknown"
+      },
+      "coverage_effective_date": {
+        "type": "string",
+        "description": "Date when coverage becomes effective"
+      },
+      "coverage_termination_date": {
+        "type": "string",
+        "description": "Date when coverage terminates, if applicable"
+      },
+      "copay_amount": {
+        "type": "number",
+        "description": "Patient copay amount for standard visits"
+      },
+      "deductible_remaining": {
+        "type": "number",
+        "description": "Remaining deductible amount for the year"
+      },
+      "plan_name": {
+        "type": "string",
+        "description": "Name of the insurance plan"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document_Scanner",
+    "tool_description": "Extracts text and data from uploaded patient documents using OCR technology, supporting various document formats.",
+    "parameters": {
+      "document_image_path": {
+        "type": "string",
+        "required": true,
+        "description": "File path or URL to the document image"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document: drivers_license, insurance_card, passport, or other"
+      },
+      "enhance_quality": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply image enhancement before OCR",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Document not found: The specified document path or URL cannot be accessed.",
+      "Unsupported document format: Document must be in JPEG, PNG, or PDF format.",
+      "Document quality too poor: Image quality is insufficient for reliable text extraction.",
+      "Document type not recognized: Supported types are drivers_license, insurance_card, passport, or other.",
+      "OCR processing failed: Text extraction service encountered an error during processing."
+    ],
+    "usage": "Provide document_image_path and document_type. Set enhance_quality to false only if the image is already high quality to speed processing.",
+    "output_details": {
+      "extracted_text": {
+        "type": "string",
+        "description": "Raw text extracted from the document"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "OCR confidence level from 0.0 to 1.0"
+      },
+      "processing_timestamp": {
+        "type": "string",
+        "description": "When the document was processed"
+      },
+      "document_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to this document"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Identity_Document_Verifier",
+    "tool_description": "Verifies the authenticity of identity documents by analyzing security features and cross-referencing with issuing authorities.",
+    "parameters": {
+      "document_text": {
+        "type": "string",
+        "required": true,
+        "description": "Extracted text content from the identity document"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of identity document: drivers_license, passport, or state_id"
+      },
+      "issuing_state": {
+        "type": "string",
+        "required": true,
+        "description": "State or jurisdiction that issued the document"
+      },
+      "document_number": {
+        "type": "string",
+        "required": true,
+        "description": "Document number or ID from the document"
+      },
+      "issue_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date the document was issued",
+        "format": "date-time"
+      },
+      "expiration_date": {
+        "type": "string",
+        "required": true,
+        "description": "Document expiration date",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Document expired: The document expiration date has passed.",
+      "Invalid document number format: Document number does not match expected format for the issuing state.",
+      "Issuing authority verification failed: Could not verify document with the issuing authority database.",
+      "Document type not supported: Supported types are drivers_license, passport, or state_id.",
+      "Invalid date format: Issue date and expiration date must be in proper date format.",
+      "Document reported as invalid: Document number is flagged as invalid or fraudulent by issuing authority."
+    ],
+    "usage": "Provide document_text, document_type, issuing_state, document_number, issue_date, and expiration_date extracted from the document for comprehensive verification.",
+    "output_details": {
+      "authenticity_status": {
+        "type": "string",
+        "description": "Document authenticity: authentic, suspicious, or invalid"
+      },
+      "verification_details": {
+        "type": "string",
+        "description": "Detailed explanation of verification results"
+      },
+      "expiration_status": {
+        "type": "string",
+        "description": "Whether document is current, expired, or expiring_soon"
+      },
+      "verification_timestamp": {
+        "type": "string",
+        "description": "When verification was completed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Insurance_Card_Parser",
+    "tool_description": "Parses insurance card images to extract structured insurance information including member ID, group number, and coverage details.",
+    "parameters": {
+      "card_image_path": {
+        "type": "string",
+        "required": true,
+        "description": "File path or URL to the insurance card image"
+      },
+      "card_side": {
+        "type": "string",
+        "required": true,
+        "description": "Which side of the card: front or back"
+      },
+      "insurance_provider_hint": {
+        "type": "string",
+        "required": false,
+        "description": "Expected insurance provider name to improve parsing accuracy",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Image not accessible: Cannot access the insurance card image at the specified path.",
+      "Invalid card side: Card side must be specified as either 'front' or 'back'.",
+      "Poor image quality: Insurance card image quality is too poor for reliable data extraction.",
+      "Card format not recognized: Insurance card layout is not recognized by the parser.",
+      "Incomplete data extraction: Could not extract all required insurance information from the card."
+    ],
+    "usage": "Provide card_image_path and specify card_side as 'front' or 'back'. Optionally provide insurance_provider_hint to improve parsing accuracy.",
+    "output_details": {
+      "member_id": {
+        "type": "string",
+        "description": "Extracted member ID number"
+      },
+      "group_number": {
+        "type": "string",
+        "description": "Extracted group number"
+      },
+      "plan_name": {
+        "type": "string",
+        "description": "Insurance plan name"
+      },
+      "provider_name": {
+        "type": "string",
+        "description": "Insurance provider company name"
+      },
+      "member_name": {
+        "type": "string",
+        "description": "Member name as printed on card"
+      },
+      "effective_date": {
+        "type": "string",
+        "description": "Coverage effective date if available"
+      },
+      "parsing_confidence": {
+        "type": "number",
+        "description": "Confidence level of extraction from 0.0 to 1.0"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Patient_Data_Normalizer",
+    "tool_description": "Standardizes and normalizes patient demographic and contact information to ensure consistency across systems.",
+    "parameters": {
+      "raw_first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Raw first name input from various sources"
+      },
+      "raw_last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Raw last name input from various sources"
+      },
+      "raw_phone": {
+        "type": "string",
+        "required": false,
+        "description": "Raw phone number in any format",
+        "default": "None"
+      },
+      "raw_address": {
+        "type": "string",
+        "required": false,
+        "description": "Raw address string",
+        "default": "None"
+      },
+      "raw_date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Date of birth in any recognizable format"
+      },
+      "raw_ssn": {
+        "type": "string",
+        "required": false,
+        "description": "Social Security Number in any format",
+        "default": "None"
+      },
+      "raw_email": {
+        "type": "string",
+        "required": false,
+        "description": "Email address",
+        "default": "None"
+      },
+      "normalization_rules": {
+        "type": "array",
+        "required": false,
+        "description": "Specific normalization rules to apply",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid name format: First name and last name must contain only alphabetic characters and common punctuation.",
+      "Unparseable date of birth: Date of birth format is not recognized, use MM/DD/YYYY, YYYY-MM-DD, or similar standard formats.",
+      "Invalid phone number: Phone number cannot be parsed into a valid US phone number format.",
+      "Invalid email format: Email address format is not valid.",
+      "Invalid SSN format: Social Security Number must be 9 digits in any standard format.",
+      "Address normalization failed: Address format cannot be standardized, manual review may be required."
+    ],
+    "usage": "Provide raw patient data fields and the tool will normalize them according to healthcare industry standards. Use normalization_rules to specify custom formatting requirements.",
+    "output_details": {
+      "normalized_first_name": {
+        "type": "string",
+        "description": "Standardized first name in proper case"
+      },
+      "normalized_last_name": {
+        "type": "string",
+        "description": "Standardized last name in proper case"
+      },
+      "normalized_phone": {
+        "type": "string",
+        "description": "Phone number in (XXX) XXX-XXXX format"
+      },
+      "normalized_address": {
+        "type": "string",
+        "description": "Standardized address format"
+      },
+      "normalized_dob": {
+        "type": "string",
+        "description": "Date of birth in YYYY-MM-DD format"
+      },
+      "normalized_ssn_last_four": {
+        "type": "string",
+        "description": "Last four digits of SSN"
+      },
+      "normalized_email": {
+        "type": "string",
+        "description": "Email in lowercase standard format"
+      },
+      "normalization_warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any warnings or issues during normalization"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "HIPAA_Compliance_Monitor",
+    "tool_description": "Monitors and logs patient data access and verification activities to ensure HIPAA compliance and maintain audit trails.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the user performing the verification activity"
+      },
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier being accessed"
+      },
+      "activity_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of activity: identity_verification, insurance_check, document_access, or data_modification"
+      },
+      "data_accessed": {
+        "type": "array",
+        "required": true,
+        "description": "List of data fields that were accessed or modified",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "access_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Business justification for accessing patient data"
+      },
+      "session_id": {
+        "type": "string",
+        "required": false,
+        "description": "User session identifier",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid user ID: User ID is not recognized in the system.",
+      "Invalid patient ID: Patient ID format is incorrect or not found.",
+      "Unsupported activity type: Activity type must be identity_verification, insurance_check, document_access, or data_modification.",
+      "Missing access justification: Access reason is required for all patient data access.",
+      "Data access list empty: At least one data field must be specified in data_accessed array.",
+      "Audit logging failed: Unable to record the access event in the compliance audit log."
+    ],
+    "usage": "Call this tool for every patient data access event, providing user_id, patient_id, activity_type, data_accessed list, and access_reason to maintain proper audit trails.",
+    "output_details": {
+      "audit_log_id": {
+        "type": "string",
+        "description": "Unique identifier for the audit log entry"
+      },
+      "compliance_status": {
+        "type": "string",
+        "description": "Compliance status: compliant, requires_review, or violation"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "When the audit log was created"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Assessed risk level: low, medium, or high"
+      },
+      "compliance_notes": {
+        "type": "string",
+        "description": "Additional compliance observations or requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Real_Time_Benefits_Lookup",
+    "tool_description": "Performs real-time lookup of patient insurance benefits and coverage details for specific services and procedures.",
+    "parameters": {
+      "insurance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's insurance member ID"
+      },
+      "insurance_provider": {
+        "type": "string",
+        "required": true,
+        "description": "Insurance provider name"
+      },
+      "service_codes": {
+        "type": "array",
+        "required": true,
+        "description": "CPT or procedure codes for services to check",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "provider_npi": {
+        "type": "string",
+        "required": true,
+        "description": "National Provider Identifier of the healthcare provider"
+      },
+      "service_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date services will be provided",
+        "format": "date-time"
+      },
+      "patient_dob": {
+        "type": "string",
+        "required": true,
+        "description": "Patient date of birth for verification",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid service codes: One or more CPT codes are not recognized or properly formatted.",
+      "Provider NPI not found: The specified NPI is not registered or recognized by the insurance provider.",
+      "Benefits lookup timeout: Insurance provider's benefits system did not respond within the allowed time.",
+      "Service not covered: One or more requested services are not covered under the patient's plan.",
+      "Patient not found: Patient cannot be located in the insurance provider's system.",
+      "Invalid service date: Service date must be current or future, and within a reasonable timeframe."
+    ],
+    "usage": "Provide insurance details, service_codes array, provider_npi, service_date, and patient_dob to retrieve real-time benefit information for specific procedures.",
+    "output_details": {
+      "coverage_summary": {
+        "type": "string",
+        "description": "Overall coverage status for the requested services"
+      },
+      "individual_service_coverage": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Coverage details for each requested service code"
+      },
+      "estimated_patient_cost": {
+        "type": "number",
+        "description": "Estimated out-of-pocket cost for the patient"
+      },
+      "prior_authorization_required": {
+        "type": "boolean",
+        "description": "Whether prior authorization is needed"
+      },
+      "deductible_applied": {
+        "type": "number",
+        "description": "Amount that will be applied to deductible"
+      },
+      "lookup_timestamp": {
+        "type": "string",
+        "description": "When the benefits lookup was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Patient_Match_Resolver",
+    "tool_description": "Resolves patient identity by matching against existing patient records to prevent duplicate registrations and consolidate patient information.",
+    "parameters": {
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's last name"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's date of birth",
+        "format": "date-time"
+      },
+      "ssn_last_four": {
+        "type": "string",
+        "required": false,
+        "description": "Last four digits of SSN",
+        "default": "None"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's phone number",
+        "default": "None"
+      },
+      "address": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's address",
+        "default": "None"
+      },
+      "email": {
+        "type": "string",
+        "required": false,
+        "description": "Patient's email address",
+        "default": "None"
+      },
+      "match_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum match score (0.0-1.0) to consider a potential match",
+        "default": 0.8
+      }
+    },
+    "error_messages": [
+      "Insufficient matching data: At least first name, last name, and date of birth are required for matching.",
+      "Invalid match threshold: Match threshold must be between 0.0 and 1.0.",
+      "Database connection error: Cannot access patient database for matching.",
+      "Multiple high-confidence matches: Multiple existing patients match the provided information, manual review required.",
+      "Invalid date format: Date of birth must be in proper date format."
+    ],
+    "usage": "Provide patient demographic information to find potential matches in existing patient records. Adjust match_threshold to control matching sensitivity.",
+    "output_details": {
+      "match_status": {
+        "type": "string",
+        "description": "Match result: exact_match, potential_match, no_match, or multiple_matches"
+      },
+      "existing_patient_id": {
+        "type": "string",
+        "description": "Patient ID of matched record if found"
+      },
+      "match_confidence": {
+        "type": "number",
+        "description": "Confidence score of the match from 0.0 to 1.0"
+      },
+      "matching_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of fields that matched with existing record"
+      },
+      "conflicting_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of fields that differ from existing record"
+      },
+      "match_timestamp": {
+        "type": "string",
+        "description": "When the matching was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Verification_Status_Tracker",
+    "tool_description": "Tracks the progress and status of patient verification workflows, maintaining state across multiple verification steps.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Patient identifier for tracking"
+      },
+      "verification_step": {
+        "type": "string",
+        "required": true,
+        "description": "Current verification step: identity_check, insurance_verification, document_review, or complete"
+      },
+      "step_status": {
+        "type": "string",
+        "required": true,
+        "description": "Status of the current step: pending, in_progress, completed, or failed"
+      },
+      "step_result": {
+        "type": "string",
+        "required": false,
+        "description": "Result or outcome of the verification step",
+        "default": "None"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the user performing the verification"
+      }
+    },
+    "error_messages": [
+      "Invalid verification step: Step must be identity_check, insurance_verification, document_review, or complete.",
+      "Invalid step status: Status must be pending, in_progress, completed, or failed.",
+      "Patient ID not found: The specified patient ID is not recognized.",
+      "User ID not valid: The specified user ID is not authorized for verification activities.",
+      "Workflow state error: Cannot update step status due to current workflow state."
+    ],
+    "usage": "Update verification workflow progress by providing patient_id, verification_step, step_status, and user_id. Include step_result for completed or failed steps.",
+    "output_details": {
+      "workflow_id": {
+        "type": "string",
+        "description": "Unique identifier for the verification workflow"
+      },
+      "overall_status": {
+        "type": "string",
+        "description": "Overall verification status: not_started, in_progress, completed, or requires_attention"
+      },
+      "completed_steps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of completed verification steps"
+      },
+      "pending_steps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of remaining verification steps"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last workflow update"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated completion time for remaining steps"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Insurance_Network_Validator",
+    "tool_description": "Validates whether healthcare providers are in-network for a patient's insurance plan and determines coverage levels.",
+    "parameters": {
+      "provider_npi": {
+        "type": "string",
+        "required": true,
+        "description": "National Provider Identifier of the healthcare provider"
+      },
+      "insurance_provider": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's insurance provider name"
+      },
+      "plan_id": {
+        "type": "string",
+        "required": true,
+        "description": "Insurance plan identifier"
+      },
+      "service_location_zip": {
+        "type": "string",
+        "required": true,
+        "description": "ZIP code where services will be provided"
+      },
+      "

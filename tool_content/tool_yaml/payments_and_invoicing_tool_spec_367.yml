@@ -1,0 +1,877 @@
+field_name: payments_and_invoicing
+subfield: Invoice Generation and Management
+task: Generate invoices from project data, time tracking, or service records
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task is medium difficulty. It requires integrating multiple data sources (project data, time tracking, service records), handling various billing scenarios, ensuring accuracy in calculations, and maintaining compliance with tax and regulatory requirements. The coordination between different data sources and the potential financial impact of errors elevate this beyond a simple task.
+
+  **STEP 2 — Set a tool budget**
+  Based on the medium difficulty assessment, I'll target 12 tools to cover the various workflows from data retrieval to invoice finalization and delivery.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Project Data Extractor** - Consumes: project IDs, date ranges → Produces: project details, milestones, deliverables
+  2. **Time Entry Retriever** - Consumes: employee IDs, project IDs, date ranges → Produces: time logs with rates
+  3. **Service Record Parser** - Consumes: service IDs, client IDs → Produces: service descriptions, quantities, rates
+  4. **Rate Calculator** - Consumes: time data, rate tables, overtime rules → Produces: calculated amounts
+  5. **Tax Computation Engine** - Consumes: amounts, tax jurisdictions, client info → Produces: tax breakdowns
+  6. **Discount Processor** - Consumes: base amounts, discount rules, client tiers → Produces: adjusted amounts
+  7. **Invoice Template Builder** - Consumes: template type, branding preferences → Produces: formatted invoice structure
+  8. **Line Item Aggregator** - Consumes: multiple charge sources → Produces: consolidated line items
+  9. **Payment Terms Generator** - Consumes: client profiles, invoice amounts → Produces: payment terms and due dates
+  10. **Invoice Validator** - Consumes: complete invoice data → Produces: validation status and error reports
+  11. **PDF Invoice Generator** - Consumes: validated invoice data, templates → Produces: PDF documents
+  12. **Invoice Delivery System** - Consumes: PDF invoices, client contact info → Produces: delivery confirmations
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic time-based invoicing: Time Entry Retriever → Rate Calculator → Invoice Template Builder → PDF Invoice Generator
+  - Service invoice creation: Service Record Parser → Tax Computation Engine → Invoice Template Builder → PDF Invoice Generator
+
+  **Medium Plans:**
+  - Project milestone billing: Project Data Extractor → Line Item Aggregator → Discount Processor → Tax Computation Engine → Payment Terms Generator → Invoice Validator → PDF Invoice Generator
+  - Multi-source consolidated invoice: Time Entry Retriever + Service Record Parser → Rate Calculator → Line Item Aggregator → Tax Computation Engine → Invoice Template Builder → Invoice Validator → PDF Invoice Generator → Invoice Delivery System
+
+  **Complex Plans:**
+  - Enterprise client billing workflow: Project Data Extractor + Time Entry Retriever + Service Record Parser → Rate Calculator → Line Item Aggregator → Discount Processor → Tax Computation Engine → Payment Terms Generator → Invoice Template Builder → Invoice Validator → PDF Invoice Generator → Invoice Delivery System
+  - Compliance-heavy invoicing: All tools in sequence with multiple validation checkpoints and custom template generation for regulatory requirements
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Project Data Extractor",
+    "tool_description": "Extracts detailed project information including milestones, deliverables, and billing schedules from project management systems for invoice generation.",
+    "parameters": {
+      "project_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the project"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for data extraction",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for data extraction",
+        "format": "date-time"
+      },
+      "include_milestones": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include milestone data in extraction",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid project ID: The specified project_id does not exist in the system. Verify the project identifier.",
+      "Date range error: start_date must be earlier than end_date and both must be valid ISO 8601 format.",
+      "Access denied: Insufficient permissions to access project data. Contact administrator for access rights.",
+      "No data found: No project activity found in the specified date range. Expand the date range or verify project activity."
+    ],
+    "usage": "Provide project_id and date range to extract relevant project data. Set include_milestones to false if milestone billing is not needed.",
+    "output_details": {
+      "project_name": {
+        "type": "string",
+        "description": "Name of the project"
+      },
+      "client_id": {
+        "type": "string",
+        "description": "Associated client identifier"
+      },
+      "deliverables": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of completed deliverables"
+      },
+      "milestone_amounts": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Billing amounts for completed milestones"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Time Entry Retriever",
+    "tool_description": "Retrieves time tracking data for specified employees and projects, including hourly rates and overtime calculations for billing purposes.",
+    "parameters": {
+      "employee_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of employee identifiers",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "project_ids": {
+        "type": "array",
+        "required": false,
+        "description": "List of project identifiers to filter by",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 20,
+        "default": null
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for time entry retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for time entry retrieval",
+        "format": "date-time"
+      },
+      "include_overtime": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include overtime hours calculation",
+        "default": true
+      },
+      "billable_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Retrieve only billable time entries",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Employee not found: One or more employee_ids are invalid. Verify employee identifiers exist.",
+      "Invalid date range: start_date must be earlier than end_date with maximum 1 year span.",
+      "Project access denied: Insufficient permissions for one or more specified projects.",
+      "No time entries: No time entries found matching the specified criteria. Verify date range and filters."
+    ],
+    "usage": "Specify employee_ids and date range to retrieve time data. Filter by project_ids if needed and set billable_only to false to include non-billable time.",
+    "output_details": {
+      "total_hours": {
+        "type": "number",
+        "description": "Total hours across all entries"
+      },
+      "overtime_hours": {
+        "type": "number",
+        "description": "Total overtime hours"
+      },
+      "hourly_rates": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Hourly rates for each time entry"
+      },
+      "entry_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Dates of time entries"
+      },
+      "descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Work descriptions for each entry"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Service Record Parser",
+    "tool_description": "Parses service records to extract billable services, quantities, and associated rates for invoice line item generation.",
+    "parameters": {
+      "service_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of service record identifiers",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "client_id": {
+        "type": "string",
+        "required": true,
+        "description": "Client identifier for service filtering"
+      },
+      "service_date_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date filter for services",
+        "format": "date-time",
+        "default": null
+      },
+      "service_date_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date filter for services",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Service ID not found: One or more service_ids do not exist in the system.",
+      "Client mismatch: Some services are not associated with the specified client_id.",
+      "Invalid service dates: service_date_start must be earlier than service_date_end if both are provided.",
+      "No services found: No services match the specified criteria and filters."
+    ],
+    "usage": "Provide service_ids and client_id to parse service records. Use date filters to limit services to specific time periods.",
+    "output_details": {
+      "service_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Names of the services provided"
+      },
+      "quantities": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Quantities for each service"
+      },
+      "unit_rates": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Unit rates for each service"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Total amount for all services"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Rate Calculator",
+    "tool_description": "Calculates billing amounts based on time entries, hourly rates, overtime rules, and special rate adjustments for accurate invoice totals.",
+    "parameters": {
+      "hours_regular": {
+        "type": "array",
+        "required": true,
+        "description": "Regular hours for each time entry",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "hours_overtime": {
+        "type": "array",
+        "required": false,
+        "description": "Overtime hours for each time entry",
+        "items": {
+          "type": "number"
+        },
+        "default": null
+      },
+      "base_rates": {
+        "type": "array",
+        "required": true,
+        "description": "Base hourly rates for each entry",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "overtime_multiplier": {
+        "type": "number",
+        "required": false,
+        "description": "Overtime rate multiplier (e.g., 1.5 for time-and-a-half)",
+        "default": 1.5
+      },
+      "weekend_multiplier": {
+        "type": "number",
+        "required": false,
+        "description": "Weekend work rate multiplier",
+        "default": 1.0
+      },
+      "holiday_multiplier": {
+        "type": "number",
+        "required": false,
+        "description": "Holiday work rate multiplier",
+        "default": 2.0
+      },
+      "entry_dates": {
+        "type": "array",
+        "required": false,
+        "description": "Dates for each time entry to apply date-based multipliers",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: hours_regular, base_rates, and overtime hours (if provided) must have matching lengths.",
+      "Invalid rate values: All hourly rates and multipliers must be positive numbers.",
+      "Date format error: entry_dates must be in valid ISO 8601 format if provided.",
+      "Calculation overflow: Calculated amounts exceed maximum allowable values. Review input data."
+    ],
+    "usage": "Provide arrays of regular hours and base rates. Include overtime hours, multipliers, and dates as needed for complex rate calculations.",
+    "output_details": {
+      "line_totals": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Calculated total for each time entry line"
+      },
+      "regular_amount": {
+        "type": "number",
+        "description": "Total amount for regular hours"
+      },
+      "overtime_amount": {
+        "type": "number",
+        "description": "Total amount for overtime hours"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Grand total of all calculated amounts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tax Computation Engine",
+    "tool_description": "Computes applicable taxes including sales tax, VAT, and other jurisdiction-specific taxes based on client location and tax rules.",
+    "parameters": {
+      "subtotal_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Pre-tax amount for tax calculation"
+      },
+      "client_country": {
+        "type": "string",
+        "required": true,
+        "description": "Client's country code (ISO 3166-1 alpha-2)"
+      },
+      "client_state_province": {
+        "type": "string",
+        "required": false,
+        "description": "Client's state or province code",
+        "default": null
+      },
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of service for tax classification"
+      },
+      "tax_exempt": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether client is tax exempt",
+        "default": false
+      },
+      "invoice_date": {
+        "type": "string",
+        "required": true,
+        "description": "Invoice date for tax rate determination",
+        "format": "date-time"
+      },
+      "business_registration": {
+        "type": "string",
+        "required": false,
+        "description": "Business registration number for B2B tax rules",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid country code: client_country must be a valid ISO 3166-1 alpha-2 code.",
+      "Negative amount: subtotal_amount must be a positive number.",
+      "Unknown service type: service_type must be a recognized service classification for tax purposes.",
+      "Tax rate unavailable: Unable to determine tax rates for the specified jurisdiction and date.",
+      "Invalid registration: business_registration format is invalid for the specified country."
+    ],
+    "usage": "Provide subtotal_amount, client location, service_type, and invoice_date. Set tax_exempt to true if applicable and provide business_registration for B2B transactions.",
+    "output_details": {
+      "tax_rate": {
+        "type": "number",
+        "description": "Applied tax rate as decimal (e.g., 0.08 for 8%)"
+      },
+      "tax_amount": {
+        "type": "number",
+        "description": "Calculated tax amount"
+      },
+      "tax_type": {
+        "type": "string",
+        "description": "Type of tax applied (VAT, Sales Tax, etc.)"
+      },
+      "total_with_tax": {
+        "type": "number",
+        "description": "Subtotal plus calculated tax"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Discount Processor",
+    "tool_description": "Applies various discount types including percentage discounts, fixed amounts, volume discounts, and client tier-based reductions to invoice amounts.",
+    "parameters": {
+      "base_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Original amount before discount application"
+      },
+      "discount_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of discount: percentage, fixed_amount, volume, client_tier"
+      },
+      "discount_value": {
+        "type": "number",
+        "required": true,
+        "description": "Discount value (percentage for percentage type, amount for fixed_amount)"
+      },
+      "client_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Client tier level for tier-based discounts",
+        "default": null
+      },
+      "volume_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Volume threshold for volume-based discounts",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid discount type: discount_type must be one of [percentage, fixed_amount, volume, client_tier].",
+      "Discount exceeds amount: Applied discount cannot exceed the base_amount.",
+      "Invalid percentage: For percentage discounts, discount_value must be between 0 and 100.",
+      "Missing required parameter: volume_threshold required for volume discount type, client_tier required for client_tier discount type."
+    ],
+    "usage": "Specify base_amount, discount_type, and discount_value. Include client_tier or volume_threshold as required by the discount type.",
+    "output_details": {
+      "discount_amount": {
+        "type": "number",
+        "description": "Amount of discount applied"
+      },
+      "discounted_amount": {
+        "type": "number",
+        "description": "Final amount after discount"
+      },
+      "discount_description": {
+        "type": "string",
+        "description": "Description of the discount applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Template Builder",
+    "tool_description": "Builds formatted invoice templates with company branding, layout preferences, and customizable sections for professional invoice presentation.",
+    "parameters": {
+      "template_type": {
+        "type": "string",
+        "required": true,
+        "description": "Template style: standard, detailed, minimal, corporate"
+      },
+      "company_name": {
+        "type": "string",
+        "required": true,
+        "description": "Company name for invoice header"
+      },
+      "company_address": {
+        "type": "array",
+        "required": true,
+        "description": "Company address lines",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 5
+      },
+      "logo_url": {
+        "type": "string",
+        "required": false,
+        "description": "URL to company logo image",
+        "default": null
+      },
+      "color_scheme": {
+        "type": "string",
+        "required": false,
+        "description": "Color scheme: blue, green, red, gray, custom",
+        "default": "blue"
+      },
+      "include_payment_stub": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include detachable payment stub",
+        "default": false
+      },
+      "currency": {
+        "type": "string",
+        "required": true,
+        "description": "Currency code (ISO 4217) for amount formatting"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Invoice language code",
+        "default": "en"
+      },
+      "custom_fields": {
+        "type": "array",
+        "required": false,
+        "description": "Custom field labels for additional invoice sections",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 10,
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid template type: template_type must be one of [standard, detailed, minimal, corporate].",
+      "Invalid currency code: currency must be a valid ISO 4217 currency code.",
+      "Logo URL invalid: logo_url must be a valid HTTP/HTTPS URL if provided.",
+      "Address too long: company_address cannot exceed 5 lines with maximum 100 characters per line.",
+      "Invalid color scheme: color_scheme must be one of [blue, green, red, gray, custom]."
+    ],
+    "usage": "Specify template_type, company details, and currency. Customize with logo_url, color_scheme, and custom_fields as needed for branding.",
+    "output_details": {
+      "template_html": {
+        "type": "string",
+        "description": "Generated HTML template structure"
+      },
+      "template_css": {
+        "type": "string",
+        "description": "CSS styling for the template"
+      },
+      "field_placeholders": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of placeholder fields in the template"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Line Item Aggregator",
+    "tool_description": "Aggregates and consolidates line items from multiple sources into a unified invoice format with proper categorization and subtotals.",
+    "parameters": {
+      "time_entries": {
+        "type": "array",
+        "required": false,
+        "description": "Time-based line items with descriptions and amounts",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "service_items": {
+        "type": "array",
+        "required": false,
+        "description": "Service-based line items",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "expense_items": {
+        "type": "array",
+        "required": false,
+        "description": "Expense reimbursement items",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "amounts": {
+        "type": "array",
+        "required": true,
+        "description": "Corresponding amounts for all line items",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "group_by_category": {
+        "type": "boolean",
+        "required": false,
+        "description": "Group line items by category with subtotals",
+        "default": true
+      },
+      "sort_by": {
+        "type": "string",
+        "required": false,
+        "description": "Sort order: date, amount, category, description",
+        "default": "date"
+      }
+    },
+    "error_messages": [
+      "Item count mismatch: Total items in all categories must match the length of amounts array.",
+      "No line items: At least one of time_entries, service_items, or expense_items must be provided.",
+      "Invalid sort option: sort_by must be one of [date, amount, category, description].",
+      "Amount validation failed: All amounts must be non-negative numbers."
+    ],
+    "usage": "Provide line items from various sources with corresponding amounts. Use group_by_category and sort_by to organize the output format.",
+    "output_details": {
+      "consolidated_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Consolidated and formatted line item descriptions"
+      },
+      "item_amounts": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Amounts for each consolidated line item"
+      },
+      "category_subtotals": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Subtotals by category if grouping is enabled"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Grand total of all line items"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Terms Generator",
+    "tool_description": "Generates appropriate payment terms, due dates, and payment instructions based on client profiles, invoice amounts, and business policies.",
+    "parameters": {
+      "client_id": {
+        "type": "string",
+        "required": true,
+        "description": "Client identifier for payment terms lookup"
+      },
+      "invoice_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total invoice amount for payment term determination"
+      },
+      "invoice_date": {
+        "type": "string",
+        "required": true,
+        "description": "Invoice date for due date calculation",
+        "format": "date-time"
+      },
+      "override_terms": {
+        "type": "integer",
+        "required": false,
+        "description": "Override standard payment terms with specific days",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Client not found: The specified client_id does not exist in the system.",
+      "Invalid amount: invoice_amount must be a positive number.",
+      "Invalid date: invoice_date must be a valid ISO 8601 date-time.",
+      "Invalid override: override_terms must be a positive integer if provided."
+    ],
+    "usage": "Provide client_id, invoice_amount, and invoice_date to generate standard payment terms. Use override_terms to specify custom payment periods.",
+    "output_details": {
+      "payment_terms": {
+        "type": "string",
+        "description": "Generated payment terms description"
+      },
+      "due_date": {
+        "type": "string",
+        "description": "Calculated payment due date"
+      },
+      "late_fee_policy": {
+        "type": "string",
+        "description": "Late payment fee policy if applicable"
+      },
+      "payment_methods": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Accepted payment methods for this client"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Validator",
+    "tool_description": "Validates complete invoice data for accuracy, completeness, and compliance with business rules and regulatory requirements before finalization.",
+    "parameters": {
+      "invoice_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing complete invoice data structure"
+      },
+      "validation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Validation strictness: basic, standard, strict",
+        "default": "standard"
+      },
+      "check_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Check for duplicate invoice numbers",
+        "default": true
+      },
+      "verify_tax_calculations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Verify all tax calculations are correct",
+        "default": true
+      },
+      "require_purchase_order": {
+        "type": "boolean",
+        "required": false,
+        "description": "Require purchase order number for validation",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid invoice data: invoice_data must be a valid JSON string with required fields.",
+      "Validation level error: validation_level must be one of [basic, standard, strict].",
+      "Math errors detected: Invoice calculations do not balance. Check line items, taxes, and totals.",
+      "Missing required fields: Required invoice fields are missing. Review invoice data completeness.",
+      "Duplicate invoice: Invoice number already exists in the system."
+    ],
+    "usage": "Provide complete invoice_data as JSON string. Set validation_level and boolean flags based on business requirements and compliance needs.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: passed, failed, warning"
+      },
+      "error_count": {
+        "type": "integer",
+        "description": "Number of validation errors found"
+      },
+      "warning_count": {
+        "type": "integer",
+        "description": "Number of validation warnings"
+      },
+      "error_messages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed error messages for failed validations"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages for potential issues"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "PDF Invoice Generator",
+    "tool_description": "Generates professional PDF invoice documents from validated invoice data using customizable templates and formatting options.",
+    "parameters": {
+      "invoice_data": {
+        "type": "string",
+        "required": true,
+        "description": "Complete validated invoice data in JSON format"
+      },
+      "template_html": {
+        "type": "string",
+        "required": true,
+        "description": "HTML template for PDF generation"
+      },
+      "output_filename": {
+        "type": "string",
+        "required": false,
+        "description": "Desired filename for the PDF (without extension)",
+        "default": null
+      },
+      "include_attachments": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include supporting documents as PDF attachments",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid invoice data: invoice_data must be valid JSON with all required invoice fields.",
+      "Template error: template_html contains invalid HTML or missing required placeholders.",
+      "PDF generation failed: Unable to generate PDF document. Check template formatting and data completeness.",
+      "Filename invalid: output_filename contains invalid characters for file naming."
+    ],
+    "usage": "Provide validated invoice_data and template_html to generate PDF. Specify output_filename for custom naming and set include_attachments if needed.",
+    "output_details": {
+      "pdf_filename": {
+        "type": "string",
+        "description": "Generated PDF filename"
+      },
+      "file_size": {
+        "type": "integer",
+        "description": "PDF file size in bytes"
+      },
+      "page_count": {
+        "type": "integer",
+        "description": "Number of pages in the PDF"
+      },
+      "generation_status": {
+        "type": "string",
+        "description": "PDF generation status: success, partial, failed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Delivery System",
+    "tool_description": "Handles invoice delivery through multiple channels including email, postal mail, and client portals with delivery tracking and confirmation.",
+    "parameters": {
+      "invoice_pdf_path": {
+        "type": "string",
+        "required": true,
+        "description": "File path to the generated PDF invoice"
+      },
+      "client_id": {
+        "type": "string",

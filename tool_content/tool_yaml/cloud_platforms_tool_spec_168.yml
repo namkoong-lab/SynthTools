@@ -1,0 +1,838 @@
+field_name: cloud_platforms
+subfield: Infrastructure Provisioning and Management
+task: Virtual machine lifecycle management including creation, configuration, scaling, and termination
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has **medium** difficulty. It involves managing complex cloud infrastructure with multiple interconnected components, coordinating dependencies between VM creation, networking, storage, and monitoring, and requires handling various failure scenarios with significant cost and availability implications.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'll target **12 tools** to cover the full VM lifecycle from provisioning through termination while maintaining focused, composable functionality.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their dependencies:**
+  1. **VM Instance Creator** - Consumes: VM specs, credentials → Produces: VM instance details
+  2. **VM Configuration Manager** - Consumes: VM ID, config scripts → Produces: configuration status
+  3. **VM Health Monitor** - Consumes: VM ID, metrics → Produces: health status
+  4. **VM Scaling Controller** - Consumes: VM ID, scaling rules → Produces: scaling actions
+  5. **VM Snapshot Manager** - Consumes: VM ID, snapshot name → Produces: snapshot details
+  6. **VM Network Configurator** - Consumes: VM ID, network settings → Produces: network status
+  7. **VM Storage Manager** - Consumes: VM ID, storage config → Produces: storage details
+  8. **VM Security Group Manager** - Consumes: VM ID, security rules → Produces: security status
+  9. **VM Performance Analyzer** - Consumes: VM ID, metrics period → Produces: performance data
+  10. **VM Cost Calculator** - Consumes: VM specs, usage period → Produces: cost breakdown
+  11. **VM Backup Scheduler** - Consumes: VM ID, backup schedule → Produces: backup status
+  12. **VM Termination Manager** - Consumes: VM ID, cleanup options → Produces: termination status
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  - **Basic VM Creation**: VM Instance Creator → VM Configuration Manager → VM Health Monitor
+  - **Quick Cleanup**: VM Snapshot Manager → VM Termination Manager
+
+  **Medium plans:**
+  - **Production Deployment**: VM Instance Creator → VM Network Configurator → VM Security Group Manager → VM Configuration Manager → VM Health Monitor
+  - **Performance Optimization**: VM Performance Analyzer → VM Scaling Controller → VM Health Monitor → VM Cost Calculator
+
+  **Complex plans:**
+  - **Enterprise Setup**: VM Instance Creator → VM Network Configurator → VM Storage Manager → VM Security Group Manager → VM Configuration Manager → VM Backup Scheduler → VM Health Monitor → VM Performance Analyzer
+  - **Full Lifecycle Management**: VM Cost Calculator → VM Instance Creator → VM Network Configurator → VM Storage Manager → VM Security Group Manager → VM Configuration Manager → VM Backup Scheduler → VM Scaling Controller → VM Performance Analyzer → VM Snapshot Manager → VM Termination Manager
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "VM Instance Creator",
+    "tool_description": "Creates virtual machine instances on cloud platforms with specified configurations including instance type, operating system, and basic networking setup.",
+    "parameters": {
+      "cloud_provider": {
+        "type": "string",
+        "required": true,
+        "description": "Cloud platform provider (AWS, Azure, GCP, DigitalOcean)"
+      },
+      "instance_type": {
+        "type": "string",
+        "required": true,
+        "description": "VM instance size/type (e.g., t3.micro, Standard_B1s, e2-micro)"
+      },
+      "operating_system": {
+        "type": "string",
+        "required": true,
+        "description": "Operating system image (Ubuntu, CentOS, Windows, Amazon Linux)"
+      },
+      "region": {
+        "type": "string",
+        "required": true,
+        "description": "Cloud region for VM deployment"
+      },
+      "availability_zone": {
+        "type": "string",
+        "required": false,
+        "default": "auto",
+        "description": "Specific availability zone or 'auto' for automatic selection"
+      },
+      "key_pair_name": {
+        "type": "string",
+        "required": true,
+        "description": "SSH key pair name for secure access"
+      },
+      "tags": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "Resource tags for organization and billing"
+      }
+    },
+    "error_messages": [
+      "Invalid cloud provider: Must be one of AWS, Azure, GCP, or DigitalOcean.",
+      "Unsupported instance type: The specified instance type is not available in the selected region.",
+      "Operating system not found: The specified OS image is not available for the instance type.",
+      "Region unavailable: The specified region does not exist or is not accessible.",
+      "Key pair missing: The specified SSH key pair does not exist in the region.",
+      "Quota exceeded: Account limits prevent creating additional instances of this type.",
+      "Insufficient permissions: API credentials lack required permissions for VM creation."
+    ],
+    "usage": "Provide cloud_provider, instance_type, operating_system, region, and key_pair_name. Optionally specify availability_zone and tags. The tool creates the VM and returns instance details including ID, IP addresses, and status.",
+    "output_details": {
+      "instance_id": {
+        "type": "string",
+        "description": "Unique identifier for the created VM instance"
+      },
+      "public_ip": {
+        "type": "string",
+        "description": "Public IP address assigned to the VM"
+      },
+      "private_ip": {
+        "type": "string",
+        "description": "Private IP address within the VPC/subnet"
+      },
+      "status": {
+        "type": "string",
+        "description": "Current VM status (pending, running, stopped)"
+      },
+      "creation_time": {
+        "type": "string",
+        "description": "Timestamp when VM was created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VM Configuration Manager",
+    "tool_description": "Configures virtual machines by executing scripts, installing software packages, setting environment variables, and applying system configurations remotely.",
+    "parameters": {
+      "instance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target VM instance identifier"
+      },
+      "configuration_scripts": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50,
+        "description": "List of shell scripts or commands to execute"
+      },
+      "packages_to_install": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "Software packages to install via package manager"
+      },
+      "environment_variables": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "Environment variables in KEY=VALUE format"
+      },
+      "config_files": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "Configuration file paths to upload and apply"
+      },
+      "reboot_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to reboot VM after configuration"
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "default": 1800,
+        "description": "Maximum time to wait for configuration completion"
+      },
+      "run_as_user": {
+        "type": "string",
+        "required": false,
+        "default": "root",
+        "description": "User account to execute commands as"
+      },
+      "retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "default": 3,
+        "description": "Number of retry attempts for failed operations"
+      },
+      "working_directory": {
+        "type": "string",
+        "required": false,
+        "default": "/tmp",
+        "description": "Working directory for script execution"
+      },
+      "validate_config": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to validate configuration after applying"
+      }
+    },
+    "error_messages": [
+      "Instance not found: The specified VM instance does not exist or is not accessible.",
+      "Connection failed: Unable to establish SSH connection to the VM instance.",
+      "Script execution failed: One or more configuration scripts returned non-zero exit codes.",
+      "Package installation failed: Unable to install specified packages due to repository or dependency issues.",
+      "Permission denied: Insufficient privileges to execute configuration commands.",
+      "Timeout exceeded: Configuration process exceeded the specified timeout limit.",
+      "Invalid script format: Configuration scripts contain invalid syntax or commands.",
+      "File upload failed: Unable to upload configuration files to the target VM."
+    ],
+    "usage": "Provide instance_id and configuration_scripts array. Optionally specify packages_to_install, environment_variables, config_files, and other parameters. The tool executes configurations remotely and returns execution results.",
+    "output_details": {
+      "configuration_status": {
+        "type": "string",
+        "description": "Overall configuration result (success, partial_success, failed)"
+      },
+      "executed_scripts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of successfully executed scripts"
+      },
+      "failed_operations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of failed configuration operations"
+      },
+      "installed_packages": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Successfully installed software packages"
+      },
+      "execution_time": {
+        "type": "integer",
+        "description": "Total configuration execution time in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VM Health Monitor",
+    "tool_description": "Monitors virtual machine health by checking system metrics, service status, and connectivity, providing real-time health assessments and alerts.",
+    "parameters": {
+      "instance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target VM instance identifier to monitor"
+      },
+      "monitoring_duration": {
+        "type": "integer",
+        "required": false,
+        "default": 300,
+        "description": "Monitoring period in seconds"
+      },
+      "check_interval": {
+        "type": "integer",
+        "required": false,
+        "default": 60,
+        "description": "Interval between health checks in seconds"
+      }
+    },
+    "error_messages": [
+      "Instance not found: The specified VM instance does not exist.",
+      "Monitoring access denied: Insufficient permissions to access VM metrics.",
+      "Connection timeout: Unable to connect to VM for health checks."
+    ],
+    "usage": "Provide instance_id and optionally set monitoring_duration and check_interval. The tool continuously monitors VM health and returns comprehensive status information.",
+    "output_details": {
+      "health_status": {
+        "type": "string",
+        "description": "Overall health status (healthy, warning, critical, unknown)"
+      },
+      "cpu_utilization": {
+        "type": "number",
+        "description": "Current CPU usage percentage"
+      },
+      "memory_utilization": {
+        "type": "number",
+        "description": "Current memory usage percentage"
+      },
+      "disk_utilization": {
+        "type": "number",
+        "description": "Current disk usage percentage"
+      },
+      "network_connectivity": {
+        "type": "boolean",
+        "description": "Whether VM is reachable via network"
+      },
+      "uptime_seconds": {
+        "type": "integer",
+        "description": "VM uptime in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VM Scaling Controller",
+    "tool_description": "Manages automatic scaling of virtual machines based on performance metrics and predefined rules, handling both vertical and horizontal scaling operations.",
+    "parameters": {
+      "instance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Primary VM instance identifier for scaling group"
+      },
+      "scaling_type": {
+        "type": "string",
+        "required": true,
+        "description": "Scaling method (vertical, horizontal)"
+      },
+      "cpu_threshold_up": {
+        "type": "number",
+        "required": false,
+        "default": 80.0,
+        "description": "CPU percentage threshold for scaling up"
+      },
+      "cpu_threshold_down": {
+        "type": "number",
+        "required": false,
+        "default": 30.0,
+        "description": "CPU percentage threshold for scaling down"
+      },
+      "memory_threshold_up": {
+        "type": "number",
+        "required": false,
+        "default": 85.0,
+        "description": "Memory percentage threshold for scaling up"
+      },
+      "memory_threshold_down": {
+        "type": "number",
+        "required": false,
+        "default": 40.0,
+        "description": "Memory percentage threshold for scaling down"
+      },
+      "min_instances": {
+        "type": "integer",
+        "required": false,
+        "default": 1,
+        "description": "Minimum number of instances to maintain"
+      },
+      "max_instances": {
+        "type": "integer",
+        "required": false,
+        "default": 10,
+        "description": "Maximum number of instances allowed"
+      },
+      "cooldown_period": {
+        "type": "integer",
+        "required": false,
+        "default": 300,
+        "description": "Cooldown period in seconds between scaling actions"
+      },
+      "evaluation_periods": {
+        "type": "integer",
+        "required": false,
+        "default": 2,
+        "description": "Number of consecutive periods before scaling"
+      },
+      "enable_notifications": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to send scaling event notifications"
+      }
+    },
+    "error_messages": [
+      "Invalid scaling type: Must be either 'vertical' or 'horizontal'.",
+      "Threshold configuration error: Up thresholds must be greater than down thresholds.",
+      "Instance limit error: min_instances must be less than or equal to max_instances.",
+      "Scaling operation failed: Unable to perform scaling due to resource constraints.",
+      "Insufficient permissions: Account lacks permissions for auto-scaling operations.",
+      "Cooldown period active: Scaling action blocked due to active cooldown period."
+    ],
+    "usage": "Provide instance_id and scaling_type, then configure thresholds and limits as needed. The tool monitors metrics and automatically triggers scaling actions based on the defined rules.",
+    "output_details": {
+      "scaling_status": {
+        "type": "string",
+        "description": "Current scaling status (active, inactive, scaling)"
+      },
+      "current_instance_count": {
+        "type": "integer",
+        "description": "Number of instances currently running"
+      },
+      "last_scaling_action": {
+        "type": "string",
+        "description": "Most recent scaling action performed"
+      },
+      "last_scaling_time": {
+        "type": "string",
+        "description": "Timestamp of last scaling action"
+      },
+      "next_evaluation_time": {
+        "type": "string",
+        "description": "When next scaling evaluation will occur"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VM Snapshot Manager",
+    "tool_description": "Creates, manages, and restores virtual machine snapshots for backup, recovery, and deployment purposes across different cloud platforms.",
+    "parameters": {
+      "instance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target VM instance identifier"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Snapshot action (create, restore, delete, list)"
+      },
+      "snapshot_name": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Name for new snapshot or existing snapshot to restore/delete"
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "default": "Auto-generated snapshot",
+        "description": "Snapshot description for identification"
+      },
+      "include_data_disks": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include attached data disks in snapshot"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Must be one of create, restore, delete, or list.",
+      "Snapshot name required: Snapshot name must be provided for restore and delete actions.",
+      "Snapshot not found: The specified snapshot does not exist.",
+      "Snapshot creation failed: Unable to create snapshot due to VM state or storage issues.",
+      "Restore operation failed: Unable to restore from snapshot due to compatibility issues.",
+      "Storage quota exceeded: Insufficient storage quota to create new snapshot."
+    ],
+    "usage": "Provide instance_id and action type. For create actions, optionally specify snapshot_name and description. For restore/delete actions, provide the snapshot_name to target.",
+    "output_details": {
+      "operation_status": {
+        "type": "string",
+        "description": "Result status (success, failed, in_progress)"
+      },
+      "snapshot_id": {
+        "type": "string",
+        "description": "Unique identifier for the snapshot"
+      },
+      "snapshot_size": {
+        "type": "number",
+        "description": "Snapshot size in gigabytes"
+      },
+      "creation_time": {
+        "type": "string",
+        "description": "When the snapshot was created"
+      },
+      "available_snapshots": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of available snapshots for the VM"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VM Network Configurator",
+    "tool_description": "Configures virtual machine networking including VPC assignment, subnet configuration, security groups, load balancer attachment, and DNS settings.",
+    "parameters": {
+      "instance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target VM instance identifier"
+      },
+      "vpc_id": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Virtual Private Cloud identifier"
+      },
+      "subnet_id": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Subnet identifier within the VPC"
+      },
+      "security_group_ids": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "List of security group identifiers"
+      },
+      "assign_public_ip": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to assign a public IP address"
+      },
+      "load_balancer_target": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Load balancer to attach VM to"
+      },
+      "dns_hostname": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Custom DNS hostname for the VM"
+      }
+    },
+    "error_messages": [
+      "Network configuration failed: Unable to apply network settings to the VM instance.",
+      "VPC not found: The specified VPC does not exist or is not accessible.",
+      "Subnet incompatible: The specified subnet is not compatible with the VM's current configuration.",
+      "Security group error: One or more specified security groups are invalid or not accessible.",
+      "IP assignment failed: Unable to assign public IP address due to network constraints.",
+      "Load balancer attachment failed: Unable to attach VM to the specified load balancer."
+    ],
+    "usage": "Provide instance_id and configure network settings as needed. The tool applies network configurations and returns the updated network status.",
+    "output_details": {
+      "configuration_status": {
+        "type": "string",
+        "description": "Network configuration result (success, partial, failed)"
+      },
+      "assigned_vpc": {
+        "type": "string",
+        "description": "VPC identifier where VM is placed"
+      },
+      "assigned_subnet": {
+        "type": "string",
+        "description": "Subnet identifier where VM is placed"
+      },
+      "public_ip": {
+        "type": "string",
+        "description": "Assigned public IP address"
+      },
+      "private_ip": {
+        "type": "string",
+        "description": "Assigned private IP address"
+      },
+      "dns_name": {
+        "type": "string",
+        "description": "DNS hostname for the VM"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VM Storage Manager",
+    "tool_description": "Manages virtual machine storage including disk attachment, volume creation, storage encryption, backup configuration, and performance optimization.",
+    "parameters": {
+      "instance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target VM instance identifier"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Storage action (attach, detach, create, resize, encrypt)"
+      },
+      "volume_size_gb": {
+        "type": "integer",
+        "required": false,
+        "default": "None",
+        "description": "Volume size in gigabytes for create/resize actions"
+      },
+      "volume_type": {
+        "type": "string",
+        "required": false,
+        "default": "gp3",
+        "description": "Storage volume type (gp3, io2, magnetic, premium)"
+      },
+      "encryption_enabled": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to enable storage encryption"
+      },
+      "mount_point": {
+        "type": "string",
+        "required": false,
+        "default": "/mnt/data",
+        "description": "Mount point for attached volumes"
+      },
+      "iops": {
+        "type": "integer",
+        "required": false,
+        "default": "None",
+        "description": "Provisioned IOPS for high-performance volumes"
+      },
+      "throughput": {
+        "type": "integer",
+        "required": false,
+        "default": "None",
+        "description": "Provisioned throughput in MB/s"
+      },
+      "volume_id": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Existing volume ID for attach/detach operations"
+      },
+      "backup_enabled": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to enable automatic backups"
+      },
+      "backup_retention_days": {
+        "type": "integer",
+        "required": false,
+        "default": 7,
+        "description": "Number of days to retain backups"
+      }
+    },
+    "error_messages": [
+      "Invalid storage action: Must be one of attach, detach, create, resize, or encrypt.",
+      "Volume creation failed: Unable to create volume due to quota limits or configuration errors.",
+      "Attachment failed: Unable to attach volume to VM instance.",
+      "Insufficient storage quota: Account storage quota exceeded for requested volume size.",
+      "Volume not found: The specified volume ID does not exist.",
+      "Encryption configuration error: Unable to enable encryption on existing unencrypted volumes.",
+      "Performance configuration error: IOPS and throughput settings are incompatible with volume type."
+    ],
+    "usage": "Provide instance_id and action type. Configure volume settings like size, type, and performance parameters as needed. The tool manages storage operations and returns status information.",
+    "output_details": {
+      "operation_status": {
+        "type": "string",
+        "description": "Storage operation result (success, failed, in_progress)"
+      },
+      "volume_id": {
+        "type": "string",
+        "description": "Identifier of the managed volume"
+      },
+      "volume_size": {
+        "type": "integer",
+        "description": "Current volume size in gigabytes"
+      },
+      "encryption_status": {
+        "type": "boolean",
+        "description": "Whether the volume is encrypted"
+      },
+      "mount_status": {
+        "type": "string",
+        "description": "Volume mount status (mounted, unmounted, failed)"
+      },
+      "backup_policy": {
+        "type": "string",
+        "description": "Current backup policy configuration"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VM Security Group Manager",
+    "tool_description": "Manages virtual machine security groups and firewall rules including inbound/outbound traffic control, port management, and IP whitelisting.",
+    "parameters": {
+      "instance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target VM instance identifier"
+      },
+      "security_group_name": {
+        "type": "string",
+        "required": true,
+        "description": "Security group name to create or modify"
+      },
+      "inbound_rules": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "Inbound traffic rules in format protocol:port:source"
+      },
+      "outbound_rules": {
+        "type": "array",
+        "required": false,
+        "default": "None",
+        "items": {"type": "string"},
+        "description": "Outbound traffic rules in format protocol:port:destination"
+      }
+    },
+    "error_messages": [
+      "Security group creation failed: Unable to create security group due to naming conflicts or permission issues.",
+      "Invalid rule format: Rules must be in format protocol:port:source (e.g., tcp:80:0.0.0.0/0).",
+      "Rule application failed: Unable to apply security rules to the VM instance.",
+      "Permission denied: Insufficient privileges to modify security group settings."
+    ],
+    "usage": "Provide instance_id and security_group_name. Configure inbound_rules and outbound_rules as needed using the protocol:port:source format.",
+    "output_details": {
+      "security_group_id": {
+        "type": "string",
+        "description": "Unique identifier for the security group"
+      },
+      "applied_inbound_rules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Successfully applied inbound traffic rules"
+      },
+      "applied_outbound_rules": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Successfully applied outbound traffic rules"
+      },
+      "configuration_status": {
+        "type": "string",
+        "description": "Security configuration result (success, partial, failed)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VM Performance Analyzer",
+    "tool_description": "Analyzes virtual machine performance metrics over time, generates reports, and provides optimization recommendations based on resource utilization patterns.",
+    "parameters": {
+      "instance_id": {
+        "type": "string",
+        "required": true,
+        "description": "Target VM instance identifier for analysis"
+      },
+      "analysis_period_hours": {
+        "type": "integer",
+        "required": false,
+        "default": 24,
+        "description": "Analysis time period in hours"
+      },
+      "metrics_granularity": {
+        "type": "string",
+        "required": false,
+        "default": "5min",
+        "description": "Data point granularity (1min, 5min, 15min, 1hour)"
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Not enough performance data available for the specified analysis period.",
+      "Metrics access denied: Unable to retrieve performance metrics for the VM instance.",
+      "Invalid granularity: Must be one of 1min, 5min, 15min, or 1hour."
+    ],
+    "usage": "Provide instance_id and optionally set analysis_period_hours and metrics_granularity. The tool analyzes performance data and returns comprehensive metrics and recommendations.",
+    "output_details": {
+      "analysis_status": {
+        "type": "string",
+        "description": "Analysis completion status (complete, partial, failed)"
+      },
+      "avg_cpu_utilization": {
+        "type": "number",
+        "description": "Average CPU utilization percentage over the analysis period"
+      },
+      "peak_cpu_utilization": {
+        "type": "number",
+        "description": "Peak CPU utilization percentage"
+      },
+      "avg_memory_utilization": {
+        "type": "number",
+        "description": "Average memory utilization percentage"
+      },
+      "avg_disk_iops": {
+        "type": "number",
+        "description": "Average disk I/O operations per second"
+      },
+      "network_throughput_mbps": {
+        "type": "number",
+        "description": "Average network throughput in megabits per second"
+      },
+      "optimization_recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Performance optimization recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "VM Cost Calculator",
+    "tool_description": "Calculates virtual machine costs including compute, storage, and network charges with support for different pricing models and cost optimization recommendations.",
+    "parameters": {
+      "instance_type": {
+        "type": "string",
+        "required": true,
+        "description": "VM instance type for cost calculation"
+      },
+      "cloud_provider": {
+        "type": "string",
+        "required": true,
+        "description": "Cloud provider (AWS, Azure, GCP, DigitalOcean)"
+      },
+      "region": {
+        "type": "string",
+        "required": true,
+        "description": "Cloud region for pricing calculation"
+      },
+      "usage_hours": {
+        "type": "integer",
+        "required": true,
+        "description": "Expected usage hours per month"
+      },
+      "storage_gb": {
+        "type": "integer",
+        "required": false,
+        "default": 20,
+        "description": "Storage volume size in gigabytes"
+      }
+    },
+    "error_messages": [
+      "Unsupported instance type: The specified instance type is not available in the selected region.",
+      "Invalid cloud provider: Must be one of AWS, Azure, GCP, or DigitalOcean.",
+      "Pricing data unavailable: Unable to retrieve current pricing information for the specified configuration.",
+      "Invalid usage hours: Usage hours must be between 1 and 744 (hours per month)."
+    ],
+    "usage": "Provide instance_type, cloud_provider, region, and usage_hours. Optionally specify storage_gb for comprehensive cost calculation including storage charges.",
+    "output_details": {
+      "monthly_compute_cost": {
+        "type": "number",
+        "description": "Monthly compute cost in USD"
+      },
+      "monthly_storage_cost": {
+        "type": "number",
+        "description": "Monthly storage cost in USD"
+      },
+      "total_monthly_cost": {
+        "type": "number",
+        "description": "Total monthly cost including all charges"

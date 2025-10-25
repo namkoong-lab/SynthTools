@@ -1,0 +1,844 @@
+field_name: membership_and_subscriptions
+subfield: Subscription Plan Management
+task: Modify existing subscription plans including price changes and feature updates
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task involves moderate complexity as it requires handling subscription lifecycle management, pricing calculations, feature validations, customer communications, and regulatory compliance. The coordination between multiple systems (billing, CRM, notifications) and the risk of revenue impact from errors makes this a medium difficulty task.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium complexity, I'll target 12 tools to cover the various aspects of subscription plan modification including validation, pricing, feature management, customer impact analysis, and implementation.
+
+  **STEP 3 — List all tool names and dependencies**
+  1. Plan Validator - consumes plan specifications, produces validation results
+  2. Price Calculator - consumes pricing parameters, produces calculated amounts
+  3. Feature Mapper - consumes feature lists, produces feature configurations
+  4. Customer Impact Analyzer - consumes plan changes and customer data, produces impact analysis
+  5. Billing System Updater - consumes plan modifications, produces billing updates
+  6. Notification Composer - consumes change details, produces communication messages
+  7. Compliance Checker - consumes plan changes, produces compliance status
+  8. Revenue Forecaster - consumes pricing changes, produces revenue projections
+  9. Migration Scheduler - consumes transition parameters, produces migration timeline
+  10. Rollback Planner - consumes current and previous states, produces rollback procedures
+  11. A/B Test Designer - consumes test parameters, produces experiment configuration
+  12. Change Audit Logger - consumes modification details, produces audit records
+
+  **STEP 4 — Multi-tool plans**
+  Simple plans:
+  - Plan modification: Plan Validator → Price Calculator → Billing System Updater
+  - Feature update: Feature Mapper → Compliance Checker → Change Audit Logger
+
+  Medium plans:
+  - Price change with impact: Plan Validator → Price Calculator → Customer Impact Analyzer → Revenue Forecaster → Notification Composer → Billing System Updater
+  - Gradual rollout: Plan Validator → A/B Test Designer → Migration Scheduler → Billing System Updater → Change Audit Logger
+
+  Complex plans:
+  - Full plan overhaul: Plan Validator → Feature Mapper → Price Calculator → Compliance Checker → Customer Impact Analyzer → Revenue Forecaster → A/B Test Designer → Migration Scheduler → Rollback Planner → Notification Composer → Billing System Updater → Change Audit Logger
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Plan Validator",
+    "tool_description": "Validates subscription plan modifications including pricing structure, feature combinations, and business rule compliance before implementation.",
+    "parameters": {
+      "plan_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the subscription plan to modify"
+      },
+      "plan_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the subscription plan"
+      },
+      "new_price": {
+        "type": "number",
+        "required": false,
+        "description": "New price for the plan (must be >= 0)",
+        "default": null
+      },
+      "billing_cycle": {
+        "type": "string",
+        "required": true,
+        "description": "Billing frequency: monthly, quarterly, yearly"
+      },
+      "features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of feature identifiers included in the plan"
+      }
+    },
+    "error_messages": [
+      "Invalid plan_id: Plan identifier must be a non-empty string and exist in the system.",
+      "Invalid billing_cycle: Must be one of [monthly, quarterly, yearly].",
+      "Invalid price: Price must be a non-negative number.",
+      "Empty features array: Plan must include at least one feature.",
+      "Plan name conflict: A plan with this name already exists."
+    ],
+    "usage": "Provide plan_id, plan_name, billing_cycle, and features array. Optionally include new_price if modifying pricing. The tool validates all inputs against business rules and returns validation results.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the plan configuration is valid"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation error messages if any"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of warning messages for potential issues"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price Calculator",
+    "tool_description": "Calculates subscription pricing including taxes, discounts, prorations, and currency conversions for plan modifications.",
+    "parameters": {
+      "base_price": {
+        "type": "number",
+        "required": true,
+        "description": "Base subscription price before adjustments"
+      },
+      "currency": {
+        "type": "string",
+        "required": true,
+        "description": "Currency code (ISO 4217 format, e.g., USD, EUR)"
+      },
+      "tax_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Tax rate as decimal (e.g., 0.08 for 8%)",
+        "default": 0
+      },
+      "discount_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Discount percentage as decimal (0-1)",
+        "default": 0
+      },
+      "proration_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days for proration calculation",
+        "default": 0
+      },
+      "billing_cycle_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Total days in billing cycle",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid base_price: Must be a non-negative number.",
+      "Invalid currency: Must be a valid ISO 4217 currency code.",
+      "Invalid tax_rate: Must be between 0 and 1.",
+      "Invalid discount_percentage: Must be between 0 and 1.",
+      "Invalid proration_days: Must be non-negative and not exceed billing_cycle_days.",
+      "Invalid billing_cycle_days: Must be a positive integer."
+    ],
+    "usage": "Provide base_price and currency as required parameters. Optionally set tax_rate, discount_percentage, proration_days, and billing_cycle_days for advanced pricing calculations.",
+    "output_details": {
+      "final_price": {
+        "type": "number",
+        "description": "Final calculated price after all adjustments"
+      },
+      "tax_amount": {
+        "type": "number",
+        "description": "Calculated tax amount"
+      },
+      "discount_amount": {
+        "type": "number",
+        "description": "Calculated discount amount"
+      },
+      "prorated_amount": {
+        "type": "number",
+        "description": "Prorated amount if applicable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Feature Mapper",
+    "tool_description": "Maps and validates feature configurations for subscription plans, ensuring feature dependencies and constraints are properly handled.",
+    "parameters": {
+      "plan_tier": {
+        "type": "string",
+        "required": true,
+        "description": "Plan tier level: basic, standard, premium, enterprise"
+      },
+      "requested_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of feature identifiers to include in the plan",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "exclude_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of feature identifiers to explicitly exclude",
+        "default": null
+      },
+      "check_dependencies": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate feature dependencies",
+        "default": true
+      },
+      "allow_tier_override": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to allow features above the plan tier",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid plan_tier: Must be one of [basic, standard, premium, enterprise].",
+      "Empty requested_features: Must specify at least one feature.",
+      "Feature not found: One or more requested features do not exist in the system.",
+      "Dependency violation: Some features require other features that are not included.",
+      "Tier constraint violation: Requested features exceed the plan tier limits and tier override is disabled.",
+      "Conflicting features: Some requested features cannot be used together."
+    ],
+    "usage": "Specify plan_tier and requested_features array. Optionally provide exclude_features, and set check_dependencies and allow_tier_override flags as needed.",
+    "output_details": {
+      "valid_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validated feature identifiers that can be included"
+      },
+      "added_dependencies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Additional features automatically added due to dependencies"
+      },
+      "rejected_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Features that were rejected due to constraints"
+      },
+      "feature_count": {
+        "type": "integer",
+        "description": "Total number of features in the final configuration"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Impact Analyzer",
+    "tool_description": "Analyzes the impact of subscription plan changes on existing customers including pricing effects, feature changes, and churn risk assessment.",
+    "parameters": {
+      "plan_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the plan being modified"
+      },
+      "current_price": {
+        "type": "number",
+        "required": true,
+        "description": "Current plan price"
+      },
+      "new_price": {
+        "type": "number",
+        "required": true,
+        "description": "New plan price after modification"
+      },
+      "current_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of current plan features"
+      },
+      "new_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of new plan features"
+      },
+      "customer_segment": {
+        "type": "string",
+        "required": false,
+        "description": "Target customer segment: small_business, enterprise, individual",
+        "default": "individual"
+      },
+      "grandfathering_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether existing customers keep current pricing",
+        "default": false
+      },
+      "notice_period_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Days of advance notice before changes take effect",
+        "default": 30
+      },
+      "market_competition_level": {
+        "type": "string",
+        "required": false,
+        "description": "Market competition level: low, medium, high",
+        "default": "medium"
+      },
+      "seasonal_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Seasonal adjustment factor (0.5-2.0)",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Invalid plan_id: Plan identifier must be a non-empty string.",
+      "Invalid price values: current_price and new_price must be non-negative numbers.",
+      "Empty feature arrays: Both current_features and new_features must contain at least one item.",
+      "Invalid customer_segment: Must be one of [small_business, enterprise, individual].",
+      "Invalid notice_period_days: Must be a non-negative integer.",
+      "Invalid market_competition_level: Must be one of [low, medium, high].",
+      "Invalid seasonal_factor: Must be between 0.5 and 2.0."
+    ],
+    "usage": "Provide plan_id, price values, and feature arrays. Optionally specify customer_segment, grandfathering settings, notice_period_days, market_competition_level, and seasonal_factor for detailed impact analysis.",
+    "output_details": {
+      "price_change_percentage": {
+        "type": "number",
+        "description": "Percentage change in pricing"
+      },
+      "features_added": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Features being added to the plan"
+      },
+      "features_removed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Features being removed from the plan"
+      },
+      "estimated_churn_rate": {
+        "type": "number",
+        "description": "Predicted customer churn rate due to changes"
+      },
+      "customer_satisfaction_impact": {
+        "type": "string",
+        "description": "Expected impact on customer satisfaction: positive, neutral, negative"
+      },
+      "affected_customer_count": {
+        "type": "integer",
+        "description": "Estimated number of customers affected by changes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Billing System Updater",
+    "tool_description": "Updates billing system configurations with new subscription plan details including pricing, features, and billing cycles.",
+    "parameters": {
+      "plan_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the subscription plan"
+      },
+      "update_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of update: price_change, feature_update, full_modification"
+      },
+      "effective_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when changes become effective",
+        "format": "date-time"
+      },
+      "new_price": {
+        "type": "number",
+        "required": false,
+        "description": "Updated plan price",
+        "default": null
+      },
+      "apply_to_existing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply changes to existing subscribers",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid plan_id: Plan must exist in the billing system.",
+      "Invalid update_type: Must be one of [price_change, feature_update, full_modification].",
+      "Invalid effective_date: Must be a valid future date in ISO 8601 format.",
+      "Invalid new_price: Price must be a non-negative number when provided.",
+      "Billing system unavailable: Cannot connect to billing system for updates."
+    ],
+    "usage": "Provide plan_id, update_type, and effective_date. Include new_price for price changes and set apply_to_existing flag as needed.",
+    "output_details": {
+      "update_successful": {
+        "type": "boolean",
+        "description": "Whether the billing system update was successful"
+      },
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique identifier for the update transaction"
+      },
+      "affected_subscriptions": {
+        "type": "integer",
+        "description": "Number of subscriptions affected by the update"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Composer",
+    "tool_description": "Composes customer notification messages for subscription plan changes including emails, in-app notifications, and SMS alerts.",
+    "parameters": {
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification: email, sms, in_app, push"
+      },
+      "change_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of change: price_increase, price_decrease, feature_addition, feature_removal, plan_upgrade"
+      },
+      "customer_segment": {
+        "type": "string",
+        "required": true,
+        "description": "Target customer segment: individual, small_business, enterprise"
+      },
+      "effective_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when changes take effect",
+        "format": "date-time"
+      },
+      "price_change_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Amount of price change (positive for increase, negative for decrease)",
+        "default": null
+      },
+      "include_opt_out": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include opt-out or cancellation options",
+        "default": true
+      },
+      "tone": {
+        "type": "string",
+        "required": false,
+        "description": "Communication tone: formal, friendly, apologetic",
+        "default": "friendly"
+      }
+    },
+    "error_messages": [
+      "Invalid notification_type: Must be one of [email, sms, in_app, push].",
+      "Invalid change_type: Must be one of [price_increase, price_decrease, feature_addition, feature_removal, plan_upgrade].",
+      "Invalid customer_segment: Must be one of [individual, small_business, enterprise].",
+      "Invalid effective_date: Must be a valid future date in ISO 8601 format.",
+      "Invalid tone: Must be one of [formal, friendly, apologetic].",
+      "Missing price_change_amount: Required when change_type involves pricing modifications."
+    ],
+    "usage": "Specify notification_type, change_type, customer_segment, and effective_date. Include price_change_amount for pricing changes and adjust tone and opt_out settings as needed.",
+    "output_details": {
+      "message_subject": {
+        "type": "string",
+        "description": "Subject line for the notification"
+      },
+      "message_body": {
+        "type": "string",
+        "description": "Main content of the notification message"
+      },
+      "call_to_action": {
+        "type": "string",
+        "description": "Recommended call-to-action for the message"
+      },
+      "estimated_length": {
+        "type": "integer",
+        "description": "Estimated character count of the complete message"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Checker",
+    "tool_description": "Validates subscription plan modifications against regulatory requirements, consumer protection laws, and company policies.",
+    "parameters": {
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Legal jurisdiction: US, EU, UK, CA, AU"
+      },
+      "change_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of modification: price_increase, terms_change, feature_modification"
+      },
+      "price_increase_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage of price increase if applicable",
+        "default": null
+      },
+      "notice_period_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Days of advance notice provided to customers"
+      },
+      "contract_type": {
+        "type": "string",
+        "required": true,
+        "description": "Contract type: monthly, annual, multi_year"
+      },
+      "allows_cancellation": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether customers can cancel without penalty"
+      },
+      "grandfathering_offered": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether existing customers can keep current terms",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid jurisdiction: Must be one of [US, EU, UK, CA, AU].",
+      "Invalid change_type: Must be one of [price_increase, terms_change, feature_modification].",
+      "Invalid price_increase_percentage: Must be a positive number when provided.",
+      "Insufficient notice_period: Notice period does not meet regulatory requirements for the jurisdiction.",
+      "Invalid contract_type: Must be one of [monthly, annual, multi_year].",
+      "Compliance violation: The proposed changes violate consumer protection laws in the specified jurisdiction."
+    ],
+    "usage": "Provide jurisdiction, change_type, notice_period_days, contract_type, and allows_cancellation. Include price_increase_percentage for price changes and set grandfathering_offered if applicable.",
+    "output_details": {
+      "is_compliant": {
+        "type": "boolean",
+        "description": "Whether the changes meet all compliance requirements"
+      },
+      "compliance_issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of compliance violations or concerns"
+      },
+      "required_disclosures": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Legal disclosures that must be included in customer communications"
+      },
+      "minimum_notice_days": {
+        "type": "integer",
+        "description": "Minimum required notice period for the jurisdiction"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Revenue Forecaster",
+    "tool_description": "Forecasts revenue impact of subscription plan modifications including customer retention, new acquisition rates, and financial projections.",
+    "parameters": {
+      "current_monthly_revenue": {
+        "type": "number",
+        "required": true,
+        "description": "Current monthly revenue from the plan"
+      },
+      "price_change_percentage": {
+        "type": "number",
+        "required": true,
+        "description": "Percentage change in pricing (positive for increase, negative for decrease)"
+      },
+      "current_subscriber_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Current number of active subscribers"
+      },
+      "estimated_churn_rate": {
+        "type": "number",
+        "required": true,
+        "description": "Estimated churn rate due to changes (0-1)"
+      },
+      "forecast_months": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of months to forecast",
+        "default": 12
+      },
+      "market_growth_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Monthly market growth rate (0-1)",
+        "default": 0.02
+      },
+      "acquisition_impact": {
+        "type": "number",
+        "required": false,
+        "description": "Impact on new customer acquisition rate (-1 to 1)",
+        "default": 0
+      },
+      "seasonal_adjustments": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Monthly seasonal adjustment factors (12 values)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid current_monthly_revenue: Must be a positive number.",
+      "Invalid price_change_percentage: Must be a number (can be positive or negative).",
+      "Invalid current_subscriber_count: Must be a positive integer.",
+      "Invalid estimated_churn_rate: Must be between 0 and 1.",
+      "Invalid forecast_months: Must be a positive integer between 1 and 60.",
+      "Invalid market_growth_rate: Must be between -1 and 1.",
+      "Invalid acquisition_impact: Must be between -1 and 1.",
+      "Invalid seasonal_adjustments: Must contain exactly 12 numeric values if provided."
+    ],
+    "usage": "Provide current_monthly_revenue, price_change_percentage, current_subscriber_count, and estimated_churn_rate. Optionally set forecast_months, market_growth_rate, acquisition_impact, and seasonal_adjustments for detailed projections.",
+    "output_details": {
+      "projected_monthly_revenues": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Monthly revenue projections for the forecast period"
+      },
+      "total_revenue_impact": {
+        "type": "number",
+        "description": "Total revenue impact over the forecast period"
+      },
+      "break_even_month": {
+        "type": "integer",
+        "description": "Month when revenue recovers to pre-change levels (if applicable)"
+      },
+      "final_subscriber_count": {
+        "type": "integer",
+        "description": "Projected subscriber count at end of forecast period"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Migration Scheduler",
+    "tool_description": "Creates migration schedules for transitioning customers to modified subscription plans with phased rollouts and timeline management.",
+    "parameters": {
+      "migration_strategy": {
+        "type": "string",
+        "required": true,
+        "description": "Migration approach: immediate, gradual_rollout, opt_in, forced_migration"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Migration start date",
+        "format": "date-time"
+      },
+      "total_customers": {
+        "type": "integer",
+        "required": true,
+        "description": "Total number of customers to migrate"
+      },
+      "rollout_duration_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Duration of gradual rollout in days",
+        "default": 30
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of customers per migration batch",
+        "default": 1000
+      },
+      "priority_segments": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Customer segments to prioritize in migration",
+        "default": null
+      },
+      "exclude_segments": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Customer segments to exclude from migration",
+        "default": null
+      },
+      "business_days_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to schedule migrations only on business days",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid migration_strategy: Must be one of [immediate, gradual_rollout, opt_in, forced_migration].",
+      "Invalid start_date: Must be a valid future date in ISO 8601 format.",
+      "Invalid total_customers: Must be a positive integer.",
+      "Invalid rollout_duration_days: Must be a positive integer between 1 and 365.",
+      "Invalid batch_size: Must be a positive integer not exceeding total_customers.",
+      "Conflicting segments: priority_segments and exclude_segments cannot contain the same values."
+    ],
+    "usage": "Specify migration_strategy, start_date, and total_customers. For gradual rollouts, set rollout_duration_days and batch_size. Configure priority_segments, exclude_segments, and business_days_only as needed.",
+    "output_details": {
+      "migration_phases": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of migration phases with dates and customer counts"
+      },
+      "completion_date": {
+        "type": "string",
+        "description": "Expected completion date of full migration"
+      },
+      "total_batches": {
+        "type": "integer",
+        "description": "Total number of migration batches"
+      },
+      "estimated_duration_days": {
+        "type": "integer",
+        "description": "Estimated total duration of migration process"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Rollback Planner",
+    "tool_description": "Creates rollback procedures and contingency plans for reverting subscription plan modifications if issues arise.",
+    "parameters": {
+      "change_scope": {
+        "type": "string",
+        "required": true,
+        "description": "Scope of changes to plan for: pricing, features, billing_cycle, full_plan"
+      },
+      "affected_customers": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of customers affected by the changes"
+      },
+      "implementation_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when changes were or will be implemented",
+        "format": "date-time"
+      },
+      "rollback_triggers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Conditions that would trigger a rollback"
+      },
+      "backup_available": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether system backups are available for rollback"
+      },
+      "max_rollback_window_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum time window for rollback execution",
+        "default": 24
+      }
+    },
+    "error_messages": [
+      "Invalid change_scope: Must be one of [pricing, features, billing_cycle, full_plan].",
+      "Invalid affected_customers: Must be a positive integer.",
+      "Invalid implementation_date: Must be a valid date in ISO 8601 format.",
+      "Empty rollback_triggers: Must specify at least one rollback trigger condition.",
+      "Invalid max_rollback_window_hours: Must be a positive integer between 1 and 168 (7 days)."
+    ],
+    "usage": "Provide change_scope, affected_customers, implementation_date, rollback_triggers array, and backup_available status. Optionally set max_rollback_window_hours for time-sensitive rollbacks.",
+    "output_details": {
+      "rollback_steps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Sequential steps required for rollback execution"
+      },
+      "estimated_rollback_time": {
+        "type": "integer",
+        "description": "Estimated time in minutes to complete rollback"
+      },
+      "risk_assessment": {
+        "type": "string",
+        "description": "Risk level of rollback operation: low, medium, high"
+      },
+      "required_approvals": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of required approvals before rollback execution"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "A/B Test Designer",
+    "tool_description": "Designs A/B tests for subscription plan modifications to validate changes with a subset of customers before full rollout.",
+    "parameters": {
+      "test_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name

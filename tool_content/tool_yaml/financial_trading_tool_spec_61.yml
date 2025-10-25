@@ -1,0 +1,899 @@
+field_name: financial_trading
+subfield: market_data_analysis
+task: Technical indicator calculation and charting for trend analysis and pattern recognition
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task is **medium** difficulty. It involves calculating various technical indicators from market data and creating charts for visual analysis, requiring coordination between data processing, mathematical calculations, and visualization components. While the individual calculations are well-defined, the breadth of different indicator types, chart formatting options, and pattern recognition requirements add complexity.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target **12 tools** within the 10-15 range. This allows for comprehensive coverage of data retrieval, indicator calculations, charting, and pattern recognition while maintaining tool modularity.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Market Data Fetcher** → produces: raw OHLCV data
+  2. **Data Validator** → consumes: raw data → produces: validated data
+  3. **Simple Moving Average Calculator** → consumes: price data → produces: SMA values
+  4. **Exponential Moving Average Calculator** → consumes: price data → produces: EMA values
+  5. **RSI Calculator** → consumes: price data → produces: RSI values
+  6. **MACD Calculator** → consumes: price data → produces: MACD signals
+  7. **Bollinger Bands Calculator** → consumes: price data → produces: band values
+  8. **Volume Indicator Calculator** → consumes: volume data → produces: volume metrics
+  9. **Chart Generator** → consumes: price data + indicators → produces: chart specifications
+  10. **Pattern Recognition Engine** → consumes: price data + indicators → produces: pattern alerts
+  11. **Technical Analysis Reporter** → consumes: indicators + patterns → produces: analysis summary
+  12. **Alert System** → consumes: indicators + thresholds → produces: trading alerts
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Moving Average Analysis**: Market Data Fetcher → Data Validator → Simple Moving Average Calculator → Chart Generator (4 tools)
+  2. **RSI Monitoring**: Market Data Fetcher → Data Validator → RSI Calculator → Alert System (4 tools)
+
+  **Medium Plans:**
+  1. **Comprehensive Trend Analysis**: Market Data Fetcher → Data Validator → Simple Moving Average Calculator → Exponential Moving Average Calculator → MACD Calculator → Chart Generator → Technical Analysis Reporter (7 tools)
+  2. **Volatility and Pattern Detection**: Market Data Fetcher → Data Validator → Bollinger Bands Calculator → Volume Indicator Calculator → Pattern Recognition Engine → Alert System (6 tools)
+
+  **Complex Plans:**
+  1. **Full Technical Analysis Suite**: Market Data Fetcher → Data Validator → All indicator calculators → Chart Generator → Pattern Recognition Engine → Technical Analysis Reporter → Alert System (11 tools)
+  2. **Multi-Timeframe Analysis**: Market Data Fetcher (multiple timeframes) → Data Validator → RSI Calculator → MACD Calculator → Bollinger Bands Calculator → Pattern Recognition Engine → Chart Generator → Alert System (8 tools with multiple data flows)
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Market Data Fetcher",
+    "tool_description": "Retrieves historical and real-time market data including OHLCV (Open, High, Low, Close, Volume) for specified securities and time ranges.",
+    "parameters": {
+      "symbol": {
+        "type": "string",
+        "required": true,
+        "description": "Stock ticker symbol or instrument identifier"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for data retrieval",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for data retrieval",
+        "format": "date-time"
+      },
+      "timeframe": {
+        "type": "string",
+        "required": false,
+        "description": "Data granularity: 1m, 5m, 15m, 1h, 4h, 1d",
+        "default": "1d"
+      }
+    },
+    "error_messages": [
+      "Invalid symbol: The provided ticker symbol does not exist or is not supported.",
+      "Invalid date range: Start date must be before end date, and dates must be in valid ISO 8601 format.",
+      "Unsupported timeframe: Use one of [1m, 5m, 15m, 1h, 4h, 1d].",
+      "Data unavailable: No market data available for the specified symbol and date range."
+    ],
+    "usage": "Provide symbol, start_date, and end_date; optionally specify timeframe. Returns OHLCV data for the requested period.",
+    "output_details": {
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of timestamp strings for each data point"
+      },
+      "open_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of opening prices"
+      },
+      "high_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of high prices"
+      },
+      "low_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of low prices"
+      },
+      "close_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of closing prices"
+      },
+      "volumes": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Array of trading volumes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Validator",
+    "tool_description": "Validates market data for completeness, accuracy, and consistency, identifying gaps, outliers, and data quality issues.",
+    "parameters": {
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of timestamp strings",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of price values to validate",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "outlier_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Standard deviations for outlier detection (1-5)",
+        "default": 3.0
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: All input arrays must have the same length.",
+      "Invalid outlier threshold: Must be between 1 and 5 standard deviations.",
+      "Empty data arrays: Input arrays cannot be empty.",
+      "Invalid price values: Prices must be positive numbers."
+    ],
+    "usage": "Input timestamps and prices arrays with optional outlier_threshold. Returns validation results and cleaned data recommendations.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the data passes validation checks"
+      },
+      "missing_data_count": {
+        "type": "integer",
+        "description": "Number of missing data points identified"
+      },
+      "outlier_count": {
+        "type": "integer",
+        "description": "Number of outliers detected"
+      },
+      "data_quality_score": {
+        "type": "number",
+        "description": "Overall data quality score (0-100)"
+      },
+      "issues_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of specific data quality issues identified"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Simple Moving Average Calculator",
+    "tool_description": "Calculates Simple Moving Average (SMA) for given price series with specified window periods.",
+    "parameters": {
+      "prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of price values",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 2
+      },
+      "window_periods": {
+        "type": "array",
+        "required": true,
+        "description": "Array of SMA window periods to calculate",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding timestamps",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least as many price points as the largest window period.",
+      "Invalid window period: Window periods must be positive integers greater than 1.",
+      "Array length mismatch: Prices and timestamps arrays must have equal length.",
+      "Invalid price data: All prices must be positive numbers."
+    ],
+    "usage": "Provide prices array, timestamps, and desired window_periods. Returns SMA values for each specified period.",
+    "output_details": {
+      "sma_results": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Calculated SMA values for each window period"
+      },
+      "window_periods_used": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Window periods that were successfully calculated"
+      },
+      "valid_data_points": {
+        "type": "integer",
+        "description": "Number of valid SMA data points generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Exponential Moving Average Calculator",
+    "tool_description": "Calculates Exponential Moving Average (EMA) with customizable smoothing factors for trend analysis.",
+    "parameters": {
+      "prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of price values",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 10
+      },
+      "period": {
+        "type": "integer",
+        "required": true,
+        "description": "EMA period for smoothing factor calculation (2-200)"
+      },
+      "smoothing_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Custom smoothing factor (0.1-0.9), overrides period if provided",
+        "default": "None"
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding timestamps",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 10
+      }
+    },
+    "error_messages": [
+      "Invalid period: EMA period must be between 2 and 200.",
+      "Invalid smoothing factor: Must be between 0.1 and 0.9 if provided.",
+      "Insufficient data: Need at least 10 data points for reliable EMA calculation.",
+      "Array mismatch: Prices and timestamps must have equal length."
+    ],
+    "usage": "Input prices, timestamps, and period; optionally provide custom smoothing_factor. Returns EMA values and trend indicators.",
+    "output_details": {
+      "ema_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Calculated EMA values"
+      },
+      "smoothing_factor_used": {
+        "type": "number",
+        "description": "Actual smoothing factor applied in calculations"
+      },
+      "trend_direction": {
+        "type": "string",
+        "description": "Current trend direction: upward, downward, or sideways"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "RSI Calculator",
+    "tool_description": "Calculates Relative Strength Index (RSI) for momentum analysis and overbought/oversold identification.",
+    "parameters": {
+      "prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of closing prices",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 20
+      },
+      "period": {
+        "type": "integer",
+        "required": false,
+        "description": "RSI calculation period (5-50)",
+        "default": 14
+      },
+      "overbought_level": {
+        "type": "number",
+        "required": false,
+        "description": "RSI level considered overbought (70-90)",
+        "default": 70
+      },
+      "oversold_level": {
+        "type": "number",
+        "required": false,
+        "description": "RSI level considered oversold (10-30)",
+        "default": 30
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding timestamps",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 20
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 20 price points for reliable RSI calculation.",
+      "Invalid period: RSI period must be between 5 and 50.",
+      "Invalid threshold levels: Overbought level must be 70-90, oversold level must be 10-30.",
+      "Threshold conflict: Overbought level must be higher than oversold level.",
+      "Array length mismatch: Prices and timestamps arrays must be equal length."
+    ],
+    "usage": "Provide prices and timestamps arrays; optionally set period, overbought_level, and oversold_level. Returns RSI values and momentum signals.",
+    "output_details": {
+      "rsi_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Calculated RSI values (0-100)"
+      },
+      "current_rsi": {
+        "type": "number",
+        "description": "Most recent RSI value"
+      },
+      "signal": {
+        "type": "string",
+        "description": "Current momentum signal: overbought, oversold, or neutral"
+      },
+      "divergence_detected": {
+        "type": "boolean",
+        "description": "Whether price-RSI divergence is detected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "MACD Calculator",
+    "tool_description": "Calculates Moving Average Convergence Divergence (MACD) indicator including MACD line, signal line, and histogram for trend analysis.",
+    "parameters": {
+      "prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of closing prices",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 50
+      },
+      "fast_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Fast EMA period (5-20)",
+        "default": 12
+      },
+      "slow_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Slow EMA period (20-50)",
+        "default": 26
+      },
+      "signal_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Signal line EMA period (5-15)",
+        "default": 9
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding timestamps",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 50
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 50 price points for reliable MACD calculation.",
+      "Invalid period configuration: Fast period must be less than slow period.",
+      "Period out of range: Fast period (5-20), slow period (20-50), signal period (5-15).",
+      "Array length mismatch: Prices and timestamps must have equal length."
+    ],
+    "usage": "Input prices and timestamps; optionally adjust fast_period, slow_period, and signal_period. Returns MACD components and trading signals.",
+    "output_details": {
+      "macd_line": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "MACD line values (fast EMA - slow EMA)"
+      },
+      "signal_line": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Signal line values (EMA of MACD line)"
+      },
+      "histogram": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "MACD histogram (MACD line - signal line)"
+      },
+      "crossover_signal": {
+        "type": "string",
+        "description": "Latest crossover signal: bullish, bearish, or none"
+      },
+      "trend_strength": {
+        "type": "number",
+        "description": "Trend strength indicator (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bollinger Bands Calculator",
+    "tool_description": "Calculates Bollinger Bands with configurable standard deviation multipliers for volatility analysis and mean reversion signals.",
+    "parameters": {
+      "prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of closing prices",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 30
+      },
+      "period": {
+        "type": "integer",
+        "required": false,
+        "description": "Moving average period for center line (10-50)",
+        "default": 20
+      },
+      "std_multiplier": {
+        "type": "number",
+        "required": false,
+        "description": "Standard deviation multiplier for bands (1.0-3.0)",
+        "default": 2.0
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding timestamps",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 30
+      },
+      "band_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of moving average: SMA or EMA",
+        "default": "SMA"
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 30 price points for reliable Bollinger Bands calculation.",
+      "Invalid period: Period must be between 10 and 50.",
+      "Invalid std_multiplier: Must be between 1.0 and 3.0.",
+      "Invalid band_type: Must be either SMA or EMA.",
+      "Array length mismatch: Prices and timestamps must have equal length."
+    ],
+    "usage": "Provide prices and timestamps; optionally set period, std_multiplier, and band_type. Returns upper band, lower band, middle line, and volatility signals.",
+    "output_details": {
+      "upper_band": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Upper Bollinger Band values"
+      },
+      "middle_band": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Middle line (moving average) values"
+      },
+      "lower_band": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Lower Bollinger Band values"
+      },
+      "bandwidth": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Band width values (upper - lower) / middle"
+      },
+      "squeeze_detected": {
+        "type": "boolean",
+        "description": "Whether a Bollinger Band squeeze is detected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Volume Indicator Calculator",
+    "tool_description": "Calculates volume-based technical indicators including Volume Moving Average, On-Balance Volume (OBV), and Volume Rate of Change for confirming price movements.",
+    "parameters": {
+      "volumes": {
+        "type": "array",
+        "required": true,
+        "description": "Array of volume values",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 20
+      },
+      "prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of closing prices for OBV calculation",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 20
+      },
+      "volume_ma_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Volume moving average period (5-50)",
+        "default": 20
+      },
+      "vroc_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Volume Rate of Change period (5-30)",
+        "default": 14
+      },
+      "high_volume_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Multiplier for identifying high volume (1.5-3.0)",
+        "default": 2.0
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding timestamps",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 20
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 20 data points for volume indicator calculations.",
+      "Array length mismatch: Volumes, prices, and timestamps must have equal length.",
+      "Invalid period: Volume MA period (5-50), VROC period (5-30).",
+      "Invalid threshold: High volume threshold must be between 1.5 and 3.0.",
+      "Invalid volume data: All volume values must be non-negative integers."
+    ],
+    "usage": "Input volumes, prices, and timestamps; optionally configure volume_ma_period, vroc_period, and high_volume_threshold. Returns volume indicators and signals.",
+    "output_details": {
+      "volume_ma": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Volume moving average values"
+      },
+      "obv": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "On-Balance Volume values"
+      },
+      "volume_roc": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Volume Rate of Change percentage values"
+      },
+      "high_volume_periods": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Boolean array indicating high volume periods"
+      },
+      "volume_trend": {
+        "type": "string",
+        "description": "Current volume trend: increasing, decreasing, or stable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Chart Generator",
+    "tool_description": "Creates comprehensive technical analysis charts combining price data with multiple indicators, customizable styling, and annotation capabilities.",
+    "parameters": {
+      "symbol": {
+        "type": "string",
+        "required": true,
+        "description": "Security symbol for chart title"
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of timestamp strings for x-axis",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 10
+      },
+      "prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of price values for main chart",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 10
+      },
+      "chart_type": {
+        "type": "string",
+        "required": false,
+        "description": "Chart type: line, candlestick, or bar",
+        "default": "candlestick"
+      },
+      "indicator_overlays": {
+        "type": "array",
+        "required": false,
+        "description": "Names of indicators to overlay on price chart",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "subplot_indicators": {
+        "type": "array",
+        "required": false,
+        "description": "Names of indicators to display in separate subplots",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "time_range": {
+        "type": "string",
+        "required": false,
+        "description": "Display time range: 1D, 1W, 1M, 3M, 6M, 1Y, ALL",
+        "default": "ALL"
+      },
+      "theme": {
+        "type": "string",
+        "required": false,
+        "description": "Chart color theme: light, dark, or professional",
+        "default": "professional"
+      },
+      "width": {
+        "type": "integer",
+        "required": false,
+        "description": "Chart width in pixels (400-2000)",
+        "default": 1200
+      },
+      "height": {
+        "type": "integer",
+        "required": false,
+        "description": "Chart height in pixels (300-1200)",
+        "default": 800
+      },
+      "show_volume": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include volume subplot",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: Timestamps and prices must have equal length.",
+      "Invalid chart type: Must be one of [line, candlestick, bar].",
+      "Invalid time range: Must be one of [1D, 1W, 1M, 3M, 6M, 1Y, ALL].",
+      "Invalid theme: Must be one of [light, dark, professional].",
+      "Invalid dimensions: Width (400-2000), height (300-1200).",
+      "Insufficient data: Need at least 10 data points for chart generation."
+    ],
+    "usage": "Provide symbol, timestamps, and prices; configure chart appearance with chart_type, theme, dimensions, and indicator overlays. Returns chart specification and rendering details.",
+    "output_details": {
+      "chart_url": {
+        "type": "string",
+        "description": "URL or path to generated chart image"
+      },
+      "chart_config": {
+        "type": "string",
+        "description": "JSON configuration used for chart generation"
+      },
+      "indicators_plotted": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of indicators successfully added to chart"
+      },
+      "data_points_shown": {
+        "type": "integer",
+        "description": "Number of data points displayed in chart"
+      },
+      "chart_summary": {
+        "type": "string",
+        "description": "Brief description of chart contents and key patterns"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pattern Recognition Engine",
+    "tool_description": "Identifies common technical analysis patterns in price data including candlestick patterns, chart formations, and trend patterns using pattern matching algorithms.",
+    "parameters": {
+      "open_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of opening prices",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 50
+      },
+      "high_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of high prices",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 50
+      },
+      "low_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of low prices",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 50
+      },
+      "close_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of closing prices",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 50
+      },
+      "pattern_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types to search for: candlestick, chart_formations, trend_patterns",
+        "items": {
+          "type": "string"
+        },
+        "default": ["candlestick", "chart_formations"]
+      },
+      "sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Pattern detection sensitivity: low, medium, high",
+        "default": "medium"
+      },
+      "min_pattern_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of bars for pattern recognition (3-20)",
+        "default": 5
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding timestamps",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 50
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 50 OHLC data points for pattern recognition.",
+      "Array length mismatch: All OHLC arrays and timestamps must have equal length.",
+      "Invalid pattern type: Must include only [candlestick, chart_formations, trend_patterns].",
+      "Invalid sensitivity: Must be one of [low, medium, high].",
+      "Invalid pattern size: Min pattern size must be between 3 and 20."
+    ],
+    "usage": "Input OHLC price arrays and timestamps; optionally specify pattern_types, sensitivity, and min_pattern_size. Returns identified patterns with confidence scores.",
+    "output_details": {
+      "patterns_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of pattern names identified"
+      },
+      "pattern_locations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Timestamps where patterns were detected"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores (0-100) for each pattern"
+      },
+      "bullish_patterns": {
+        "type": "integer",
+        "description": "Count of bullish patterns detected"
+      },
+      "bearish_patterns": {
+        "type": "integer",
+        "description": "Count of bearish patterns detected"
+      },
+      "pattern_summary": {
+        "type": "string",
+        "description": "Summary of overall pattern analysis results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Technical Analysis Reporter",

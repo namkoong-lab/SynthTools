@@ -1,0 +1,834 @@
+field_name: healthcare_medical
+subfield: Medical Imaging and Radiology
+task: Medical image enhancement, filtering, and preprocessing
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task is **medium** difficulty. Medical image enhancement requires specialized knowledge of imaging modalities, noise characteristics, and clinical requirements. While individual preprocessing steps are well-established, the coordination between different enhancement techniques and validation against clinical standards adds complexity. The risk of introducing artifacts that could affect diagnostic accuracy makes error handling critical.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target **12 tools** within the 10-15 range. This allows for comprehensive coverage of different enhancement techniques, quality assessment, and format handling while maintaining focused, composable functionality.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **DICOM Image Loader** - Consumes: DICOM file paths → Produces: Raw image data and metadata
+  2. **Image Format Converter** - Consumes: Image data in various formats → Produces: Standardized image arrays
+  3. **Noise Detector** - Consumes: Image data → Produces: Noise type and intensity metrics
+  4. **Gaussian Noise Filter** - Consumes: Noisy images → Produces: Denoised images
+  5. **Anisotropic Diffusion Filter** - Consumes: Images with edge preservation needs → Produces: Edge-preserved filtered images
+  6. **Histogram Equalizer** - Consumes: Low contrast images → Produces: Contrast-enhanced images
+  7. **Adaptive Contrast Enhancer** - Consumes: Images with varying local contrast → Produces: Locally enhanced images
+  8. **Image Sharpening Tool** - Consumes: Blurred images → Produces: Sharpened images
+  9. **Artifact Detector** - Consumes: Enhanced images → Produces: Artifact assessment reports
+  10. **Image Quality Metrics Calculator** - Consumes: Original and processed images → Produces: Quality metrics
+  11. **Multi-Scale Enhancement Pipeline** - Consumes: Images and enhancement parameters → Produces: Multi-level enhanced images
+  12. **Clinical Validation Checker** - Consumes: Enhanced images and clinical parameters → Produces: Validation reports
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Denoising**: DICOM Image Loader → Noise Detector → Gaussian Noise Filter → Image Quality Metrics Calculator
+  2. **Format Standardization**: DICOM Image Loader → Image Format Converter → Clinical Validation Checker
+
+  **Medium Plans:**
+  1. **Standard Enhancement Workflow**: DICOM Image Loader → Noise Detector → Anisotropic Diffusion Filter → Histogram Equalizer → Artifact Detector → Image Quality Metrics Calculator
+  2. **Contrast Optimization**: Image Format Converter → Adaptive Contrast Enhancer → Image Sharpening Tool → Clinical Validation Checker
+
+  **Complex Plans:**
+  1. **Comprehensive Enhancement Pipeline**: DICOM Image Loader → Noise Detector → Multi-Scale Enhancement Pipeline → Adaptive Contrast Enhancer → Image Sharpening Tool → Artifact Detector → Image Quality Metrics Calculator → Clinical Validation Checker
+  2. **Quality-Controlled Processing**: Image Format Converter → Noise Detector → Anisotropic Diffusion Filter → Histogram Equalizer → Artifact Detector → Image Quality Metrics Calculator → Clinical Validation Checker (with iterative refinement based on quality metrics)
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "DICOM Image Loader",
+    "tool_description": "Loads and parses DICOM medical image files, extracting image data and relevant metadata for further processing.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the DICOM file to be loaded"
+      },
+      "extract_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract DICOM metadata tags",
+        "default": true
+      },
+      "normalize_pixel_values": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to normalize pixel values to 0-1 range",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "File not found: The specified DICOM file path does not exist. Verify the file path and ensure the file is accessible.",
+      "Invalid DICOM format: The file is not a valid DICOM format. Ensure the file has proper DICOM headers and structure.",
+      "Corrupted image data: The DICOM file contains corrupted pixel data. Try using a different file or check the source.",
+      "Unsupported transfer syntax: The DICOM file uses an unsupported transfer syntax. Convert to a standard transfer syntax first."
+    ],
+    "usage": "Provide the file_path to a valid DICOM file. Optionally set extract_metadata and normalize_pixel_values flags. The tool returns the image data array and metadata information.",
+    "output_details": {
+      "image_data": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Flattened array of pixel values from the DICOM image"
+      },
+      "image_dimensions": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Array containing [height, width, channels] of the image"
+      },
+      "metadata": {
+        "type": "string",
+        "description": "JSON string containing relevant DICOM metadata tags"
+      },
+      "pixel_spacing": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Physical spacing between pixels in mm"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Format Converter",
+    "tool_description": "Converts medical images between different formats and standardizes them for processing pipelines.",
+    "parameters": {
+      "input_data": {
+        "type": "array",
+        "required": true,
+        "description": "Input image data as flattened array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "input_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Input image dimensions [height, width, channels]",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "target_format": {
+        "type": "string",
+        "required": true,
+        "description": "Target format: grayscale, rgb, float32, uint16"
+      },
+      "target_dimensions": {
+        "type": "array",
+        "required": false,
+        "description": "Target image dimensions [height, width], if resizing needed",
+        "items": {
+          "type": "integer"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid input dimensions: Input dimensions must be positive integers matching the data array length.",
+      "Unsupported target format: Use one of [grayscale, rgb, float32, uint16].",
+      "Data type conversion error: Cannot convert input data to target format. Check data range and type compatibility.",
+      "Dimension mismatch: Input data length does not match specified dimensions."
+    ],
+    "usage": "Provide input_data array, input_dimensions, and target_format. Optionally specify target_dimensions for resizing. The tool returns converted image data in the specified format.",
+    "output_details": {
+      "converted_data": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Converted image data as flattened array"
+      },
+      "output_dimensions": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Final image dimensions after conversion"
+      },
+      "data_type": {
+        "type": "string",
+        "description": "Data type of the converted image"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Noise Detector",
+    "tool_description": "Analyzes medical images to detect and quantify different types of noise present, providing metrics for noise reduction strategies.",
+    "parameters": {
+      "image_data": {
+        "type": "array",
+        "required": true,
+        "description": "Image data as flattened array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "image_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Image dimensions [height, width]",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "analysis_methods": {
+        "type": "array",
+        "required": false,
+        "description": "Noise detection methods to apply",
+        "items": {
+          "type": "string"
+        },
+        "default": ["gaussian", "poisson", "speckle", "salt_pepper"]
+      },
+      "roi_coordinates": {
+        "type": "array",
+        "required": false,
+        "description": "Region of interest coordinates [x1, y1, x2, y2] for focused analysis",
+        "items": {
+          "type": "integer"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid image dimensions: Dimensions must be positive integers matching the data array length.",
+      "Unsupported analysis method: Use methods from [gaussian, poisson, speckle, salt_pepper, rician].",
+      "Invalid ROI coordinates: ROI coordinates must be within image boundaries and form a valid rectangle.",
+      "Insufficient image data: Image must have minimum 32x32 pixels for reliable noise analysis."
+    ],
+    "usage": "Provide image_data and image_dimensions. Optionally specify analysis_methods and roi_coordinates for targeted analysis. The tool returns noise characteristics and recommended filters.",
+    "output_details": {
+      "dominant_noise_type": {
+        "type": "string",
+        "description": "Primary type of noise detected in the image"
+      },
+      "noise_intensity": {
+        "type": "number",
+        "description": "Overall noise intensity score (0-100)"
+      },
+      "noise_distribution": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Noise levels across different image regions"
+      },
+      "recommended_filters": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended noise reduction filters based on analysis"
+      },
+      "snr_estimate": {
+        "type": "number",
+        "description": "Estimated signal-to-noise ratio"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Gaussian Noise Filter",
+    "tool_description": "Applies Gaussian filtering to reduce noise in medical images while preserving important structural details.",
+    "parameters": {
+      "image_data": {
+        "type": "array",
+        "required": true,
+        "description": "Noisy image data as flattened array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "image_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Image dimensions [height, width]",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "sigma": {
+        "type": "number",
+        "required": false,
+        "description": "Standard deviation of Gaussian kernel (0.5-5.0)",
+        "default": 1.0
+      },
+      "kernel_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Size of the Gaussian kernel (3-15, odd numbers only)",
+        "default": 5
+      },
+      "preserve_edges": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply edge-preserving modifications",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid sigma value: Sigma must be between 0.5 and 5.0 for medical images.",
+      "Invalid kernel size: Kernel size must be an odd number between 3 and 15.",
+      "Image dimensions mismatch: Image data length does not match specified dimensions.",
+      "Insufficient image data: Image must be at least larger than the kernel size.",
+      "Invalid image data: Image data contains non-numeric values or infinite values."
+    ],
+    "usage": "Provide image_data and image_dimensions. Adjust sigma for noise reduction strength and kernel_size for filter coverage. Enable preserve_edges for medical images requiring edge preservation.",
+    "output_details": {
+      "filtered_image": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Gaussian filtered image data as flattened array"
+      },
+      "noise_reduction_score": {
+        "type": "number",
+        "description": "Quantitative measure of noise reduction achieved (0-100)"
+      },
+      "edge_preservation_score": {
+        "type": "number",
+        "description": "Measure of edge preservation quality (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Anisotropic Diffusion Filter",
+    "tool_description": "Applies edge-preserving anisotropic diffusion filtering to reduce noise while maintaining important anatomical boundaries in medical images.",
+    "parameters": {
+      "image_data": {
+        "type": "array",
+        "required": true,
+        "description": "Input image data as flattened array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "image_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Image dimensions [height, width]",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "iterations": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of diffusion iterations (10-200)",
+        "default": 50
+      },
+      "kappa": {
+        "type": "number",
+        "required": false,
+        "description": "Conduction coefficient controlling edge preservation (1-100)",
+        "default": 20
+      },
+      "gamma": {
+        "type": "number",
+        "required": false,
+        "description": "Time step for diffusion process (0.1-0.25)",
+        "default": 0.2
+      },
+      "diffusion_function": {
+        "type": "string",
+        "required": false,
+        "description": "Diffusion function type: exponential or quadratic",
+        "default": "exponential"
+      },
+      "roi_mask": {
+        "type": "array",
+        "required": false,
+        "description": "Binary mask for region of interest (same size as image)",
+        "items": {
+          "type": "integer"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid iteration count: Iterations must be between 10 and 200.",
+      "Invalid kappa value: Kappa must be between 1 and 100.",
+      "Invalid gamma value: Gamma must be between 0.1 and 0.25 for stability.",
+      "Unsupported diffusion function: Use either 'exponential' or 'quadratic'.",
+      "ROI mask dimension mismatch: ROI mask must have same dimensions as image.",
+      "Invalid ROI mask values: ROI mask must contain only 0 and 1 values."
+    ],
+    "usage": "Provide image_data and image_dimensions. Adjust iterations for filtering strength, kappa for edge sensitivity, and gamma for process speed. Use roi_mask to limit processing to specific regions.",
+    "output_details": {
+      "filtered_image": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Anisotropic diffusion filtered image data"
+      },
+      "convergence_metric": {
+        "type": "number",
+        "description": "Measure of diffusion process convergence"
+      },
+      "edge_preservation_quality": {
+        "type": "number",
+        "description": "Quality score for edge preservation (0-100)"
+      },
+      "processing_iterations": {
+        "type": "integer",
+        "description": "Actual number of iterations performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Histogram Equalizer",
+    "tool_description": "Enhances image contrast through histogram equalization techniques optimized for medical imaging applications.",
+    "parameters": {
+      "image_data": {
+        "type": "array",
+        "required": true,
+        "description": "Input image data as flattened array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "image_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Image dimensions [height, width]",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "equalization_method": {
+        "type": "string",
+        "required": false,
+        "description": "Equalization method: global, adaptive, or clahe",
+        "default": "clahe"
+      },
+      "clip_limit": {
+        "type": "number",
+        "required": false,
+        "description": "Clipping limit for CLAHE (1.0-10.0)",
+        "default": 2.0
+      }
+    },
+    "error_messages": [
+      "Unsupported equalization method: Use one of [global, adaptive, clahe].",
+      "Invalid clip limit: Clip limit must be between 1.0 and 10.0.",
+      "Invalid image data: Image data must contain numeric values within valid range.",
+      "Image dimensions mismatch: Data array length must match height × width."
+    ],
+    "usage": "Provide image_data and image_dimensions. Choose equalization_method based on image characteristics. For medical images, 'clahe' is recommended with appropriate clip_limit.",
+    "output_details": {
+      "equalized_image": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Contrast-enhanced image data"
+      },
+      "contrast_improvement": {
+        "type": "number",
+        "description": "Quantitative measure of contrast improvement"
+      },
+      "histogram_spread": {
+        "type": "number",
+        "description": "Measure of histogram distribution improvement"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Adaptive Contrast Enhancer",
+    "tool_description": "Performs local adaptive contrast enhancement to improve visibility of anatomical structures in medical images with varying contrast regions.",
+    "parameters": {
+      "image_data": {
+        "type": "array",
+        "required": true,
+        "description": "Input image data as flattened array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "image_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Image dimensions [height, width]",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "window_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Local window size for adaptive processing (8-128)",
+        "default": 32
+      },
+      "enhancement_strength": {
+        "type": "number",
+        "required": false,
+        "description": "Enhancement strength factor (0.5-3.0)",
+        "default": 1.5
+      },
+      "noise_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Threshold to avoid enhancing noise regions (0.01-0.1)",
+        "default": 0.05
+      },
+      "preserve_mean": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve original image mean intensity",
+        "default": true
+      },
+      "anatomical_region": {
+        "type": "string",
+        "required": false,
+        "description": "Anatomical region type for optimized enhancement: chest, abdomen, brain, extremities",
+        "default": null
+      },
+      "mask_background": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to mask background regions from enhancement",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid window size: Window size must be between 8 and 128 and should be appropriate for image dimensions.",
+      "Invalid enhancement strength: Enhancement strength must be between 0.5 and 3.0.",
+      "Invalid noise threshold: Noise threshold must be between 0.01 and 0.1.",
+      "Unsupported anatomical region: Use one of [chest, abdomen, brain, extremities] or leave null.",
+      "Window size too large: Window size should not exceed half of the minimum image dimension."
+    ],
+    "usage": "Provide image_data and image_dimensions. Adjust window_size based on structure scale, enhancement_strength for enhancement level, and set anatomical_region for optimized processing.",
+    "output_details": {
+      "enhanced_image": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Adaptively contrast-enhanced image data"
+      },
+      "enhancement_map": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Map showing enhancement factors applied to each region"
+      },
+      "local_contrast_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Local contrast improvement scores across image regions"
+      },
+      "overall_enhancement_score": {
+        "type": "number",
+        "description": "Overall enhancement quality score (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Sharpening Tool",
+    "tool_description": "Applies sharpening filters to enhance edge definition and detail visibility in medical images without introducing artifacts.",
+    "parameters": {
+      "image_data": {
+        "type": "array",
+        "required": true,
+        "description": "Input image data as flattened array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "image_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Image dimensions [height, width]",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "sharpening_method": {
+        "type": "string",
+        "required": false,
+        "description": "Sharpening method: unsharp_mask, laplacian, high_boost",
+        "default": "unsharp_mask"
+      },
+      "strength": {
+        "type": "number",
+        "required": false,
+        "description": "Sharpening strength (0.1-2.0)",
+        "default": 0.8
+      },
+      "radius": {
+        "type": "number",
+        "required": false,
+        "description": "Sharpening radius in pixels (0.5-5.0)",
+        "default": 1.0
+      },
+      "threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Threshold to avoid sharpening noise (0.0-0.1)",
+        "default": 0.02
+      }
+    },
+    "error_messages": [
+      "Unsupported sharpening method: Use one of [unsharp_mask, laplacian, high_boost].",
+      "Invalid strength value: Strength must be between 0.1 and 2.0.",
+      "Invalid radius value: Radius must be between 0.5 and 5.0.",
+      "Invalid threshold value: Threshold must be between 0.0 and 0.1.",
+      "Image too small for sharpening: Image must be at least 16x16 pixels."
+    ],
+    "usage": "Provide image_data and image_dimensions. Select appropriate sharpening_method and adjust strength for enhancement level. Use threshold to prevent noise amplification.",
+    "output_details": {
+      "sharpened_image": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Sharpened image data"
+      },
+      "edge_enhancement_score": {
+        "type": "number",
+        "description": "Measure of edge enhancement achieved (0-100)"
+      },
+      "artifact_risk_score": {
+        "type": "number",
+        "description": "Risk score for introduced artifacts (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Artifact Detector",
+    "tool_description": "Detects and quantifies image processing artifacts in enhanced medical images to ensure clinical image quality standards.",
+    "parameters": {
+      "enhanced_image": {
+        "type": "array",
+        "required": true,
+        "description": "Enhanced image data as flattened array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "original_image": {
+        "type": "array",
+        "required": false,
+        "description": "Original image data for comparison",
+        "items": {
+          "type": "number"
+        },
+        "default": null
+      },
+      "image_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Image dimensions [height, width]",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "artifact_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of artifacts to detect",
+        "items": {
+          "type": "string"
+        },
+        "default": ["ringing", "overshoot", "blocking", "noise_amplification"]
+      },
+      "sensitivity": {
+        "type": "number",
+        "required": false,
+        "description": "Detection sensitivity (0.1-1.0)",
+        "default": 0.7
+      },
+      "clinical_modality": {
+        "type": "string",
+        "required": false,
+        "description": "Imaging modality for specialized artifact detection: ct, mri, xray, ultrasound",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid artifact types: Use combinations of [ringing, overshoot, blocking, noise_amplification, aliasing].",
+      "Invalid sensitivity: Sensitivity must be between 0.1 and 1.0.",
+      "Unsupported clinical modality: Use one of [ct, mri, xray, ultrasound] or leave null.",
+      "Dimension mismatch: Enhanced and original images must have same dimensions if both provided.",
+      "Insufficient image size: Images must be at least 32x32 pixels for reliable artifact detection."
+    ],
+    "usage": "Provide enhanced_image and image_dimensions. Optionally include original_image for comparison-based detection. Set clinical_modality for specialized artifact patterns and adjust sensitivity for detection threshold.",
+    "output_details": {
+      "artifact_detected": {
+        "type": "boolean",
+        "description": "Whether significant artifacts were detected"
+      },
+      "artifact_types_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of artifact types detected in the image"
+      },
+      "severity_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Severity scores for each detected artifact type"
+      },
+      "overall_quality_score": {
+        "type": "number",
+        "description": "Overall image quality score after enhancement (0-100)"
+      },
+      "clinical_acceptability": {
+        "type": "string",
+        "description": "Clinical acceptability rating: excellent, good, acceptable, poor"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommendations for artifact mitigation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Quality Metrics Calculator",
+    "tool_description": "Calculates comprehensive image quality metrics to evaluate the effectiveness of medical image enhancement processes.",
+    "parameters": {
+      "original_image": {
+        "type": "array",
+        "required": true,
+        "description": "Original image data as flattened array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "processed_image": {
+        "type": "array",
+        "required": true,
+        "description": "Processed image data as flattened array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "image_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Image dimensions [height, width]",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "reference_image": {
+        "type": "array",
+        "required": false,
+        "description": "Ground truth reference image if available",
+        "items": {
+          "type": "number"
+        },
+        "default": null
+      },
+      "metrics_to_calculate": {
+        "type": "array",
+        "required": false,
+        "description": "Specific metrics to calculate",
+        "items": {
+          "type": "string"
+        },
+        "default": ["psnr", "ssim", "mse", "snr", "contrast", "sharpness"]
+      },
+      "roi_coordinates": {
+        "type": "array",
+        "required": false,
+        "description": "Region of interest coordinates [x1, y1, x2, y2] for focused analysis",
+        "items": {
+          "type": "integer"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Image dimension mismatch: Original and processed images must have identical dimensions.",
+      "Invalid metrics selection: Use combinations of [psnr, ssim, mse, snr, contrast, sharpness, entropy].",
+      "Invalid ROI coordinates: ROI must be within image boundaries and form a valid rectangle.",
+      "Reference image dimension mismatch: Reference image must have same dimensions as input images.",
+      "Insufficient image data: Images must contain valid numeric pixel values."
+    ],
+    "usage": "Provide original_image, processed_image, and image_dimensions. Optionally include reference_image for ground truth comparison and specify metrics_to_calculate for targeted analysis.",
+    "output_details": {
+      "psnr_score": {
+        "type": "number",
+        "description": "Peak Signal-to-Noise Ratio value"
+      },
+      "ssim_score": {
+        "type": "number",
+        "description": "Structural Similarity Index score"
+      },
+      "mse_score": {
+        "type": "number",
+        "description": "Mean Squared Error value"
+      },
+      "snr_improvement": {
+        "type": "number",
+        "description": "Signal-to-Noise Ratio improvement factor"
+      },
+      "contrast_enhancement": {
+        "type": "number",
+        "description": "Contrast enhancement factor"
+      },
+      "sharpness_improvement": {
+        "type": "number",
+        "description": "Sharpness improvement score"
+      },
+      "overall_quality_score": {
+        "type": "number",
+        "description": "Composite quality improvement score (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi-Scale Enhancement Pipeline",
+    "tool_description": "Applies multi-

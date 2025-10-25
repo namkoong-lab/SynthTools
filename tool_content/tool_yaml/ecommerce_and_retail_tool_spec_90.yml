@@ -1,0 +1,821 @@
+field_name: ecommerce_and_retail
+subfield: Product Search and Discovery
+task: Inventory availability checking and stock monitoring across multiple locations or channels
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task is **medium** difficulty. It involves coordinating data across multiple locations/channels, handling real-time inventory updates, managing complex business rules for stock allocation, and ensuring data consistency across distributed systems. The scope includes multiple subproblems like location filtering, stock level monitoring, and cross-channel synchronization.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target **12 tools** to cover the various aspects of inventory management, stock monitoring, location handling, and cross-channel coordination.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Location Manager** - Consumes: location criteria → Produces: filtered location lists
+  2. **Product Validator** - Consumes: product identifiers → Produces: validated product data
+  3. **Stock Level Checker** - Consumes: products + locations → Produces: current stock quantities
+  4. **Multi-Location Aggregator** - Consumes: individual location stocks → Produces: aggregated availability
+  5. **Channel Inventory Synchronizer** - Consumes: channel configurations → Produces: cross-channel stock data
+  6. **Availability Status Calculator** - Consumes: stock levels + thresholds → Produces: availability statuses
+  7. **Stock Alert Monitor** - Consumes: current vs threshold levels → Produces: alert notifications
+  8. **Reservation Manager** - Consumes: stock levels + reservations → Produces: available-to-promise quantities
+  9. **Inventory History Tracker** - Consumes: time periods + products → Produces: historical stock data
+  10. **Reorder Point Analyzer** - Consumes: sales velocity + lead times → Produces: reorder recommendations
+  11. **Stock Movement Logger** - Consumes: stock changes → Produces: audit trail records
+  12. **Batch Availability Processor** - Consumes: multiple product requests → Produces: bulk availability results
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. **Basic Stock Check** (3 tools): Product Validator → Stock Level Checker → Availability Status Calculator - Check if specific products are in stock at given locations
+  2. **Location Stock Summary** (3 tools): Location Manager → Stock Level Checker → Multi-Location Aggregator - Get total stock across filtered locations
+
+  **Medium Plans:**
+  1. **Cross-Channel Availability** (5 tools): Product Validator → Location Manager → Channel Inventory Synchronizer → Stock Level Checker → Availability Status Calculator - Check product availability across online/retail channels
+  2. **Stock Monitoring Setup** (6 tools): Product Validator → Location Manager → Stock Level Checker → Stock Alert Monitor → Reorder Point Analyzer → Stock Movement Logger - Set up comprehensive monitoring for products
+
+  **Complex Plans:**
+  1. **Enterprise Inventory Audit** (8 tools): Location Manager → Product Validator → Stock Level Checker → Multi-Location Aggregator → Reservation Manager → Inventory History Tracker → Stock Movement Logger → Batch Availability Processor - Complete inventory audit across all locations with historical analysis
+  2. **Automated Stock Management** (10 tools): Product Validator → Location Manager → Stock Level Checker → Channel Inventory Synchronizer → Reservation Manager → Availability Status Calculator → Stock Alert Monitor → Reorder Point Analyzer → Stock Movement Logger → Batch Availability Processor - Full automated inventory management system
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Location Manager",
+    "tool_description": "Manages and filters location data for inventory operations, allowing selection of specific stores, warehouses, or distribution centers based on various criteria.",
+    "parameters": {
+      "location_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of locations to include",
+        "items": {"type": "string"}
+      },
+      "geographic_regions": {
+        "type": "array",
+        "required": false,
+        "description": "Geographic regions to filter by",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "active_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include only active locations",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid location type: Supported types are [warehouse, store, distribution_center, online_fulfillment]",
+      "Empty location types: At least one location type must be specified",
+      "Invalid geographic region: Region must be a valid geographic identifier"
+    ],
+    "usage": "Specify location_types as an array of location categories. Optionally filter by geographic_regions and set active_only to include/exclude inactive locations.",
+    "output_details": {
+      "location_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of location identifiers matching the criteria"
+      },
+      "location_count": {
+        "type": "integer",
+        "description": "Total number of locations found"
+      },
+      "location_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed information about each location"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Validator",
+    "tool_description": "Validates and standardizes product identifiers, ensuring products exist in the system and returning standardized product information.",
+    "parameters": {
+      "product_identifiers": {
+        "type": "array",
+        "required": true,
+        "description": "List of product SKUs, UPCs, or internal IDs",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "identifier_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of identifier being used"
+      },
+      "include_variants": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include product variants in results",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid identifier type: Supported types are [sku, upc, internal_id, product_code]",
+      "Product not found: One or more product identifiers do not exist in the system",
+      "Malformed identifier: Product identifier format is invalid",
+      "Exceeded maximum products: Cannot process more than 1000 products at once"
+    ],
+    "usage": "Provide an array of product_identifiers and specify the identifier_type. Set include_variants to true to get related product variations.",
+    "output_details": {
+      "valid_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validated product identifiers"
+      },
+      "invalid_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of invalid or not found products"
+      },
+      "product_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product names corresponding to valid products"
+      },
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Level Checker",
+    "tool_description": "Retrieves current stock quantities for specified products at given locations, providing real-time inventory levels.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of validated product identifiers",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "location_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of location identifiers to check",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "include_reserved": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include reserved stock in totals",
+        "default": false
+      },
+      "include_damaged": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include damaged stock in totals",
+        "default": false
+      },
+      "snapshot_time": {
+        "type": "string",
+        "required": false,
+        "description": "Specific time for stock snapshot (ISO 8601 format)",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Product not found: One or more product IDs do not exist",
+      "Location not found: One or more location IDs do not exist",
+      "Access denied: Insufficient permissions for specified locations",
+      "System unavailable: Inventory system temporarily unavailable",
+      "Invalid timestamp: snapshot_time must be in ISO 8601 format"
+    ],
+    "usage": "Provide arrays of product_ids and location_ids to check stock levels. Use include_reserved and include_damaged flags to control what stock is counted. Optionally specify snapshot_time for historical data.",
+    "output_details": {
+      "stock_levels": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Stock quantities for each product-location combination"
+      },
+      "product_location_pairs": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product-location pair identifiers corresponding to stock levels"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last inventory update"
+      },
+      "total_locations_checked": {
+        "type": "integer",
+        "description": "Number of locations successfully checked"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi-Location Aggregator",
+    "tool_description": "Aggregates stock levels across multiple locations to provide total available inventory and location-based summaries for products.",
+    "parameters": {
+      "product_stock_data": {
+        "type": "array",
+        "required": true,
+        "description": "Stock data from multiple locations",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "aggregation_method": {
+        "type": "string",
+        "required": true,
+        "description": "How to aggregate stock levels"
+      },
+      "location_priorities": {
+        "type": "array",
+        "required": false,
+        "description": "Priority order for locations",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "minimum_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum stock level to consider location viable",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid aggregation method: Supported methods are [sum, max, weighted_average, priority_based]",
+      "Insufficient data: product_stock_data must contain valid stock information",
+      "Priority mismatch: location_priorities must match locations in stock data",
+      "Invalid threshold: minimum_threshold must be a non-negative integer"
+    ],
+    "usage": "Provide product_stock_data from Stock Level Checker and specify aggregation_method. Optionally set location_priorities for priority-based aggregation and minimum_threshold to filter low-stock locations.",
+    "output_details": {
+      "aggregated_totals": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Total stock quantities per product across all locations"
+      },
+      "location_contributions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Breakdown of each location's contribution to totals"
+      },
+      "viable_locations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Locations meeting minimum threshold requirements"
+      },
+      "aggregation_summary": {
+        "type": "string",
+        "description": "Summary of aggregation results and method used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Channel Inventory Synchronizer",
+    "tool_description": "Synchronizes inventory data across different sales channels (online, retail stores, marketplaces) and manages channel-specific stock allocations and availability rules.",
+    "parameters": {
+      "source_channel": {
+        "type": "string",
+        "required": true,
+        "description": "Primary channel to sync from"
+      },
+      "target_channels": {
+        "type": "array",
+        "required": true,
+        "description": "Channels to synchronize inventory data to",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Products to synchronize",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "sync_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "How often to sync data",
+        "default": "hourly"
+      },
+      "allocation_rules": {
+        "type": "array",
+        "required": false,
+        "description": "Channel-specific allocation percentages or rules",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "enable_overselling": {
+        "type": "boolean",
+        "required": false,
+        "description": "Allow overselling beyond available stock",
+        "default": false
+      },
+      "buffer_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Safety stock percentage to maintain",
+        "default": 5.0
+      },
+      "priority_channel": {
+        "type": "string",
+        "required": false,
+        "description": "Channel with highest stock allocation priority",
+        "default": null
+      },
+      "sync_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum stock change to trigger sync",
+        "default": 1
+      },
+      "exclude_out_of_stock": {
+        "type": "boolean",
+        "required": false,
+        "description": "Exclude out of stock items from sync",
+        "default": false
+      },
+      "channel_specific_rules": {
+        "type": "array",
+        "required": false,
+        "description": "Special rules for specific channels",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "max_sync_batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of products to sync in one batch",
+        "default": 500
+      }
+    },
+    "error_messages": [
+      "Invalid channel: Supported channels are [online_store, retail_pos, amazon, ebay, shopify, warehouse_management]",
+      "Channel conflict: source_channel cannot be in target_channels list",
+      "Invalid sync frequency: Supported frequencies are [real_time, every_15min, hourly, daily]",
+      "Allocation rules error: allocation_rules must specify valid percentages that sum to 100",
+      "Buffer percentage error: buffer_percentage must be between 0 and 50",
+      "Batch size exceeded: max_sync_batch_size cannot exceed 1000",
+      "Sync threshold error: sync_threshold must be a positive integer",
+      "Priority channel not found: priority_channel must be one of the target_channels"
+    ],
+    "usage": "Specify source_channel and target_channels for synchronization. Provide product_ids to sync. Configure sync_frequency, allocation_rules, and other parameters to control sync behavior. Use buffer_percentage to maintain safety stock and priority_channel to set allocation priorities.",
+    "output_details": {
+      "sync_status": {
+        "type": "string",
+        "description": "Overall synchronization status"
+      },
+      "synced_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Products successfully synchronized"
+      },
+      "failed_products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Products that failed to synchronize"
+      },
+      "channel_allocations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Stock allocation details per channel"
+      },
+      "sync_timestamp": {
+        "type": "string",
+        "description": "Timestamp when sync was completed"
+      },
+      "next_sync_scheduled": {
+        "type": "string",
+        "description": "Next scheduled sync time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Availability Status Calculator",
+    "tool_description": "Calculates product availability status based on stock levels and business rules, determining if products are available, low stock, or out of stock.",
+    "parameters": {
+      "stock_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Current stock quantities for products",
+        "items": {"type": "integer"},
+        "minItems": 1
+      },
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Product identifiers corresponding to stock quantities",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "low_stock_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Threshold below which stock is considered low",
+        "default": 10
+      },
+      "out_of_stock_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Threshold at or below which product is out of stock",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: stock_quantities and product_ids must have same length",
+      "Invalid stock quantity: All stock quantities must be non-negative integers",
+      "Invalid threshold: Thresholds must be non-negative and out_of_stock_threshold <= low_stock_threshold",
+      "Empty input: At least one product must be provided"
+    ],
+    "usage": "Provide parallel arrays of stock_quantities and product_ids. Set low_stock_threshold and out_of_stock_threshold to define availability categories. The tool returns availability status for each product.",
+    "output_details": {
+      "availability_statuses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Availability status for each product (available, low_stock, out_of_stock)"
+      },
+      "available_count": {
+        "type": "integer",
+        "description": "Number of products with available status"
+      },
+      "low_stock_count": {
+        "type": "integer",
+        "description": "Number of products with low stock status"
+      },
+      "out_of_stock_count": {
+        "type": "integer",
+        "description": "Number of products out of stock"
+      },
+      "status_summary": {
+        "type": "string",
+        "description": "Overall availability summary"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Alert Monitor",
+    "tool_description": "Monitors stock levels and generates alerts when inventory falls below specified thresholds or when other alert conditions are met.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Products to monitor for alerts",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "current_stock_levels": {
+        "type": "array",
+        "required": true,
+        "description": "Current stock quantities for monitored products",
+        "items": {"type": "integer"},
+        "minItems": 1
+      },
+      "alert_thresholds": {
+        "type": "array",
+        "required": true,
+        "description": "Alert threshold for each product",
+        "items": {"type": "integer"},
+        "minItems": 1
+      },
+      "alert_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of alerts to monitor",
+        "items": {"type": "string"},
+        "default": ["low_stock", "out_of_stock"]
+      },
+      "notification_channels": {
+        "type": "array",
+        "required": false,
+        "description": "Where to send alerts",
+        "items": {"type": "string"},
+        "default": ["email"]
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: product_ids, current_stock_levels, and alert_thresholds must have same length",
+      "Invalid alert type: Supported types are [low_stock, out_of_stock, negative_stock, rapid_depletion]",
+      "Invalid notification channel: Supported channels are [email, sms, webhook, dashboard]",
+      "Invalid stock levels: Stock levels must be non-negative integers",
+      "Invalid thresholds: Alert thresholds must be non-negative integers"
+    ],
+    "usage": "Provide parallel arrays of product_ids, current_stock_levels, and alert_thresholds. Specify alert_types to monitor and notification_channels for alerts. The tool returns triggered alerts and monitoring status.",
+    "output_details": {
+      "triggered_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of products that triggered alerts"
+      },
+      "alert_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed information about each triggered alert"
+      },
+      "monitoring_status": {
+        "type": "string",
+        "description": "Overall monitoring system status"
+      },
+      "next_check_time": {
+        "type": "string",
+        "description": "When the next monitoring check will occur"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reservation Manager",
+    "tool_description": "Manages stock reservations and calculates available-to-promise quantities by accounting for pending orders, holds, and other reservations.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Products to check for reservations",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "total_stock_levels": {
+        "type": "array",
+        "required": true,
+        "description": "Total stock quantities for products",
+        "items": {"type": "integer"},
+        "minItems": 1
+      },
+      "include_pending_orders": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include pending orders in reservations",
+        "default": true
+      },
+      "include_holds": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include manual holds in reservations",
+        "default": true
+      },
+      "reservation_duration_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "How long reservations are held",
+        "default": 24
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: product_ids and total_stock_levels must have same length",
+      "Invalid stock levels: Stock levels must be non-negative integers",
+      "Invalid reservation duration: Duration must be between 1 and 168 hours (1 week)",
+      "Product not found: One or more products do not exist in reservation system",
+      "Reservation system error: Unable to access reservation data"
+    ],
+    "usage": "Provide product_ids and corresponding total_stock_levels. Configure what types of reservations to include and set reservation_duration_hours. The tool returns available-to-promise quantities.",
+    "output_details": {
+      "available_to_promise": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Available-to-promise quantities for each product"
+      },
+      "reserved_quantities": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Total reserved quantities per product"
+      },
+      "reservation_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Breakdown of reservation types per product"
+      },
+      "calculation_timestamp": {
+        "type": "string",
+        "description": "When ATP calculations were performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory History Tracker",
+    "tool_description": "Retrieves and analyzes historical inventory data for products over specified time periods, providing trends and movement patterns.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Products to retrieve history for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for historical data",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for historical data",
+        "format": "date-time"
+      },
+      "data_granularity": {
+        "type": "string",
+        "required": false,
+        "description": "Frequency of data points",
+        "default": "daily"
+      },
+      "include_movements": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include stock movement details",
+        "default": false
+      },
+      "location_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific locations to include in history",
+        "items": {"type": "string"},
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date",
+      "Date format error: Dates must be in ISO 8601 format",
+      "Invalid granularity: Supported values are [hourly, daily, weekly, monthly]",
+      "Historical data unavailable: No data available for specified time period",
+      "Too many products: Cannot retrieve history for more than 100 products at once"
+    ],
+    "usage": "Provide product_ids and date range using start_date and end_date. Set data_granularity to control data frequency. Include location_ids to filter specific locations and set include_movements for detailed movement data.",
+    "output_details": {
+      "historical_levels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Historical stock levels data points"
+      },
+      "trend_analysis": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Inventory trends and patterns identified"
+      },
+      "movement_summary": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Summary of stock movements if requested"
+      },
+      "data_coverage": {
+        "type": "string",
+        "description": "Percentage of requested time period with available data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reorder Point Analyzer",
+    "tool_description": "Analyzes sales velocity, lead times, and other factors to recommend optimal reorder points and quantities for inventory management.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Products to analyze for reorder points",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "sales_velocity_data": {
+        "type": "array",
+        "required": true,
+        "description": "Average daily/weekly sales for each product",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "supplier_lead_times": {
+        "type": "array",
+        "required": true,
+        "description": "Lead times in days for each product",
+        "items": {"type": "integer"},
+        "minItems": 1
+      },
+      "service_level_target": {
+        "type": "number",
+        "required": false,
+        "description": "Desired service level percentage (0-100)",
+        "default": 95.0
+      },
+      "safety_stock_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Additional safety stock in days",
+        "default": 7
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All input arrays must have the same length",
+      "Invalid sales velocity: Sales velocity must be non-negative numbers",
+      "Invalid lead time: Lead times must be positive integers",
+      "Invalid service level: Service level must be between 50 and 99.9",
+      "Invalid safety stock: Safety stock days must be non-negative"
+    ],
+    "usage": "Provide product_ids with corresponding sales_velocity_data and supplier_lead_times. Set service_level_target and safety_stock_days to fine-tune recommendations. The tool calculates optimal reorder points and quantities.",
+    "output_details": {
+      "reorder_points": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Recommended reorder point for each product"
+      },
+      "reorder_quantities": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Recommended reorder quantity for each product"
+      },
+      "safety_stock_levels": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Calculated safety stock levels"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Summary of reorder analysis and recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Movement Logger",
+    "tool_description": "Logs and tracks all inventory movements including receipts, shipments, adjustments, and transfers, maintaining a complete audit trail.",
+    "parameters": {
+      "movement_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of inventory movement"
+      },
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for the movement"
+      },
+      "quantity_changed": {
+        "type": "integer",
+        "required": true,
+        "description": "Quantity of inventory moved (positive or negative)"
+      },
+      "location_from": {
+        "type": "string",
+        "required": false,
+        "description": "Source location for movement",
+        "default": null
+      },
+      "location_to": {
+        "type": "string",
+        "required": false,
+        "description": "Destination location for movement",
+        "default": null
+      },
+      "reference_number": {
+        "type": "string",
+        "required": false,
+        "description": "Reference number (PO, SO, Transfer ID, etc.)",
+        "default": null
+      },
+      "reason_code": {
+        "type": "string",
+        "required": false,
+        "description": "Reason for the movement",
+        "default": null
+      },
+      "user_id": {
+        "type": "string",
+        "required": false,
+        "description": "User who initiated the movement",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid movement type: Supported types are [receipt, shipment, adjustment, transfer, cycle_count, damage, return]",
+      "Product not found: The specified product_id does not exist",
+      "Invalid quantity: quantity_changed cannot be zero",
+      "Location

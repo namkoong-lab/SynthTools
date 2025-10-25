@@ -1,0 +1,844 @@
+field_name: website_control
+subfield: Domain Registration and DNS Management
+task: Domain name search and availability checking
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves domain name search and availability checking, which is medium difficulty. The scope includes multiple DNS registrars, various domain extensions, and real-time availability data. There are some unknowns around registrar-specific policies and pricing variations. Coordination is needed between search, validation, and availability checking components. Errors could lead to incorrect availability information or failed registrations.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools within the 10-15 range to cover domain search, validation, availability checking, pricing, whois lookup, DNS configuration, and related workflows.
+
+  ## STEP 3 — List all tool names with dependencies and affordances
+
+  1. **Domain Name Generator** - Consumes: keywords, preferences → Produces: domain name suggestions
+  2. **Domain Validator** - Consumes: domain names → Produces: validation status
+  3. **Bulk Availability Checker** - Consumes: domain list, TLDs → Produces: availability status
+  4. **Single Domain Checker** - Consumes: single domain → Produces: detailed availability info
+  5. **Registrar Price Fetcher** - Consumes: domains, registrars → Produces: pricing data
+  6. **WHOIS Lookup Tool** - Consumes: domain name → Produces: registration details
+  7. **DNS Record Analyzer** - Consumes: domain name → Produces: DNS configuration
+  8. **Domain Extension Filter** - Consumes: preferences, criteria → Produces: filtered TLD list
+  9. **Registration History Tracker** - Consumes: domain name → Produces: historical data
+  10. **Domain Monitor Setup** - Consumes: domains, preferences → Produces: monitoring configuration
+  11. **Expired Domain Finder** - Consumes: keywords, filters → Produces: expiring domains
+  12. **Domain Comparison Tool** - Consumes: domain list, criteria → Produces: comparison matrix
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Basic availability check: Domain Validator → Single Domain Checker
+  - Generate and validate: Domain Name Generator → Domain Validator → Single Domain Checker
+
+  **Medium Plans:**
+  - Comprehensive domain research: Domain Name Generator → Domain Validator → Bulk Availability Checker → Registrar Price Fetcher → WHOIS Lookup Tool
+  - Monitor competitor domains: WHOIS Lookup Tool → DNS Record Analyzer → Domain Monitor Setup
+
+  **Complex Plans:**
+  - Full domain acquisition workflow: Domain Name Generator → Domain Extension Filter → Domain Validator → Bulk Availability Checker → Registrar Price Fetcher → Domain Comparison Tool → Single Domain Checker → Registration History Tracker
+  - Expired domain hunting: Expired Domain Finder → Domain Validator → WHOIS Lookup Tool → DNS Record Analyzer → Registrar Price Fetcher → Domain Comparison Tool
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Domain Name Generator",
+    "tool_description": "Generates domain name suggestions based on keywords, business type, and preferences using various naming strategies.",
+    "parameters": {
+      "keywords": {
+        "type": "array",
+        "required": true,
+        "description": "Primary keywords for domain generation",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "business_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of business or website purpose"
+      },
+      "max_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum character length for generated domains",
+        "default": 15
+      },
+      "include_hyphens": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include hyphenated variations",
+        "default": false
+      },
+      "include_numbers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include numbered variations",
+        "default": false
+      },
+      "generation_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of domain suggestions to generate",
+        "default": 20
+      }
+    },
+    "error_messages": [
+      "Invalid keywords: Provide 1-10 non-empty keyword strings.",
+      "Invalid business type: Provide a non-empty business type description.",
+      "Invalid max_length: Must be between 3 and 63 characters.",
+      "Invalid generation_count: Must be between 1 and 100."
+    ],
+    "usage": "Provide keywords and business_type to generate domain suggestions. Optionally customize max_length, include_hyphens, include_numbers, and generation_count for tailored results.",
+    "output_details": {
+      "generated_domains": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of generated domain name suggestions"
+      },
+      "generation_strategy": {
+        "type": "string",
+        "description": "Strategy used for domain generation"
+      },
+      "total_generated": {
+        "type": "integer",
+        "description": "Number of domains successfully generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Domain Validator",
+    "tool_description": "Validates domain names for proper syntax, length, and character restrictions according to DNS standards.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Domain name to validate"
+      },
+      "check_internationalized": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate internationalized domain names",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Empty domain name: Provide a non-empty domain name string.",
+      "Invalid domain format: Domain must follow standard DNS naming conventions.",
+      "Domain too long: Domain name exceeds 253 character limit.",
+      "Invalid characters: Domain contains prohibited characters for DNS."
+    ],
+    "usage": "Provide domain_name to validate syntax and format. Enable check_internationalized for IDN validation support.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the domain name is valid"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation errors if domain is invalid"
+      },
+      "domain_parts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Breakdown of domain into subdomain, domain, and TLD"
+      },
+      "is_internationalized": {
+        "type": "boolean",
+        "description": "Whether domain uses international characters"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bulk Availability Checker",
+    "tool_description": "Checks availability of multiple domains across specified TLDs and registrars simultaneously for efficient batch processing.",
+    "parameters": {
+      "domain_list": {
+        "type": "array",
+        "required": true,
+        "description": "List of domain names to check",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "tld_extensions": {
+        "type": "array",
+        "required": true,
+        "description": "TLD extensions to check (.com, .net, .org, etc.)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "registrars": {
+        "type": "array",
+        "required": false,
+        "description": "Specific registrars to query",
+        "items": {"type": "string"},
+        "default": ["namecheap", "godaddy", "google"]
+      },
+      "include_premium": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include premium domain availability",
+        "default": false
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Timeout for each availability check",
+        "default": 30
+      },
+      "parallel_requests": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of parallel requests to make",
+        "default": 5
+      },
+      "check_trademark": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check for potential trademark conflicts",
+        "default": false
+      },
+      "include_suggestions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include alternative suggestions for unavailable domains",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid domain list: Provide 1-50 valid domain names.",
+      "Invalid TLD list: Provide 1-20 valid TLD extensions starting with a dot.",
+      "Unsupported registrar: One or more registrars are not supported.",
+      "Invalid timeout: Timeout must be between 10 and 300 seconds.",
+      "Invalid parallel requests: Must be between 1 and 10 parallel requests.",
+      "Rate limit exceeded: Too many requests made too quickly to registrar APIs."
+    ],
+    "usage": "Provide domain_list and tld_extensions for bulk availability checking. Customize registrars, timeout settings, and additional options as needed for comprehensive results.",
+    "output_details": {
+      "availability_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Availability status for each domain-TLD combination"
+      },
+      "available_count": {
+        "type": "integer",
+        "description": "Total number of available domains found"
+      },
+      "unavailable_count": {
+        "type": "integer",
+        "description": "Total number of unavailable domains"
+      },
+      "error_count": {
+        "type": "integer",
+        "description": "Number of domains that couldn't be checked due to errors"
+      },
+      "suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative domain suggestions for unavailable domains"
+      },
+      "trademark_warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Domains with potential trademark conflicts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Single Domain Checker",
+    "tool_description": "Performs comprehensive availability check for a single domain with detailed information including pricing, expiration, and registration options.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Complete domain name including TLD to check"
+      },
+      "include_pricing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to fetch pricing information",
+        "default": true
+      },
+      "check_backorder": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check backorder availability for unavailable domains",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid domain name: Provide a complete domain name with TLD (e.g., example.com).",
+      "Domain validation failed: Domain name doesn't meet DNS naming standards.",
+      "Registrar API error: Unable to connect to domain availability service.",
+      "Unsupported TLD: The top-level domain is not supported for availability checking."
+    ],
+    "usage": "Provide domain_name for detailed availability check. Enable include_pricing for cost information and check_backorder for expired domain monitoring options.",
+    "output_details": {
+      "is_available": {
+        "type": "boolean",
+        "description": "Whether the domain is available for registration"
+      },
+      "status": {
+        "type": "string",
+        "description": "Detailed availability status (available, registered, reserved, premium, etc.)"
+      },
+      "expiration_date": {
+        "type": "string",
+        "description": "Domain expiration date if registered",
+        "format": "date-time"
+      },
+      "registration_price": {
+        "type": "number",
+        "description": "Cost to register domain for one year"
+      },
+      "renewal_price": {
+        "type": "number",
+        "description": "Annual renewal cost"
+      },
+      "is_premium": {
+        "type": "boolean",
+        "description": "Whether this is a premium domain"
+      },
+      "backorder_available": {
+        "type": "boolean",
+        "description": "Whether backorder service is available"
+      },
+      "registrar_recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended registrars for this domain"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Registrar Price Fetcher",
+    "tool_description": "Fetches and compares domain registration and renewal pricing across multiple registrars for cost optimization.",
+    "parameters": {
+      "domain_names": {
+        "type": "array",
+        "required": true,
+        "description": "Domains to get pricing for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "registrars": {
+        "type": "array",
+        "required": false,
+        "description": "Specific registrars to query for pricing",
+        "items": {"type": "string"},
+        "default": ["namecheap", "godaddy", "google", "cloudflare"]
+      },
+      "include_promotions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include promotional pricing",
+        "default": true
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred currency for pricing (USD, EUR, GBP)",
+        "default": "USD"
+      },
+      "registration_years": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of years for registration pricing",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Invalid domain list: Provide 1-10 valid domain names.",
+      "Unsupported registrar: One or more registrars are not in the supported list.",
+      "Invalid currency: Use supported currency codes (USD, EUR, GBP).",
+      "Invalid registration years: Must be between 1 and 10 years.",
+      "Pricing API unavailable: Unable to fetch current pricing from registrar APIs."
+    ],
+    "usage": "Provide domain_names to compare pricing across registrars. Customize registrars list, currency, and registration_years for specific pricing needs.",
+    "output_details": {
+      "pricing_comparison": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed pricing breakdown by domain and registrar"
+      },
+      "lowest_prices": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Best pricing options for each domain"
+      },
+      "promotional_offers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Available promotional pricing and discounts"
+      },
+      "currency_used": {
+        "type": "string",
+        "description": "Currency used for all pricing information"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "When pricing information was last fetched",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "WHOIS Lookup Tool",
+    "tool_description": "Retrieves comprehensive WHOIS information for domains including registration details, contact information, and name servers.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Domain name to lookup WHOIS information"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include historical WHOIS data",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid domain name: Provide a valid domain name for WHOIS lookup.",
+      "WHOIS service unavailable: Unable to connect to WHOIS database servers.",
+      "Domain not found: No WHOIS information available for the specified domain.",
+      "Rate limit exceeded: Too many WHOIS queries made in short timeframe."
+    ],
+    "usage": "Provide domain_name to retrieve WHOIS information. Enable include_history to get historical registration data where available.",
+    "output_details": {
+      "domain_name": {
+        "type": "string",
+        "description": "Domain name that was queried"
+      },
+      "registration_date": {
+        "type": "string",
+        "description": "When domain was first registered",
+        "format": "date-time"
+      },
+      "expiration_date": {
+        "type": "string",
+        "description": "When domain registration expires",
+        "format": "date-time"
+      },
+      "updated_date": {
+        "type": "string",
+        "description": "Last update to domain registration",
+        "format": "date-time"
+      },
+      "registrar": {
+        "type": "string",
+        "description": "Current domain registrar"
+      },
+      "name_servers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of authoritative name servers"
+      },
+      "status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Domain status codes"
+      },
+      "privacy_protected": {
+        "type": "boolean",
+        "description": "Whether contact information is privacy protected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "DNS Record Analyzer",
+    "tool_description": "Analyzes DNS configuration for a domain, checking various record types and identifying potential issues or optimizations.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Domain name to analyze DNS records"
+      },
+      "record_types": {
+        "type": "array",
+        "required": false,
+        "description": "DNS record types to check",
+        "items": {"type": "string"},
+        "default": ["A", "AAAA", "CNAME", "MX", "TXT", "NS"]
+      },
+      "include_subdomains": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to scan common subdomains",
+        "default": false
+      },
+      "check_propagation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check DNS propagation across multiple servers",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid domain name: Provide a valid domain name for DNS analysis.",
+      "DNS resolution failed: Unable to resolve DNS records for the domain.",
+      "Invalid record types: Use valid DNS record type names (A, AAAA, CNAME, MX, TXT, NS, etc.).",
+      "DNS server timeout: DNS queries timed out, try again later."
+    ],
+    "usage": "Provide domain_name to analyze DNS configuration. Customize record_types, include_subdomains, and check_propagation for comprehensive analysis.",
+    "output_details": {
+      "dns_records": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of found DNS records with values"
+      },
+      "missing_records": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended DNS records that are missing"
+      },
+      "configuration_issues": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Identified DNS configuration problems"
+      },
+      "propagation_status": {
+        "type": "string",
+        "description": "DNS propagation status across global servers"
+      },
+      "security_records": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Security-related DNS records (SPF, DKIM, DMARC)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Domain Extension Filter",
+    "tool_description": "Filters and recommends domain extensions (TLDs) based on business needs, geographic targeting, and domain strategy preferences.",
+    "parameters": {
+      "business_category": {
+        "type": "string",
+        "required": true,
+        "description": "Business category or industry type"
+      },
+      "target_geography": {
+        "type": "string",
+        "required": false,
+        "description": "Primary geographic market (country or region)",
+        "default": "global"
+      },
+      "budget_range": {
+        "type": "string",
+        "required": false,
+        "description": "Budget category: low, medium, high",
+        "default": "medium"
+      },
+      "include_generic": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include generic TLDs (.com, .net, .org)",
+        "default": true
+      },
+      "include_country": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include country code TLDs",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid business category: Provide a valid business category description.",
+      "Unsupported geography: Geographic target is not recognized.",
+      "Invalid budget range: Use 'low', 'medium', or 'high' for budget_range.",
+      "No extensions found: No suitable TLD extensions found for the specified criteria."
+    ],
+    "usage": "Provide business_category to get TLD recommendations. Customize target_geography, budget_range, and TLD type preferences for tailored extension suggestions.",
+    "output_details": {
+      "recommended_extensions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of recommended TLD extensions"
+      },
+      "extension_reasoning": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Explanations for each TLD recommendation"
+      },
+      "price_ranges": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Typical price ranges for recommended extensions"
+      },
+      "seo_impact": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "SEO considerations for each recommended extension"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Registration History Tracker",
+    "tool_description": "Tracks and analyzes domain registration history, ownership changes, and historical patterns for due diligence purposes.",
+    "parameters": {
+      "domain_name": {
+        "type": "string",
+        "required": true,
+        "description": "Domain name to track registration history"
+      },
+      "years_back": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of years of history to retrieve",
+        "default": 5
+      },
+      "include_ownership_changes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to track ownership/registrant changes",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid domain name: Provide a valid registered domain name.",
+      "History unavailable: Historical data not available for this domain.",
+      "Invalid years_back: Must be between 1 and 20 years.",
+      "Database access error: Unable to access historical domain databases."
+    ],
+    "usage": "Provide domain_name to retrieve registration history. Set years_back and include_ownership_changes to customize the historical analysis depth.",
+    "output_details": {
+      "registration_timeline": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Chronological registration events and changes"
+      },
+      "ownership_changes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Record of ownership/registrant changes over time"
+      },
+      "registrar_history": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "History of registrar transfers"
+      },
+      "expired_periods": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Periods when domain was expired or in redemption"
+      },
+      "risk_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Potential risk indicators from historical patterns"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Domain Monitor Setup",
+    "tool_description": "Configures monitoring for domain availability, expiration alerts, and changes for strategic domain acquisition opportunities.",
+    "parameters": {
+      "domains_to_monitor": {
+        "type": "array",
+        "required": true,
+        "description": "List of domains to monitor",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "monitor_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of monitoring: availability, expiration, whois_changes, dns_changes",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "check_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Monitoring frequency: hourly, daily, weekly",
+        "default": "daily"
+      },
+      "alert_threshold_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Days before expiration to send alerts",
+        "default": 30
+      },
+      "notification_email": {
+        "type": "string",
+        "required": false,
+        "description": "Email address for monitoring alerts",
+        "default": null
+      },
+      "include_similar_domains": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to monitor similar domain variations",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid domain list: Provide 1-100 valid domain names to monitor.",
+      "Invalid monitor types: Use valid monitoring types (availability, expiration, whois_changes, dns_changes).",
+      "Invalid check frequency: Use 'hourly', 'daily', or 'weekly'.",
+      "Invalid alert threshold: Must be between 1 and 365 days.",
+      "Invalid email format: Provide a valid email address for notifications.",
+      "Monitoring limit reached: Cannot monitor more domains with current subscription."
+    ],
+    "usage": "Provide domains_to_monitor and monitor_types to set up domain monitoring. Configure check_frequency, alert_threshold_days, and notification preferences for automated tracking.",
+    "output_details": {
+      "monitoring_id": {
+        "type": "string",
+        "description": "Unique identifier for this monitoring configuration"
+      },
+      "domains_added": {
+        "type": "integer",
+        "description": "Number of domains successfully added to monitoring"
+      },
+      "monitor_schedule": {
+        "type": "string",
+        "description": "Confirmed monitoring schedule and frequency"
+      },
+      "next_check_time": {
+        "type": "string",
+        "description": "When the next monitoring check will occur",
+        "format": "date-time"
+      },
+      "alert_configuration": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Summary of alert settings and notification preferences"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expired Domain Finder",
+    "tool_description": "Searches for expired and expiring domains based on keywords, categories, and quality metrics for acquisition opportunities.",
+    "parameters": {
+      "search_keywords": {
+        "type": "array",
+        "required": true,
+        "description": "Keywords to search for in expired domains",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "domain_age_min": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum domain age in years",
+        "default": 1
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of results to return",
+        "default": 50
+      },
+      "tld_filter": {
+        "type": "array",
+        "required": false,
+        "description": "TLD extensions to include in search",
+        "items": {"type": "string"},
+        "default": [".com", ".net", ".org"]
+      },
+      "exclude_trademark": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to exclude domains with potential trademark issues",
+        "default": true
+      },
+      "min_backlinks": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of backlinks required",
+        "default": 0
+      },
+      "expiry_status": {
+        "type": "string",
+        "required": false,
+        "description": "Domain status: expired, expiring_soon, in_auction, deleted",
+        "default": "expired"
+      }
+    },
+    "error_messages": [
+      "Invalid search keywords: Provide 1-10 non-empty keyword strings.",
+      "Invalid domain age: Minimum age must be 0 or greater.",
+      "Invalid max results: Must be between 1 and 500 results.",
+      "Invalid TLD filter: Provide valid TLD extensions starting with a dot.",
+      "Invalid expiry status: Use expired, expiring_soon, in_auction, or deleted.",
+      "Search service unavailable: Expired domain database temporarily unavailable."
+    ],
+    "usage": "Provide search_keywords to find expired domains. Customize filters for domain_age_min, tld_filter, min_backlinks, and other quality metrics to find suitable acquisition targets.",
+    "output_details": {
+      "found_domains": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of expired domains matching search criteria"
+      },
+      "domain_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Quality metrics for each found domain (age, backlinks, traffic)"
+      },
+      "auction_info": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Auction details for domains in auction status"
+      },
+      "estimated_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Estimated values for each domain"
+      },
+      "total_found": {
+        "type": "integer",
+        "description": "Total number of domains found matching criteria"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Domain Comparison Tool",
+    "tool_description": "Compares multiple domains across various criteria including pricing, metrics, availability, and suitability for decision making.",
+    "parameters": {
+      "domains_to_compare": {
+        "type": "array",
+        "required": true,
+        "description": "List of domains to compare",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 20

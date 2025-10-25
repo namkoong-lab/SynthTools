@@ -1,0 +1,864 @@
+field_name: journaling_and_note_taking
+subfield: Daily Personal Journaling
+task: Search and retrieve past journal entries by date, keywords, or topics
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium complexity due to the need for sophisticated search algorithms, flexible query parsing, content analysis for topic extraction, and handling various data formats and organizational structures across potentially years of journal entries.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover the breadth of search and retrieval functionality needed for personal journal management.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  - **Date Range Search** (consumes: date parameters → produces: entry IDs)
+  - **Keyword Search** (consumes: keywords → produces: ranked entry IDs)
+  - **Topic Extractor** (consumes: entry text → produces: topic tags)
+  - **Topic Search** (consumes: topics → produces: entry IDs)
+  - **Entry Retriever** (consumes: entry IDs → produces: full entries)
+  - **Similarity Finder** (consumes: reference entry → produces: similar entries)
+  - **Entry Preview** (consumes: entry IDs → produces: summaries)
+  - **Search Filter** (consumes: search results + criteria → produces: filtered results)
+  - **Entry Metadata** (consumes: entry IDs → produces: metadata)
+  - **Mood Search** (consumes: mood criteria → produces: entry IDs)
+  - **Tag Manager** (consumes: entries/tags → produces: organized tags)
+  - **Search Analytics** (consumes: search history → produces: insights)
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  1. **Basic date search**: Date Range Search → Entry Retriever (find entries from last week)
+  2. **Quick keyword lookup**: Keyword Search → Entry Preview (preview entries mentioning "work")
+
+  Medium plans:
+  1. **Topic exploration**: Topic Extractor → Topic Search → Entry Retriever (find all entries about relationships)
+  2. **Filtered search**: Keyword Search → Search Filter → Entry Retriever (find positive entries about travel from 2023)
+
+  Complex plans:
+  1. **Comprehensive analysis**: Date Range Search → Entry Metadata → Topic Extractor → Similarity Finder → Search Analytics (analyze journaling patterns over time)
+  2. **Multi-faceted discovery**: Mood Search → Tag Manager → Topic Search → Search Filter → Entry Preview → Entry Retriever (find uplifting entries about personal growth with detailed analysis)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Date Range Search",
+    "tool_description": "Searches for journal entries within a specified date range, supporting various date formats and relative dates.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date in YYYY-MM-DD format or relative format like '7 days ago'",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date in YYYY-MM-DD format or relative format like 'today'",
+        "format": "date-time"
+      },
+      "include_drafts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include draft entries in results",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Use YYYY-MM-DD format or relative dates like '1 week ago', 'today', 'yesterday'",
+      "Date range error: Start date must be before or equal to end date",
+      "Date out of bounds: Dates cannot be in the future beyond today"
+    ],
+    "usage": "Provide start_date and end_date to find entries within that timeframe. Use include_drafts=true to include unpublished entries.",
+    "output_details": {
+      "entry_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of unique identifiers for matching journal entries"
+      },
+      "total_count": {
+        "type": "integer",
+        "description": "Total number of entries found in the date range"
+      },
+      "date_range_summary": {
+        "type": "string",
+        "description": "Summary of the actual date range searched"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Keyword Search",
+    "tool_description": "Performs text-based keyword search across journal entries with relevance scoring and search options.",
+    "parameters": {
+      "keywords": {
+        "type": "array",
+        "required": true,
+        "description": "List of keywords or phrases to search for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "search_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Search mode: 'any' (OR), 'all' (AND), or 'exact' (exact phrase)",
+        "default": "any"
+      },
+      "case_sensitive": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether search should be case sensitive",
+        "default": false
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of results to return (1-100)",
+        "default": 50
+      }
+    },
+    "error_messages": [
+      "Empty keywords: At least one keyword must be provided",
+      "Invalid search mode: Use 'any', 'all', or 'exact'",
+      "Invalid max_results: Must be between 1 and 100",
+      "Keywords too short: Each keyword must be at least 2 characters long"
+    ],
+    "usage": "Provide keywords array and optionally set search_mode, case_sensitive, and max_results. Results are ranked by relevance score.",
+    "output_details": {
+      "entry_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of matching entry IDs ranked by relevance"
+      },
+      "relevance_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Relevance scores (0-1) corresponding to each entry"
+      },
+      "total_matches": {
+        "type": "integer",
+        "description": "Total number of entries containing the keywords"
+      },
+      "search_summary": {
+        "type": "string",
+        "description": "Summary of search parameters and results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Topic Extractor",
+    "tool_description": "Analyzes journal entry text to extract main topics, themes, and subject matter using natural language processing.",
+    "parameters": {
+      "entry_text": {
+        "type": "string",
+        "required": true,
+        "description": "The full text of a journal entry to analyze"
+      },
+      "max_topics": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of topics to extract (1-15)",
+        "default": 5
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence score for topic extraction (0.1-1.0)",
+        "default": 0.3
+      },
+      "include_emotions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include emotional themes in topic extraction",
+        "default": true
+      },
+      "custom_categories": {
+        "type": "array",
+        "required": false,
+        "description": "Custom topic categories to prioritize in extraction",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 10,
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty entry text: Entry text cannot be empty or contain only whitespace",
+      "Text too short: Entry must be at least 20 characters long for meaningful analysis",
+      "Invalid max_topics: Must be between 1 and 15",
+      "Invalid confidence_threshold: Must be between 0.1 and 1.0",
+      "Invalid custom_categories: Each category must be 2-30 characters long"
+    ],
+    "usage": "Provide entry_text and optionally configure max_topics, confidence_threshold, include_emotions, and custom_categories for personalized topic extraction.",
+    "output_details": {
+      "topics": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of extracted topics ranked by relevance"
+      },
+      "topic_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each extracted topic"
+      },
+      "primary_theme": {
+        "type": "string",
+        "description": "The most dominant theme identified in the entry"
+      },
+      "emotional_tone": {
+        "type": "string",
+        "description": "Overall emotional tone detected (positive, negative, neutral, mixed)"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Brief summary of the topic analysis results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Topic Search",
+    "tool_description": "Searches for journal entries based on specific topics or themes, with filtering and ranking capabilities.",
+    "parameters": {
+      "topics": {
+        "type": "array",
+        "required": true,
+        "description": "List of topics to search for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "match_mode": {
+        "type": "string",
+        "required": false,
+        "description": "How topics should match: 'any', 'all', or 'weighted'",
+        "default": "any"
+      },
+      "time_period": {
+        "type": "string",
+        "required": false,
+        "description": "Time period filter: 'week', 'month', 'quarter', 'year', 'all'",
+        "default": "all"
+      }
+    },
+    "error_messages": [
+      "Empty topics: At least one topic must be provided",
+      "Invalid match_mode: Use 'any', 'all', or 'weighted'",
+      "Invalid time_period: Use 'week', 'month', 'quarter', 'year', or 'all'",
+      "Topic too vague: Each topic should be at least 3 characters and descriptive"
+    ],
+    "usage": "Provide topics array and optionally set match_mode and time_period to find entries discussing specific themes.",
+    "output_details": {
+      "entry_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of entry IDs matching the topic criteria"
+      },
+      "topic_match_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Topic relevance scores for each matching entry"
+      },
+      "matches_found": {
+        "type": "integer",
+        "description": "Total number of entries matching the topic search"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Entry Retriever",
+    "tool_description": "Retrieves complete journal entries by their IDs, with options for formatting and content filtering.",
+    "parameters": {
+      "entry_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of entry IDs to retrieve",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include entry metadata (date, tags, mood, etc.)",
+        "default": true
+      },
+      "format_output": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to format text for better readability",
+        "default": false
+      },
+      "exclude_private": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to exclude entries marked as private",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid entry IDs: One or more entry IDs do not exist or are malformed",
+      "Too many entries: Maximum 50 entries can be retrieved at once",
+      "Access denied: Some entries are private or restricted",
+      "Empty entry_ids: At least one entry ID must be provided"
+    ],
+    "usage": "Provide entry_ids array and configure retrieval options. Use include_metadata for complete entry information.",
+    "output_details": {
+      "entries": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Complete text content of retrieved journal entries"
+      },
+      "entry_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Creation dates for each retrieved entry"
+      },
+      "retrieval_count": {
+        "type": "integer",
+        "description": "Number of entries successfully retrieved"
+      },
+      "failed_retrievals": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of entry IDs that could not be retrieved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Similarity Finder",
+    "tool_description": "Finds journal entries similar to a reference entry based on content, themes, and writing patterns.",
+    "parameters": {
+      "reference_entry_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the entry to use as reference for similarity matching"
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum similarity score to include results (0.1-1.0)",
+        "default": 0.4
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of similar entries to return (1-25)",
+        "default": 10
+      },
+      "similarity_factors": {
+        "type": "array",
+        "required": false,
+        "description": "Factors to consider: 'content', 'topics', 'mood', 'length', 'style'",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid reference entry: Reference entry ID does not exist or is inaccessible",
+      "Invalid similarity_threshold: Must be between 0.1 and 1.0",
+      "Invalid max_results: Must be between 1 and 25",
+      "Invalid similarity_factors: Use only 'content', 'topics', 'mood', 'length', 'style'",
+      "Reference entry too short: Entry must have sufficient content for similarity analysis"
+    ],
+    "usage": "Provide reference_entry_id and optionally configure similarity_threshold, max_results, and similarity_factors to find related entries.",
+    "output_details": {
+      "similar_entry_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "IDs of entries similar to the reference entry, ranked by similarity"
+      },
+      "similarity_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Similarity scores (0-1) for each matching entry"
+      },
+      "total_comparisons": {
+        "type": "integer",
+        "description": "Total number of entries compared for similarity"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Entry Preview",
+    "tool_description": "Generates concise previews and summaries of journal entries for quick review and selection.",
+    "parameters": {
+      "entry_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of entry IDs to generate previews for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 30
+      },
+      "preview_length": {
+        "type": "string",
+        "required": false,
+        "description": "Preview length: 'short' (1-2 sentences), 'medium' (3-4 sentences), 'long' (paragraph)",
+        "default": "medium"
+      },
+      "include_keywords": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to highlight key themes in the preview",
+        "default": true
+      },
+      "show_sentiment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include sentiment analysis in preview",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid entry IDs: Some entry IDs do not exist or cannot be accessed",
+      "Too many entries: Maximum 30 entries can be previewed at once",
+      "Invalid preview_length: Use 'short', 'medium', or 'long'",
+      "Preview generation failed: Some entries may be too short or corrupted"
+    ],
+    "usage": "Provide entry_ids and configure preview options to get quick summaries before full retrieval.",
+    "output_details": {
+      "previews": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Generated preview text for each entry"
+      },
+      "entry_titles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Generated or extracted titles for each entry"
+      },
+      "key_themes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Main themes identified in each entry"
+      },
+      "preview_count": {
+        "type": "integer",
+        "description": "Number of previews successfully generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Search Filter",
+    "tool_description": "Applies advanced filtering criteria to search results including date ranges, mood, topics, and content characteristics.",
+    "parameters": {
+      "entry_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of entry IDs to filter",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "date_filter_start": {
+        "type": "string",
+        "required": false,
+        "description": "Filter entries after this date (YYYY-MM-DD format)",
+        "format": "date-time",
+        "default": "None"
+      },
+      "date_filter_end": {
+        "type": "string",
+        "required": false,
+        "description": "Filter entries before this date (YYYY-MM-DD format)",
+        "format": "date-time",
+        "default": "None"
+      },
+      "mood_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Filter by mood: 'positive', 'negative', 'neutral', 'excited', 'sad', 'anxious', 'grateful'",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "min_word_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum word count for filtered entries",
+        "default": "None"
+      },
+      "max_word_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum word count for filtered entries",
+        "default": "None"
+      },
+      "exclude_topics": {
+        "type": "array",
+        "required": false,
+        "description": "Topics to exclude from results",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "require_topics": {
+        "type": "array",
+        "required": false,
+        "description": "Topics that must be present in results",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "has_tags": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include only entries with user-defined tags",
+        "default": "None"
+      },
+      "day_of_week": {
+        "type": "array",
+        "required": false,
+        "description": "Filter by days: 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "filter_logic": {
+        "type": "string",
+        "required": false,
+        "description": "How to combine filters: 'AND' (all must match), 'OR' (any can match)",
+        "default": "AND"
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Use YYYY-MM-DD format for date filters",
+      "Invalid date range: start date must be before end date",
+      "Invalid mood filter: Use valid mood values like 'positive', 'negative', 'neutral', etc.",
+      "Invalid word count: min_word_count must be less than max_word_count and both must be positive",
+      "Invalid day_of_week: Use full day names in lowercase like 'monday', 'tuesday', etc.",
+      "Invalid filter_logic: Use 'AND' or 'OR'",
+      "Empty entry_ids: At least one entry ID must be provided for filtering"
+    ],
+    "usage": "Provide entry_ids and configure desired filters. Use filter_logic to control how multiple filters are combined.",
+    "output_details": {
+      "filtered_entry_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Entry IDs that match the specified filter criteria"
+      },
+      "original_count": {
+        "type": "integer",
+        "description": "Number of entries before filtering"
+      },
+      "filtered_count": {
+        "type": "integer",
+        "description": "Number of entries after filtering"
+      },
+      "filter_summary": {
+        "type": "string",
+        "description": "Summary of applied filters and their effect"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Entry Metadata",
+    "tool_description": "Extracts and returns detailed metadata for journal entries including creation details, statistics, and classifications.",
+    "parameters": {
+      "entry_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of entry IDs to get metadata for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "include_word_stats": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include word count and reading time statistics",
+        "default": true
+      },
+      "include_sentiment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include sentiment analysis results",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid entry IDs: Some entry IDs do not exist or are malformed",
+      "Too many entries: Maximum 100 entries can be processed at once",
+      "Metadata extraction failed: Some entries may be corrupted or inaccessible"
+    ],
+    "usage": "Provide entry_ids and configure metadata options to get comprehensive information about journal entries.",
+    "output_details": {
+      "entry_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Creation dates for each entry in date-time format"
+      },
+      "word_counts": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Word count for each entry"
+      },
+      "reading_times": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Estimated reading time in minutes for each entry"
+      },
+      "sentiment_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Sentiment scores (-1 to 1, negative to positive) for each entry"
+      },
+      "has_user_tags": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Whether each entry has user-defined tags"
+      },
+      "metadata_count": {
+        "type": "integer",
+        "description": "Number of entries with successfully extracted metadata"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Mood Search",
+    "tool_description": "Searches for journal entries based on emotional content, mood indicators, and sentiment patterns.",
+    "parameters": {
+      "target_moods": {
+        "type": "array",
+        "required": true,
+        "description": "Moods to search for: 'happy', 'sad', 'anxious', 'excited', 'grateful', 'frustrated', 'peaceful', 'stressed'",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "mood_intensity": {
+        "type": "string",
+        "required": false,
+        "description": "Intensity level: 'low', 'medium', 'high', 'any'",
+        "default": "any"
+      },
+      "sentiment_range": {
+        "type": "string",
+        "required": false,
+        "description": "Sentiment range: 'very_positive', 'positive', 'neutral', 'negative', 'very_negative', 'mixed'",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid mood: Use recognized mood values like 'happy', 'sad', 'anxious', 'excited', 'grateful', 'frustrated', 'peaceful', 'stressed'",
+      "Invalid mood_intensity: Use 'low', 'medium', 'high', or 'any'",
+      "Invalid sentiment_range: Use 'very_positive', 'positive', 'neutral', 'negative', 'very_negative', or 'mixed'",
+      "No moods specified: At least one target mood must be provided"
+    ],
+    "usage": "Provide target_moods and optionally specify mood_intensity and sentiment_range to find entries matching emotional criteria.",
+    "output_details": {
+      "entry_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "IDs of entries matching the mood criteria"
+      },
+      "mood_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Mood match confidence scores for each entry"
+      },
+      "detected_moods": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Primary mood detected in each matching entry"
+      },
+      "matches_found": {
+        "type": "integer",
+        "description": "Total number of entries matching mood criteria"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tag Manager",
+    "tool_description": "Manages user-defined tags for journal entries including creation, assignment, and organization of tags for better searchability.",
+    "parameters": {
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: 'list_all', 'search_by_tag', 'get_entry_tags', 'suggest_tags'"
+      },
+      "entry_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Entry IDs for tag operations (required for 'get_entry_tags', 'suggest_tags')",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "tag_names": {
+        "type": "array",
+        "required": false,
+        "description": "Tag names for search operations (required for 'search_by_tag')",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "include_count": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include usage count for tags",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid action: Use 'list_all', 'search_by_tag', 'get_entry_tags', or 'suggest_tags'",
+      "Missing entry_ids: entry_ids required for 'get_entry_tags' and 'suggest_tags' actions",
+      "Missing tag_names: tag_names required for 'search_by_tag' action",
+      "Invalid entry IDs: Some entry IDs do not exist or are inaccessible",
+      "Invalid tag names: Tag names must be 2-30 characters and contain only letters, numbers, and underscores"
+    ],
+    "usage": "Specify action and provide required parameters based on the operation. Use 'list_all' to see all tags, 'search_by_tag' to find entries with specific tags.",
+    "output_details": {
+      "all_tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of all available tags (for 'list_all' action)"
+      },
+      "tag_counts": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Usage count for each tag (when include_count is true)"
+      },
+      "matching_entries": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Entry IDs matching the specified tags (for 'search_by_tag' action)"
+      },
+      "entry_tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Tags associated with requested entries (for 'get_entry_tags' action)"
+      },
+      "suggested_tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggested tags based on entry content (for 'suggest_tags' action)"
+      },
+      "operation_summary": {
+        "type": "string",
+        "description": "Summary of the tag operation performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Search Analytics",
+    "tool_description": "Analyzes search patterns and journal content to provide insights about writing habits, topics, and trends over time.",
+    "parameters": {
+      "analysis_period": {
+        "type

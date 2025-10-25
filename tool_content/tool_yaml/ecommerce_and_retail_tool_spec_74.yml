@@ -1,0 +1,767 @@
+field_name: ecommerce_and_retail
+subfield: Shopping Cart and Checkout Systems
+task: Process order modifications and cancellations before fulfillment
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is of medium difficulty. It involves handling complex order states, managing inventory updates, processing refunds, coordinating between multiple systems (payment, inventory, customer service), and ensuring data consistency while handling time-sensitive operations before fulfillment.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover order validation, modification processing, cancellation handling, inventory management, payment processing, notification systems, and audit tracking.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  - **Order Validator** → consumes order IDs, produces validation status
+  - **Order Modifier** → consumes validated orders + modifications, produces updated orders
+  - **Cancellation Processor** → consumes orders, produces cancellation status
+  - **Inventory Adjuster** → consumes item changes, produces inventory updates
+  - **Payment Refunder** → consumes payment info, produces refund status
+  - **Fulfillment Status Checker** → consumes order IDs, produces fulfillment status
+  - **Customer Notifier** → consumes order changes, produces notification status
+  - **Order State Manager** → consumes state changes, produces current states
+  - **Modification Fee Calculator** → consumes changes, produces fee calculations
+  - **Audit Logger** → consumes all operations, produces audit trails
+  - **Batch Processor** → consumes multiple operations, produces batch results
+  - **Rollback Manager** → consumes failed operations, produces rollback status
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  1. Basic cancellation: Fulfillment Status Checker → Cancellation Processor → Customer Notifier
+  2. Quick modification: Order Validator → Order Modifier → Customer Notifier
+
+  **Medium plans:**
+  1. Standard modification: Order Validator → Fulfillment Status Checker → Modification Fee Calculator → Order Modifier → Inventory Adjuster → Customer Notifier → Audit Logger
+  2. Refund cancellation: Order Validator → Cancellation Processor → Payment Refunder → Order State Manager → Customer Notifier → Audit Logger
+
+  **Complex plans:**
+  1. Bulk modification with rollback: Batch Processor → (Order Validator + Fulfillment Status Checker) → Order Modifier → Inventory Adjuster → Rollback Manager (if failures) → Customer Notifier → Audit Logger
+  2. Complex partial cancellation: Order Validator → Fulfillment Status Checker → Cancellation Processor → Inventory Adjuster → Payment Refunder → Modification Fee Calculator → Order State Manager → Customer Notifier → Audit Logger
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Order Validator",
+    "tool_description": "Validates order existence, customer permissions, and modification eligibility before processing any changes.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the order to validate"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer ID requesting the modification"
+      },
+      "operation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of operation: modify, cancel, or view"
+      }
+    },
+    "error_messages": [
+      "Order not found: The provided order_id does not exist in the system. Verify the order ID is correct.",
+      "Access denied: Customer does not have permission to modify this order. Ensure customer_id matches the order owner.",
+      "Invalid operation type: Use one of [modify, cancel, view]. Check operation_type parameter spelling.",
+      "Order already processed: Cannot modify orders that have entered fulfillment. Check order status before attempting changes."
+    ],
+    "usage": "Provide order_id, customer_id, and operation_type to validate if the requested operation can be performed. Always run this before any modification or cancellation operations.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the order can be modified by this customer"
+      },
+      "order_status": {
+        "type": "string",
+        "description": "Current status of the order"
+      },
+      "validation_message": {
+        "type": "string",
+        "description": "Detailed validation result message"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fulfillment Status Checker",
+    "tool_description": "Checks the current fulfillment status of orders to determine if modifications or cancellations are still possible.",
+    "parameters": {
+      "order_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of order IDs to check fulfillment status",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "include_timeline": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include fulfillment timeline details",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Order ID not found: One or more order IDs do not exist. Verify all order IDs are valid.",
+      "Too many orders requested: Maximum 50 orders per request. Split large requests into smaller batches.",
+      "Fulfillment system unavailable: Cannot check status due to system connectivity issues. Retry in a few minutes."
+    ],
+    "usage": "Provide an array of order_ids to check their fulfillment status. Use this before attempting modifications to ensure orders haven't entered fulfillment.",
+    "output_details": {
+      "order_statuses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Fulfillment status for each order in the same order as input"
+      },
+      "modifiable_orders": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of order IDs that can still be modified"
+      },
+      "locked_orders": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of order IDs that cannot be modified due to fulfillment status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order Modifier",
+    "tool_description": "Processes order modifications including quantity changes, item additions/removals, and address updates for orders not yet in fulfillment.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order ID to modify"
+      },
+      "modification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of modification: quantity_change, add_item, remove_item, address_change, or shipping_change"
+      },
+      "item_sku": {
+        "type": "string",
+        "required": false,
+        "description": "SKU of item being modified (required for item-related changes)",
+        "default": null
+      },
+      "new_quantity": {
+        "type": "integer",
+        "required": false,
+        "description": "New quantity for item (for quantity_change)",
+        "default": null
+      },
+      "new_address": {
+        "type": "string",
+        "required": false,
+        "description": "New shipping address (for address_change)",
+        "default": null
+      },
+      "new_shipping_method": {
+        "type": "string",
+        "required": false,
+        "description": "New shipping method (for shipping_change)",
+        "default": null
+      },
+      "reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for modification for audit purposes"
+      }
+    },
+    "error_messages": [
+      "Order not modifiable: Order has entered fulfillment or is in a locked state. Check fulfillment status first.",
+      "Invalid modification type: Use one of [quantity_change, add_item, remove_item, address_change, shipping_change].",
+      "Missing required parameter: item_sku is required for item-related modifications, new_quantity for quantity changes, etc.",
+      "Item not available: The requested item SKU is out of stock or discontinued. Check inventory availability.",
+      "Invalid quantity: New quantity must be greater than 0 for quantity changes.",
+      "Address validation failed: The new address format is invalid or cannot be delivered to."
+    ],
+    "usage": "Provide order_id, modification_type, and reason along with relevant modification parameters. Ensure order is validated and not in fulfillment before calling.",
+    "output_details": {
+      "modification_successful": {
+        "type": "boolean",
+        "description": "Whether the modification was successfully applied"
+      },
+      "new_order_total": {
+        "type": "number",
+        "description": "Updated order total after modification"
+      },
+      "price_difference": {
+        "type": "number",
+        "description": "Difference in price (positive for increase, negative for decrease)"
+      },
+      "modification_id": {
+        "type": "string",
+        "description": "Unique identifier for this modification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cancellation Processor",
+    "tool_description": "Processes full or partial order cancellations, handling inventory restoration and cancellation fees if applicable.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order ID to cancel"
+      },
+      "cancellation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of cancellation: full or partial"
+      },
+      "items_to_cancel": {
+        "type": "array",
+        "required": false,
+        "description": "SKUs to cancel for partial cancellation",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "cancellation_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for cancellation"
+      },
+      "customer_initiated": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether cancellation was initiated by customer"
+      }
+    },
+    "error_messages": [
+      "Order cannot be cancelled: Order has already shipped or is in a non-cancellable state.",
+      "Invalid cancellation type: Use either 'full' or 'partial'.",
+      "Items not found: One or more items in items_to_cancel are not in the original order.",
+      "Partial cancellation incomplete: For partial cancellations, items_to_cancel array is required and cannot be empty."
+    ],
+    "usage": "Provide order_id, cancellation_type, cancellation_reason, and customer_initiated flag. For partial cancellations, include items_to_cancel array with SKUs to cancel.",
+    "output_details": {
+      "cancellation_successful": {
+        "type": "boolean",
+        "description": "Whether the cancellation was processed successfully"
+      },
+      "cancellation_id": {
+        "type": "string",
+        "description": "Unique identifier for this cancellation"
+      },
+      "refund_amount": {
+        "type": "number",
+        "description": "Amount to be refunded to customer"
+      },
+      "cancellation_fee": {
+        "type": "number",
+        "description": "Cancellation fee charged if applicable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Adjuster",
+    "tool_description": "Updates inventory levels when orders are modified or cancelled, ensuring stock counts remain accurate.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order ID that triggered inventory adjustment"
+      },
+      "adjustments": {
+        "type": "array",
+        "required": true,
+        "description": "List of SKU:quantity_change pairs (e.g., 'SKU123:+2' for adding 2 back to inventory)",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "adjustment_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for inventory adjustment"
+      },
+      "warehouse_location": {
+        "type": "string",
+        "required": false,
+        "description": "Specific warehouse location for adjustment",
+        "default": "default"
+      }
+    },
+    "error_messages": [
+      "Invalid adjustment format: Use format 'SKU:+/-quantity' (e.g., 'ABC123:+5' or 'DEF456:-3').",
+      "SKU not found: One or more SKUs in adjustments do not exist in inventory system.",
+      "Insufficient inventory: Cannot reduce inventory below zero for any SKU.",
+      "Warehouse not found: The specified warehouse_location does not exist."
+    ],
+    "usage": "Provide order_id, array of adjustment strings in 'SKU:+/-quantity' format, and adjustment_reason. Positive quantities add to inventory, negative quantities remove from inventory.",
+    "output_details": {
+      "adjustments_applied": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of successfully applied adjustments"
+      },
+      "failed_adjustments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of adjustments that failed to apply"
+      },
+      "current_inventory_levels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current inventory levels for adjusted SKUs in 'SKU:quantity' format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Refunder",
+    "tool_description": "Processes refunds for cancelled or modified orders, handling various payment methods and partial refunds.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order ID requiring refund processing"
+      },
+      "refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Amount to refund in currency units"
+      },
+      "refund_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for the refund"
+      },
+      "refund_method": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred refund method: original_payment, store_credit, or check",
+        "default": "original_payment"
+      },
+      "processing_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Processing priority: standard, expedited, or immediate",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid refund amount: Refund amount must be positive and not exceed the original payment amount.",
+      "Payment not found: No payment record found for the specified order_id.",
+      "Refund method unavailable: The requested refund method is not available for this payment type.",
+      "Processing failed: Payment processor returned an error. Retry with different parameters or contact support."
+    ],
+    "usage": "Provide order_id, refund_amount, and refund_reason. Optionally specify refund_method and processing_priority. Ensure refund amount does not exceed original payment.",
+    "output_details": {
+      "refund_successful": {
+        "type": "boolean",
+        "description": "Whether the refund was successfully initiated"
+      },
+      "refund_reference": {
+        "type": "string",
+        "description": "Unique reference number for the refund transaction"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated completion date and time for the refund",
+        "format": "date-time"
+      },
+      "actual_refund_amount": {
+        "type": "number",
+        "description": "Actual amount refunded (may differ due to fees)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Notifier",
+    "tool_description": "Sends notifications to customers about order modifications, cancellations, and refund status updates through various communication channels.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer ID to notify"
+      },
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Related order ID for the notification"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification: modification_confirmed, cancellation_confirmed, refund_processed, or modification_failed"
+      },
+      "notification_channels": {
+        "type": "array",
+        "required": false,
+        "description": "Channels to send notification through",
+        "items": {"type": "string"},
+        "default": ["email"]
+      },
+      "custom_message": {
+        "type": "string",
+        "required": false,
+        "description": "Custom message to include in notification",
+        "default": null
+      },
+      "include_order_details": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include updated order details",
+        "default": true
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Urgency level: low, normal, or high",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Customer not found: The specified customer_id does not exist in the system.",
+      "Invalid notification type: Use one of [modification_confirmed, cancellation_confirmed, refund_processed, modification_failed].",
+      "Invalid notification channel: Supported channels are [email, sms, push, phone]. Check customer preferences.",
+      "Customer contact unavailable: Customer does not have valid contact information for selected channels."
+    ],
+    "usage": "Provide customer_id, order_id, and notification_type. Optionally specify notification_channels, custom_message, include_order_details, and urgency_level based on the situation.",
+    "output_details": {
+      "notification_sent": {
+        "type": "boolean",
+        "description": "Whether the notification was successfully sent"
+      },
+      "channels_used": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of channels through which notification was sent"
+      },
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for tracking this notification"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Initial delivery status of the notification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Order State Manager",
+    "tool_description": "Updates and tracks order states throughout the modification and cancellation process, ensuring consistent state management.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order ID to update state for"
+      },
+      "new_state": {
+        "type": "string",
+        "required": true,
+        "description": "New state to transition to"
+      },
+      "state_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for state change"
+      },
+      "previous_state": {
+        "type": "string",
+        "required": false,
+        "description": "Expected previous state for validation",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid state transition: The requested state change is not allowed from current order state.",
+      "Order not found: The specified order_id does not exist.",
+      "State mismatch: Previous state does not match expected state, indicating concurrent modification.",
+      "Invalid state: The new_state provided is not a valid order state."
+    ],
+    "usage": "Provide order_id, new_state, and state_reason. Optionally provide previous_state for validation. Use this after successful modifications or cancellations to update order status.",
+    "output_details": {
+      "state_updated": {
+        "type": "boolean",
+        "description": "Whether the state was successfully updated"
+      },
+      "current_state": {
+        "type": "string",
+        "description": "Current state of the order after update"
+      },
+      "state_timestamp": {
+        "type": "string",
+        "description": "Timestamp when state was changed",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Modification Fee Calculator",
+    "tool_description": "Calculates fees associated with order modifications based on modification type, timing, and business rules.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order ID for fee calculation"
+      },
+      "modification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of modification for fee calculation"
+      },
+      "original_order_value": {
+        "type": "number",
+        "required": true,
+        "description": "Original value of the order"
+      },
+      "new_order_value": {
+        "type": "number",
+        "required": false,
+        "description": "New order value after modification",
+        "default": null
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Customer tier for fee calculation: standard, premium, or vip",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid order value: Order values must be positive numbers.",
+      "Invalid modification type: Modification type not recognized for fee calculation.",
+      "Invalid customer tier: Use one of [standard, premium, vip].",
+      "Fee calculation error: Unable to calculate fees due to missing business rules or system error."
+    ],
+    "usage": "Provide order_id, modification_type, and original_order_value. Include new_order_value for value-based fees and customer_tier for tier-based discounts.",
+    "output_details": {
+      "base_fee": {
+        "type": "number",
+        "description": "Base modification fee before discounts"
+      },
+      "discount_applied": {
+        "type": "number",
+        "description": "Discount amount applied based on customer tier"
+      },
+      "final_fee": {
+        "type": "number",
+        "description": "Final fee to be charged"
+      },
+      "fee_waived": {
+        "type": "boolean",
+        "description": "Whether the fee was completely waived"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audit Logger",
+    "tool_description": "Records detailed audit trails for all modification and cancellation activities, ensuring compliance and traceability.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Order ID for the audited action"
+      },
+      "action_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of action performed"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of user who performed the action"
+      },
+      "action_details": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the action taken"
+      },
+      "before_state": {
+        "type": "string",
+        "required": false,
+        "description": "State before the action",
+        "default": null
+      },
+      "after_state": {
+        "type": "string",
+        "required": false,
+        "description": "State after the action",
+        "default": null
+      },
+      "ip_address": {
+        "type": "string",
+        "required": false,
+        "description": "IP address of the user performing action",
+        "default": null
+      },
+      "session_id": {
+        "type": "string",
+        "required": false,
+        "description": "Session ID for the action",
+        "default": null
+      },
+      "additional_metadata": {
+        "type": "array",
+        "required": false,
+        "description": "Additional metadata as key:value pairs",
+        "items": {"type": "string"},
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Audit system unavailable: Cannot log audit entry due to system issues. Retry the operation.",
+      "Invalid action type: Action type must be a non-empty string describing the operation.",
+      "User not found: The specified user_id does not exist in the system.",
+      "Logging failed: Audit entry could not be written due to storage issues."
+    ],
+    "usage": "Provide order_id, action_type, user_id, and action_details for every modification or cancellation operation. Include optional fields for comprehensive audit trails.",
+    "output_details": {
+      "audit_logged": {
+        "type": "boolean",
+        "description": "Whether the audit entry was successfully logged"
+      },
+      "audit_id": {
+        "type": "string",
+        "description": "Unique identifier for this audit entry"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp when audit entry was created",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Processor",
+    "tool_description": "Processes multiple order modifications or cancellations in a single batch operation with rollback capabilities.",
+    "parameters": {
+      "operations": {
+        "type": "array",
+        "required": true,
+        "description": "List of operations in format 'operation_type:order_id:parameters'",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 100
+      },
+      "batch_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Processing mode: parallel, sequential, or fail_fast",
+        "default": "sequential"
+      },
+      "rollback_on_failure": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to rollback all operations if any fail",
+        "default": true
+      },
+      "batch_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Processing priority: low, normal, or high",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Invalid batch size: Batch must contain between 2 and 100 operations.",
+      "Invalid operation format: Operations must follow format 'operation_type:order_id:parameters'.",
+      "Invalid batch mode: Use one of [parallel, sequential, fail_fast].",
+      "Batch processing failed: One or more operations failed and rollback was triggered."
+    ],
+    "usage": "Provide an array of operation strings in the specified format. Choose appropriate batch_mode and rollback_on_failure based on business requirements.",
+    "output_details": {
+      "batch_successful": {
+        "type": "boolean",
+        "description": "Whether the entire batch completed successfully"
+      },
+      "successful_operations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of operations that completed successfully"
+      },
+      "failed_operations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of operations that failed"
+      },
+      "batch_id": {
+        "type": "string",
+        "description": "Unique identifier for this batch operation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Rollback Manager",
+    "tool_description": "Handles rollback of failed operations by reversing changes made to orders, inventory, and payment systems.",
+    "parameters": {
+      "operation_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the failed operation to rollback"
+      },
+      "rollback_scope": {
+        "type": "string",
+        "required": true,
+        "description": "Scope of rollback: order_only, inventory_only, payment_only, or full"
+      },
+      "rollback_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for initiating rollback"
+      }
+    },
+    "error_messages": [
+      "Operation not found: The specified operation_id does not exist or cannot be rolled back.",
+      "Invalid rollback scope: Use one of [order_only, inventory_only, payment_only, full].",
+      "Rollback not possible: The operation has progressed too far to be safely rolled back.",
+      "Rollback failed: Unable to complete rollback due to system constraints or data inconsistencies."
+    ],
+    "usage": "Provide operation_id of the failed operation, specify rollback_scope, and include rollback_reason. Use when operations fail after partial completion.",
+    "output_details": {
+      "rollback_successful": {
+        "type": "boolean",
+        "description": "Whether the rollback completed successfully"
+      },
+      "rollback_id": {
+        "type": "string",
+        "description": "Unique identifier for this rollback operation"
+      },
+      "changes_reversed": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of changes that were successfully reversed"
+      }
+    }
+  }
+  ```

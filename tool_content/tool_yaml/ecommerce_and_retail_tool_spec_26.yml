@@ -1,0 +1,796 @@
+field_name: ecommerce_and_retail
+subfield: Inventory Management and Tracking
+task: Real-time inventory level monitoring and stock status tracking
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task has medium difficulty. It involves coordinating multiple data sources (inventory systems, sales channels, warehouse locations), handling real-time data synchronization, and managing complex dependencies between stock levels, reservations, and multi-channel sales. The risk of inventory discrepancies can significantly impact business operations and customer satisfaction.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium complexity, I'm targeting 12 tools to cover the various aspects of real-time inventory monitoring, stock tracking, alerting, and reporting across multiple channels and locations.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+  1. **Inventory Data Fetcher** - Consumes: warehouse/store IDs, SKUs → Produces: current stock levels
+  2. **Stock Movement Tracker** - Consumes: time ranges, locations → Produces: inventory transaction history
+  3. **Low Stock Alert Generator** - Consumes: stock levels, thresholds → Produces: alert notifications
+  4. **Multi-Channel Stock Synchronizer** - Consumes: channel configs, inventory data → Produces: synchronized stock levels
+  5. **Inventory Reservation Manager** - Consumes: order data, stock levels → Produces: available vs reserved quantities
+  6. **Stock Discrepancy Detector** - Consumes: expected vs actual counts → Produces: discrepancy reports
+  7. **Inventory Velocity Calculator** - Consumes: sales data, time periods → Produces: turnover metrics
+  8. **Reorder Point Analyzer** - Consumes: velocity data, lead times → Produces: reorder recommendations
+  9. **Stock Location Mapper** - Consumes: SKUs, location criteria → Produces: stock distribution data
+  10. **Inventory Valuation Calculator** - Consumes: quantities, cost data → Produces: inventory values
+  11. **Stock Status Reporter** - Consumes: multiple data sources → Produces: comprehensive status reports
+  12. **Inventory Trend Analyzer** - Consumes: historical data, time periods → Produces: trend insights
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic Stock Check: Inventory Data Fetcher → Stock Status Reporter
+  - Alert Setup: Inventory Data Fetcher → Low Stock Alert Generator
+
+  **Medium Plans:**
+  - Channel Sync Workflow: Inventory Data Fetcher → Multi-Channel Stock Synchronizer → Stock Status Reporter
+  - Discrepancy Investigation: Stock Movement Tracker → Stock Discrepancy Detector → Stock Status Reporter
+
+  **Complex Plans:**
+  - Complete Reorder Analysis: Inventory Data Fetcher → Stock Movement Tracker → Inventory Velocity Calculator → Reorder Point Analyzer → Stock Status Reporter
+  - Full Inventory Audit: Inventory Data Fetcher → Stock Movement Tracker → Inventory Reservation Manager → Stock Discrepancy Detector → Inventory Valuation Calculator → Stock Status Reporter
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Inventory Data Fetcher",
+    "tool_description": "Retrieves current inventory levels for specified SKUs from one or more warehouse or store locations.",
+    "parameters": {
+      "sku_list": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of SKU identifiers to query"
+      },
+      "location_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of warehouse or store location identifiers"
+      },
+      "include_reserved": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include reserved/allocated quantities"
+      }
+    },
+    "error_messages": [
+      "Invalid SKU format: Ensure all SKUs follow the correct format pattern.",
+      "Location not found: One or more location IDs are not recognized in the system.",
+      "Empty input arrays: Both sku_list and location_ids must contain at least one item."
+    ],
+    "usage": "Provide arrays of SKUs and location IDs to retrieve current stock levels. Set include_reserved to true if you need to see allocated quantities.",
+    "output_details": {
+      "inventory_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of inventory records with SKU, location, quantity, and timestamp"
+      },
+      "total_locations_checked": {
+        "type": "integer",
+        "description": "Number of locations successfully queried"
+      },
+      "query_timestamp": {
+        "type": "string",
+        "description": "When the inventory data was retrieved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Movement Tracker",
+    "tool_description": "Tracks and reports all stock movements (inbound, outbound, transfers) within a specified time range and location set.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Start date for movement tracking"
+      },
+      "end_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "End date for movement tracking"
+      },
+      "location_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Specific location IDs to track, or null for all locations"
+      },
+      "movement_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["inbound", "outbound", "transfer", "adjustment"],
+        "description": "Types of movements to track"
+      },
+      "sku_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Specific SKUs to track, or null for all SKUs"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: start_date must be before end_date and both must be valid ISO 8601 dates.",
+      "Unsupported movement type: Valid types are inbound, outbound, transfer, adjustment.",
+      "Date range too large: Maximum allowed range is 90 days to prevent performance issues."
+    ],
+    "usage": "Specify start and end dates to track stock movements. Use filters to narrow down by location, movement type, or SKU as needed.",
+    "output_details": {
+      "movements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of movement records with SKU, location, type, quantity, and timestamp"
+      },
+      "total_movements": {
+        "type": "integer",
+        "description": "Total number of movements in the specified period"
+      },
+      "movement_summary": {
+        "type": "string",
+        "description": "Summary of movement activity by type"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Low Stock Alert Generator",
+    "tool_description": "Generates alerts for inventory items that fall below specified threshold levels across multiple locations.",
+    "parameters": {
+      "threshold_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of threshold: fixed_quantity, percentage_of_max, days_of_supply"
+      },
+      "threshold_value": {
+        "type": "number",
+        "required": true,
+        "description": "Numerical threshold value based on threshold_type"
+      },
+      "location_scope": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Location IDs to monitor for low stock"
+      },
+      "priority_skus": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "High-priority SKUs that require immediate attention"
+      }
+    },
+    "error_messages": [
+      "Invalid threshold type: Use fixed_quantity, percentage_of_max, or days_of_supply.",
+      "Threshold value out of range: Value must be positive and reasonable for the selected type.",
+      "Empty location scope: At least one location ID must be provided."
+    ],
+    "usage": "Set threshold_type and threshold_value to define low stock criteria. Provide location_scope for monitoring and optionally specify priority_skus for urgent alerts.",
+    "output_details": {
+      "alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of low stock alerts with SKU, location, current quantity, and threshold"
+      },
+      "alert_count": {
+        "type": "integer",
+        "description": "Total number of low stock alerts generated"
+      },
+      "priority_alerts": {
+        "type": "integer",
+        "description": "Number of alerts for priority SKUs"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi-Channel Stock Synchronizer",
+    "tool_description": "Synchronizes inventory levels across multiple sales channels (online stores, marketplaces, physical stores) to maintain consistency.",
+    "parameters": {
+      "source_channel": {
+        "type": "string",
+        "required": true,
+        "description": "Primary channel to use as source of truth for inventory levels"
+      },
+      "target_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Channels to synchronize with source inventory data"
+      },
+      "sync_strategy": {
+        "type": "string",
+        "required": true,
+        "description": "Synchronization strategy: full_sync, incremental, or safety_buffer"
+      },
+      "buffer_percentage": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Safety buffer percentage to subtract from available quantities"
+      },
+      "sku_mapping": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "SKU mapping rules for channels with different product identifiers"
+      },
+      "max_quantity_per_channel": {
+        "type": "integer",
+        "required": false,
+        "default": null,
+        "description": "Maximum quantity to display per channel regardless of actual stock"
+      },
+      "exclude_skus": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "SKUs to exclude from synchronization"
+      },
+      "sync_frequency": {
+        "type": "string",
+        "required": false,
+        "default": "real-time",
+        "description": "Synchronization frequency: real-time, hourly, daily"
+      }
+    },
+    "error_messages": [
+      "Channel not configured: Source or target channels are not properly set up in the system.",
+      "Invalid sync strategy: Use full_sync, incremental, or safety_buffer.",
+      "Buffer percentage out of range: Value must be between 0 and 50 percent.",
+      "SKU mapping format error: Mapping rules must follow the required format pattern.",
+      "Sync frequency not supported: Use real-time, hourly, or daily."
+    ],
+    "usage": "Specify source_channel and target_channels for synchronization. Choose sync_strategy and set optional parameters like buffer_percentage for safety stock management.",
+    "output_details": {
+      "sync_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Results of synchronization for each channel and SKU"
+      },
+      "successful_syncs": {
+        "type": "integer",
+        "description": "Number of successful synchronizations"
+      },
+      "failed_syncs": {
+        "type": "integer",
+        "description": "Number of failed synchronizations"
+      },
+      "sync_timestamp": {
+        "type": "string",
+        "description": "When the synchronization was completed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Reservation Manager",
+    "tool_description": "Manages inventory reservations for pending orders and calculates available quantities after accounting for reserved stock.",
+    "parameters": {
+      "location_id": {
+        "type": "string",
+        "required": true,
+        "description": "Location identifier for reservation management"
+      },
+      "operation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Operation to perform: reserve, release, query, or cleanup_expired"
+      },
+      "order_id": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Order identifier for reserve/release operations"
+      },
+      "sku_quantities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Array of SKU:quantity pairs for reservation operations"
+      },
+      "reservation_duration": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Reservation duration in minutes before auto-expiry"
+      }
+    },
+    "error_messages": [
+      "Invalid operation type: Use reserve, release, query, or cleanup_expired.",
+      "Missing order information: order_id required for reserve and release operations.",
+      "Insufficient stock: Cannot reserve more quantity than available.",
+      "Invalid SKU quantity format: Use SKU:quantity format in the array.",
+      "Reservation duration out of range: Must be between 1 and 1440 minutes (24 hours)."
+    ],
+    "usage": "Specify location_id and operation_type. For reservations, provide order_id and sku_quantities. Use query to check current reservations or cleanup_expired to remove old reservations.",
+    "output_details": {
+      "operation_result": {
+        "type": "string",
+        "description": "Result status of the requested operation"
+      },
+      "reserved_quantities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current reserved quantities by SKU"
+      },
+      "available_quantities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Available quantities after reservations by SKU"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Discrepancy Detector",
+    "tool_description": "Compares expected inventory levels with actual counts to identify and report discrepancies that may indicate shrinkage, theft, or system errors.",
+    "parameters": {
+      "expected_counts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of expected SKU:quantity pairs from system records"
+      },
+      "actual_counts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of actual SKU:quantity pairs from physical counts"
+      },
+      "tolerance_percentage": {
+        "type": "number",
+        "required": false,
+        "default": 2.0,
+        "description": "Acceptable variance percentage before flagging as discrepancy"
+      },
+      "location_id": {
+        "type": "string",
+        "required": true,
+        "description": "Location identifier where counts were performed"
+      },
+      "count_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Date and time when physical count was performed"
+      }
+    },
+    "error_messages": [
+      "Mismatched SKU lists: Expected and actual counts must contain the same SKU set.",
+      "Invalid count format: Use SKU:quantity format for count arrays.",
+      "Tolerance out of range: Percentage must be between 0 and 100.",
+      "Future count date: Count date cannot be in the future.",
+      "Missing location: Location ID must be provided and valid."
+    ],
+    "usage": "Provide expected_counts from system and actual_counts from physical verification. Set tolerance_percentage for acceptable variance and specify location_id and count_date.",
+    "output_details": {
+      "discrepancies": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of discrepancy records with SKU, expected, actual, and variance"
+      },
+      "total_discrepancies": {
+        "type": "integer",
+        "description": "Total number of SKUs with discrepancies"
+      },
+      "total_variance_value": {
+        "type": "number",
+        "description": "Total monetary value of inventory variance"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Velocity Calculator",
+    "tool_description": "Calculates inventory turnover rates and velocity metrics to understand how quickly products move through the supply chain.",
+    "parameters": {
+      "sku_list": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of SKUs to analyze for velocity calculation"
+      },
+      "analysis_period_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days to analyze for velocity calculation"
+      },
+      "location_scope": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Specific locations to include, or null for all locations"
+      }
+    },
+    "error_messages": [
+      "Empty SKU list: At least one SKU must be provided for analysis.",
+      "Invalid analysis period: Period must be between 7 and 365 days.",
+      "Insufficient data: Not enough sales data available for the specified period."
+    ],
+    "usage": "Provide sku_list and analysis_period_days to calculate velocity metrics. Optionally specify location_scope to focus on particular locations.",
+    "output_details": {
+      "velocity_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of velocity data with SKU, turnover rate, and days of supply"
+      },
+      "fastest_movers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Top 10 fastest-moving SKUs in the analysis period"
+      },
+      "slowest_movers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Top 10 slowest-moving SKUs in the analysis period"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reorder Point Analyzer",
+    "tool_description": "Analyzes inventory velocity, lead times, and demand patterns to recommend optimal reorder points and quantities for each SKU.",
+    "parameters": {
+      "sku_list": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "SKUs to analyze for reorder point calculation"
+      },
+      "supplier_lead_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of SKU:lead_time_days pairs for supplier delivery times"
+      },
+      "service_level_target": {
+        "type": "number",
+        "required": false,
+        "default": 95.0,
+        "description": "Target service level percentage (stockout protection)"
+      },
+      "demand_variability_factor": {
+        "type": "number",
+        "required": false,
+        "default": 1.5,
+        "description": "Factor to account for demand variability (safety stock multiplier)"
+      },
+      "location_id": {
+        "type": "string",
+        "required": true,
+        "description": "Location identifier for reorder analysis"
+      },
+      "analysis_lookback_days": {
+        "type": "integer",
+        "required": false,
+        "default": 90,
+        "description": "Days of historical data to use for demand analysis"
+      },
+      "minimum_order_quantities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Array of SKU:MOQ pairs for supplier minimum order requirements"
+      },
+      "budget_constraints": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Maximum budget available for inventory replenishment"
+      },
+      "seasonal_adjustments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Array of SKU:seasonal_factor pairs for seasonal demand adjustments"
+      },
+      "abc_classification": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to apply ABC classification for prioritized recommendations"
+      }
+    },
+    "error_messages": [
+      "SKU and lead time mismatch: All SKUs must have corresponding lead time data.",
+      "Service level out of range: Target must be between 50% and 99.9%.",
+      "Invalid variability factor: Must be between 1.0 and 5.0.",
+      "Insufficient historical data: Not enough demand data for the specified lookback period.",
+      "MOQ format error: Minimum order quantities must follow SKU:quantity format.",
+      "Negative budget constraint: Budget must be positive if specified."
+    ],
+    "usage": "Provide sku_list with corresponding supplier_lead_times. Set service_level_target and other parameters to customize reorder recommendations based on your inventory policy.",
+    "output_details": {
+      "reorder_recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of recommendations with SKU, reorder point, order quantity, and priority"
+      },
+      "total_recommended_investment": {
+        "type": "number",
+        "description": "Total monetary value of all reorder recommendations"
+      },
+      "high_priority_skus": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "SKUs requiring immediate reordering attention"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Location Mapper",
+    "tool_description": "Maps and visualizes stock distribution across different locations, identifying optimal placement and transfer opportunities.",
+    "parameters": {
+      "sku_filter": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Specific SKUs to map, or null for all SKUs"
+      },
+      "location_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Types of locations to include: warehouse, store, distribution_center, cross_dock"
+      },
+      "demand_proximity": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to consider proximity to demand centers in mapping"
+      }
+    },
+    "error_messages": [
+      "Invalid location type: Use warehouse, store, distribution_center, or cross_dock.",
+      "No locations found: No locations match the specified criteria.",
+      "Empty location types: At least one location type must be specified."
+    ],
+    "usage": "Specify location_types to include in mapping. Optionally filter by sku_filter and set demand_proximity for location optimization insights.",
+    "output_details": {
+      "stock_distribution": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of stock distribution data by SKU and location"
+      },
+      "transfer_opportunities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended stock transfers between locations"
+      },
+      "location_utilization": {
+        "type": "string",
+        "description": "Summary of storage utilization across locations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Valuation Calculator",
+    "tool_description": "Calculates inventory values using different costing methods and provides financial reporting data for inventory assets.",
+    "parameters": {
+      "valuation_method": {
+        "type": "string",
+        "required": true,
+        "description": "Costing method: FIFO, LIFO, weighted_average, or standard_cost"
+      },
+      "location_scope": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Location IDs to include in valuation calculation"
+      },
+      "valuation_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": true,
+        "description": "Date for which to calculate inventory valuation"
+      },
+      "include_obsolete": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include obsolete inventory in valuation"
+      },
+      "currency_code": {
+        "type": "string",
+        "required": false,
+        "default": "USD",
+        "description": "Currency code for valuation reporting"
+      }
+    },
+    "error_messages": [
+      "Invalid valuation method: Use FIFO, LIFO, weighted_average, or standard_cost.",
+      "Future valuation date: Cannot calculate valuation for future dates.",
+      "Invalid currency code: Must be a valid 3-letter ISO currency code.",
+      "Insufficient cost data: Missing cost information for inventory valuation calculation."
+    ],
+    "usage": "Specify valuation_method, location_scope, and valuation_date. Choose whether to include_obsolete inventory and set currency_code for reporting.",
+    "output_details": {
+      "total_inventory_value": {
+        "type": "number",
+        "description": "Total monetary value of inventory using specified method"
+      },
+      "valuation_by_location": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Inventory values broken down by location"
+      },
+      "valuation_by_category": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Inventory values broken down by product category"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Stock Status Reporter",
+    "tool_description": "Generates comprehensive inventory status reports combining data from multiple sources for management dashboards and operational decision-making.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: summary, detailed, exception, or executive"
+      },
+      "report_scope": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Scope identifiers: location IDs, SKU categories, or channel names"
+      },
+      "time_period": {
+        "type": "string",
+        "required": true,
+        "description": "Reporting period: current, daily, weekly, monthly, or custom"
+      },
+      "custom_start_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": false,
+        "default": null,
+        "description": "Start date for custom time period reports"
+      },
+      "custom_end_date": {
+        "type": "string",
+        "format": "date-time",
+        "required": false,
+        "default": null,
+        "description": "End date for custom time period reports"
+      },
+      "include_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["stock_levels", "turnover", "alerts"],
+        "description": "Metrics to include: stock_levels, turnover, alerts, reservations, discrepancies, valuations"
+      },
+      "format": {
+        "type": "string",
+        "required": false,
+        "default": "json",
+        "description": "Report format: json, csv, or summary_text"
+      },
+      "alert_threshold": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Threshold for including items in exception reports"
+      },
+      "grouping": {
+        "type": "string",
+        "required": false,
+        "default": "location",
+        "description": "How to group report data: location, category, supplier, or sku"
+      }
+    },
+    "error_messages": [
+      "Invalid report type: Use summary, detailed, exception, or executive.",
+      "Custom date range incomplete: Both custom_start_date and custom_end_date required for custom period.",
+      "Invalid time period: Use current, daily, weekly, monthly, or custom.",
+      "Unsupported metric: Valid metrics are stock_levels, turnover, alerts, reservations, discrepancies, valuations.",
+      "Invalid format: Use json, csv, or summary_text.",
+      "Invalid grouping option: Use location, category, supplier, or sku."
+    ],
+    "usage": "Specify report_type, report_scope, and time_period for basic reports. Use custom dates for specific periods and select include_metrics for tailored reporting.",
+    "output_details": {
+      "report_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Main report data in requested format and grouping"
+      },
+      "summary_statistics": {
+        "type": "string",
+        "description": "High-level summary of key inventory metrics"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Actionable recommendations based on report findings"
+      },
+      "report_timestamp": {
+        "type": "string",
+        "description": "When the report was generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Trend Analyzer",
+    "tool_description": "Analyzes historical inventory data to identify trends, seasonal patterns, and predict future inventory needs based on various time series analysis methods.",
+    "parameters": {
+      "analysis_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of analysis: trend, seasonal, forecast, or anomaly_detection"
+      },
+      "historical_period_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of historical days to analyze (minimum 30, maximum 730)"
+      },
+      "sku_selection": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": null,
+        "description": "Specific SKUs to analyze, or null for all SKUs"
+      },
+      "forecast_horizon_days": {
+        "type": "integer",
+        "required": false,
+        "default": 30,
+        "description": "Number of days into the future to forecast"
+      }
+    },
+    "error_messages": [
+      "Invalid analysis type: Use trend, seasonal, forecast, or anomaly_detection.",
+      "Historical period out of range: Must be between 30 and 730 days.",
+      "Insufficient data: Not enough historical data available for reliable analysis.",
+      "Forecast horizon too long: Maximum forecast horizon is 180 days."
+    ],
+    "usage": "Select analysis_type and specify historical_period_days for data analysis. Optionally filter by sku_selection and set forecast_horizon_days for predictive analysis.",

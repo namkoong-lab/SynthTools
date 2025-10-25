@@ -1,0 +1,849 @@
+field_name: ecommerce_and_retail
+subfield: Order Processing and Fulfillment
+task: Shipping carrier selection and rate calculation
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves medium complexity due to the need to integrate with multiple carrier APIs, handle dynamic pricing calculations, consider various shipping constraints (weight, dimensions, destinations), and optimize for cost/speed trade-offs while managing real-time rate fluctuations and service availability.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target 12 tools to cover carrier integration, rate calculation, service validation, optimization, and tracking coordination.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  - **Carrier Service Validator** → validates carrier availability and service types
+  - **Package Dimension Calculator** → calculates shipping dimensions from item specifications
+  - **Weight Calculator** → computes total shipping weight including packaging
+  - **Shipping Zone Mapper** → maps destinations to carrier zone codes
+  - **Rate Quote Engine** → fetches real-time shipping rates from carriers
+  - **Service Level Matcher** → matches business requirements to carrier service levels
+  - **Cost Optimizer** → compares rates and selects optimal carrier/service combinations
+  - **Delivery Time Estimator** → calculates estimated delivery windows
+  - **Shipping Restriction Checker** → validates shipping constraints and prohibited items
+  - **Insurance Calculator** → calculates shipping insurance costs and coverage
+  - **Label Requirements Generator** → determines labeling and documentation requirements
+  - **Carrier Performance Analyzer** → evaluates carrier historical performance metrics
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple workflows:**
+  1. Basic rate calculation: Package Dimension Calculator → Weight Calculator → Rate Quote Engine → Cost Optimizer
+  2. Service validation: Carrier Service Validator → Service Level Matcher → Delivery Time Estimator
+
+  **Medium workflows:**
+  1. Standard shipping selection: Package Dimension Calculator → Weight Calculator → Shipping Zone Mapper → Rate Quote Engine → Service Level Matcher → Cost Optimizer → Delivery Time Estimator
+  2. Compliance check: Shipping Restriction Checker → Label Requirements Generator → Insurance Calculator → Carrier Service Validator
+
+  **Complex workflows:**
+  1. Full optimization pipeline: All tools in sequence for comprehensive carrier selection with performance analysis, compliance checking, and cost optimization
+  2. Multi-package fulfillment: Package Dimension Calculator → Weight Calculator → Shipping Zone Mapper → Rate Quote Engine → Shipping Restriction Checker → Insurance Calculator → Cost Optimizer → Carrier Performance Analyzer → Service Level Matcher
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Carrier Service Validator",
+    "tool_description": "Validates carrier availability and service types for specific origin-destination pairs and package requirements.",
+    "parameters": {
+      "carrier_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of carrier codes to validate (e.g., UPS, FEDEX, USPS)"
+      },
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin ZIP or postal code"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination ZIP or postal code"
+      }
+    },
+    "error_messages": [
+      "Invalid carrier code: Provide recognized carrier codes (UPS, FEDEX, USPS, DHL, etc.)",
+      "Invalid postal code format: Ensure ZIP codes follow proper format for the respective country",
+      "Carrier service unavailable: Selected carrier does not service the specified route"
+    ],
+    "usage": "Provide carrier_codes, origin_zip, and destination_zip to validate which carriers can service the shipping route.",
+    "output_details": {
+      "valid_carriers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of carriers that can service this route"
+      },
+      "invalid_carriers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of carriers that cannot service this route"
+      },
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result (success/partial/failed)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Package Dimension Calculator",
+    "tool_description": "Calculates optimized packaging dimensions based on item specifications and packaging materials, considering dimensional weight implications.",
+    "parameters": {
+      "item_lengths": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Length of each item in inches"
+      },
+      "item_widths": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Width of each item in inches"
+      },
+      "item_heights": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Height of each item in inches"
+      },
+      "packaging_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of packaging (box, envelope, tube, irregular)"
+      },
+      "padding_inches": {
+        "type": "number",
+        "required": false,
+        "default": 1.0,
+        "description": "Additional padding space in inches"
+      },
+      "fragile_items": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether items require extra protective packaging"
+      },
+      "consolidate_packages": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to attempt consolidating items into fewer packages"
+      }
+    },
+    "error_messages": [
+      "Invalid dimensions: All item dimensions must be positive numbers greater than 0",
+      "Dimension array mismatch: item_lengths, item_widths, and item_heights must have the same number of elements",
+      "Unsupported packaging type: Use one of [box, envelope, tube, irregular]",
+      "Padding value error: padding_inches must be a positive number between 0 and 12"
+    ],
+    "usage": "Provide arrays of item dimensions, specify packaging_type, and optionally set padding_inches, fragile_items, and consolidate_packages to calculate optimal package dimensions.",
+    "output_details": {
+      "package_length": {
+        "type": "number",
+        "description": "Final package length in inches"
+      },
+      "package_width": {
+        "type": "number",
+        "description": "Final package width in inches"
+      },
+      "package_height": {
+        "type": "number",
+        "description": "Final package height in inches"
+      },
+      "dimensional_weight": {
+        "type": "number",
+        "description": "Calculated dimensional weight in pounds"
+      },
+      "package_count": {
+        "type": "integer",
+        "description": "Number of packages required"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Weight Calculator",
+    "tool_description": "Computes total shipping weight including items, packaging materials, and protective padding.",
+    "parameters": {
+      "item_weights": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Weight of each item in pounds"
+      },
+      "packaging_weight": {
+        "type": "number",
+        "required": false,
+        "default": 0.5,
+        "description": "Weight of packaging materials in pounds"
+      }
+    },
+    "error_messages": [
+      "Invalid weight values: All weights must be positive numbers greater than 0",
+      "Weight limit exceeded: Total weight cannot exceed 150 pounds per package",
+      "Packaging weight error: packaging_weight must be between 0.1 and 10 pounds"
+    ],
+    "usage": "Provide item_weights array and optionally specify packaging_weight to calculate total shipping weight.",
+    "output_details": {
+      "total_weight": {
+        "type": "number",
+        "description": "Total shipping weight in pounds"
+      },
+      "billable_weight": {
+        "type": "number",
+        "description": "Weight used for billing (greater of actual or dimensional weight)"
+      },
+      "weight_category": {
+        "type": "string",
+        "description": "Shipping weight category (light, standard, heavy, oversized)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Zone Mapper",
+    "tool_description": "Maps origin and destination locations to carrier-specific shipping zones for accurate rate calculation.",
+    "parameters": {
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin ZIP or postal code"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination ZIP or postal code"
+      },
+      "carrier_code": {
+        "type": "string",
+        "required": true,
+        "description": "Carrier code for zone mapping"
+      },
+      "destination_country": {
+        "type": "string",
+        "required": false,
+        "default": "US",
+        "description": "Destination country code"
+      }
+    },
+    "error_messages": [
+      "Invalid postal code: Provide valid ZIP or postal code format",
+      "Unsupported carrier: Carrier code not recognized for zone mapping",
+      "International shipping not supported: Selected carrier does not support international destinations",
+      "Zone mapping unavailable: Unable to determine shipping zone for provided locations"
+    ],
+    "usage": "Provide origin_zip, destination_zip, carrier_code, and optionally destination_country to determine shipping zones.",
+    "output_details": {
+      "origin_zone": {
+        "type": "string",
+        "description": "Carrier-specific origin zone identifier"
+      },
+      "destination_zone": {
+        "type": "string",
+        "description": "Carrier-specific destination zone identifier"
+      },
+      "zone_distance": {
+        "type": "integer",
+        "description": "Numeric zone distance (higher numbers indicate longer distances)"
+      },
+      "shipping_type": {
+        "type": "string",
+        "description": "Shipping classification (domestic, international, regional)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Rate Quote Engine",
+    "tool_description": "Fetches real-time shipping rates from multiple carriers based on package specifications and service requirements.",
+    "parameters": {
+      "carrier_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of carriers to get quotes from"
+      },
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin ZIP code"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination ZIP code"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Package weight in pounds"
+      },
+      "package_length": {
+        "type": "number",
+        "required": true,
+        "description": "Package length in inches"
+      },
+      "package_width": {
+        "type": "number",
+        "required": true,
+        "description": "Package width in inches"
+      },
+      "package_height": {
+        "type": "number",
+        "required": true,
+        "description": "Package height in inches"
+      },
+      "service_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["standard"],
+        "description": "Requested service types (standard, expedited, overnight, ground)"
+      },
+      "declared_value": {
+        "type": "number",
+        "required": false,
+        "default": 100,
+        "description": "Declared value of package contents in USD"
+      },
+      "residential_delivery": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether delivery is to residential address"
+      }
+    },
+    "error_messages": [
+      "API connection failed: Unable to connect to carrier rate API",
+      "Invalid package specifications: Ensure all dimensions and weight are positive values",
+      "Service type not available: Requested service type not supported by carrier",
+      "Rate quote timeout: Carrier API did not respond within time limit",
+      "Invalid ZIP codes: Origin or destination ZIP code format is incorrect"
+    ],
+    "usage": "Provide carrier_codes, origin/destination ZIPs, package specifications, and optionally service_types, declared_value, and residential_delivery to get rate quotes.",
+    "output_details": {
+      "rate_quotes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of rate quote details including carrier, service, cost, and transit time"
+      },
+      "lowest_rate": {
+        "type": "number",
+        "description": "Lowest quoted rate in USD"
+      },
+      "fastest_service": {
+        "type": "string",
+        "description": "Service offering fastest delivery"
+      },
+      "quote_timestamp": {
+        "type": "string",
+        "description": "Timestamp when quotes were generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Service Level Matcher",
+    "tool_description": "Matches business shipping requirements to appropriate carrier service levels based on delivery time, cost constraints, and service features.",
+    "parameters": {
+      "required_delivery_date": {
+        "type": "string",
+        "required": false,
+        "default": "None",
+        "description": "Latest acceptable delivery date in YYYY-MM-DD format"
+      },
+      "max_shipping_cost": {
+        "type": "number",
+        "required": false,
+        "default": "None",
+        "description": "Maximum acceptable shipping cost in USD"
+      },
+      "priority_factor": {
+        "type": "string",
+        "required": true,
+        "description": "Priority weighting (cost, speed, reliability)"
+      },
+      "signature_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether delivery signature is required"
+      },
+      "insurance_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether shipping insurance is required"
+      }
+    },
+    "error_messages": [
+      "Invalid delivery date: Date must be in YYYY-MM-DD format and in the future",
+      "Invalid priority factor: Use one of [cost, speed, reliability]",
+      "Cost constraint too low: max_shipping_cost must be at least $5.00",
+      "Conflicting requirements: No available services match all specified constraints"
+    ],
+    "usage": "Specify priority_factor and optionally set required_delivery_date, max_shipping_cost, signature_required, and insurance_required to find matching service levels.",
+    "output_details": {
+      "recommended_services": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of recommended carrier services matching requirements"
+      },
+      "match_score": {
+        "type": "number",
+        "description": "Compatibility score between requirements and available services (0-100)"
+      },
+      "compromise_factors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Requirements that may need to be relaxed if no perfect matches"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cost Optimizer",
+    "tool_description": "Analyzes shipping options to recommend optimal carrier and service combinations based on cost, delivery time, and reliability factors.",
+    "parameters": {
+      "rate_quotes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Array of rate quotes from carriers"
+      },
+      "optimization_strategy": {
+        "type": "string",
+        "required": true,
+        "description": "Optimization approach (lowest_cost, fastest_delivery, best_value, most_reliable)"
+      },
+      "cost_weight": {
+        "type": "number",
+        "required": false,
+        "default": 0.4,
+        "description": "Weight given to cost factor (0-1)"
+      },
+      "speed_weight": {
+        "type": "number",
+        "required": false,
+        "default": 0.3,
+        "description": "Weight given to delivery speed (0-1)"
+      },
+      "reliability_weight": {
+        "type": "number",
+        "required": false,
+        "default": 0.3,
+        "description": "Weight given to carrier reliability (0-1)"
+      }
+    },
+    "error_messages": [
+      "Empty rate quotes: Provide at least one rate quote for optimization",
+      "Invalid optimization strategy: Use one of [lowest_cost, fastest_delivery, best_value, most_reliable]",
+      "Weight values error: All weight values must sum to 1.0 and be between 0 and 1",
+      "Insufficient data: Rate quotes missing required information for optimization"
+    ],
+    "usage": "Provide rate_quotes and optimization_strategy, optionally adjust cost_weight, speed_weight, and reliability_weight to find optimal shipping option.",
+    "output_details": {
+      "recommended_carrier": {
+        "type": "string",
+        "description": "Optimal carrier code"
+      },
+      "recommended_service": {
+        "type": "string",
+        "description": "Optimal service level"
+      },
+      "total_cost": {
+        "type": "number",
+        "description": "Total shipping cost in USD"
+      },
+      "optimization_score": {
+        "type": "number",
+        "description": "Overall optimization score (0-100)"
+      },
+      "cost_savings": {
+        "type": "number",
+        "description": "Savings compared to most expensive option"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Time Estimator",
+    "tool_description": "Estimates delivery timeframes and provides delivery date ranges based on carrier service levels and current conditions.",
+    "parameters": {
+      "carrier_code": {
+        "type": "string",
+        "required": true,
+        "description": "Selected carrier code"
+      },
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Selected service type"
+      },
+      "ship_date": {
+        "type": "string",
+        "required": true,
+        "description": "Planned ship date in YYYY-MM-DD format"
+      },
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin ZIP code"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination ZIP code"
+      }
+    },
+    "error_messages": [
+      "Invalid ship date: Ship date must be in YYYY-MM-DD format and not in the past",
+      "Unsupported carrier service: Carrier and service combination not recognized",
+      "Invalid ZIP codes: Origin or destination ZIP format is incorrect",
+      "Holiday impact: Estimated delivery may be affected by holidays (estimate adjusted)"
+    ],
+    "usage": "Provide carrier_code, service_type, ship_date, and ZIP codes to estimate delivery timeframes.",
+    "output_details": {
+      "estimated_delivery_date": {
+        "type": "string",
+        "description": "Most likely delivery date in YYYY-MM-DD format"
+      },
+      "delivery_window_start": {
+        "type": "string",
+        "description": "Earliest possible delivery date"
+      },
+      "delivery_window_end": {
+        "type": "string",
+        "description": "Latest expected delivery date"
+      },
+      "transit_days": {
+        "type": "integer",
+        "description": "Expected number of business days in transit"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence in delivery estimate (high, medium, low)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Restriction Checker",
+    "tool_description": "Validates shipping restrictions, prohibited items, and regulatory compliance for domestic and international shipments.",
+    "parameters": {
+      "item_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Categories of items being shipped (electronics, clothing, food, chemicals, etc.)"
+      },
+      "item_descriptions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Detailed descriptions of items"
+      },
+      "origin_country": {
+        "type": "string",
+        "required": true,
+        "description": "Origin country code"
+      },
+      "destination_country": {
+        "type": "string",
+        "required": true,
+        "description": "Destination country code"
+      },
+      "carrier_code": {
+        "type": "string",
+        "required": true,
+        "description": "Selected carrier code"
+      },
+      "declared_value": {
+        "type": "number",
+        "required": true,
+        "description": "Total declared value in USD"
+      },
+      "hazardous_materials": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether shipment contains hazardous materials"
+      },
+      "lithium_batteries": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether shipment contains lithium batteries"
+      },
+      "perishable_items": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether shipment contains perishable items"
+      },
+      "commercial_shipment": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether this is a commercial shipment"
+      }
+    },
+    "error_messages": [
+      "Prohibited item detected: One or more items cannot be shipped via selected carrier",
+      "International restriction: Items restricted for international shipping to destination country",
+      "Value limit exceeded: Declared value exceeds carrier or regulatory limits",
+      "Documentation required: Additional documentation needed for shipment approval",
+      "Hazmat certification missing: Hazardous materials require special certification",
+      "Invalid country codes: Use valid ISO country codes for origin and destination"
+    ],
+    "usage": "Provide item details, origin/destination countries, carrier_code, declared_value, and relevant boolean flags to check shipping restrictions.",
+    "output_details": {
+      "shipping_allowed": {
+        "type": "boolean",
+        "description": "Whether shipment is allowed"
+      },
+      "restricted_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of items that have restrictions"
+      },
+      "required_documentation": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Additional documentation required"
+      },
+      "compliance_warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Compliance warnings and recommendations"
+      },
+      "duty_tax_applicable": {
+        "type": "boolean",
+        "description": "Whether duties or taxes may apply"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Insurance Calculator",
+    "tool_description": "Calculates shipping insurance costs and coverage options based on item values and carrier policies.",
+    "parameters": {
+      "declared_value": {
+        "type": "number",
+        "required": true,
+        "description": "Total declared value of items in USD"
+      },
+      "carrier_code": {
+        "type": "string",
+        "required": true,
+        "description": "Carrier code for insurance calculation"
+      },
+      "coverage_type": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Insurance coverage type (standard, enhanced, full_replacement)"
+      }
+    },
+    "error_messages": [
+      "Invalid declared value: Value must be positive and greater than $0",
+      "Unsupported carrier: Insurance options not available for selected carrier",
+      "Value too high for coverage: Declared value exceeds maximum insurable amount",
+      "Invalid coverage type: Use one of [standard, enhanced, full_replacement]"
+    ],
+    "usage": "Provide declared_value, carrier_code, and optionally coverage_type to calculate insurance costs and options.",
+    "output_details": {
+      "insurance_cost": {
+        "type": "number",
+        "description": "Insurance premium cost in USD"
+      },
+      "coverage_amount": {
+        "type": "number",
+        "description": "Maximum coverage amount in USD"
+      },
+      "deductible": {
+        "type": "number",
+        "description": "Insurance deductible amount in USD"
+      },
+      "coverage_details": {
+        "type": "string",
+        "description": "Description of what is covered"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Label Requirements Generator",
+    "tool_description": "Determines labeling, documentation, and compliance requirements for shipments based on contents, destination, and carrier specifications.",
+    "parameters": {
+      "carrier_code": {
+        "type": "string",
+        "required": true,
+        "description": "Selected carrier code"
+      },
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Selected service type"
+      },
+      "destination_country": {
+        "type": "string",
+        "required": true,
+        "description": "Destination country code"
+      },
+      "item_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "Categories of items being shipped"
+      },
+      "declared_value": {
+        "type": "number",
+        "required": true,
+        "description": "Total declared value in USD"
+      },
+      "signature_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether delivery signature is required"
+      },
+      "adult_signature": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether adult signature is required"
+      }
+    },
+    "error_messages": [
+      "Unsupported carrier service: Label requirements not available for carrier/service combination",
+      "Invalid destination country: Country code not recognized",
+      "Missing required information: Additional item details needed for international shipping",
+      "Label format not supported: Carrier does not support required label format"
+    ],
+    "usage": "Provide carrier_code, service_type, destination_country, item_categories, declared_value, and signature requirements to determine labeling needs.",
+    "output_details": {
+      "required_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of required label types"
+      },
+      "customs_forms": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Required customs documentation"
+      },
+      "special_handling_labels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Special handling or warning labels needed"
+      },
+      "label_specifications": {
+        "type": "string",
+        "description": "Technical specifications for label printing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Carrier Performance Analyzer",
+    "tool_description": "Analyzes historical carrier performance metrics including delivery times, damage rates, and service reliability to inform carrier selection decisions.",
+    "parameters": {
+      "carrier_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of carrier codes to analyze"
+      },
+      "analysis_period_days": {
+        "type": "integer",
+        "required": false,
+        "default": 90,
+        "description": "Number of days to include in analysis"
+      },
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin ZIP code for route-specific analysis"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination ZIP code for route-specific analysis"
+      },
+      "service_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "default": ["all"],
+        "description": "Service types to include in analysis"
+      },
+      "minimum_shipments": {
+        "type": "integer",
+        "required": false,
+        "default": 10,
+        "description": "Minimum number of shipments required for meaningful analysis"
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Not enough historical shipments for reliable analysis",
+      "Invalid analysis period: Period must be between 7 and 365 days",
+      "Carrier not found: One or more carrier codes not recognized",
+      "Route not supported: No historical data available for specified route"
+    ],
+    "usage": "Provide carrier_codes, origin_zip, destination_zip, and optionally adjust analysis_period_days, service_types, and minimum_shipments to analyze carrier performance.",
+    "output_details": {
+      "performance_scores": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Performance scores for each carrier analyzed"
+      },
+      "on_time_delivery_rates": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "On-time delivery percentages for each carrier"
+      },
+      "average_transit_times": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Average transit times in business days for each carrier"
+      },
+      "damage_rates": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Package damage rates as percentages for each carrier"
+      },
+      "reliability_ranking": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Carriers ranked by overall reliability"
+      }
+    }
+  }
+  ```

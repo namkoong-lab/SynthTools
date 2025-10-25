@@ -1,0 +1,813 @@
+field_name: academic_publishing_and_citations
+subfield: peer_review_management
+task: Reviewer identification and recruitment
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves multiple complex subproblems including expertise matching, bias detection, availability tracking, and conflict-of-interest identification. The coordination between database searches, scoring algorithms, and communication workflows creates dependencies, while errors in reviewer selection can significantly impact publication quality and timelines.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the essential workflows from expert discovery through reviewer recruitment and tracking.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  - Expert Database Search → provides candidate profiles
+  - Citation Network Analyzer → consumes publication data, provides influence metrics
+  - Expertise Matcher → consumes paper abstracts + expert profiles, provides relevance scores
+  - Conflict Detector → consumes author/reviewer data, provides conflict flags
+  - Reviewer Scorer → consumes multiple inputs, provides ranked candidates
+  - Availability Checker → consumes reviewer IDs, provides availability status
+  - Bias Analyzer → consumes reviewer demographics/history, provides bias metrics
+  - Invitation Generator → consumes reviewer data, provides personalized invitations
+  - Response Tracker → consumes invitation data, provides response status
+  - Reviewer Pool Manager → consumes all reviewer data, provides pool statistics
+  - Review Timeline Tracker → consumes assignment data, provides progress updates
+  - Quality Assessor → consumes completed reviews, provides quality metrics
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans:
+  1. Expert Database Search + Availability Checker → Find available experts in a field
+  2. Citation Network Analyzer + Expertise Matcher → Identify most relevant reviewers for a paper
+
+  Medium plans:
+  1. Expert Database Search + Conflict Detector + Reviewer Scorer → Generate conflict-free ranked reviewer list
+  2. Invitation Generator + Response Tracker + Availability Checker → Manage invitation workflow with follow-ups
+
+  Complex plans:
+  1. Expert Database Search + Citation Network Analyzer + Expertise Matcher + Conflict Detector + Bias Analyzer + Reviewer Scorer → Comprehensive reviewer identification with quality controls
+  2. Reviewer Pool Manager + Review Timeline Tracker + Quality Assessor + Response Tracker → Complete review process management and optimization
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Expert Database Search",
+    "tool_description": "Searches academic databases to find potential reviewers based on research areas, keywords, and institutional criteria.",
+    "parameters": {
+      "research_keywords": {
+        "type": "array",
+        "required": true,
+        "description": "Keywords related to the research topic",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "field_of_study": {
+        "type": "string",
+        "required": true,
+        "description": "Primary academic field or discipline"
+      },
+      "institution_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of institution: university, industry, government, nonprofit",
+        "default": "None"
+      },
+      "geographic_region": {
+        "type": "string",
+        "required": false,
+        "description": "Geographic preference for reviewer location",
+        "default": "None"
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of experts to return",
+        "default": 50
+      }
+    },
+    "error_messages": [
+      "Invalid field of study: Provide a recognized academic discipline.",
+      "Too many keywords: Limit keywords to 20 or fewer for effective search.",
+      "Invalid institution type: Use one of [university, industry, government, nonprofit] or leave blank.",
+      "Invalid max_results: Must be between 1 and 200."
+    ],
+    "usage": "Provide research_keywords and field_of_study to find relevant experts. Optionally filter by institution_type, geographic_region, and limit results with max_results.",
+    "output_details": {
+      "expert_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of unique expert identifiers"
+      },
+      "expert_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Names of identified experts"
+      },
+      "institutions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Institutional affiliations of experts"
+      },
+      "search_summary": {
+        "type": "string",
+        "description": "Summary of search parameters and results count"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Citation Network Analyzer",
+    "tool_description": "Analyzes citation patterns and networks to identify influential researchers and their interconnections within a field.",
+    "parameters": {
+      "author_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of author identifiers to analyze",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "analysis_depth": {
+        "type": "integer",
+        "required": false,
+        "description": "Degrees of separation to analyze in citation network",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Invalid author IDs: Ensure all provided author identifiers exist in the database.",
+      "Analysis depth out of range: Must be between 1 and 5 degrees of separation.",
+      "Network too large: Reduce the number of authors or analysis depth for computational feasibility."
+    ],
+    "usage": "Provide author_ids to analyze their citation networks. Optionally set analysis_depth to control how many degrees of citation relationships to explore.",
+    "output_details": {
+      "influence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Numerical influence scores for each analyzed author"
+      },
+      "h_indexes": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "H-index values for each author"
+      },
+      "collaboration_strength": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Network connectivity scores indicating collaboration patterns"
+      },
+      "network_summary": {
+        "type": "string",
+        "description": "Overview of the citation network structure and key findings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expertise Matcher",
+    "tool_description": "Matches potential reviewers to manuscripts by analyzing semantic similarity between reviewer expertise and paper content.",
+    "parameters": {
+      "paper_abstract": {
+        "type": "string",
+        "required": true,
+        "description": "Abstract text of the paper needing review"
+      },
+      "paper_keywords": {
+        "type": "array",
+        "required": true,
+        "description": "Keywords associated with the paper",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "reviewer_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of potential reviewer identifiers",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "matching_algorithm": {
+        "type": "string",
+        "required": false,
+        "description": "Algorithm to use: semantic, keyword, hybrid",
+        "default": "hybrid"
+      },
+      "minimum_score": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum relevance score threshold (0-1)",
+        "default": 0.3
+      },
+      "field_weighting": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for field-specific matching (0-1)",
+        "default": 0.7
+      },
+      "recency_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for recent publications in matching (0-1)",
+        "default": 0.5
+      },
+      "exclude_keywords": {
+        "type": "array",
+        "required": false,
+        "description": "Keywords to exclude from matching",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty or invalid abstract: Provide a substantive paper abstract with at least 50 characters.",
+      "Invalid matching algorithm: Use one of [semantic, keyword, hybrid].",
+      "Score parameters out of range: minimum_score, field_weighting, recency_factor must be between 0 and 1.",
+      "Too many reviewers: Limit to 200 reviewer IDs for processing efficiency.",
+      "Invalid reviewer IDs: Some provided reviewer identifiers do not exist."
+    ],
+    "usage": "Provide paper_abstract, paper_keywords, and reviewer_ids to get relevance matching. Adjust matching_algorithm, minimum_score, field_weighting, and recency_factor to fine-tune results. Use exclude_keywords to filter unwanted matches.",
+    "output_details": {
+      "reviewer_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Relevance scores (0-1) for each reviewer"
+      },
+      "match_explanations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Brief explanations of why each reviewer was matched"
+      },
+      "top_matches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Reviewer IDs ranked by relevance score"
+      },
+      "matching_summary": {
+        "type": "string",
+        "description": "Summary of matching process and overall results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Conflict Detector",
+    "tool_description": "Identifies potential conflicts of interest between authors and reviewers based on institutional, collaborative, and personal relationships.",
+    "parameters": {
+      "author_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of paper author identifiers",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "reviewer_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of potential reviewer identifiers",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "conflict_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of conflicts to check: institutional, collaboration, advisee, family, financial",
+        "items": {"type": "string"},
+        "default": ["institutional", "collaboration", "advisee"]
+      },
+      "collaboration_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Years to look back for collaboration conflicts",
+        "default": 5
+      },
+      "institutional_strictness": {
+        "type": "string",
+        "required": false,
+        "description": "Level of institutional conflict checking: strict, moderate, lenient",
+        "default": "moderate"
+      }
+    },
+    "error_messages": [
+      "Invalid conflict types: Use combinations of [institutional, collaboration, advisee, family, financial].",
+      "Collaboration window out of range: Must be between 1 and 20 years.",
+      "Invalid strictness level: Use one of [strict, moderate, lenient].",
+      "Invalid author or reviewer IDs: Some provided identifiers do not exist in the database.",
+      "Too many authors or reviewers: Limit to 20 authors and 100 reviewers for processing efficiency."
+    ],
+    "usage": "Provide author_ids and reviewer_ids to check for conflicts. Configure conflict_types, collaboration_window, and institutional_strictness to adjust detection sensitivity.",
+    "output_details": {
+      "conflict_matrix": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Boolean array indicating conflicts between each author-reviewer pair"
+      },
+      "conflict_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed explanations of detected conflicts"
+      },
+      "clean_reviewers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Reviewer IDs with no conflicts detected"
+      },
+      "conflict_summary": {
+        "type": "string",
+        "description": "Summary of conflict detection results and recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reviewer Scorer",
+    "tool_description": "Assigns comprehensive scores to potential reviewers based on expertise relevance, availability, review quality history, and other factors.",
+    "parameters": {
+      "reviewer_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of reviewer identifiers to score",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "expertise_scores": {
+        "type": "array",
+        "required": true,
+        "description": "Relevance scores from expertise matching",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "influence_scores": {
+        "type": "array",
+        "required": false,
+        "description": "Citation-based influence scores",
+        "items": {"type": "number"},
+        "default": "None"
+      },
+      "availability_flags": {
+        "type": "array",
+        "required": false,
+        "description": "Boolean flags indicating reviewer availability",
+        "items": {"type": "boolean"},
+        "default": "None"
+      },
+      "quality_scores": {
+        "type": "array",
+        "required": false,
+        "description": "Historical review quality scores",
+        "items": {"type": "number"},
+        "default": "None"
+      },
+      "diversity_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for promoting reviewer diversity (0-1)",
+        "default": 0.2
+      },
+      "experience_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for reviewer experience (0-1)",
+        "default": 0.3
+      },
+      "timeliness_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Weight for review timeliness history (0-1)",
+        "default": 0.2
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All provided arrays must have the same length as reviewer_ids.",
+      "Invalid score values: All scores must be numeric values between 0 and 1.",
+      "Invalid weight parameters: diversity_weight, experience_weight, and timeliness_weight must be between 0 and 1.",
+      "Missing required scores: expertise_scores array is required and cannot be empty.",
+      "Too many reviewers: Limit to 100 reviewers for processing efficiency."
+    ],
+    "usage": "Provide reviewer_ids and expertise_scores as minimum input. Add influence_scores, availability_flags, and quality_scores for more comprehensive scoring. Adjust weight parameters to prioritize different factors.",
+    "output_details": {
+      "composite_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Final composite scores for each reviewer"
+      },
+      "ranked_reviewers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Reviewer IDs sorted by composite score (highest first)"
+      },
+      "score_breakdown": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed breakdown of how each score was calculated"
+      },
+      "scoring_summary": {
+        "type": "string",
+        "description": "Summary of scoring methodology and top recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Availability Checker",
+    "tool_description": "Checks reviewer availability by analyzing current review loads, scheduled commitments, and stated availability preferences.",
+    "parameters": {
+      "reviewer_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of reviewer identifiers to check",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "target_date": {
+        "type": "string",
+        "required": true,
+        "description": "Target date for review completion",
+        "format": "date-time"
+      },
+      "review_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Expected review duration in days",
+        "default": 21
+      }
+    },
+    "error_messages": [
+      "Invalid target date: Provide a valid future date in ISO 8601 format.",
+      "Review duration out of range: Duration must be between 7 and 90 days.",
+      "Invalid reviewer IDs: Some provided reviewer identifiers do not exist.",
+      "Too many reviewers: Limit to 50 reviewers for efficient availability checking."
+    ],
+    "usage": "Provide reviewer_ids and target_date for review completion. Optionally specify review_duration to check availability for the required time period.",
+    "output_details": {
+      "availability_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Availability status for each reviewer: available, busy, unavailable, unknown"
+      },
+      "current_loads": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Number of current review assignments for each reviewer"
+      },
+      "estimated_capacity": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Estimated capacity for additional reviews: high, medium, low"
+      },
+      "availability_summary": {
+        "type": "string",
+        "description": "Summary of overall availability and recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bias Analyzer",
+    "tool_description": "Analyzes potential reviewer biases based on demographics, publication patterns, institutional affiliations, and review history to promote fair evaluation.",
+    "parameters": {
+      "reviewer_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of reviewer identifiers to analyze",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "author_demographics": {
+        "type": "array",
+        "required": false,
+        "description": "Demographic information about paper authors",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "institutional_info": {
+        "type": "array",
+        "required": false,
+        "description": "Institutional information about authors",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "bias_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of bias to analyze: gender, geographic, institutional, methodological, theoretical",
+        "items": {"type": "string"},
+        "default": ["gender", "geographic", "institutional"]
+      },
+      "sensitivity_level": {
+        "type": "string",
+        "required": false,
+        "description": "Sensitivity level for bias detection: high, medium, low",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Invalid bias types: Use combinations of [gender, geographic, institutional, methodological, theoretical].",
+      "Invalid sensitivity level: Use one of [high, medium, low].",
+      "Array length mismatch: author_demographics and institutional_info must match in length if provided.",
+      "Invalid reviewer IDs: Some provided reviewer identifiers do not exist.",
+      "Too many reviewers: Limit to 50 reviewers for bias analysis efficiency."
+    ],
+    "usage": "Provide reviewer_ids to analyze potential biases. Add author_demographics and institutional_info for more targeted analysis. Configure bias_types and sensitivity_level to adjust detection parameters.",
+    "output_details": {
+      "bias_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Overall bias risk scores (0-1) for each reviewer"
+      },
+      "bias_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Primary bias categories detected for each reviewer"
+      },
+      "risk_levels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Risk levels for each reviewer: low, medium, high"
+      },
+      "bias_summary": {
+        "type": "string",
+        "description": "Summary of bias analysis and diversity recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invitation Generator",
+    "tool_description": "Generates personalized review invitations with paper details, deadlines, and customized messaging based on reviewer profiles and preferences.",
+    "parameters": {
+      "reviewer_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of reviewer identifiers to invite",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "paper_title": {
+        "type": "string",
+        "required": true,
+        "description": "Title of the paper for review"
+      },
+      "paper_abstract": {
+        "type": "string",
+        "required": true,
+        "description": "Abstract of the paper for review"
+      },
+      "review_deadline": {
+        "type": "string",
+        "required": true,
+        "description": "Deadline for review completion",
+        "format": "date-time"
+      },
+      "journal_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the journal or venue"
+      },
+      "invitation_tone": {
+        "type": "string",
+        "required": false,
+        "description": "Tone of invitation: formal, friendly, concise",
+        "default": "friendly"
+      },
+      "compensation_info": {
+        "type": "string",
+        "required": false,
+        "description": "Information about reviewer compensation or recognition",
+        "default": "None"
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "description": "Any special review instructions or requirements",
+        "default": "None"
+      },
+      "personalization_level": {
+        "type": "string",
+        "required": false,
+        "description": "Level of personalization: high, medium, low",
+        "default": "medium"
+      },
+      "response_deadline": {
+        "type": "string",
+        "required": false,
+        "description": "Deadline for responding to invitation",
+        "format": "date-time",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid deadline dates: review_deadline and response_deadline must be valid future dates.",
+      "Missing required content: paper_title, paper_abstract, and journal_name cannot be empty.",
+      "Invalid tone or personalization: Use valid options for invitation_tone [formal, friendly, concise] and personalization_level [high, medium, low].",
+      "Too many invitations: Limit to 20 reviewers per batch for personalization quality.",
+      "Invalid reviewer IDs: Some provided reviewer identifiers do not exist."
+    ],
+    "usage": "Provide reviewer_ids, paper_title, paper_abstract, review_deadline, and journal_name. Customize with invitation_tone, compensation_info, special_instructions, personalization_level, and response_deadline as needed.",
+    "output_details": {
+      "invitation_texts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Generated invitation messages for each reviewer"
+      },
+      "invitation_subjects": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Email subject lines for each invitation"
+      },
+      "personalization_notes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Notes on personalization elements used for each reviewer"
+      },
+      "generation_summary": {
+        "type": "string",
+        "description": "Summary of invitation generation process and recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Response Tracker",
+    "tool_description": "Tracks reviewer responses to invitations, manages follow-ups, and maintains status updates throughout the recruitment process.",
+    "parameters": {
+      "invitation_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of invitation identifiers to track",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "track_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days to track responses",
+        "default": 14
+      }
+    },
+    "error_messages": [
+      "Invalid invitation IDs: Some provided invitation identifiers do not exist or are inactive.",
+      "Track duration out of range: Duration must be between 1 and 60 days.",
+      "Too many invitations: Limit to 100 invitations for effective tracking."
+    ],
+    "usage": "Provide invitation_ids to track reviewer responses. Set track_duration to specify how long to monitor for responses and manage follow-ups.",
+    "output_details": {
+      "response_statuses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current status of each invitation: accepted, declined, pending, expired"
+      },
+      "response_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Timestamps of responses for each invitation"
+      },
+      "follow_up_needed": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Boolean flags indicating if follow-up is needed for each invitation"
+      },
+      "tracking_summary": {
+        "type": "string",
+        "description": "Summary of response tracking status and next actions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reviewer Pool Manager",
+    "tool_description": "Manages and maintains pools of reviewers, tracks their performance history, expertise evolution, and availability patterns for efficient future recruitment.",
+    "parameters": {
+      "pool_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name identifier for the reviewer pool"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: create, update, analyze, export"
+      },
+      "reviewer_ids": {
+        "type": "array",
+        "required": false,
+        "description": "List of reviewer identifiers for pool operations",
+        "items": {"type": "string"},
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid action: Use one of [create, update, analyze, export].",
+      "Pool name already exists: Choose a unique name for new pool creation.",
+      "Pool not found: The specified pool_name does not exist for update/analyze/export operations.",
+      "Invalid reviewer IDs: Some provided reviewer identifiers do not exist."
+    ],
+    "usage": "Provide pool_name and action to manage reviewer pools. Include reviewer_ids when creating or updating pools. Use analyze to get pool statistics and export to retrieve pool data.",
+    "output_details": {
+      "pool_size": {
+        "type": "integer",
+        "description": "Total number of reviewers in the pool"
+      },
+      "expertise_coverage": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of research areas covered by the pool"
+      },
+      "performance_metrics": {
+        "type": "string",
+        "description": "Summary of pool performance statistics"
+      },
+      "operation_summary": {
+        "type": "string",
+        "description": "Summary of the performed operation and results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quality Assessor",
+    "tool_description": "Evaluates the quality of completed reviews based on comprehensiveness, constructiveness, technical accuracy, and adherence to review guidelines.",
+    "parameters": {
+      "review_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of completed review identifiers to assess",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "assessment_criteria": {
+        "type": "array",
+        "required": false,
+        "description": "Quality criteria to evaluate: thoroughness, clarity, constructiveness, timeliness, technical_accuracy",
+        "items": {"type": "string"},
+        "default": ["thoroughness", "clarity", "constructiveness", "timeliness"]
+      },
+      "benchmark_reviews": {
+        "type": "array",
+        "required": false,
+        "description": "Reference review IDs for comparison benchmarking",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "scoring_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for quality scoring: automated, hybrid, comparative",
+        "default": "hybrid"
+      }
+    },
+    "error_messages": [
+      "Invalid review IDs: Some provided review identifiers do not exist or are incomplete.",
+      "Invalid assessment criteria: Use combinations of [thoroughness, clarity, constructiveness, timeliness, technical_accuracy].",
+      "Invalid scoring method: Use one of [automated, hybrid, comparative].",
+      "Benchmark reviews not found: Some provided benchmark review IDs do not exist.",
+      "Too many reviews: Limit to 50 reviews for quality assessment efficiency."
+    ],
+    "usage": "Provide review_ids to assess review quality. Configure assessment_criteria and scoring_method to customize evaluation. Use benchmark_reviews for comparative analysis.",
+    "output_details": {
+      "quality_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Overall quality scores (0-1) for each review"
+      },
+      "criteria_scores": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed scores for each assessment criterion per review"
+      },
+      "improvement_suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Specific suggestions for improving each review"
+      },
+      "assessment_summary": {
+        "type": "string",
+        "description": "Summary of quality assessment results and overall recommendations"
+      }
+    }
+  }
+  ```

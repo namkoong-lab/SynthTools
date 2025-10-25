@@ -1,0 +1,792 @@
+field_name: appraisals_and_valuations
+subfield: Business Valuation and Enterprise Assessment
+task: Market-based valuation using comparable company and transaction analysis
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to its broad scope requiring multiple complex subproblems (comparable identification, financial normalization, multiple valuation approaches), significant data requirements across companies and transactions, high coordination between interdependent valuation steps, and substantial impact of errors on investment decisions.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'll target 17 tools within the 15-20 range to cover comprehensive market-based valuation workflows.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  **Data Collection Tools:**
+  - Company Financial Parser (consumes: financial statements → produces: normalized financial data)
+  - Comparable Company Screener (consumes: search criteria → produces: peer company lists)
+  - Transaction Database Query (consumes: transaction criteria → produces: deal records)
+  - Market Data Collector (consumes: ticker symbols → produces: market metrics)
+
+  **Analysis & Processing Tools:**
+  - Financial Metrics Calculator (consumes: financial data → produces: key ratios/metrics)
+  - Peer Group Analyzer (consumes: company data → produces: similarity scores)
+  - Transaction Adjuster (consumes: deal data → produces: adjusted transaction values)
+  - Multiple Calculator (consumes: financial + market data → produces: valuation multiples)
+
+  **Benchmarking & Comparison Tools:**
+  - Industry Benchmark Generator (consumes: peer data → produces: industry standards)
+  - Control Premium Analyzer (consumes: transaction data → produces: control adjustments)
+  - Liquidity Discount Calculator (consumes: company attributes → produces: discount rates)
+
+  **Valuation & Output Tools:**
+  - Trading Multiple Applicator (consumes: multiples + target financials → produces: trading valuations)
+  - Transaction Multiple Applicator (consumes: transaction multiples + target data → produces: acquisition valuations)
+  - Valuation Range Synthesizer (consumes: multiple valuations → produces: consolidated ranges)
+  - Market Position Assessor (consumes: company + peer data → produces: competitive analysis)
+  - DCF Market Validator (consumes: DCF assumptions + market data → produces: validation results)
+  - Valuation Report Generator (consumes: all analyses → produces: formatted report)
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Peer Analysis** (4 tools): Company Financial Parser → Comparable Company Screener → Financial Metrics Calculator → Trading Multiple Applicator
+  2. **Transaction Benchmarking** (4 tools): Transaction Database Query → Transaction Adjuster → Multiple Calculator → Transaction Multiple Applicator
+
+  **Medium Plans:**
+  1. **Comprehensive Trading Analysis** (8 tools): Company Financial Parser → Comparable Company Screener → Market Data Collector → Financial Metrics Calculator → Peer Group Analyzer → Industry Benchmark Generator → Trading Multiple Applicator → Valuation Range Synthesizer
+  2. **Deal-Based Valuation** (7 tools): Transaction Database Query → Transaction Adjuster → Control Premium Analyzer → Multiple Calculator → Liquidity Discount Calculator → Transaction Multiple Applicator → Market Position Assessor
+
+  **Complex Plans:**
+  1. **Full Market Valuation** (12 tools): All data collection tools → all analysis tools → Industry Benchmark Generator → Control Premium Analyzer → both applicator tools → Valuation Range Synthesizer → Valuation Report Generator
+  2. **Validated Market Analysis** (10 tools): Company Financial Parser → Comparable Company Screener → Market Data Collector → Financial Metrics Calculator → Trading Multiple Applicator → DCF Market Validator → Liquidity Discount Calculator → Market Position Assessor → Valuation Range Synthesizer → Valuation Report Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Company Financial Parser",
+    "tool_description": "Extracts and normalizes financial statement data from company filings, converting raw financial information into standardized metrics for valuation analysis.",
+    "parameters": {
+      "company_identifier": {
+        "type": "string",
+        "required": true,
+        "description": "Company ticker symbol, CIK number, or company name"
+      },
+      "statement_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of financial statements to parse",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 3
+      },
+      "fiscal_years": {
+        "type": "array",
+        "required": true,
+        "description": "Fiscal years to retrieve (e.g., [2021, 2022, 2023])",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 10
+      }
+    },
+    "error_messages": [
+      "Company not found: Verify the company identifier is correct and the company has public filings available.",
+      "Invalid statement type: Use 'income_statement', 'balance_sheet', or 'cash_flow_statement'.",
+      "Fiscal year data unavailable: The requested fiscal year data is not available for this company.",
+      "Data parsing error: Unable to extract financial data due to non-standard filing format."
+    ],
+    "usage": "Provide company_identifier, statement_types array, and fiscal_years array. The tool returns normalized financial data across the specified periods for valuation analysis.",
+    "output_details": {
+      "company_name": {
+        "type": "string",
+        "description": "Full legal name of the company"
+      },
+      "ticker_symbol": {
+        "type": "string",
+        "description": "Stock ticker symbol"
+      },
+      "fiscal_year_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Financial metrics organized by fiscal year"
+      },
+      "data_quality_score": {
+        "type": "number",
+        "description": "Quality score of parsed data (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Comparable Company Screener",
+    "tool_description": "Identifies and screens potential comparable companies based on industry, size, business model, and other specified criteria for market-based valuation analysis.",
+    "parameters": {
+      "target_company": {
+        "type": "string",
+        "required": true,
+        "description": "Primary company for which comparables are needed"
+      },
+      "industry_codes": {
+        "type": "array",
+        "required": true,
+        "description": "GICS, SIC, or NAICS industry classification codes",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "revenue_range_min": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum annual revenue in millions USD",
+        "default": null
+      },
+      "revenue_range_max": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum annual revenue in millions USD",
+        "default": null
+      },
+      "market_cap_range_min": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum market capitalization in millions USD",
+        "default": null
+      },
+      "market_cap_range_max": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum market capitalization in millions USD",
+        "default": null
+      },
+      "geographic_regions": {
+        "type": "array",
+        "required": false,
+        "description": "Geographic regions to include in screening",
+        "items": {"type": "string"},
+        "default": ["North America"]
+      },
+      "exclude_companies": {
+        "type": "array",
+        "required": false,
+        "description": "Company identifiers to exclude from results",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "business_model_similarity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to filter by business model similarity",
+        "default": true
+      },
+      "profitability_filter": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include only profitable companies",
+        "default": false
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of comparable companies to return",
+        "default": 20
+      }
+    },
+    "error_messages": [
+      "Invalid industry codes: Ensure industry codes are valid GICS, SIC, or NAICS classifications.",
+      "Insufficient screening criteria: Provide at least industry codes or size parameters to identify comparables.",
+      "No companies found: Adjust screening criteria as no companies match the specified parameters.",
+      "Invalid range parameters: Ensure minimum values are less than maximum values for revenue and market cap ranges."
+    ],
+    "usage": "Specify target_company, industry_codes, and optionally filter by revenue ranges, market cap, geography, and other criteria. Returns a ranked list of comparable companies with similarity scores.",
+    "output_details": {
+      "total_companies_found": {
+        "type": "integer",
+        "description": "Total number of companies matching criteria"
+      },
+      "comparable_companies": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of comparable company identifiers and basic info"
+      },
+      "similarity_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Similarity scores for each comparable company (0-100)"
+      },
+      "screening_summary": {
+        "type": "string",
+        "description": "Summary of screening criteria and results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transaction Database Query",
+    "tool_description": "Searches and retrieves comparable M&A transactions based on industry, size, timing, and deal characteristics for transaction-based valuation multiples.",
+    "parameters": {
+      "industry_focus": {
+        "type": "array",
+        "required": true,
+        "description": "Industry sectors to search for transactions",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "transaction_date_start": {
+        "type": "string",
+        "required": true,
+        "description": "Earliest transaction date to include",
+        "format": "date-time"
+      },
+      "transaction_date_end": {
+        "type": "string",
+        "required": true,
+        "description": "Latest transaction date to include",
+        "format": "date-time"
+      },
+      "enterprise_value_min": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum enterprise value in millions USD",
+        "default": null
+      },
+      "enterprise_value_max": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum enterprise value in millions USD",
+        "default": null
+      },
+      "deal_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of transactions to include",
+        "items": {"type": "string"},
+        "default": ["acquisition", "merger"]
+      }
+    },
+    "error_messages": [
+      "Invalid date range: Start date must be earlier than end date and both must be valid ISO 8601 format.",
+      "No transactions found: Adjust search criteria as no transactions match the specified parameters.",
+      "Invalid deal types: Use supported deal types like 'acquisition', 'merger', 'buyout', 'spin-off'.",
+      "Database access error: Unable to connect to transaction database, try again later."
+    ],
+    "usage": "Specify industry_focus, transaction date range, and optionally filter by enterprise value and deal types. Returns comparable transactions with key deal metrics.",
+    "output_details": {
+      "transaction_count": {
+        "type": "integer",
+        "description": "Number of transactions found"
+      },
+      "transaction_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Unique identifiers for each transaction"
+      },
+      "deal_summaries": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Brief summaries of each transaction"
+      },
+      "search_parameters": {
+        "type": "string",
+        "description": "Summary of search criteria used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Market Data Collector",
+    "tool_description": "Retrieves current and historical market data including stock prices, market capitalizations, trading volumes, and other market metrics for valuation analysis.",
+    "parameters": {
+      "ticker_symbols": {
+        "type": "array",
+        "required": true,
+        "description": "Stock ticker symbols to retrieve data for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "data_date": {
+        "type": "string",
+        "required": false,
+        "description": "Specific date for market data (defaults to most recent)",
+        "format": "date-time",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid ticker symbols: One or more ticker symbols are not recognized or delisted.",
+      "Market data unavailable: Market data is not available for the specified date or symbols.",
+      "API rate limit exceeded: Too many requests, please wait before retrying."
+    ],
+    "usage": "Provide ticker_symbols array and optionally specify data_date. Returns current market metrics for the specified companies for use in valuation calculations.",
+    "output_details": {
+      "market_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Market data for each ticker including price, market cap, volume"
+      },
+      "data_timestamp": {
+        "type": "string",
+        "description": "Timestamp of market data retrieval"
+      },
+      "successful_retrievals": {
+        "type": "integer",
+        "description": "Number of successful data retrievals"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Financial Metrics Calculator",
+    "tool_description": "Calculates key financial metrics and ratios from financial statement data, including profitability, leverage, efficiency, and growth metrics for valuation analysis.",
+    "parameters": {
+      "financial_data": {
+        "type": "array",
+        "required": true,
+        "description": "Financial statement data from company filings",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "metric_categories": {
+        "type": "array",
+        "required": true,
+        "description": "Categories of metrics to calculate",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 6
+      },
+      "calculation_periods": {
+        "type": "array",
+        "required": true,
+        "description": "Time periods for metric calculations",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "industry_adjustments": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply industry-specific adjustments",
+        "default": false
+      },
+      "currency_code": {
+        "type": "string",
+        "required": false,
+        "description": "Currency code for financial data",
+        "default": "USD"
+      }
+    },
+    "error_messages": [
+      "Insufficient financial data: Financial data must include income statement and balance sheet items for metric calculations.",
+      "Invalid metric categories: Use supported categories like 'profitability', 'leverage', 'efficiency', 'liquidity', 'growth', 'valuation'.",
+      "Calculation error: Unable to calculate metrics due to missing or invalid financial data components.",
+      "Period mismatch: Calculation periods must match available financial data periods."
+    ],
+    "usage": "Provide financial_data array, metric_categories to calculate, and calculation_periods. Optionally enable industry_adjustments. Returns comprehensive financial metrics for valuation use.",
+    "output_details": {
+      "calculated_metrics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Calculated financial metrics organized by category and period"
+      },
+      "metric_summary": {
+        "type": "string",
+        "description": "Summary of key calculated metrics"
+      },
+      "calculation_warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Any warnings or notes about calculations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Peer Group Analyzer",
+    "tool_description": "Analyzes and ranks potential peer companies based on business similarity, financial profile matching, and operational comparability for more refined comparable company selection.",
+    "parameters": {
+      "target_company_data": {
+        "type": "array",
+        "required": true,
+        "description": "Financial and operational data for the target company",
+        "items": {"type": "string"},
+        "minItems": 5,
+        "maxItems": 50
+      },
+      "peer_companies_data": {
+        "type": "array",
+        "required": true,
+        "description": "Financial and operational data for potential peer companies",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "similarity_weights": {
+        "type": "array",
+        "required": false,
+        "description": "Weights for different similarity factors",
+        "items": {"type": "number"},
+        "default": [0.25, 0.25, 0.25, 0.25]
+      },
+      "minimum_similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum similarity score to include in peer group (0-100)",
+        "default": 60
+      },
+      "max_peer_group_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of peers to include in final group",
+        "default": 12
+      }
+    },
+    "error_messages": [
+      "Insufficient target company data: Target company requires comprehensive financial and operational data for comparison.",
+      "Invalid similarity weights: Weights must be positive numbers that sum to approximately 1.0.",
+      "No suitable peers found: No peer companies meet the minimum similarity threshold, consider lowering the threshold.",
+      "Data format mismatch: Target and peer company data must have consistent format and metrics."
+    ],
+    "usage": "Provide target_company_data and peer_companies_data arrays, optionally customize similarity_weights and thresholds. Returns ranked peer group with similarity analysis.",
+    "output_details": {
+      "selected_peer_group": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Final selected peer companies with identifiers"
+      },
+      "similarity_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Similarity scores for each selected peer (0-100)"
+      },
+      "peer_group_statistics": {
+        "type": "string",
+        "description": "Statistical summary of the peer group characteristics"
+      },
+      "exclusion_summary": {
+        "type": "string",
+        "description": "Summary of companies excluded and reasons"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transaction Adjuster",
+    "tool_description": "Adjusts historical transaction multiples for market conditions, deal timing, transaction size, and other factors to make them more comparable to current valuation situations.",
+    "parameters": {
+      "transaction_data": {
+        "type": "array",
+        "required": true,
+        "description": "Historical transaction data with multiples and deal characteristics",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "adjustment_factors": {
+        "type": "array",
+        "required": true,
+        "description": "Types of adjustments to apply",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 8
+      },
+      "target_valuation_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date for which transactions should be adjusted",
+        "format": "date-time"
+      },
+      "market_condition_index": {
+        "type": "number",
+        "required": false,
+        "description": "Current market condition index relative to historical average",
+        "default": 100
+      },
+      "size_adjustment_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for size-based adjustments",
+        "default": "log_scaling"
+      }
+    },
+    "error_messages": [
+      "Invalid transaction data: Transaction data must include multiples, deal dates, and transaction values.",
+      "Unsupported adjustment factors: Use supported factors like 'market_timing', 'size', 'synergies', 'control_premium', 'liquidity'.",
+      "Invalid target date: Target valuation date must be in valid ISO 8601 format.",
+      "Market index out of range: Market condition index should be between 50 and 200."
+    ],
+    "usage": "Provide transaction_data, specify adjustment_factors to apply, and set target_valuation_date. Optionally customize market conditions and size adjustment methods.",
+    "output_details": {
+      "adjusted_multiples": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Transaction multiples after applying adjustments"
+      },
+      "adjustment_summary": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Summary of adjustments applied to each transaction"
+      },
+      "reliability_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Reliability scores for each adjusted transaction (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multiple Calculator",
+    "tool_description": "Calculates various valuation multiples (EV/Revenue, EV/EBITDA, P/E, P/B, etc.) from financial and market data for comparable company and transaction analysis.",
+    "parameters": {
+      "company_financials": {
+        "type": "array",
+        "required": true,
+        "description": "Financial metrics for companies or transactions",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "market_values": {
+        "type": "array",
+        "required": true,
+        "description": "Market capitalizations or transaction values",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "multiple_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of multiples to calculate",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "calculation_basis": {
+        "type": "string",
+        "required": false,
+        "description": "Basis for calculations - LTM, NTM, or forward",
+        "default": "LTM"
+      }
+    },
+    "error_messages": [
+      "Data length mismatch: Company financials and market values arrays must have the same length.",
+      "Invalid multiple types: Use supported multiples like 'EV/Revenue', 'EV/EBITDA', 'P/E', 'P/B', 'EV/EBIT'.",
+      "Missing financial data: Required financial metrics are missing for multiple calculations.",
+      "Invalid calculation basis: Use 'LTM' (Last Twelve Months), 'NTM' (Next Twelve Months), or 'forward'."
+    ],
+    "usage": "Provide company_financials and market_values arrays, specify multiple_types to calculate, and optionally set calculation_basis. Returns calculated valuation multiples.",
+    "output_details": {
+      "calculated_multiples": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Calculated multiples for each company/transaction"
+      },
+      "multiple_statistics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Statistical summary for each multiple type (mean, median, quartiles)"
+      },
+      "outlier_flags": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Flags indicating potential outlier multiples"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Industry Benchmark Generator",
+    "tool_description": "Generates industry benchmark statistics and percentile rankings for financial metrics and valuation multiples to provide context for company valuations.",
+    "parameters": {
+      "industry_identifier": {
+        "type": "string",
+        "required": true,
+        "description": "Industry classification code or name"
+      },
+      "benchmark_metrics": {
+        "type": "array",
+        "required": true,
+        "description": "Financial and valuation metrics to benchmark",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "company_size_segment": {
+        "type": "string",
+        "required": false,
+        "description": "Company size category for more relevant benchmarks",
+        "default": "all"
+      },
+      "time_period": {
+        "type": "string",
+        "required": false,
+        "description": "Time period for benchmark data",
+        "default": "current_year"
+      },
+      "geographical_scope": {
+        "type": "string",
+        "required": false,
+        "description": "Geographical scope for benchmark universe",
+        "default": "global"
+      }
+    },
+    "error_messages": [
+      "Invalid industry identifier: Provide a valid industry classification code or recognized industry name.",
+      "Unsupported benchmark metrics: Use supported financial and valuation metrics for benchmark generation.",
+      "Insufficient industry data: Not enough companies in the specified industry segment to generate reliable benchmarks.",
+      "Invalid size segment: Use supported size segments like 'small_cap', 'mid_cap', 'large_cap', or 'all'."
+    ],
+    "usage": "Specify industry_identifier and benchmark_metrics, optionally filter by company_size_segment, time_period, and geographical_scope. Returns industry benchmark statistics.",
+    "output_details": {
+      "benchmark_statistics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Statistical benchmarks for each metric (mean, median, quartiles)"
+      },
+      "industry_profile": {
+        "type": "string",
+        "description": "Overview of industry characteristics and trends"
+      },
+      "sample_size": {
+        "type": "integer",
+        "description": "Number of companies included in benchmark calculations"
+      },
+      "benchmark_date": {
+        "type": "string",
+        "description": "Date of benchmark data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Control Premium Analyzer",
+    "tool_description": "Analyzes control premiums from transaction data to determine appropriate adjustments when applying transaction multiples to minority interest valuations.",
+    "parameters": {
+      "transaction_premiums": {
+        "type": "array",
+        "required": true,
+        "description": "Historical control premiums from comparable transactions",
+        "items": {"type": "number"},
+        "minItems": 3,
+        "maxItems": 50
+      },
+      "transaction_characteristics": {
+        "type": "array",
+        "required": true,
+        "description": "Characteristics of transactions (industry, size, type, etc.)",
+        "items": {"type": "string"},
+        "minItems": 3,
+        "maxItems": 50
+      },
+      "target_deal_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of transaction or valuation context"
+      },
+      "industry_category": {
+        "type": "string",
+        "required": false,
+        "description": "Industry category for more targeted analysis",
+        "default": "general"
+      },
+      "market_conditions": {
+        "type": "string",
+        "required": false,
+        "description": "Current market conditions context",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Insufficient premium data: Need at least 3 control premiums for meaningful analysis.",
+      "Data format error: Transaction premiums must be numeric values representing percentage premiums.",
+      "Invalid deal type: Specify a recognized transaction type like 'strategic_acquisition', 'financial_buyout', 'merger'.",
+      "Characteristics mismatch: Transaction characteristics array must match the length of premiums array."
+    ],
+    "usage": "Provide transaction_premiums and transaction_characteristics arrays, specify target_deal_type, and optionally set industry and market contexts. Returns control premium analysis.",
+    "output_details": {
+      "recommended_premium": {
+        "type": "number",
+        "description": "Recommended control premium percentage for the target situation"
+      },
+      "premium_range": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Range of appropriate control premiums (low, high)"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Summary of control premium analysis and rationale"
+      },
+      "confidence_level": {
+        "type": "number",
+        "description": "Confidence level in the recommended premium (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Liquidity Discount Calculator",
+    "tool_description": "Calculates liquidity discounts for private company valuations or restricted securities based on company characteristics, market conditions, and academic research.",
+    "parameters": {
+      "company_attributes": {
+        "type": "array",
+        "required": true,
+        "description": "Company characteristics affecting liquidity",
+        "items": {"type": "string"},
+        "minItems": 3,
+        "maxItems": 15
+      },
+      "valuation_context": {
+        "type": "string",
+        "required": true,
+        "description": "Context for valuation requiring liquidity discount"
+      },
+      "market_liquidity_conditions": {
+        "type": "string",
+        "required": false,
+        "description": "Current market liquidity environment",
+        "default": "normal"
+      },
+      "time_to_liquidity": {
+        "type": "integer",
+        "required": false,
+        "description": "Expected time to achieve liquidity in months",
+        "default": 12
+      },
+      "discount_methodology": {
+        "type": "string",
+        "required": false,
+        "description": "Methodology for calculating discount",
+        "default": "empirical"
+      }
+    },
+    "error_messages": [
+      "Insufficient company attributes: Provide key attributes like size, profitability, growth, industry, financial condition.",
+      "Invalid valuation context: Use contexts like 'private_company', 'restricted_stock', 'minority_interest', 'key_person_dependence'.",
+      "Invalid time to liquidity: Time to liquidity must be a positive integer representing months.",
+      "Unsupported methodology: Use 'empirical', 'option_pricing', 'academic_studies', or 'market_evidence'."
+    ],
+    "usage": "Provide company_attributes array and valuation_context, optionally specify market conditions, time horizons, and methodology. Returns appropriate liquidity discount analysis.",
+    "output_details": {
+      "recommended_discount": {
+        "type": "number",
+        "description": "Recommended liquidity discount percentage"
+      },
+      "discount_range": {
+        "type": "array",
+        "items": {"type": "number"},
+        "

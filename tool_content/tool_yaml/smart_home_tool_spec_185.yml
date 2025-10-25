@@ -1,0 +1,870 @@
+field_name: smart_home
+subfield: Home Security and Surveillance
+task: Set up and monitor door and window sensors for intrusion detection
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves medium complexity due to the need to coordinate multiple sensor types, handle real-time monitoring, manage alert systems, and ensure reliable intrusion detection with minimal false positives. The scope includes hardware configuration, network setup, data processing, and emergency response protocols.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover sensor configuration, network management, monitoring, alerting, data analysis, and system maintenance aspects of intrusion detection systems.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Sensor Discovery Tool** - Consumes: network parameters → Produces: available sensor list
+  2. **Sensor Configuration Tool** - Consumes: sensor IDs, settings → Produces: configured sensors
+  3. **Network Setup Tool** - Consumes: network credentials, protocols → Produces: network connectivity
+  4. **Zone Definition Tool** - Consumes: sensor locations, groupings → Produces: security zones
+  5. **Alert Rule Creator** - Consumes: trigger conditions, contacts → Produces: alert rules
+  6. **Real Time Monitor** - Consumes: sensor data streams → Produces: current status
+  7. **Event Logger** - Consumes: sensor events, timestamps → Produces: historical logs
+  8. **Intrusion Analyzer** - Consumes: event patterns, rules → Produces: threat assessments
+  9. **Notification Dispatcher** - Consumes: alerts, contact methods → Produces: sent notifications
+  10. **Battery Status Checker** - Consumes: sensor IDs → Produces: power levels
+  11. **System Health Validator** - Consumes: system components → Produces: health reports
+  12. **Historical Data Analyzer** - Consumes: event logs, timeframes → Produces: pattern insights
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic Setup: Sensor Discovery → Sensor Configuration → Real Time Monitor
+  - Status Check: Battery Status Checker → System Health Validator
+
+  **Medium Plans:**
+  - Complete Installation: Network Setup → Sensor Discovery → Sensor Configuration → Zone Definition → Alert Rule Creator → Real Time Monitor
+  - Maintenance Review: Battery Status Checker → System Health Validator → Historical Data Analyzer
+
+  **Complex Plans:**
+  - Full System Deployment: Network Setup → Sensor Discovery → Sensor Configuration → Zone Definition → Alert Rule Creator → Real Time Monitor → Event Logger → Notification Dispatcher
+  - Security Analysis: Event Logger → Historical Data Analyzer → Intrusion Analyzer → Alert Rule Creator (refinement)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Sensor Discovery Tool",
+    "tool_description": "Scans the network to discover available door and window sensors within range, identifying their types, IDs, and connection status.",
+    "parameters": {
+      "network_interface": {
+        "type": "string",
+        "required": true,
+        "description": "Network interface to scan (wifi, zigbee, z-wave, bluetooth)"
+      },
+      "scan_timeout": {
+        "type": "integer",
+        "required": false,
+        "description": "Timeout in seconds for discovery scan (10-300)",
+        "default": 30
+      },
+      "include_offline": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include previously paired but currently offline sensors",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Network interface not supported: Use one of [wifi, zigbee, z-wave, bluetooth]",
+      "Scan timeout out of range: Must be between 10-300 seconds",
+      "Network interface unavailable: Check that the specified interface is enabled and functioning"
+    ],
+    "usage": "Specify the network_interface to scan for sensors. Optionally set scan_timeout and include_offline flag. Returns discovered sensors with their details.",
+    "output_details": {
+      "sensors_found": {
+        "type": "integer",
+        "description": "Total number of sensors discovered"
+      },
+      "sensor_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of unique sensor identifiers"
+      },
+      "sensor_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of sensor types (door, window, motion)"
+      },
+      "connection_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of connection statuses (online, offline, weak_signal)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sensor Configuration Tool",
+    "tool_description": "Configures individual sensors with specific settings including sensitivity, reporting intervals, and operational modes for optimal intrusion detection.",
+    "parameters": {
+      "sensor_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the sensor to configure"
+      },
+      "sensor_name": {
+        "type": "string",
+        "required": true,
+        "description": "Human-readable name for the sensor"
+      },
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Physical location description of the sensor"
+      },
+      "sensitivity_level": {
+        "type": "integer",
+        "required": false,
+        "description": "Sensitivity level from 1 (low) to 10 (high)",
+        "default": 5
+      },
+      "report_interval": {
+        "type": "integer",
+        "required": false,
+        "description": "Status reporting interval in seconds (5-3600)",
+        "default": 300
+      },
+      "armed_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Initial armed state (armed, disarmed, partial)",
+        "default": "disarmed"
+      },
+      "low_battery_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Battery percentage threshold for low battery alerts (10-30)",
+        "default": 20
+      }
+    },
+    "error_messages": [
+      "Sensor not found: The specified sensor_id does not exist or is not discoverable",
+      "Invalid sensitivity level: Must be an integer between 1 and 10",
+      "Invalid report interval: Must be between 5 and 3600 seconds",
+      "Invalid armed mode: Use one of [armed, disarmed, partial]",
+      "Invalid battery threshold: Must be between 10 and 30 percent",
+      "Configuration failed: Sensor did not accept the configuration parameters"
+    ],
+    "usage": "Provide sensor_id, sensor_name, and location. Optionally configure sensitivity_level, report_interval, armed_mode, and low_battery_threshold. The tool applies settings and confirms configuration.",
+    "output_details": {
+      "configuration_status": {
+        "type": "string",
+        "description": "Status of configuration attempt (success, failed, partial)"
+      },
+      "applied_settings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of successfully applied configuration parameters"
+      },
+      "sensor_firmware": {
+        "type": "string",
+        "description": "Current firmware version of the configured sensor"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Network Setup Tool",
+    "tool_description": "Establishes network connectivity for smart home sensors, configuring wireless protocols and security settings for reliable communication.",
+    "parameters": {
+      "protocol": {
+        "type": "string",
+        "required": true,
+        "description": "Network protocol to configure (wifi, zigbee, z-wave, bluetooth_mesh)"
+      },
+      "network_name": {
+        "type": "string",
+        "required": true,
+        "description": "Network SSID or hub identifier"
+      },
+      "security_key": {
+        "type": "string",
+        "required": true,
+        "description": "Network password or security key"
+      },
+      "channel": {
+        "type": "integer",
+        "required": false,
+        "description": "Specific channel to use (protocol dependent)",
+        "default": "None"
+      },
+      "encryption_type": {
+        "type": "string",
+        "required": false,
+        "description": "Encryption method (WPA2, WPA3, AES128)",
+        "default": "WPA2"
+      }
+    },
+    "error_messages": [
+      "Unsupported protocol: Use one of [wifi, zigbee, z-wave, bluetooth_mesh]",
+      "Network connection failed: Check network_name and security_key are correct",
+      "Invalid channel: Channel number not supported for the specified protocol",
+      "Encryption not supported: The specified encryption_type is not available for this protocol",
+      "Network adapter not found: The required network adapter for this protocol is not available"
+    ],
+    "usage": "Specify protocol, network_name, and security_key to establish connectivity. Optionally set channel and encryption_type for advanced configuration.",
+    "output_details": {
+      "connection_status": {
+        "type": "string",
+        "description": "Network connection result (connected, failed, timeout)"
+      },
+      "signal_strength": {
+        "type": "integer",
+        "description": "Signal strength percentage (0-100)"
+      },
+      "network_id": {
+        "type": "string",
+        "description": "Assigned network identifier for this connection"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Zone Definition Tool",
+    "tool_description": "Groups sensors into logical security zones for organized monitoring and allows zone-specific arming, disarming, and alert configurations.",
+    "parameters": {
+      "zone_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name for the security zone"
+      },
+      "sensor_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of sensor IDs to include in this zone",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "zone_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of zone (perimeter, interior, basement, garage, custom)"
+      },
+      "arm_delay": {
+        "type": "integer",
+        "required": false,
+        "description": "Delay in seconds before zone becomes active (0-300)",
+        "default": 30
+      },
+      "trigger_delay": {
+        "type": "integer",
+        "required": false,
+        "description": "Delay in seconds before triggering alert (0-60)",
+        "default": 0
+      },
+      "priority_level": {
+        "type": "integer",
+        "required": false,
+        "description": "Zone priority for alerts (1=low, 2=medium, 3=high)",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Zone name already exists: Choose a unique name for this zone",
+      "Invalid sensor IDs: One or more sensor IDs do not exist or are already assigned to another zone",
+      "Invalid zone type: Use one of [perimeter, interior, basement, garage, custom]",
+      "Invalid arm delay: Must be between 0 and 300 seconds",
+      "Invalid trigger delay: Must be between 0 and 60 seconds",
+      "Invalid priority level: Must be 1 (low), 2 (medium), or 3 (high)",
+      "Too many sensors: Maximum 20 sensors per zone"
+    ],
+    "usage": "Provide zone_name, sensor_ids array, and zone_type. Optionally configure arm_delay, trigger_delay, and priority_level for zone-specific behavior.",
+    "output_details": {
+      "zone_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to the created zone"
+      },
+      "sensors_assigned": {
+        "type": "integer",
+        "description": "Number of sensors successfully assigned to the zone"
+      },
+      "zone_status": {
+        "type": "string",
+        "description": "Current operational status of the zone"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Rule Creator",
+    "tool_description": "Creates customized alert rules that define when and how notifications are sent based on sensor triggers and system events.",
+    "parameters": {
+      "rule_name": {
+        "type": "string",
+        "required": true,
+        "description": "Descriptive name for the alert rule"
+      },
+      "trigger_conditions": {
+        "type": "array",
+        "required": true,
+        "description": "List of conditions that trigger the alert",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "notification_methods": {
+        "type": "array",
+        "required": true,
+        "description": "Methods to send notifications (email, sms, push, siren)",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 4
+      },
+      "recipient_contacts": {
+        "type": "array",
+        "required": true,
+        "description": "Contact information for alert recipients",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "severity_level": {
+        "type": "string",
+        "required": false,
+        "description": "Alert severity (low, medium, high, critical)",
+        "default": "medium"
+      },
+      "active_hours_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start time for active alerts (HH:MM format)",
+        "default": "00:00"
+      },
+      "active_hours_end": {
+        "type": "string",
+        "required": false,
+        "description": "End time for active alerts (HH:MM format)",
+        "default": "23:59"
+      },
+      "snooze_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Minutes to wait before repeating alerts (5-1440)",
+        "default": 15
+      },
+      "max_alerts_per_hour": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of alerts to send per hour (1-60)",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Rule name already exists: Choose a unique name for this alert rule",
+      "Invalid trigger conditions: Conditions must be valid sensor events or system states",
+      "Invalid notification methods: Use combinations of [email, sms, push, siren]",
+      "Invalid contact format: Ensure contacts are properly formatted for their notification method",
+      "Invalid severity level: Use one of [low, medium, high, critical]",
+      "Invalid time format: Use HH:MM format for active hours (24-hour format)",
+      "Invalid time range: active_hours_start must be before active_hours_end",
+      "Invalid snooze duration: Must be between 5 and 1440 minutes",
+      "Invalid alert limit: max_alerts_per_hour must be between 1 and 60"
+    ],
+    "usage": "Provide rule_name, trigger_conditions, notification_methods, and recipient_contacts. Configure optional parameters for timing, severity, and rate limiting.",
+    "output_details": {
+      "rule_id": {
+        "type": "string",
+        "description": "Unique identifier for the created alert rule"
+      },
+      "rule_status": {
+        "type": "string",
+        "description": "Current status of the rule (active, inactive, error)"
+      },
+      "validation_result": {
+        "type": "string",
+        "description": "Result of rule validation and testing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Real Time Monitor",
+    "tool_description": "Provides real-time monitoring of all connected sensors, displaying current status, recent events, and system health information.",
+    "parameters": {
+      "refresh_interval": {
+        "type": "integer",
+        "required": false,
+        "description": "Update interval in seconds (1-60)",
+        "default": 5
+      },
+      "display_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Display format (summary, detailed, zone_view)",
+        "default": "summary"
+      },
+      "filter_zones": {
+        "type": "array",
+        "required": false,
+        "description": "Specific zones to monitor (empty for all)",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include recent event history in display",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid refresh interval: Must be between 1 and 60 seconds",
+      "Invalid display mode: Use one of [summary, detailed, zone_view]",
+      "Zone not found: One or more specified zones do not exist",
+      "No sensors available: No sensors are currently connected or configured"
+    ],
+    "usage": "Configure refresh_interval and display_mode for monitoring preferences. Optionally filter by specific zones and include event history.",
+    "output_details": {
+      "total_sensors": {
+        "type": "integer",
+        "description": "Total number of monitored sensors"
+      },
+      "online_sensors": {
+        "type": "integer",
+        "description": "Number of sensors currently online"
+      },
+      "triggered_sensors": {
+        "type": "integer",
+        "description": "Number of sensors currently triggered"
+      },
+      "sensor_statuses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Current status of each monitored sensor"
+      },
+      "recent_events": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of recent sensor events and timestamps"
+      },
+      "system_health": {
+        "type": "string",
+        "description": "Overall system health status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Event Logger",
+    "tool_description": "Records and stores all sensor events, system changes, and security incidents with timestamps for audit trails and analysis.",
+    "parameters": {
+      "log_level": {
+        "type": "string",
+        "required": false,
+        "description": "Level of detail to log (basic, detailed, debug)",
+        "default": "detailed"
+      },
+      "storage_location": {
+        "type": "string",
+        "required": false,
+        "description": "Where to store logs (local, cloud, both)",
+        "default": "local"
+      },
+      "retention_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days to retain logs (7-365)",
+        "default": 30
+      },
+      "auto_backup": {
+        "type": "boolean",
+        "required": false,
+        "description": "Automatically backup logs periodically",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid log level: Use one of [basic, detailed, debug]",
+      "Invalid storage location: Use one of [local, cloud, both]",
+      "Invalid retention period: Must be between 7 and 365 days",
+      "Storage unavailable: The specified storage location is not accessible",
+      "Disk space insufficient: Not enough storage space for logging at current settings"
+    ],
+    "usage": "Configure log_level and storage_location for event recording. Set retention_days and auto_backup for log management.",
+    "output_details": {
+      "logging_status": {
+        "type": "string",
+        "description": "Current status of the logging system"
+      },
+      "log_file_path": {
+        "type": "string",
+        "description": "Path to the current log file"
+      },
+      "events_logged_today": {
+        "type": "integer",
+        "description": "Number of events logged in the current day"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Intrusion Analyzer",
+    "tool_description": "Analyzes sensor events and patterns to detect potential intrusions, reducing false alarms through intelligent pattern recognition.",
+    "parameters": {
+      "analysis_window": {
+        "type": "integer",
+        "required": false,
+        "description": "Time window in minutes to analyze events (5-1440)",
+        "default": 60
+      },
+      "sensitivity_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Analysis sensitivity (conservative, balanced, aggressive)",
+        "default": "balanced"
+      },
+      "correlation_rules": {
+        "type": "array",
+        "required": false,
+        "description": "Custom correlation rules to apply",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "false_alarm_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Confidence threshold to reduce false alarms (0.1-0.9)",
+        "default": 0.7
+      }
+    },
+    "error_messages": [
+      "Invalid analysis window: Must be between 5 and 1440 minutes",
+      "Invalid sensitivity mode: Use one of [conservative, balanced, aggressive]",
+      "Invalid correlation rules: Rules must be properly formatted logical expressions",
+      "Invalid threshold: false_alarm_threshold must be between 0.1 and 0.9",
+      "Insufficient data: Not enough event data for meaningful analysis"
+    ],
+    "usage": "Set analysis_window and sensitivity_mode for intrusion detection. Optionally provide correlation_rules and adjust false_alarm_threshold.",
+    "output_details": {
+      "threat_level": {
+        "type": "string",
+        "description": "Assessed threat level (none, low, medium, high)"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence in the threat assessment (0.0-1.0)"
+      },
+      "suspicious_events": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of events flagged as suspicious"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Summary of the intrusion analysis results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Dispatcher",
+    "tool_description": "Sends notifications through multiple channels when security alerts are triggered, managing delivery confirmation and retry logic.",
+    "parameters": {
+      "alert_message": {
+        "type": "string",
+        "required": true,
+        "description": "The alert message to send"
+      },
+      "notification_channels": {
+        "type": "array",
+        "required": true,
+        "description": "Channels to send notification through",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 4
+      },
+      "recipients": {
+        "type": "array",
+        "required": true,
+        "description": "List of recipient contact details",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Message priority (low, normal, high, urgent)",
+        "default": "normal"
+      },
+      "retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of retry attempts for failed deliveries (1-5)",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Empty alert message: Alert message cannot be empty",
+      "Invalid notification channels: Use combinations of [email, sms, push, voice]",
+      "Invalid recipients: Check that recipient contact details are properly formatted",
+      "Invalid priority: Use one of [low, normal, high, urgent]",
+      "Invalid retry attempts: Must be between 1 and 5",
+      "Delivery service unavailable: One or more notification services are currently unavailable"
+    ],
+    "usage": "Provide alert_message, notification_channels, and recipients. Set priority and retry_attempts as needed for delivery requirements.",
+    "output_details": {
+      "delivery_status": {
+        "type": "string",
+        "description": "Overall delivery status (success, partial, failed)"
+      },
+      "successful_deliveries": {
+        "type": "integer",
+        "description": "Number of successfully delivered notifications"
+      },
+      "failed_deliveries": {
+        "type": "integer",
+        "description": "Number of failed delivery attempts"
+      },
+      "delivery_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed delivery status for each recipient and channel"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Battery Status Checker",
+    "tool_description": "Monitors battery levels of wireless sensors and provides alerts when batteries need replacement or charging.",
+    "parameters": {
+      "sensor_ids": {
+        "type": "array",
+        "required": false,
+        "description": "Specific sensors to check (empty for all)",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "low_battery_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Battery percentage considered low (10-30)",
+        "default": 20
+      }
+    },
+    "error_messages": [
+      "Sensor not found: One or more specified sensor IDs do not exist",
+      "Invalid threshold: low_battery_threshold must be between 10 and 30 percent",
+      "Communication error: Unable to retrieve battery status from one or more sensors"
+    ],
+    "usage": "Optionally specify sensor_ids to check specific sensors, or leave empty to check all. Set low_battery_threshold for alert criteria.",
+    "output_details": {
+      "sensors_checked": {
+        "type": "integer",
+        "description": "Total number of sensors checked"
+      },
+      "low_battery_count": {
+        "type": "integer",
+        "description": "Number of sensors with low battery"
+      },
+      "battery_levels": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Battery percentage for each checked sensor"
+      },
+      "sensor_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Names corresponding to battery levels array"
+      },
+      "replacement_needed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of sensors requiring battery replacement"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "System Health Validator",
+    "tool_description": "Performs comprehensive system health checks including network connectivity, sensor responsiveness, and overall system integrity.",
+    "parameters": {
+      "check_depth": {
+        "type": "string",
+        "required": false,
+        "description": "Depth of health check (quick, standard, comprehensive)",
+        "default": "standard"
+      },
+      "include_network_test": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include network connectivity testing",
+        "default": true
+      },
+      "include_sensor_ping": {
+        "type": "boolean",
+        "required": false,
+        "description": "Test individual sensor responsiveness",
+        "default": true
+      },
+      "generate_report": {
+        "type": "boolean",
+        "required": false,
+        "description": "Generate detailed health report",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid check depth: Use one of [quick, standard, comprehensive]",
+      "Health check timeout: System health check took too long to complete",
+      "Partial check failure: Some system components could not be validated"
+    ],
+    "usage": "Configure check_depth and enable optional tests with include_network_test and include_sensor_ping. Set generate_report for detailed output.",
+    "output_details": {
+      "overall_health": {
+        "type": "string",
+        "description": "Overall system health status (excellent, good, fair, poor)"
+      },
+      "network_status": {
+        "type": "string",
+        "description": "Network connectivity health status"
+      },
+      "sensor_health": {
+        "type": "string",
+        "description": "Collective sensor health status"
+      },
+      "issues_found": {
+        "type": "integer",
+        "description": "Number of issues identified during health check"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of recommended actions to improve system health"
+      },
+      "check_timestamp": {
+        "type": "string",
+        "description": "Timestamp when health check was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Historical Data Analyzer",
+    "tool_description": "Analyzes historical sensor data to identify patterns, trends, and anomalies that can improve security system effectiveness and reduce false alarms.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period (YYYY-MM-DD format)"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period (YYYY-MM-DD format)"
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of analysis (pattern_detection, false_alarm_analysis, usage_trends, security_gaps)"
+      },
+      "zone_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Specific zones to analyze (empty for all)",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "event_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of events to include in analysis",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "minimum_occurrences": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum occurrences for pattern recognition (2-100)",
+        "default": 5
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Confidence threshold for findings (0.5-0.95)",
+        "default": 0.8
+      },
+      "include_visualizations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include data visualization summaries",
+        "default": false
+      },
+      "export_format": {
+        "type": "string",
+        "required": false,
+        "description": "Format for exporting results (json, csv, pdf)",
+        "default": "json"
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Use

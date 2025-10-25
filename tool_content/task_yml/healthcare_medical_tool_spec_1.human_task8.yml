@@ -1,0 +1,296 @@
+meta_data:
+  field_name: healthcare_medical
+  subfield: Clinical Documentation
+  task: Create and update patient medical records
+  tool_budget: 14
+  tool_sequences:
+    easy:
+    - - Patient Registration Tool
+      - Medical History Collector
+      - Allergy Manager
+    - - Patient Registration Tool
+      - Vital Signs Recorder
+      - Clinical Notes Creator
+    medium:
+    - - Patient Registration Tool
+      - Vital Signs Recorder
+      - Clinical Notes Creator
+      - Diagnosis Coder
+      - Medication Prescriber
+    - - Patient Registration Tool
+      - Clinical Notes Creator
+      - Procedure Documentation
+      - Lab Results Integrator
+      - Imaging Report Generator
+    - - Patient Registration Tool
+      - Care Plan Developer
+      - Record Sharing Tool
+    complex:
+    - - Patient Registration Tool
+      - Medical History Collector
+      - Vital Signs Recorder
+      - Clinical Notes Creator
+      - Diagnosis Coder
+      - Procedure Documentation
+      - Lab Results Integrator
+      - Imaging Report Generator
+      - Medication Prescriber
+      - Allergy Manager
+      - Care Plan Developer
+      - Medical Record Validator
+    - - Patient Registration Tool
+      - Clinical Notes Creator
+      - Diagnosis Coder
+      - Procedure Documentation
+      - Lab Results Integrator
+      - Imaging Report Generator
+      - Medication Prescriber
+      - Care Plan Developer
+      - Medical Record Validator
+      - Record Sharing Tool
+task_data:
+  task_type: task_8
+  task: Document a procedure, validate the record, and automatically submit insurance
+    claims.
+  task_diffuculty: medium
+  number_tools_required: 3
+  tools_required:
+  - Procedure Documentation
+  - Medical Record Validator
+  - Insurance Claim Processor
+  task_validity: invalid
+tools_data:
+- tool_name: Procedure Documentation
+  tool_json:
+    tool_name: Procedure Documentation
+    tool_description: Creates comprehensive documentation for medical procedures,
+      including pre-procedure assessments, procedural details, post-procedure notes,
+      and procedure codes.
+    parameters:
+      patient_id:
+        type: string
+        required: true
+        description: Unique identifier for the patient.
+      procedure_date:
+        type: string
+        required: true
+        description: Date and time when the procedure was performed in ISO 8601 format.
+        format: date-time
+      procedure_name:
+        type: string
+        required: true
+        description: Name of the medical procedure performed.
+      provider_id:
+        type: string
+        required: true
+        description: Identifier of the primary healthcare provider performing the
+          procedure.
+      location:
+        type: string
+        required: true
+        description: Location where the procedure was performed (facility, department,
+          room).
+      indication:
+        type: string
+        required: true
+        description: Medical reason for performing the procedure.
+      pre_procedure_diagnosis:
+        type: string
+        required: true
+        description: Diagnosis established prior to the procedure.
+      procedure_details:
+        type: string
+        required: true
+        description: Detailed description of the procedure steps, techniques, and
+          findings.
+      anesthesia_type:
+        type: string
+        required: false
+        description: Type of anesthesia used during the procedure.
+        default: None
+      specimens_collected:
+        type: array
+        required: false
+        description: List of any specimens collected during the procedure.
+        items:
+          type: string
+        default: []
+      complications:
+        type: string
+        required: false
+        description: Any complications that occurred during the procedure.
+        default: None
+      estimated_blood_loss:
+        type: string
+        required: false
+        description: Estimated amount of blood loss during the procedure.
+        default: Minimal
+      post_procedure_diagnosis:
+        type: string
+        required: false
+        description: Diagnosis established after the procedure was completed.
+        default: ''
+      assistants:
+        type: array
+        required: false
+        description: List of healthcare providers who assisted with the procedure.
+        items:
+          type: string
+        default: []
+      images:
+        type: array
+        required: false
+        description: List of references to any images captured during the procedure.
+        items:
+          type: string
+        default: []
+    error_messages:
+    - 'Patient ID not found: The specified patient_id does not exist in the system.
+      Verify the ID and try again.'
+    - 'Provider ID not found: The specified provider_id does not exist in the system.
+      Verify the ID and try again.'
+    - 'Invalid date format: procedure_date must follow ISO 8601 format. Please correct
+      the format.'
+    - 'Future date not allowed: The provided procedure_date is in the future. Procedures
+      can only be documented for past or present dates.'
+    - 'Missing required field: All required fields (patient_id, procedure_date, procedure_name,
+      provider_id, location, indication, pre_procedure_diagnosis, procedure_details)
+      must be provided.'
+    - 'Invalid procedure name: The procedure name provided does not match any recognized
+      medical procedure. Please verify the name.'
+    - 'Insufficient procedure details: procedure_details must include a comprehensive
+      description of the procedure performed.'
+    - 'Missing post-procedure diagnosis: post_procedure_diagnosis is recommended for
+      surgical and diagnostic procedures.'
+    usage: Provide all required parameters including patient_id, procedure information,
+      provider details, and clinical data. Include optional parameters as applicable
+      for the specific procedure. The tool creates a comprehensive procedure note
+      and returns a document ID for reference.
+    output_details:
+      document_id:
+        type: string
+        description: Unique identifier assigned to the procedure documentation.
+      patient_id:
+        type: string
+        description: Patient identifier associated with the procedure.
+      procedure_name:
+        type: string
+        description: Name of the documented procedure.
+      procedure_date:
+        type: string
+        description: ISO 8601 date and time when the procedure was performed.
+      provider_id:
+        type: string
+        description: Identifier of the primary provider who performed the procedure.
+      sections_completed:
+        type: array
+        items:
+          type: string
+        description: List of documentation sections that were completed.
+      suggested_cpt_codes:
+        type: array
+        items:
+          type: string
+        description: Suggested CPT (Current Procedural Terminology) codes for the
+          procedure.
+      creation_timestamp:
+        type: string
+        description: ISO 8601 timestamp of when the documentation was created.
+- tool_name: Medical Record Validator
+  tool_json:
+    tool_name: Medical Record Validator
+    tool_description: Validates and corrects medical record entries for completeness,
+      consistency, and compliance with documentation standards.
+    parameters:
+      record_id:
+        type: string
+        required: true
+        description: Unique identifier for the medical record entry to validate.
+      record_type:
+        type: string
+        required: true
+        description: Type of record to validate (note, procedure, medication, lab,
+          imaging, care_plan).
+      validation_level:
+        type: string
+        required: false
+        description: Depth of validation to perform (basic, standard, comprehensive).
+        default: standard
+      auto_correct:
+        type: boolean
+        required: false
+        description: Whether to automatically correct minor issues.
+        default: false
+      check_completeness:
+        type: boolean
+        required: false
+        description: Whether to check for missing required elements.
+        default: true
+      check_consistency:
+        type: boolean
+        required: false
+        description: Whether to check for internal consistency issues.
+        default: true
+      check_coding:
+        type: boolean
+        required: false
+        description: Whether to verify coding accuracy.
+        default: false
+      check_medical_accuracy:
+        type: boolean
+        required: false
+        description: Whether to check for clinical accuracy of content.
+        default: false
+    error_messages:
+    - 'Record ID not found: The specified record_id does not exist in the system.
+      Verify the ID and try again.'
+    - 'Invalid record type: record_type must be one of: note, procedure, medication,
+      lab, imaging, care_plan.'
+    - 'Invalid validation level: validation_level must be one of: basic, standard,
+      comprehensive.'
+    - 'Access denied: Current user does not have permission to validate this record.'
+    - 'Record locked: This record is currently locked for editing by another user.'
+    - 'Invalid record state: The record is in a state that cannot be validated (e.g.,
+      draft, deleted).'
+    - 'Service unavailable: One or more validation services are currently unavailable.'
+    - 'Medical accuracy check unavailable: check_medical_accuracy requires provider
+      credentials.'
+    usage: Provide record_id and record_type; optionally specify validation_level
+      and which checks to perform. Set auto_correct=true to enable automatic correction
+      of minor issues. The tool returns validation results with errors, warnings,
+      and suggestions.
+    output_details:
+      record_id:
+        type: string
+        description: Identifier of the validated record.
+      record_type:
+        type: string
+        description: Type of record that was validated.
+      validation_timestamp:
+        type: string
+        description: ISO 8601 timestamp of when validation was performed.
+      validation_status:
+        type: string
+        description: Overall validation status (passed, passed with warnings, failed).
+      errors:
+        type: array
+        items:
+          type: string
+        description: List of errors that must be addressed.
+      warnings:
+        type: array
+        items:
+          type: string
+        description: List of warnings that should be reviewed.
+      suggestions:
+        type: array
+        items:
+          type: string
+        description: List of suggestions for improving the record.
+      auto_corrections:
+        type: array
+        items:
+          type: string
+        description: List of issues that were automatically corrected.
+- tool_name: Insurance Claim Processor
+  tool_json: null

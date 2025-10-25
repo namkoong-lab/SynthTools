@@ -1,0 +1,841 @@
+field_name: databases
+subfield: Database Migration and Data Transfer
+task: Data extraction and export from source database systems
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. It involves moderate complexity across multiple dimensions: understanding various database schemas and formats, handling data type conversions, managing large datasets efficiently, coordinating dependencies between extraction steps, and ensuring data integrity during export processes.
+
+  **STEP 2 — Set a tool budget**
+
+  Target: 12 tools (within the 10-15 range for medium difficulty)
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Database Schema Analyzer** - Consumes: connection details → Produces: schema metadata
+  2. **Table Metadata Extractor** - Consumes: connection details, table names → Produces: column definitions, constraints
+  3. **Data Type Mapper** - Consumes: source schema, target format → Produces: type mapping rules
+  4. **Query Builder** - Consumes: table metadata, filters → Produces: SQL extraction queries
+  5. **Data Validator** - Consumes: extracted data, validation rules → Produces: validation reports
+  6. **Batch Extractor** - Consumes: queries, batch parameters → Produces: raw data batches
+  7. **Data Transformer** - Consumes: raw data, transformation rules → Produces: formatted data
+  8. **Export Formatter** - Consumes: transformed data, format specification → Produces: formatted output
+  9. **Compression Manager** - Consumes: formatted data, compression settings → Produces: compressed files
+  10. **Export Monitor** - Consumes: extraction metrics → Produces: progress reports
+  11. **Connection Pool Manager** - Consumes: database configs → Produces: connection handles
+  12. **Dependency Resolver** - Consumes: table relationships → Produces: extraction order
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  1. **Single table export**: Connection Pool Manager → Table Metadata Extractor → Query Builder → Batch Extractor → Export Formatter
+  2. **Schema documentation**: Database Schema Analyzer → Table Metadata Extractor → Export Formatter
+
+  **Medium plans:**
+  1. **Validated export with transformation**: Connection Pool Manager → Table Metadata Extractor → Query Builder → Batch Extractor → Data Transformer → Data Validator → Export Formatter → Compression Manager
+  2. **Cross-database migration prep**: Database Schema Analyzer → Data Type Mapper → Dependency Resolver → Query Builder → Batch Extractor → Export Formatter
+
+  **Complex plans:**
+  1. **Full database migration**: Database Schema Analyzer → Table Metadata Extractor → Dependency Resolver → Data Type Mapper → Query Builder → Batch Extractor → Data Transformer → Data Validator → Export Formatter → Compression Manager → Export Monitor
+  2. **Incremental multi-format export**: Connection Pool Manager → Table Metadata Extractor → Query Builder → Batch Extractor → Data Transformer → Data Validator → Export Formatter (multiple formats) → Compression Manager → Export Monitor
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Database Schema Analyzer",
+    "tool_description": "Analyzes database structure and returns comprehensive schema information including tables, views, procedures, and their relationships.",
+    "parameters": {
+      "connection_string": {
+        "type": "string",
+        "required": true,
+        "description": "Database connection string with credentials"
+      },
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of database (mysql, postgresql, oracle, sqlserver, sqlite)"
+      },
+      "include_system_tables": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include system/internal tables",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Connection failed: Verify connection string format and database accessibility",
+      "Unsupported database type: Use one of [mysql, postgresql, oracle, sqlserver, sqlite]",
+      "Permission denied: Ensure user has schema read permissions",
+      "Database not found: Verify database name in connection string"
+    ],
+    "usage": "Provide connection_string and database_type to analyze schema. Set include_system_tables to true if system tables are needed for analysis.",
+    "output_details": {
+      "database_name": {
+        "type": "string",
+        "description": "Name of the analyzed database"
+      },
+      "table_count": {
+        "type": "integer",
+        "description": "Total number of tables found"
+      },
+      "view_count": {
+        "type": "integer",
+        "description": "Total number of views found"
+      },
+      "table_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of all table names"
+      },
+      "view_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of all view names"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Table Metadata Extractor",
+    "tool_description": "Extracts detailed metadata for specific tables including column definitions, data types, constraints, indexes, and relationships.",
+    "parameters": {
+      "connection_string": {
+        "type": "string",
+        "required": true,
+        "description": "Database connection string with credentials"
+      },
+      "database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of database (mysql, postgresql, oracle, sqlserver, sqlite)"
+      },
+      "table_names": {
+        "type": "array",
+        "required": true,
+        "description": "List of table names to extract metadata for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "include_indexes": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include index information",
+        "default": true
+      },
+      "include_constraints": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include constraint information",
+        "default": true
+      },
+      "include_foreign_keys": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include foreign key relationships",
+        "default": true
+      },
+      "include_row_counts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include approximate row counts",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Connection failed: Verify connection string and database accessibility",
+      "Table not found: One or more specified tables do not exist",
+      "Permission denied: User lacks SELECT permissions on specified tables",
+      "Invalid table name: Table names cannot be empty or contain invalid characters",
+      "Too many tables requested: Maximum 100 tables per request"
+    ],
+    "usage": "Provide connection details and table_names array. Configure optional flags to include indexes, constraints, foreign keys, and row counts as needed.",
+    "output_details": {
+      "tables_processed": {
+        "type": "integer",
+        "description": "Number of tables successfully processed"
+      },
+      "column_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "All column names across processed tables"
+      },
+      "data_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "All data types found across processed tables"
+      },
+      "primary_keys": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Primary key column names for each table"
+      },
+      "total_estimated_rows": {
+        "type": "integer",
+        "description": "Sum of estimated rows across all tables"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Type Mapper",
+    "tool_description": "Maps source database data types to target format data types with conversion rules and compatibility warnings.",
+    "parameters": {
+      "source_database_type": {
+        "type": "string",
+        "required": true,
+        "description": "Source database type (mysql, postgresql, oracle, sqlserver, sqlite)"
+      },
+      "target_format": {
+        "type": "string",
+        "required": true,
+        "description": "Target format (csv, json, xml, parquet, avro)"
+      },
+      "source_data_types": {
+        "type": "array",
+        "required": true,
+        "description": "List of source data types to map",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      }
+    },
+    "error_messages": [
+      "Unsupported source database: Use one of [mysql, postgresql, oracle, sqlserver, sqlite]",
+      "Unsupported target format: Use one of [csv, json, xml, parquet, avro]",
+      "Invalid data type: One or more source data types are not recognized",
+      "Empty data types list: Provide at least one data type to map"
+    ],
+    "usage": "Specify source_database_type, target_format, and array of source_data_types to get mapping rules and compatibility information.",
+    "output_details": {
+      "mappings_created": {
+        "type": "integer",
+        "description": "Number of successful type mappings created"
+      },
+      "compatible_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of fully compatible type mappings"
+      },
+      "lossy_conversions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of mappings that may lose precision or data"
+      },
+      "unsupported_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of types that cannot be mapped to target format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Query Builder",
+    "tool_description": "Constructs optimized SQL extraction queries based on table metadata and filtering criteria.",
+    "parameters": {
+      "table_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the table to query"
+      },
+      "column_names": {
+        "type": "array",
+        "required": true,
+        "description": "List of columns to select",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "where_conditions": {
+        "type": "array",
+        "required": false,
+        "description": "List of WHERE clause conditions",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "order_by_columns": {
+        "type": "array",
+        "required": false,
+        "description": "List of columns for ORDER BY clause",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "limit_rows": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of rows to return",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Empty table name: Table name cannot be empty or null",
+      "Invalid column names: Column names cannot contain SQL injection patterns",
+      "Invalid WHERE condition: WHERE conditions must be valid SQL expressions",
+      "Invalid ORDER BY: ORDER BY columns must exist in SELECT list or table",
+      "Limit too large: Row limit cannot exceed 1 million rows per query"
+    ],
+    "usage": "Provide table_name and column_names, optionally add where_conditions, order_by_columns, and limit_rows to build optimized extraction queries.",
+    "output_details": {
+      "sql_query": {
+        "type": "string",
+        "description": "Generated SQL query string"
+      },
+      "estimated_rows": {
+        "type": "integer",
+        "description": "Estimated number of rows the query will return"
+      },
+      "query_complexity": {
+        "type": "string",
+        "description": "Complexity rating of the generated query"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Validator",
+    "tool_description": "Validates extracted data against specified rules and constraints to ensure data quality and integrity.",
+    "parameters": {
+      "validation_rules": {
+        "type": "array",
+        "required": true,
+        "description": "List of validation rule types to apply",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "null_tolerance_percent": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum allowed percentage of null values (0-100)",
+        "default": 5.0
+      },
+      "duplicate_check": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check for duplicate records",
+        "default": true
+      },
+      "data_type_validation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate data types",
+        "default": true
+      },
+      "range_validation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate numeric ranges",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid validation rules: Use supported validation rule types only",
+      "Invalid null tolerance: Value must be between 0 and 100",
+      "No data provided: Cannot validate empty dataset",
+      "Validation rule conflict: Some validation rules are mutually exclusive"
+    ],
+    "usage": "Specify validation_rules array and configure tolerance levels and validation types. The tool will analyze data quality and report issues.",
+    "output_details": {
+      "validation_passed": {
+        "type": "boolean",
+        "description": "Whether all validations passed"
+      },
+      "total_rows_validated": {
+        "type": "integer",
+        "description": "Total number of data rows validated"
+      },
+      "null_value_percentage": {
+        "type": "number",
+        "description": "Percentage of null values found"
+      },
+      "duplicate_count": {
+        "type": "integer",
+        "description": "Number of duplicate records found"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation errors encountered"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Extractor",
+    "tool_description": "Executes data extraction queries in configurable batches to handle large datasets efficiently while managing memory and connection resources.",
+    "parameters": {
+      "connection_string": {
+        "type": "string",
+        "required": true,
+        "description": "Database connection string with credentials"
+      },
+      "sql_query": {
+        "type": "string",
+        "required": true,
+        "description": "SQL query to execute for data extraction"
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of rows per batch (1000-100000)",
+        "default": 10000
+      },
+      "max_batches": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of batches to process (1-1000)",
+        "default": 100
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Query timeout in seconds (30-3600)",
+        "default": 300
+      },
+      "retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of retry attempts for failed queries (0-5)",
+        "default": 3
+      },
+      "parallel_connections": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of parallel database connections (1-10)",
+        "default": 1
+      },
+      "offset_column": {
+        "type": "string",
+        "required": false,
+        "description": "Column name to use for pagination offset",
+        "default": null
+      },
+      "start_offset": {
+        "type": "integer",
+        "required": false,
+        "description": "Starting offset value for pagination",
+        "default": 0
+      },
+      "enable_compression": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to compress extracted batches in memory",
+        "default": false
+      },
+      "checkpoint_frequency": {
+        "type": "integer",
+        "required": false,
+        "description": "Save progress checkpoint every N batches (0 disables)",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Connection failed: Unable to establish database connection with provided string",
+      "Invalid SQL query: Query contains syntax errors or unsupported operations",
+      "Batch size out of range: Must be between 1000 and 100000 rows",
+      "Timeout exceeded: Query execution time exceeded specified timeout",
+      "Max batches exceeded: Reached maximum number of allowed batches",
+      "Permission denied: Insufficient privileges to execute query",
+      "Memory limit exceeded: Batch size too large for available memory",
+      "Invalid offset column: Specified offset column does not exist or is not indexed",
+      "Connection pool exhausted: Too many parallel connections requested"
+    ],
+    "usage": "Provide connection_string and sql_query, then configure batch processing parameters. The tool will extract data in manageable chunks and provide progress updates.",
+    "output_details": {
+      "total_rows_extracted": {
+        "type": "integer",
+        "description": "Total number of rows successfully extracted"
+      },
+      "batches_processed": {
+        "type": "integer",
+        "description": "Number of batches completed"
+      },
+      "extraction_time_seconds": {
+        "type": "number",
+        "description": "Total time taken for extraction process"
+      },
+      "average_batch_time": {
+        "type": "number",
+        "description": "Average processing time per batch in seconds"
+      },
+      "failed_batches": {
+        "type": "integer",
+        "description": "Number of batches that failed processing"
+      },
+      "data_size_mb": {
+        "type": "number",
+        "description": "Total size of extracted data in megabytes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Transformer",
+    "tool_description": "Applies data transformations including type conversions, formatting, cleaning, and field mapping according to specified transformation rules.",
+    "parameters": {
+      "transformation_rules": {
+        "type": "array",
+        "required": true,
+        "description": "List of transformation rule types to apply",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "date_format": {
+        "type": "string",
+        "required": false,
+        "description": "Target date format pattern",
+        "default": "YYYY-MM-DD"
+      },
+      "null_replacement_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "How to handle null values (skip, default, remove)",
+        "default": "skip"
+      },
+      "string_encoding": {
+        "type": "string",
+        "required": false,
+        "description": "Character encoding for string fields",
+        "default": "UTF-8"
+      },
+      "numeric_precision": {
+        "type": "integer",
+        "required": false,
+        "description": "Decimal places for numeric values (0-10)",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Invalid transformation rules: Use supported transformation rule types only",
+      "Invalid date format: Date format pattern is not supported",
+      "Invalid null replacement strategy: Use one of [skip, default, remove]",
+      "Unsupported encoding: Character encoding is not supported",
+      "Invalid numeric precision: Must be between 0 and 10 decimal places",
+      "Transformation failed: Unable to apply transformation due to data incompatibility"
+    ],
+    "usage": "Specify transformation_rules and configure formatting options. The tool will apply transformations to prepare data for export.",
+    "output_details": {
+      "rows_transformed": {
+        "type": "integer",
+        "description": "Number of data rows successfully transformed"
+      },
+      "transformations_applied": {
+        "type": "integer",
+        "description": "Total number of transformations applied"
+      },
+      "null_values_handled": {
+        "type": "integer",
+        "description": "Number of null values processed"
+      },
+      "transformation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of transformation errors encountered"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Export Formatter",
+    "tool_description": "Formats transformed data into specified export formats with customizable structure and metadata options.",
+    "parameters": {
+      "output_format": {
+        "type": "string",
+        "required": true,
+        "description": "Target export format (csv, json, xml, parquet, avro)"
+      },
+      "include_headers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include column headers",
+        "default": true
+      },
+      "delimiter": {
+        "type": "string",
+        "required": false,
+        "description": "Field delimiter for CSV format",
+        "default": ","
+      },
+      "quote_character": {
+        "type": "string",
+        "required": false,
+        "description": "Quote character for CSV format",
+        "default": "\""
+      }
+    },
+    "error_messages": [
+      "Unsupported output format: Use one of [csv, json, xml, parquet, avro]",
+      "Invalid delimiter: Delimiter must be a single character",
+      "Invalid quote character: Quote character must be a single character",
+      "Formatting failed: Unable to format data in specified format",
+      "No data to format: Input data is empty or invalid"
+    ],
+    "usage": "Specify output_format and configure format-specific options. The tool will generate properly formatted export data.",
+    "output_details": {
+      "formatted_size_bytes": {
+        "type": "integer",
+        "description": "Size of formatted output in bytes"
+      },
+      "record_count": {
+        "type": "integer",
+        "description": "Number of records in formatted output"
+      },
+      "format_validation_passed": {
+        "type": "boolean",
+        "description": "Whether output format validation passed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compression Manager",
+    "tool_description": "Compresses formatted export data using specified compression algorithms to reduce file size and optimize storage.",
+    "parameters": {
+      "compression_type": {
+        "type": "string",
+        "required": true,
+        "description": "Compression algorithm (gzip, zip, bzip2, lz4, zstd)"
+      },
+      "compression_level": {
+        "type": "integer",
+        "required": false,
+        "description": "Compression level (1-9, higher means better compression)",
+        "default": 6
+      }
+    },
+    "error_messages": [
+      "Unsupported compression type: Use one of [gzip, zip, bzip2, lz4, zstd]",
+      "Invalid compression level: Must be between 1 and 9",
+      "Compression failed: Unable to compress data with specified algorithm",
+      "Input data too large: Data size exceeds compression capacity"
+    ],
+    "usage": "Specify compression_type and optionally set compression_level. The tool will compress the formatted data and provide compression statistics.",
+    "output_details": {
+      "original_size_bytes": {
+        "type": "integer",
+        "description": "Size of data before compression"
+      },
+      "compressed_size_bytes": {
+        "type": "integer",
+        "description": "Size of data after compression"
+      },
+      "compression_ratio": {
+        "type": "number",
+        "description": "Compression ratio achieved"
+      },
+      "compression_time_seconds": {
+        "type": "number",
+        "description": "Time taken to compress data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Export Monitor",
+    "tool_description": "Monitors and reports on the progress and performance of data extraction and export operations.",
+    "parameters": {
+      "monitoring_interval_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "How often to collect metrics (1-300 seconds)",
+        "default": 30
+      },
+      "include_performance_metrics": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include detailed performance data",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid monitoring interval: Must be between 1 and 300 seconds",
+      "No active operations: No extraction operations found to monitor",
+      "Monitoring failed: Unable to collect performance metrics"
+    ],
+    "usage": "Configure monitoring_interval_seconds and enable performance metrics collection. The tool will track and report extraction progress.",
+    "output_details": {
+      "operations_monitored": {
+        "type": "integer",
+        "description": "Number of operations currently being monitored"
+      },
+      "total_progress_percent": {
+        "type": "number",
+        "description": "Overall progress percentage of all operations"
+      },
+      "estimated_completion_time": {
+        "type": "string",
+        "description": "Estimated completion time for all operations",
+        "format": "date-time"
+      },
+      "current_throughput_rows_per_second": {
+        "type": "number",
+        "description": "Current data processing throughput"
+      },
+      "active_connections": {
+        "type": "integer",
+        "description": "Number of active database connections"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Connection Pool Manager",
+    "tool_description": "Manages database connection pools to optimize resource usage and ensure reliable connectivity during data extraction operations.",
+    "parameters": {
+      "database_configs": {
+        "type": "array",
+        "required": true,
+        "description": "List of database connection configuration strings",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "max_connections_per_pool": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum connections per database pool (1-50)",
+        "default": 10
+      },
+      "connection_timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Connection timeout in seconds (5-300)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Invalid database config: One or more connection strings are malformed",
+      "Max connections exceeded: Pool size cannot exceed 50 connections",
+      "Connection timeout too short: Minimum timeout is 5 seconds",
+      "Pool creation failed: Unable to establish connection pool",
+      "Too many database configs: Maximum 10 databases supported"
+    ],
+    "usage": "Provide database_configs array and configure pool parameters. The tool will create and manage connection pools for efficient data access.",
+    "output_details": {
+      "pools_created": {
+        "type": "integer",
+        "description": "Number of connection pools successfully created"
+      },
+      "total_connections": {
+        "type": "integer",
+        "description": "Total number of connections across all pools"
+      },
+      "active_connections": {
+        "type": "integer",
+        "description": "Number of currently active connections"
+      },
+      "pool_health_status": {
+        "type": "string",
+        "description": "Overall health status of connection pools"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dependency Resolver",
+    "tool_description": "Analyzes table relationships and foreign key constraints to determine the optimal extraction order that maintains referential integrity.",
+    "parameters": {
+      "table_relationships": {
+        "type": "array",
+        "required": true,
+        "description": "List of table relationship definitions",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "preserve_referential_integrity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to maintain foreign key relationships",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid relationship format: Relationship definitions must follow correct syntax",
+      "Circular dependency detected: Tables have circular foreign key references",
+      "Unresolved dependencies: Some table dependencies cannot be satisfied",
+      "Too many relationships: Maximum 200 relationships supported"
+    ],
+    "usage": "Provide table_relationships array with foreign key definitions. The tool will determine the correct extraction order to maintain data integrity.",
+    "output_details": {
+      "extraction_order": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Ordered list of tables for extraction"
+      },
+      "dependency_levels": {
+        "type": "integer",
+        "description": "Number of dependency levels found"
+      },
+      "circular_dependencies_found": {
+        "type": "boolean",
+        "description": "Whether any circular dependencies were detected"
+      }
+    }
+  }
+  ```

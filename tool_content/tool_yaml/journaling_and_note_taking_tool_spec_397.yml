@@ -1,0 +1,859 @@
+field_name: journaling_and_note_taking
+subfield: Academic Research Note Management
+task: Citation formatting and bibliography generation
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This is a medium difficulty task. It involves moderate complexity in handling multiple citation formats, cross-referencing sources, managing bibliographic data with specific formatting rules, and coordinating between different academic standards. The task requires structured data processing but has well-defined standards and limited ambiguity.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium difficulty, I'll target 12 tools within the 10-15 range. This allows for comprehensive coverage of citation parsing, formatting, validation, bibliography generation, and cross-referencing workflows while maintaining tool composability.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Citation Parser** - Consumes: raw citation text → Produces: structured citation data
+  2. **Citation Validator** - Consumes: structured citation data → Produces: validation results
+  3. **Citation Formatter** - Consumes: structured citation data + style → Produces: formatted citation
+  4. **Bibliography Generator** - Consumes: multiple citations + style → Produces: formatted bibliography
+  5. **Reference Deduplicator** - Consumes: citation list → Produces: deduplicated citations
+  6. **Citation Style Detector** - Consumes: sample citations → Produces: detected style
+  7. **In-text Citation Creator** - Consumes: citation data + context → Produces: in-text citation
+  8. **Citation Merger** - Consumes: multiple citation sources → Produces: merged citation list
+  9. **Bibliography Sorter** - Consumes: citation list + criteria → Produces: sorted citations
+  10. **Citation Completeness Checker** - Consumes: citation data → Produces: completeness report
+  11. **Reference Link Validator** - Consumes: URLs/DOIs → Produces: link validation results
+  12. **Citation Export Converter** - Consumes: citations + target format → Produces: converted citations
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Parse single citation → Validate → Format: Citation Parser → Citation Validator → Citation Formatter
+  2. Check citation completeness → Validate links: Citation Completeness Checker → Reference Link Validator
+
+  **Medium Plans:**
+  1. Process raw citations → Remove duplicates → Generate bibliography: Citation Parser → Reference Deduplicator → Bibliography Generator
+  2. Detect style → Format citations → Sort bibliography: Citation Style Detector → Citation Formatter → Bibliography Sorter
+  3. Merge multiple sources → Create in-text citations → Export: Citation Merger → In-text Citation Creator → Citation Export Converter
+
+  **Complex Plans:**
+  1. Complete workflow: Citation Parser → Citation Validator → Reference Deduplicator → Citation Completeness Checker → Reference Link Validator → Citation Formatter → Bibliography Sorter → Bibliography Generator
+  2. Multi-source integration: Citation Merger → Citation Style Detector → Citation Validator → In-text Citation Creator → Bibliography Generator → Citation Export Converter
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Citation Parser",
+    "tool_description": "Extracts and structures bibliographic information from raw citation text into standardized components like author, title, journal, year, etc.",
+    "parameters": {
+      "raw_citation": {
+        "type": "string",
+        "required": true,
+        "description": "The raw citation text to be parsed"
+      },
+      "expected_type": {
+        "type": "string",
+        "required": false,
+        "description": "Expected citation type: journal, book, website, conference, thesis",
+        "default": "auto"
+      }
+    },
+    "error_messages": [
+      "Empty citation text: Provide non-empty citation text to parse.",
+      "Unparseable citation format: The citation format is not recognizable or too malformed to extract meaningful information.",
+      "Invalid expected type: Use one of [journal, book, website, conference, thesis, auto]."
+    ],
+    "usage": "Provide raw_citation text and optionally specify expected_type. The tool will extract structured bibliographic components from the citation.",
+    "output_details": {
+      "authors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of author names"
+      },
+      "title": {
+        "type": "string",
+        "description": "Title of the work"
+      },
+      "publication": {
+        "type": "string",
+        "description": "Journal, book, or conference name"
+      },
+      "year": {
+        "type": "string",
+        "description": "Publication year"
+      },
+      "pages": {
+        "type": "string",
+        "description": "Page numbers or range"
+      },
+      "volume": {
+        "type": "string",
+        "description": "Volume number"
+      },
+      "issue": {
+        "type": "string",
+        "description": "Issue number"
+      },
+      "doi": {
+        "type": "string",
+        "description": "Digital Object Identifier"
+      },
+      "url": {
+        "type": "string",
+        "description": "Web URL if applicable"
+      },
+      "citation_type": {
+        "type": "string",
+        "description": "Detected citation type"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Citation Validator",
+    "tool_description": "Validates structured citation data against academic standards and checks for required fields based on citation type.",
+    "parameters": {
+      "authors": {
+        "type": "array",
+        "required": true,
+        "description": "List of author names",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "title": {
+        "type": "string",
+        "required": true,
+        "description": "Title of the work"
+      },
+      "year": {
+        "type": "string",
+        "required": true,
+        "description": "Publication year"
+      },
+      "citation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of citation: journal, book, website, conference, thesis"
+      },
+      "publication": {
+        "type": "string",
+        "required": false,
+        "description": "Journal, book, or conference name",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Missing required fields: Ensure all required fields for the citation type are provided.",
+      "Invalid year format: Year must be a 4-digit number between 1800 and current year + 2.",
+      "Invalid citation type: Use one of [journal, book, website, conference, thesis].",
+      "Empty author list: Provide at least one author name."
+    ],
+    "usage": "Provide structured citation data including authors, title, year, and citation_type. The tool validates completeness and correctness according to academic standards.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the citation meets validation criteria"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation errors found"
+      },
+      "missing_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Required fields that are missing"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence score of citation quality (0-1)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Citation Formatter",
+    "tool_description": "Formats structured citation data according to specified academic citation styles like APA, MLA, Chicago, Harvard, etc.",
+    "parameters": {
+      "authors": {
+        "type": "array",
+        "required": true,
+        "description": "List of author names",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "title": {
+        "type": "string",
+        "required": true,
+        "description": "Title of the work"
+      },
+      "year": {
+        "type": "string",
+        "required": true,
+        "description": "Publication year"
+      },
+      "citation_style": {
+        "type": "string",
+        "required": true,
+        "description": "Citation style: APA, MLA, Chicago, Harvard, IEEE, Vancouver"
+      },
+      "publication": {
+        "type": "string",
+        "required": false,
+        "description": "Journal, book, or conference name",
+        "default": ""
+      },
+      "volume": {
+        "type": "string",
+        "required": false,
+        "description": "Volume number",
+        "default": ""
+      },
+      "issue": {
+        "type": "string",
+        "required": false,
+        "description": "Issue number",
+        "default": ""
+      },
+      "pages": {
+        "type": "string",
+        "required": false,
+        "description": "Page numbers or range",
+        "default": ""
+      },
+      "doi": {
+        "type": "string",
+        "required": false,
+        "description": "Digital Object Identifier",
+        "default": ""
+      },
+      "url": {
+        "type": "string",
+        "required": false,
+        "description": "Web URL if applicable",
+        "default": ""
+      },
+      "citation_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of citation: journal, book, website, conference, thesis",
+        "default": "journal"
+      }
+    },
+    "error_messages": [
+      "Unsupported citation style: Use one of [APA, MLA, Chicago, Harvard, IEEE, Vancouver].",
+      "Missing required fields: Some fields required for the specified style and citation type are missing.",
+      "Invalid citation type: Use one of [journal, book, website, conference, thesis].",
+      "Empty author list: Provide at least one author name."
+    ],
+    "usage": "Provide structured citation data and specify the desired citation_style. The tool will format the citation according to the academic standard.",
+    "output_details": {
+      "formatted_citation": {
+        "type": "string",
+        "description": "Complete formatted citation according to specified style"
+      },
+      "style_used": {
+        "type": "string",
+        "description": "Citation style that was applied"
+      },
+      "formatting_warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Warnings about missing optional fields or formatting issues"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bibliography Generator",
+    "tool_description": "Creates a complete formatted bibliography from multiple citations, applying consistent formatting and proper ordering.",
+    "parameters": {
+      "citations": {
+        "type": "array",
+        "required": true,
+        "description": "List of formatted citations",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "citation_style": {
+        "type": "string",
+        "required": true,
+        "description": "Bibliography style: APA, MLA, Chicago, Harvard, IEEE, Vancouver"
+      },
+      "sort_order": {
+        "type": "string",
+        "required": false,
+        "description": "Sorting method: alphabetical, chronological, appearance_order",
+        "default": "alphabetical"
+      },
+      "include_title": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include bibliography title",
+        "default": true
+      },
+      "hanging_indent": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply hanging indent formatting",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Empty citation list: Provide at least one citation to generate bibliography.",
+      "Too many citations: Maximum 500 citations allowed per bibliography.",
+      "Unsupported citation style: Use one of [APA, MLA, Chicago, Harvard, IEEE, Vancouver].",
+      "Invalid sort order: Use one of [alphabetical, chronological, appearance_order]."
+    ],
+    "usage": "Provide an array of formatted citations and specify citation_style. Optionally configure sort_order, include_title, and hanging_indent for formatting preferences.",
+    "output_details": {
+      "formatted_bibliography": {
+        "type": "string",
+        "description": "Complete formatted bibliography with all citations"
+      },
+      "citation_count": {
+        "type": "integer",
+        "description": "Number of citations included in bibliography"
+      },
+      "style_applied": {
+        "type": "string",
+        "description": "Citation style used for formatting"
+      },
+      "sort_method": {
+        "type": "string",
+        "description": "Sorting method applied to citations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reference Deduplicator",
+    "tool_description": "Identifies and removes duplicate citations from a list based on title, authors, and publication details matching.",
+    "parameters": {
+      "raw_citations": {
+        "type": "array",
+        "required": true,
+        "description": "List of citation texts to deduplicate",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 1000
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Similarity threshold for matching (0.5-1.0)",
+        "default": 0.85
+      },
+      "match_criteria": {
+        "type": "array",
+        "required": false,
+        "description": "Fields to compare: title, authors, year, doi",
+        "items": {"type": "string"},
+        "default": ["title", "authors", "year"]
+      }
+    },
+    "error_messages": [
+      "Insufficient citations: Provide at least 2 citations for deduplication.",
+      "Too many citations: Maximum 1000 citations allowed for processing.",
+      "Invalid similarity threshold: Threshold must be between 0.5 and 1.0.",
+      "Invalid match criteria: Use combination of [title, authors, year, doi]."
+    ],
+    "usage": "Provide raw_citations array and optionally set similarity_threshold and match_criteria. The tool identifies duplicates and returns unique citations.",
+    "output_details": {
+      "unique_citations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of unique citations with duplicates removed"
+      },
+      "duplicates_found": {
+        "type": "integer",
+        "description": "Number of duplicate citations identified"
+      },
+      "duplicate_groups": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Information about which citations were considered duplicates"
+      },
+      "original_count": {
+        "type": "integer",
+        "description": "Original number of citations provided"
+      },
+      "final_count": {
+        "type": "integer",
+        "description": "Final number of unique citations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Citation Style Detector",
+    "tool_description": "Analyzes sample citations to automatically detect the citation style being used (APA, MLA, Chicago, etc.).",
+    "parameters": {
+      "sample_citations": {
+        "type": "array",
+        "required": true,
+        "description": "Sample citations to analyze for style detection",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence threshold for detection (0.5-1.0)",
+        "default": 0.7
+      }
+    },
+    "error_messages": [
+      "Empty sample citations: Provide at least one sample citation for analysis.",
+      "Too many samples: Maximum 50 sample citations allowed for analysis.",
+      "Invalid confidence threshold: Threshold must be between 0.5 and 1.0.",
+      "Unrecognizable citation format: The provided citations don't match any known academic styles."
+    ],
+    "usage": "Provide sample_citations array and optionally set confidence_threshold. The tool analyzes formatting patterns to identify the citation style.",
+    "output_details": {
+      "detected_style": {
+        "type": "string",
+        "description": "Most likely citation style detected"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence score of the detection (0-1)"
+      },
+      "alternative_styles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Other possible citation styles with lower confidence"
+      },
+      "style_features": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Key formatting features that led to the detection"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "In-text Citation Creator",
+    "tool_description": "Generates properly formatted in-text citations based on the citation style and context within the document.",
+    "parameters": {
+      "authors": {
+        "type": "array",
+        "required": true,
+        "description": "List of author names for the citation",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "year": {
+        "type": "string",
+        "required": true,
+        "description": "Publication year"
+      },
+      "citation_style": {
+        "type": "string",
+        "required": true,
+        "description": "Citation style: APA, MLA, Chicago, Harvard, IEEE, Vancouver"
+      },
+      "page_number": {
+        "type": "string",
+        "required": false,
+        "description": "Specific page number for direct quotes",
+        "default": ""
+      },
+      "citation_context": {
+        "type": "string",
+        "required": false,
+        "description": "Context: narrative, parenthetical, multiple_authors",
+        "default": "parenthetical"
+      }
+    },
+    "error_messages": [
+      "Empty author list: Provide at least one author name.",
+      "Invalid year format: Year must be a valid 4-digit number.",
+      "Unsupported citation style: Use one of [APA, MLA, Chicago, Harvard, IEEE, Vancouver].",
+      "Invalid citation context: Use one of [narrative, parenthetical, multiple_authors]."
+    ],
+    "usage": "Provide authors, year, and citation_style. Optionally specify page_number and citation_context for more precise in-text citation formatting.",
+    "output_details": {
+      "in_text_citation": {
+        "type": "string",
+        "description": "Formatted in-text citation"
+      },
+      "citation_type": {
+        "type": "string",
+        "description": "Type of in-text citation generated"
+      },
+      "style_used": {
+        "type": "string",
+        "description": "Citation style applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Citation Merger",
+    "tool_description": "Combines citations from multiple sources (files, databases, manual entries) into a single consolidated list.",
+    "parameters": {
+      "source_lists": {
+        "type": "array",
+        "required": true,
+        "description": "Multiple arrays of citations to merge",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 2000
+      },
+      "source_labels": {
+        "type": "array",
+        "required": true,
+        "description": "Labels for each source list",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "preserve_source_info": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to track which source each citation came from",
+        "default": true
+      },
+      "remove_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to automatically remove duplicates during merge",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Insufficient sources: Provide at least 2 source lists to merge.",
+      "Mismatched source labels: Number of source_labels must match number of source_lists.",
+      "Too many citations: Maximum 2000 total citations allowed across all sources.",
+      "Empty source list: All source lists must contain at least one citation."
+    ],
+    "usage": "Provide source_lists array and corresponding source_labels. Optionally configure preserve_source_info and remove_duplicates for merge behavior.",
+    "output_details": {
+      "merged_citations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Combined list of citations from all sources"
+      },
+      "source_mapping": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Information about which source each citation came from"
+      },
+      "total_citations": {
+        "type": "integer",
+        "description": "Total number of citations in merged list"
+      },
+      "duplicates_removed": {
+        "type": "integer",
+        "description": "Number of duplicates removed during merge"
+      },
+      "sources_processed": {
+        "type": "integer",
+        "description": "Number of source lists processed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bibliography Sorter",
+    "tool_description": "Sorts a list of citations according to specified criteria like alphabetical order, chronological order, or custom sorting rules.",
+    "parameters": {
+      "citations": {
+        "type": "array",
+        "required": true,
+        "description": "List of citations to sort",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 1000
+      },
+      "sort_criteria": {
+        "type": "string",
+        "required": true,
+        "description": "Sorting method: alphabetical_author, alphabetical_title, chronological_asc, chronological_desc, reverse_chronological"
+      },
+      "secondary_sort": {
+        "type": "string",
+        "required": false,
+        "description": "Secondary sorting criteria if primary produces ties",
+        "default": "alphabetical_author"
+      }
+    },
+    "error_messages": [
+      "Insufficient citations: Provide at least 2 citations for sorting.",
+      "Too many citations: Maximum 1000 citations allowed for sorting.",
+      "Invalid sort criteria: Use one of [alphabetical_author, alphabetical_title, chronological_asc, chronological_desc, reverse_chronological].",
+      "Invalid secondary sort: Use one of [alphabetical_author, alphabetical_title, chronological_asc, chronological_desc]."
+    ],
+    "usage": "Provide citations array and sort_criteria. Optionally specify secondary_sort for handling ties in primary sorting.",
+    "output_details": {
+      "sorted_citations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Citations sorted according to specified criteria"
+      },
+      "sort_method_applied": {
+        "type": "string",
+        "description": "Primary sorting method used"
+      },
+      "secondary_sort_applied": {
+        "type": "string",
+        "description": "Secondary sorting method used for ties"
+      },
+      "citations_reordered": {
+        "type": "boolean",
+        "description": "Whether any reordering was necessary"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Citation Completeness Checker",
+    "tool_description": "Analyzes citations to identify missing or incomplete information and suggests improvements for academic standards compliance.",
+    "parameters": {
+      "authors": {
+        "type": "array",
+        "required": true,
+        "description": "List of author names",
+        "items": {"type": "string"}
+      },
+      "title": {
+        "type": "string",
+        "required": true,
+        "description": "Title of the work"
+      },
+      "year": {
+        "type": "string",
+        "required": true,
+        "description": "Publication year"
+      },
+      "citation_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of citation: journal, book, website, conference, thesis"
+      },
+      "publication": {
+        "type": "string",
+        "required": false,
+        "description": "Journal, book, or conference name",
+        "default": ""
+      },
+      "volume": {
+        "type": "string",
+        "required": false,
+        "description": "Volume number",
+        "default": ""
+      },
+      "issue": {
+        "type": "string",
+        "required": false,
+        "description": "Issue number",
+        "default": ""
+      },
+      "pages": {
+        "type": "string",
+        "required": false,
+        "description": "Page numbers or range",
+        "default": ""
+      },
+      "doi": {
+        "type": "string",
+        "required": false,
+        "description": "Digital Object Identifier",
+        "default": ""
+      },
+      "url": {
+        "type": "string",
+        "required": false,
+        "description": "Web URL if applicable",
+        "default": ""
+      },
+      "publisher": {
+        "type": "string",
+        "required": false,
+        "description": "Publisher name",
+        "default": ""
+      },
+      "location": {
+        "type": "string",
+        "required": false,
+        "description": "Publication location",
+        "default": ""
+      },
+      "edition": {
+        "type": "string",
+        "required": false,
+        "description": "Edition number",
+        "default": ""
+      },
+      "isbn": {
+        "type": "string",
+        "required": false,
+        "description": "ISBN for books",
+        "default": ""
+      },
+      "target_style": {
+        "type": "string",
+        "required": false,
+        "description": "Target citation style for completeness check: APA, MLA, Chicago, Harvard",
+        "default": "APA"
+      }
+    },
+    "error_messages": [
+      "Missing essential fields: Authors, title, year, and citation_type are required.",
+      "Invalid citation type: Use one of [journal, book, website, conference, thesis].",
+      "Invalid target style: Use one of [APA, MLA, Chicago, Harvard].",
+      "Empty author list: Provide at least one author name."
+    ],
+    "usage": "Provide all available citation information including authors, title, year, and citation_type. The tool evaluates completeness against academic standards.",
+    "output_details": {
+      "completeness_score": {
+        "type": "number",
+        "description": "Overall completeness score (0-1)"
+      },
+      "missing_required_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Fields required for the citation type that are missing"
+      },
+      "missing_recommended_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommended fields that would improve citation quality"
+      },
+      "quality_assessment": {
+        "type": "string",
+        "description": "Overall quality rating: excellent, good, fair, poor"
+      },
+      "improvement_suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Specific suggestions for improving citation completeness"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reference Link Validator",
+    "tool_description": "Validates URLs and DOIs in citations by checking accessibility, correctness, and providing status information.",
+    "parameters": {
+      "urls": {
+        "type": "array",
+        "required": false,
+        "description": "List of URLs to validate",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "dois": {
+        "type": "array",
+        "required": false,
+        "description": "List of DOIs to validate",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Timeout for each link check in seconds (5-30)",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "No links provided: Provide at least one URL or DOI to validate.",
+      "Invalid timeout value: Timeout must be between 5 and 30 seconds.",
+      "Too many links: Maximum 100 links allowed per validation request.",
+      "Invalid URL format: One or more URLs are not properly formatted."
+    ],
+    "usage": "Provide arrays of urls and/or dois to validate. Optionally set timeout_seconds for network requests. The tool checks accessibility and correctness.",
+    "output_details": {
+      "url_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Validation results for each URL with status codes"
+      },
+      "doi_results": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Validation results for each DOI with resolution status"
+      },
+      "valid_links": {
+        "type": "integer",
+        "description": "Number of links that are accessible"
+      },
+      "broken_links": {
+        "type": "integer",
+        "description": "Number of links that are broken or inaccessible"
+      },
+      "validation_summary": {
+        "type": "string",
+        "description": "Overall summary of link validation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Citation Export Converter",
+    "tool_description": "Converts citations between different formats like BibTeX, RIS, EndNote XML, JSON, and plain text for use in various reference management systems.",
+    "parameters": {
+      "citations": {
+        "type": "array",
+        "required": true,
+        "description": "List of citations to convert",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "input_format": {
+        "type": "string",
+        "required": true,
+        "description": "Current format of citations: plain_text, bibtex, ris, endnote_xml, json"
+      },
+      "output_format": {
+        "type": "string",
+        "required": true,
+        "description": "Desired output format: plain_text, bibtex, ris, endnote_xml, json, csv"
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include conversion metadata",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Empty citation list: Provide at least one citation to convert.",
+      "Too many citations: Maximum 500 citations allowed per conversion.",
+      "Unsupported input format: Use one of [plain_text, bibtex, ris, endnote_xml, json].",
+      "Unsupported output format: Use one of [plain_text, bibtex, ris, endnote_xml, json, csv].",
+      "Format conversion error: Unable to convert from input format to output format due to incompatible data."
+    ],
+    "usage": "Provide citations array, input_format, and output_format. Optionally set include_metadata to add conversion information to the output.",
+    "output_details": {
+      "converted_citations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Citations converted to the specified output format"
+      },

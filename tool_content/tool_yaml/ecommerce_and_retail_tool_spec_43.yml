@@ -1,0 +1,813 @@
+field_name: ecommerce_and_retail
+subfield: Order Processing and Fulfillment
+task: Returns and refunds processing
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task has medium difficulty. It involves moderate coordination between inventory, payment, and customer service systems, requires handling various return scenarios (damaged goods, wrong items, customer dissatisfaction), and has moderate risk since incorrect processing can impact customer satisfaction and financial accuracy. The scope includes return validation, refund calculations, inventory updates, and customer communications.
+
+  STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'll target 12 tools within the 10-15 range for medium difficulty tasks. This allows for comprehensive coverage of return initiation, validation, processing, refund calculation, inventory management, and customer communication workflows.
+
+  STEP 3 — List all tool names and dependencies
+
+  1. **Return Request Validator** - Consumes: return request data, order history → Produces: validation status, eligibility rules
+  2. **Return Label Generator** - Consumes: validated return request, shipping preferences → Produces: shipping labels, tracking info
+  3. **Return Item Inspector** - Consumes: returned items data, inspection criteria → Produces: item condition assessment
+  4. **Refund Calculator** - Consumes: return details, pricing data, fees → Produces: refund amounts, breakdowns
+  5. **Payment Processor** - Consumes: refund amounts, payment methods → Produces: payment status, transaction IDs
+  6. **Inventory Updater** - Consumes: returned items, condition assessments → Produces: inventory adjustments
+  7. **Return Status Tracker** - Consumes: return IDs, status updates → Produces: current status, history
+  8. **Customer Notifier** - Consumes: return status, customer info → Produces: notification confirmations
+  9. **Return Analytics Reporter** - Consumes: return data, time periods → Produces: analytics reports, trends
+  10. **Restocking Assessor** - Consumes: item conditions, restocking criteria → Produces: restocking decisions
+  11. **Exception Handler** - Consumes: problematic returns, escalation rules → Produces: resolution recommendations
+  12. **Return Policy Checker** - Consumes: product info, purchase dates → Produces: policy compliance, restrictions
+
+  STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Basic return validation: Return Policy Checker → Return Request Validator → Customer Notifier
+  - Simple refund processing: Refund Calculator → Payment Processor → Customer Notifier
+
+  **Medium Plans:**
+  - Standard return flow: Return Request Validator → Return Label Generator → Return Item Inspector → Refund Calculator → Payment Processor → Inventory Updater → Customer Notifier
+  - Return analytics workflow: Return Status Tracker → Return Analytics Reporter → Exception Handler
+
+  **Complex Plans:**
+  - Complete return processing: Return Policy Checker → Return Request Validator → Return Label Generator → Return Status Tracker → Return Item Inspector → Restocking Assessor → Refund Calculator → Payment Processor → Inventory Updater → Customer Notifier → Return Analytics Reporter
+  - Exception handling workflow: Return Request Validator → Return Item Inspector → Exception Handler → Restocking Assessor → Refund Calculator → Payment Processor → Customer Notifier → Return Status Tracker
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Return Request Validator",
+    "tool_description": "Validates return requests against order history, return policies, and business rules to determine eligibility and calculate time remaining for returns.",
+    "parameters": {
+      "return_request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the return request"
+      },
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Original order identifier associated with the return"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier making the return request"
+      },
+      "return_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for return: defective, wrong_item, not_as_described, changed_mind, damaged_shipping"
+      }
+    },
+    "error_messages": [
+      "Order not found: The provided order_id does not exist in the system.",
+      "Return window expired: The return request exceeds the allowed return period for this product category.",
+      "Invalid return reason: Use one of [defective, wrong_item, not_as_described, changed_mind, damaged_shipping].",
+      "Customer mismatch: The customer_id does not match the original order customer.",
+      "Already returned: This order has already been fully returned and processed."
+    ],
+    "usage": "Provide return_request_id, order_id, customer_id, and return_reason. The tool validates the request against policies and returns eligibility status with detailed reasoning.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the return request is valid and eligible"
+      },
+      "validation_status": {
+        "type": "string",
+        "description": "Status of validation: approved, rejected, or pending_review"
+      },
+      "days_remaining": {
+        "type": "integer",
+        "description": "Number of days remaining in return window"
+      },
+      "applicable_fees": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of applicable fees for this return type"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Label Generator",
+    "tool_description": "Generates prepaid return shipping labels with tracking information for validated return requests, supporting multiple carriers and service levels.",
+    "parameters": {
+      "return_request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the validated return request"
+      },
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping carrier: ups, fedex, usps, dhl"
+      },
+      "service_level": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Shipping service level: standard, expedited, overnight"
+      },
+      "pickup_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether pickup service is required at customer location"
+      }
+    },
+    "error_messages": [
+      "Return request not validated: The return_request_id must be validated before generating labels.",
+      "Invalid carrier: Use one of [ups, fedex, usps, dhl].",
+      "Invalid service level: Use one of [standard, expedited, overnight].",
+      "Address validation failed: Customer address cannot be validated for shipping.",
+      "Carrier service unavailable: The selected carrier and service level combination is not available for this location."
+    ],
+    "usage": "Provide return_request_id and carrier; optionally specify service_level and pickup_required. The tool generates shipping labels and returns tracking information.",
+    "output_details": {
+      "label_url": {
+        "type": "string",
+        "description": "URL to download the printable shipping label"
+      },
+      "tracking_number": {
+        "type": "string",
+        "description": "Tracking number for the return shipment"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery date to warehouse"
+      },
+      "shipping_cost": {
+        "type": "number",
+        "description": "Cost of return shipping in dollars"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Item Inspector",
+    "tool_description": "Conducts detailed inspection of returned items, assessing condition, completeness, and authenticity to determine appropriate processing actions.",
+    "parameters": {
+      "return_request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the return request"
+      },
+      "item_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of item identifiers being inspected",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "inspection_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of inspection: basic, detailed, quality_assurance"
+      },
+      "inspector_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of the inspector conducting the assessment"
+      },
+      "received_condition": {
+        "type": "array",
+        "required": true,
+        "description": "Condition of each received item",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "packaging_intact": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether original packaging is intact and included"
+      },
+      "accessories_complete": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether all accessories and components are included"
+      },
+      "damage_notes": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "description": "Detailed notes about any damage or issues found"
+      },
+      "photos_taken": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "description": "List of photo filenames for documentation",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "error_messages": [
+      "Return request not found: The provided return_request_id does not exist in the system.",
+      "Item count mismatch: The number of item_ids must match the number of received_condition entries.",
+      "Invalid inspection type: Use one of [basic, detailed, quality_assurance].",
+      "Inspector not authorized: The inspector_id is not authorized to perform inspections.",
+      "Missing required assessment: packaging_intact and accessories_complete must be specified."
+    ],
+    "usage": "Provide return_request_id, item_ids, inspection_type, inspector_id, received_condition, packaging_intact, and accessories_complete. Optionally add damage_notes and photos_taken for detailed documentation.",
+    "output_details": {
+      "inspection_status": {
+        "type": "string",
+        "description": "Overall inspection result: passed, failed, partial"
+      },
+      "item_assessments": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Individual assessment result for each item"
+      },
+      "restockable_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of item IDs that can be restocked"
+      },
+      "damaged_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of item IDs that are damaged or unsellable"
+      },
+      "inspection_score": {
+        "type": "number",
+        "description": "Numerical score from 0-100 representing overall condition"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Refund Calculator",
+    "tool_description": "Calculates accurate refund amounts considering original pricing, taxes, shipping costs, return fees, and applicable deductions based on item condition and return policies.",
+    "parameters": {
+      "return_request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the return request"
+      },
+      "original_order_total": {
+        "type": "number",
+        "required": true,
+        "description": "Original order total amount in dollars"
+      },
+      "item_values": {
+        "type": "array",
+        "required": true,
+        "description": "Original value of each returned item in dollars",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "tax_rate": {
+        "type": "number",
+        "required": true,
+        "description": "Tax rate applied to original order as decimal (e.g., 0.08 for 8%)"
+      },
+      "shipping_cost": {
+        "type": "number",
+        "required": true,
+        "description": "Original shipping cost in dollars"
+      },
+      "return_shipping_cost": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Cost of return shipping to be deducted in dollars"
+      },
+      "restocking_fee_rate": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Restocking fee rate as decimal (e.g., 0.15 for 15%)"
+      },
+      "condition_deduction_rate": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Deduction rate for item condition as decimal (e.g., 0.20 for 20%)"
+      }
+    },
+    "error_messages": [
+      "Invalid monetary values: All dollar amounts must be non-negative numbers.",
+      "Invalid rate values: Tax rate, restocking fee rate, and condition deduction rate must be between 0 and 1.",
+      "Return request not found: The provided return_request_id does not exist in the system.",
+      "Item value mismatch: Sum of item_values cannot exceed original_order_total.",
+      "Calculation error: Refund calculation resulted in negative amount, please verify input values."
+    ],
+    "usage": "Provide return_request_id, original_order_total, item_values, tax_rate, and shipping_cost. Optionally specify return_shipping_cost, restocking_fee_rate, and condition_deduction_rate for accurate refund calculation.",
+    "output_details": {
+      "gross_refund": {
+        "type": "number",
+        "description": "Gross refund amount before deductions"
+      },
+      "tax_refund": {
+        "type": "number",
+        "description": "Tax amount to be refunded"
+      },
+      "shipping_refund": {
+        "type": "number",
+        "description": "Shipping amount to be refunded"
+      },
+      "total_deductions": {
+        "type": "number",
+        "description": "Total amount of all deductions applied"
+      },
+      "net_refund": {
+        "type": "number",
+        "description": "Final net refund amount to be processed"
+      },
+      "deduction_breakdown": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed breakdown of each deduction applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Processor",
+    "tool_description": "Processes refund payments through various payment methods, handles transaction validation, and manages payment gateway communications for return refunds.",
+    "parameters": {
+      "refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Amount to refund in dollars"
+      },
+      "original_payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Original payment method: credit_card, debit_card, paypal, bank_transfer, store_credit"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for the refund recipient"
+      },
+      "original_transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Original transaction identifier to refund against"
+      },
+      "refund_reason_code": {
+        "type": "string",
+        "required": true,
+        "description": "Reason code: customer_return, defective_product, wrong_item, damaged_goods"
+      }
+    },
+    "error_messages": [
+      "Invalid refund amount: Amount must be greater than 0 and not exceed original transaction amount.",
+      "Payment method not supported: Use one of [credit_card, debit_card, paypal, bank_transfer, store_credit].",
+      "Transaction not found: Original transaction_id does not exist or is not refundable.",
+      "Payment gateway error: Unable to process refund due to gateway communication failure.",
+      "Invalid reason code: Use one of [customer_return, defective_product, wrong_item, damaged_goods].",
+      "Refund limit exceeded: Refund amount exceeds the remaining refundable balance for this transaction."
+    ],
+    "usage": "Provide refund_amount, original_payment_method, customer_id, original_transaction_id, and refund_reason_code. The tool processes the refund and returns transaction details.",
+    "output_details": {
+      "refund_transaction_id": {
+        "type": "string",
+        "description": "Unique transaction ID for the refund"
+      },
+      "processing_status": {
+        "type": "string",
+        "description": "Status of refund processing: completed, pending, failed"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated date when refund will appear in customer account"
+      },
+      "gateway_reference": {
+        "type": "string",
+        "description": "Payment gateway reference number for tracking"
+      },
+      "processing_fee": {
+        "type": "number",
+        "description": "Any processing fee charged for the refund"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Updater",
+    "tool_description": "Updates inventory levels and item status based on returned items, condition assessments, and restocking decisions to maintain accurate stock counts.",
+    "parameters": {
+      "item_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of item identifiers to update in inventory",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantity of each item being processed",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "condition_status": {
+        "type": "array",
+        "required": true,
+        "description": "Condition status for each item: sellable, damaged, defective, disposed",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "warehouse_location": {
+        "type": "string",
+        "required": true,
+        "description": "Warehouse identifier where items are being processed"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: item_ids, quantities, and condition_status arrays must have the same length.",
+      "Invalid item ID: One or more item IDs do not exist in the inventory system.",
+      "Invalid condition status: Use one of [sellable, damaged, defective, disposed] for each item.",
+      "Invalid quantity: Quantities must be positive integers.",
+      "Warehouse not found: The specified warehouse_location does not exist.",
+      "Inventory lock conflict: Cannot update inventory due to concurrent operations on these items."
+    ],
+    "usage": "Provide item_ids, quantities, condition_status arrays of equal length, and warehouse_location. The tool updates inventory based on item conditions and returns confirmation.",
+    "output_details": {
+      "updated_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of successfully updated item IDs"
+      },
+      "sellable_count": {
+        "type": "integer",
+        "description": "Number of items returned to sellable inventory"
+      },
+      "damaged_count": {
+        "type": "integer",
+        "description": "Number of items marked as damaged"
+      },
+      "disposed_count": {
+        "type": "integer",
+        "description": "Number of items marked for disposal"
+      },
+      "inventory_adjustment_total": {
+        "type": "number",
+        "description": "Total inventory value adjustment in dollars"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Status Tracker",
+    "tool_description": "Tracks and manages return request status throughout the entire return lifecycle, maintaining detailed history and enabling status queries and updates.",
+    "parameters": {
+      "return_request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the return request to track"
+      },
+      "new_status": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "New status to update: initiated, approved, label_sent, in_transit, received, inspected, refunded, completed, cancelled"
+      },
+      "status_notes": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "description": "Additional notes about the status update"
+      }
+    },
+    "error_messages": [
+      "Return request not found: The provided return_request_id does not exist in the system.",
+      "Invalid status transition: The requested status change is not allowed from the current status.",
+      "Invalid status: Use one of [initiated, approved, label_sent, in_transit, received, inspected, refunded, completed, cancelled].",
+      "Status update failed: Unable to update status due to system error, please retry.",
+      "Concurrent update conflict: Another process updated this return status, please refresh and try again."
+    ],
+    "usage": "Provide return_request_id to query current status, or include new_status to update. Optionally add status_notes for additional context about the update.",
+    "output_details": {
+      "current_status": {
+        "type": "string",
+        "description": "Current status of the return request"
+      },
+      "status_history": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Complete history of status changes with timestamps"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last status update"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated completion date based on current status"
+      },
+      "next_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of possible next actions for this return"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Notifier",
+    "tool_description": "Sends automated notifications to customers about return status updates, refund processing, and other return-related communications through multiple channels.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for notification recipient"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification: return_approved, label_ready, refund_processed, return_completed, return_rejected"
+      },
+      "return_request_id": {
+        "type": "string",
+        "required": true,
+        "description": "Return request identifier for context"
+      },
+      "communication_channel": {
+        "type": "string",
+        "required": false,
+        "default": "email",
+        "description": "Preferred communication channel: email, sms, push_notification, in_app"
+      },
+      "additional_details": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "description": "Additional details to include in the notification"
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist in the system.",
+      "Invalid notification type: Use one of [return_approved, label_ready, refund_processed, return_completed, return_rejected].",
+      "Invalid communication channel: Use one of [email, sms, push_notification, in_app].",
+      "Notification delivery failed: Unable to deliver notification through selected channel.",
+      "Customer opt-out: Customer has opted out of this type of notification.",
+      "Return request not found: The provided return_request_id does not exist."
+    ],
+    "usage": "Provide customer_id, notification_type, and return_request_id. Optionally specify communication_channel and additional_details. The tool sends notifications and returns delivery confirmation.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent notification"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Delivery status: sent, delivered, failed, pending"
+      },
+      "sent_timestamp": {
+        "type": "string",
+        "description": "Timestamp when notification was sent"
+      },
+      "delivery_channel_used": {
+        "type": "string",
+        "description": "Actual communication channel used for delivery"
+      },
+      "customer_response_required": {
+        "type": "boolean",
+        "description": "Whether the notification requires customer response"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Analytics Reporter",
+    "tool_description": "Generates comprehensive analytics reports on return patterns, trends, and performance metrics to support business decision-making and process optimization.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: summary, trend_analysis, product_performance, customer_analysis, financial_impact"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Report period start date",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "Report period end date",
+        "format": "date-time"
+      },
+      "product_categories": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "description": "Specific product categories to include in analysis",
+        "items": {
+          "type": "string"
+        }
+      },
+      "customer_segments": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "description": "Customer segments to analyze",
+        "items": {
+          "type": "string"
+        }
+      },
+      "include_cancelled": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include cancelled returns in the analysis"
+      },
+      "granularity": {
+        "type": "string",
+        "required": false,
+        "default": "daily",
+        "description": "Data granularity: daily, weekly, monthly"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: end_date must be after start_date and both must be valid dates.",
+      "Invalid report type: Use one of [summary, trend_analysis, product_performance, customer_analysis, financial_impact].",
+      "Date range too large: Maximum reporting period is 2 years.",
+      "Invalid granularity: Use one of [daily, weekly, monthly].",
+      "Insufficient data: Not enough return data available for the specified parameters.",
+      "Processing timeout: Report generation took too long, try reducing the date range or scope."
+    ],
+    "usage": "Provide report_type, start_date, and end_date. Optionally specify product_categories, customer_segments, include_cancelled, and granularity for more focused analysis.",
+    "output_details": {
+      "total_returns": {
+        "type": "integer",
+        "description": "Total number of returns in the reporting period"
+      },
+      "return_rate_percentage": {
+        "type": "number",
+        "description": "Return rate as percentage of total orders"
+      },
+      "total_refund_amount": {
+        "type": "number",
+        "description": "Total amount refunded during the period"
+      },
+      "top_return_reasons": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Most common return reasons ranked by frequency"
+      },
+      "average_processing_time": {
+        "type": "number",
+        "description": "Average time to process returns in hours"
+      },
+      "trends_summary": {
+        "type": "string",
+        "description": "Key trends and insights from the analysis"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Actionable recommendations based on the analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Restocking Assessor",
+    "tool_description": "Evaluates returned items to determine restocking eligibility, optimal pricing adjustments, and inventory placement strategies based on condition and market factors.",
+    "parameters": {
+      "item_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of returned item identifiers to assess",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "condition_scores": {
+        "type": "array",
+        "required": true,
+        "description": "Condition scores for each item (0-100 scale)",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "original_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Original selling prices for each item",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "product_category": {
+        "type": "string",
+        "required": true,
+        "description": "Product category for restocking policy application"
+      },
+      "market_demand": {
+        "type": "string",
+        "required": false,
+        "default": "medium",
+        "description": "Current market demand level: high, medium, low"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: item_ids, condition_scores, and original_prices must have the same length.",
+      "Invalid condition score: Condition scores must be between 0 and 100.",
+      "Invalid price values: Original prices must be positive numbers.",
+      "Product category not found: The specified product_category is not recognized.",
+      "Invalid demand level: Use one of [high, medium, low] for market_demand.",
+      "Assessment criteria not available: Restocking criteria not defined for this product category."
+    ],
+    "usage": "Provide item_ids, condition_scores, original_prices arrays of equal length, and product_category. Optionally specify market_demand for more accurate assessment.",
+    "output_details": {
+      "restockable_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of item IDs approved for restocking"
+      },
+      "suggested_prices": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Suggested selling prices for restockable items"
+      },
+      "discount_percentages": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Recommended discount percentages from original price"
+      },
+      "disposition_recommendations": {
+        "type":

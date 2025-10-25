@@ -1,0 +1,864 @@
+field_name: travel_and_transportation
+subfield: flight_booking_and_management
+task: Book flights and manage passenger details, seat selections, and special requests
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is of medium difficulty. It involves multiple interconnected subproblems (flight search, pricing, passenger management, seat selection, special services), moderate coordination between booking systems and airline APIs, and significant impact of errors on customer experience and financial transactions, but follows well-established industry workflows.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to cover the various aspects of flight booking and passenger management workflows.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tool names and flow:
+  1. Flight Search Engine → produces available flights
+  2. Flight Price Calculator → consumes flight details, produces pricing
+  3. Seat Map Retriever → consumes flight info, produces seat availability
+  4. Passenger Validator → consumes passenger data, produces validation status
+  5. Special Request Handler → consumes requests, produces service confirmations
+  6. Booking Creator → consumes flight/passenger data, produces booking reference
+  7. Payment Processor → consumes booking/payment data, produces transaction status
+  8. Seat Assignment Manager → consumes booking/seat preferences, produces assignments
+  9. Booking Modifier → consumes existing booking data, produces updated booking
+  10. Flight Status Checker → consumes booking reference, produces current status
+  11. Document Validator → consumes travel documents, produces compliance status
+  12. Itinerary Generator → consumes booking data, produces formatted itinerary
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple plans (2-3 tools):
+  - Basic flight search: Flight Search Engine → Flight Price Calculator
+  - Document check: Document Validator → Passenger Validator
+
+  Medium plans (4-6 tools):
+  - Standard booking: Flight Search Engine → Flight Price Calculator → Passenger Validator → Booking Creator → Payment Processor
+  - Seat selection: Seat Map Retriever → Seat Assignment Manager → Booking Modifier → Itinerary Generator
+
+  Complex plans (7+ tools):
+  - Full-service booking: Flight Search Engine → Flight Price Calculator → Passenger Validator → Document Validator → Special Request Handler → Booking Creator → Payment Processor → Seat Map Retriever → Seat Assignment Manager → Itinerary Generator
+  - Booking management: Flight Status Checker → Booking Modifier → Special Request Handler → Seat Assignment Manager → Payment Processor → Itinerary Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Flight Search Engine",
+    "tool_description": "Searches for available flights based on origin, destination, dates, and passenger criteria, returning flight options with basic details.",
+    "parameters": {
+      "origin_airport": {
+        "type": "string",
+        "required": true,
+        "description": "IATA airport code for departure location (3 characters)"
+      },
+      "destination_airport": {
+        "type": "string",
+        "required": true,
+        "description": "IATA airport code for arrival location (3 characters)"
+      },
+      "departure_date": {
+        "type": "string",
+        "required": true,
+        "description": "Departure date in YYYY-MM-DD format",
+        "format": "date-time"
+      },
+      "return_date": {
+        "type": "string",
+        "required": false,
+        "description": "Return date for round-trip flights in YYYY-MM-DD format",
+        "format": "date-time",
+        "default": "None"
+      },
+      "passenger_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of passengers (1-9)"
+      },
+      "cabin_class": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred cabin class: economy, premium_economy, business, first",
+        "default": "economy"
+      }
+    },
+    "error_messages": [
+      "Invalid airport code: Provide valid 3-character IATA airport codes for origin and destination.",
+      "Invalid date format: Use YYYY-MM-DD format for departure_date and return_date.",
+      "Date logic error: Departure date must be today or later, return date must be after departure date.",
+      "Invalid passenger count: Number must be between 1 and 9.",
+      "Invalid cabin class: Use one of [economy, premium_economy, business, first]."
+    ],
+    "usage": "Provide origin_airport, destination_airport, departure_date, and passenger_count. Optionally specify return_date for round-trip and cabin_class for preferred seating level.",
+    "output_details": {
+      "flight_count": {
+        "type": "integer",
+        "description": "Number of flight options found"
+      },
+      "flight_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of unique flight identifiers"
+      },
+      "airlines": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of airline names for found flights"
+      },
+      "departure_times": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of departure times in ISO format"
+      },
+      "arrival_times": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of arrival times in ISO format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Flight Price Calculator",
+    "tool_description": "Calculates detailed pricing for specific flights including base fare, taxes, fees, and total cost with optional baggage and service add-ons.",
+    "parameters": {
+      "flight_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique flight identifier from search results"
+      },
+      "passenger_types": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passenger types: adult, child, infant",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "include_baggage": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include checked baggage fees in calculation",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Flight not found: The provided flight_id does not exist or is no longer available.",
+      "Invalid passenger type: Use only [adult, child, infant] in passenger_types array.",
+      "Passenger count mismatch: Number of passenger_types must match original search passenger_count."
+    ],
+    "usage": "Provide flight_id from search results and passenger_types array indicating age categories. Set include_baggage to true for total cost including checked bags.",
+    "output_details": {
+      "base_fare": {
+        "type": "number",
+        "description": "Base ticket price before taxes and fees"
+      },
+      "taxes_fees": {
+        "type": "number",
+        "description": "Total taxes and mandatory fees"
+      },
+      "baggage_fees": {
+        "type": "number",
+        "description": "Checked baggage fees if included"
+      },
+      "total_price": {
+        "type": "number",
+        "description": "Final total price including all components"
+      },
+      "currency": {
+        "type": "string",
+        "description": "Currency code for all prices"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Seat Map Retriever",
+    "tool_description": "Retrieves current seat map and availability for a specific flight, showing available, occupied, and premium seats with their characteristics.",
+    "parameters": {
+      "flight_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique flight identifier"
+      },
+      "cabin_class": {
+        "type": "string",
+        "required": false,
+        "description": "Cabin class to display: economy, premium_economy, business, first",
+        "default": "economy"
+      }
+    },
+    "error_messages": [
+      "Flight not found: The provided flight_id does not exist or is no longer available.",
+      "Invalid cabin class: Use one of [economy, premium_economy, business, first].",
+      "Seat map unavailable: Seat selection is not available for this flight or airline."
+    ],
+    "usage": "Provide flight_id to retrieve seat map. Optionally specify cabin_class to focus on specific cabin section.",
+    "output_details": {
+      "aircraft_type": {
+        "type": "string",
+        "description": "Aircraft model name"
+      },
+      "available_seats": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of available seat numbers (e.g., 12A, 15F)"
+      },
+      "premium_seats": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of premium seat numbers with extra fees"
+      },
+      "blocked_seats": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of unavailable seat numbers"
+      },
+      "seat_map_layout": {
+        "type": "string",
+        "description": "Text representation of cabin layout (e.g., 3-3-3)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Passenger Validator",
+    "tool_description": "Validates passenger information for flight booking including names, contact details, and ensures data meets airline and regulatory requirements.",
+    "parameters": {
+      "passengers": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passenger information strings in format: FirstName LastName",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "contact_email": {
+        "type": "string",
+        "required": true,
+        "description": "Primary contact email address"
+      },
+      "contact_phone": {
+        "type": "string",
+        "required": true,
+        "description": "Primary contact phone number with country code"
+      },
+      "passenger_ages": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passenger ages in years",
+        "items": {
+          "type": "integer"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "emergency_contact": {
+        "type": "string",
+        "required": false,
+        "description": "Emergency contact name and phone in format: Name Phone",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid passenger name format: Use 'FirstName LastName' format for each passenger entry.",
+      "Invalid email format: Provide a valid email address for contact_email.",
+      "Invalid phone format: Include country code and valid phone number format.",
+      "Age validation error: All passenger ages must be between 0 and 120.",
+      "Data mismatch: Number of passengers must match number of ages provided."
+    ],
+    "usage": "Provide passengers array with names, contact_email, contact_phone, and passenger_ages. Optionally include emergency_contact information.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: valid, invalid, or warning"
+      },
+      "validated_passengers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of validated passenger names"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of validation error messages if any"
+      },
+      "passenger_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of passenger categories: adult, child, infant"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Special Request Handler",
+    "tool_description": "Processes and validates special service requests such as meal preferences, accessibility needs, pet travel, and medical equipment requirements.",
+    "parameters": {
+      "flight_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique flight identifier"
+      },
+      "passenger_names": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passenger names requesting services",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "meal_requests": {
+        "type": "array",
+        "required": false,
+        "description": "Array of meal codes: VGML, HNML, KOSHER, HALAL, DIABETIC",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "accessibility_needs": {
+        "type": "array",
+        "required": false,
+        "description": "Array of accessibility codes: WCHR, WCHC, WCHS, DPNA, BLND",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "medical_equipment": {
+        "type": "array",
+        "required": false,
+        "description": "Array of medical equipment needs: oxygen, wheelchair, stretcher",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "pet_travel": {
+        "type": "boolean",
+        "required": false,
+        "description": "Request for pet travel accommodation",
+        "default": false
+      },
+      "unaccompanied_minor": {
+        "type": "boolean",
+        "required": false,
+        "description": "Unaccompanied minor service required",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Flight not found: The provided flight_id does not exist or is no longer available.",
+      "Invalid passenger name: One or more passenger names not found in booking.",
+      "Invalid meal code: Use valid meal codes [VGML, HNML, KOSHER, HALAL, DIABETIC].",
+      "Invalid accessibility code: Use valid codes [WCHR, WCHC, WCHS, DPNA, BLND].",
+      "Service not available: Requested service not available on this flight or airline.",
+      "Medical clearance required: Medical equipment requests require advance approval."
+    ],
+    "usage": "Provide flight_id and passenger_names, then specify any combination of meal_requests, accessibility_needs, medical_equipment, pet_travel, or unaccompanied_minor services needed.",
+    "output_details": {
+      "request_status": {
+        "type": "string",
+        "description": "Overall request status: confirmed, pending, or rejected"
+      },
+      "confirmed_services": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of confirmed special services"
+      },
+      "pending_services": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of services requiring additional approval"
+      },
+      "service_fees": {
+        "type": "number",
+        "description": "Additional fees for special services"
+      },
+      "confirmation_numbers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of service confirmation numbers"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Booking Creator",
+    "tool_description": "Creates a flight booking reservation with validated passenger information, generating booking reference and holding the reservation for payment processing.",
+    "parameters": {
+      "flight_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique flight identifier to book"
+      },
+      "passenger_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passenger data strings in format: FirstName LastName Age",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "contact_email": {
+        "type": "string",
+        "required": true,
+        "description": "Primary contact email for booking"
+      },
+      "contact_phone": {
+        "type": "string",
+        "required": true,
+        "description": "Primary contact phone number"
+      },
+      "hold_duration": {
+        "type": "integer",
+        "required": false,
+        "description": "Booking hold time in minutes (15-1440)",
+        "default": 60
+      }
+    },
+    "error_messages": [
+      "Flight not available: The selected flight is no longer available for booking.",
+      "Invalid passenger data: Each passenger entry must follow 'FirstName LastName Age' format.",
+      "Booking limit exceeded: Cannot create booking with more than 9 passengers.",
+      "Invalid hold duration: Hold time must be between 15 and 1440 minutes.",
+      "System unavailable: Booking system temporarily unavailable, try again later."
+    ],
+    "usage": "Provide flight_id, passenger_data array with names and ages, contact_email, and contact_phone. Optionally set hold_duration for how long to hold the reservation.",
+    "output_details": {
+      "booking_reference": {
+        "type": "string",
+        "description": "Unique booking confirmation number"
+      },
+      "booking_status": {
+        "type": "string",
+        "description": "Current booking status: held, confirmed, or failed"
+      },
+      "expiry_time": {
+        "type": "string",
+        "description": "When the booking hold expires (ISO format)"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Total booking amount due"
+      },
+      "passenger_count": {
+        "type": "integer",
+        "description": "Number of passengers in booking"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Processor",
+    "tool_description": "Processes payment for flight bookings, handling credit card transactions, validating payment details, and updating booking status upon successful payment.",
+    "parameters": {
+      "booking_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Booking confirmation number to process payment for"
+      },
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method: credit_card, debit_card, paypal, bank_transfer"
+      },
+      "card_number": {
+        "type": "string",
+        "required": true,
+        "description": "Credit/debit card number (16 digits)"
+      },
+      "expiry_month": {
+        "type": "integer",
+        "required": true,
+        "description": "Card expiry month (1-12)"
+      },
+      "expiry_year": {
+        "type": "integer",
+        "required": true,
+        "description": "Card expiry year (4 digits)"
+      },
+      "cvv": {
+        "type": "string",
+        "required": true,
+        "description": "Card verification value (3-4 digits)"
+      },
+      "cardholder_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name on the card"
+      },
+      "billing_address": {
+        "type": "string",
+        "required": true,
+        "description": "Billing address for card verification"
+      },
+      "amount": {
+        "type": "number",
+        "required": true,
+        "description": "Payment amount to process"
+      },
+      "currency": {
+        "type": "string",
+        "required": true,
+        "description": "Three-letter currency code (USD, EUR, GBP, etc.)"
+      }
+    },
+    "error_messages": [
+      "Booking not found: The provided booking_reference does not exist or has expired.",
+      "Invalid payment method: Use one of [credit_card, debit_card, paypal, bank_transfer].",
+      "Card validation failed: Check card number, expiry date, and CVV are correct.",
+      "Payment declined: Transaction was declined by the payment processor.",
+      "Amount mismatch: Payment amount does not match booking total.",
+      "Expired card: The provided card has expired.",
+      "Insufficient funds: Payment could not be processed due to insufficient funds."
+    ],
+    "usage": "Provide booking_reference and complete payment details including card information, billing address, amount, and currency. Ensure all card details are accurate for successful processing.",
+    "output_details": {
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique payment transaction identifier"
+      },
+      "payment_status": {
+        "type": "string",
+        "description": "Payment result: success, failed, or pending"
+      },
+      "authorization_code": {
+        "type": "string",
+        "description": "Payment authorization code from processor"
+      },
+      "processed_amount": {
+        "type": "number",
+        "description": "Amount successfully processed"
+      },
+      "booking_status": {
+        "type": "string",
+        "description": "Updated booking status after payment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Seat Assignment Manager",
+    "tool_description": "Manages seat assignments for booked passengers, allowing seat selection from available options and processing seat change requests with associated fees.",
+    "parameters": {
+      "booking_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Booking confirmation number"
+      },
+      "passenger_seat_preferences": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passenger seat assignments in format: PassengerName SeatNumber",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "auto_assign": {
+        "type": "boolean",
+        "required": false,
+        "description": "Automatically assign seats if preferred seats unavailable",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Booking not found: The provided booking_reference does not exist or is not confirmed.",
+      "Seat unavailable: One or more requested seats are no longer available.",
+      "Invalid seat format: Use 'PassengerName SeatNumber' format (e.g., 'John Doe 12A').",
+      "Passenger not found: One or more passenger names not found in the booking.",
+      "Seat assignment failed: Unable to assign seats due to system error."
+    ],
+    "usage": "Provide booking_reference and passenger_seat_preferences array with passenger names and desired seat numbers. Set auto_assign to false if you want manual control over seat selection.",
+    "output_details": {
+      "assignment_status": {
+        "type": "string",
+        "description": "Overall assignment result: success, partial, or failed"
+      },
+      "assigned_seats": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of confirmed seat assignments in PassengerName:SeatNumber format"
+      },
+      "seat_fees": {
+        "type": "number",
+        "description": "Additional fees for premium seat selections"
+      },
+      "unassigned_passengers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of passengers without seat assignments"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Booking Modifier",
+    "tool_description": "Modifies existing flight bookings including passenger changes, flight changes, date modifications, and handles associated fees and restrictions.",
+    "parameters": {
+      "booking_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Booking confirmation number to modify"
+      },
+      "modification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of change: passenger_change, flight_change, date_change, cancel_booking"
+      },
+      "new_flight_id": {
+        "type": "string",
+        "required": false,
+        "description": "New flight identifier for flight changes",
+        "default": "None"
+      },
+      "new_departure_date": {
+        "type": "string",
+        "required": false,
+        "description": "New departure date for date changes (YYYY-MM-DD)",
+        "format": "date-time",
+        "default": "None"
+      },
+      "passenger_modifications": {
+        "type": "array",
+        "required": false,
+        "description": "Array of passenger changes in format: OldName>NewName or +NewPassenger or -RemovePassenger",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "waiver_code": {
+        "type": "string",
+        "required": false,
+        "description": "Fee waiver code if applicable",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Booking not found: The provided booking_reference does not exist.",
+      "Invalid modification type: Use one of [passenger_change, flight_change, date_change, cancel_booking].",
+      "Modification not allowed: This booking cannot be modified due to fare restrictions or timing.",
+      "New flight unavailable: The requested new flight is not available.",
+      "Invalid passenger format: Use 'OldName>NewName', '+NewName', or '-RemoveName' format.",
+      "Change fees apply: Additional fees required for this modification."
+    ],
+    "usage": "Provide booking_reference and modification_type, then specify relevant parameters based on change type. Include waiver_code if you have a fee waiver.",
+    "output_details": {
+      "modification_status": {
+        "type": "string",
+        "description": "Change result: success, failed, or requires_payment"
+      },
+      "new_booking_reference": {
+        "type": "string",
+        "description": "Updated booking confirmation number if changed"
+      },
+      "change_fees": {
+        "type": "number",
+        "description": "Fees associated with the modification"
+      },
+      "fare_difference": {
+        "type": "number",
+        "description": "Fare difference for flight or date changes (positive or negative)"
+      },
+      "updated_details": {
+        "type": "string",
+        "description": "Summary of changes made to the booking"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Flight Status Checker",
+    "tool_description": "Retrieves current flight status information including delays, gate changes, cancellations, and real-time updates for booked flights.",
+    "parameters": {
+      "booking_reference": {
+        "type": "string",
+        "required": true,
+        "description": "Booking confirmation number to check status for"
+      }
+    },
+    "error_messages": [
+      "Booking not found: The provided booking_reference does not exist or is invalid.",
+      "Flight information unavailable: Status information not available at this time.",
+      "System timeout: Unable to retrieve current status due to system connectivity issues."
+    ],
+    "usage": "Provide booking_reference to get current status of all flights in the booking including delays, gate information, and any schedule changes.",
+    "output_details": {
+      "flight_status": {
+        "type": "string",
+        "description": "Current flight status: on_time, delayed, cancelled, departed, arrived"
+      },
+      "departure_gate": {
+        "type": "string",
+        "description": "Current departure gate assignment"
+      },
+      "arrival_gate": {
+        "type": "string",
+        "description": "Current arrival gate assignment"
+      },
+      "delay_minutes": {
+        "type": "integer",
+        "description": "Delay duration in minutes (0 if on time)"
+      },
+      "updated_departure": {
+        "type": "string",
+        "description": "Updated departure time in ISO format"
+      },
+      "updated_arrival": {
+        "type": "string",
+        "description": "Updated arrival time in ISO format"
+      },
+      "status_alerts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of important status alerts or notifications"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document Validator",
+    "tool_description": "Validates travel documents including passports, visas, and ID cards to ensure compliance with destination country requirements and airline policies.",
+    "parameters": {
+      "passenger_names": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passenger names to validate documents for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "passport_numbers": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passport numbers corresponding to passengers",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "passport_expiry_dates": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passport expiry dates in YYYY-MM-DD format",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "issuing_countries": {
+        "type": "array",
+        "required": true,
+        "description": "Array of passport issuing country codes (2-letter ISO)",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 9
+      },
+      "destination_country": {
+        "type": "string",
+        "required": true,
+        "description": "Destination country code (2-letter ISO) for requirement checking"
+      },
+      "travel_date": {
+        "type": "string",
+        "required": true,
+        "description": "Planned travel date in YYYY-MM-DD format",
+        "format": "date-time"
+      },
+      "visa_numbers": {
+        "type": "array",
+        "required": false,
+        "description": "Array of visa numbers if applicable",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Array length mismatch: All passenger arrays must have the same number of elements.",
+      "Invalid passport format: Passport numbers must be 6-15 alphanumeric characters.",
+      "Invalid date format: Use YYYY-MM-DD format for all dates.",
+      "Invalid country code: Use valid 2-letter ISO country codes.",
+      "Passport expired: One or more passports are expired or expire within 6 months of travel.",
+      "Visa required: Destination country requires visa for one or more passport holders."
+    ],
+    "usage": "Provide arrays of passenger_names, passport_numbers, passport_expiry_dates, and issuing_countries (all same length), plus destination_country and travel_date. Include visa_numbers array if visas are held.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: valid, invalid, or warning"
+      },
+      "valid_documents": {
+        "type": "array",
+        "items": {

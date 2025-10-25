@@ -1,0 +1,834 @@
+field_name: credit_and_lending_services
+subfield: credit_scoring_and_risk_assessment
+task: Verify identity and authenticate borrower credentials
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves verifying identity and authenticating borrower credentials, which is a **medium** difficulty task. It requires coordination across multiple data sources, has moderate complexity in cross-referencing various identity documents and credentials, involves regulatory compliance requirements, and carries significant risk since incorrect verification could lead to fraud or regulatory violations.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'll target **12 tools** within the 10-15 range to cover identity document verification, credential authentication, database checks, compliance validation, and risk scoring components.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Document Image Validator** - consumes: document images → produces: validation status
+  2. **ID Document Parser** - consumes: document images → produces: extracted data fields
+  3. **Credit Bureau Checker** - consumes: personal info → produces: credit history data
+  4. **Employment Verification Tool** - consumes: employer details → produces: employment status
+  5. **Income Document Analyzer** - consumes: financial documents → produces: income verification
+  6. **Address Verification Service** - consumes: address data → produces: address validation
+  7. **SSN Verification Tool** - consumes: SSN and personal data → produces: SSN validity
+  8. **Bank Account Validator** - consumes: banking info → produces: account verification
+  9. **Identity Cross Referencer** - consumes: multiple identity data → produces: consistency score
+  10. **Fraud Detection Scanner** - consumes: all verification data → produces: fraud risk score
+  11. **Compliance Status Checker** - consumes: verification results → produces: regulatory compliance
+  12. **Identity Confidence Scorer** - consumes: all tool outputs → produces: final confidence score
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  - Basic ID Check: Document Image Validator → ID Document Parser → SSN Verification Tool
+  - Address Validation: Address Verification Service → Bank Account Validator
+
+  **Medium plans:**
+  - Employment Verification: Employment Verification Tool → Income Document Analyzer → Identity Cross Referencer
+  - Financial Standing: Credit Bureau Checker → Bank Account Validator → Income Document Analyzer → Fraud Detection Scanner
+
+  **Complex plans:**
+  - Full Identity Verification: Document Image Validator → ID Document Parser → SSN Verification Tool → Address Verification Service → Identity Cross Referencer → Fraud Detection Scanner → Identity Confidence Scorer
+  - Complete Borrower Authentication: All tools in sequence culminating with Compliance Status Checker for regulatory approval
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Document Image Validator",
+    "tool_description": "Validates the authenticity and quality of uploaded identity document images by checking for tampering, resolution, and format compliance.",
+    "parameters": {
+      "document_image_base64": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded image of the identity document"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document: drivers_license, passport, state_id, military_id"
+      },
+      "min_resolution": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum required resolution in pixels",
+        "default": 300
+      }
+    },
+    "error_messages": [
+      "Invalid base64 encoding: Ensure the document image is properly encoded in base64 format.",
+      "Unsupported document type: Use one of [drivers_license, passport, state_id, military_id].",
+      "Image quality too low: Upload a higher resolution image that meets minimum requirements.",
+      "Document appears tampered: The image shows signs of digital manipulation or editing."
+    ],
+    "usage": "Provide a base64 encoded image of an identity document along with the document type. Optionally specify minimum resolution requirements.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the document image passes validation checks"
+      },
+      "quality_score": {
+        "type": "number",
+        "description": "Image quality score from 0-100"
+      },
+      "tampering_detected": {
+        "type": "boolean",
+        "description": "Whether signs of digital tampering were found"
+      },
+      "validation_details": {
+        "type": "string",
+        "description": "Detailed explanation of validation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "ID Document Parser",
+    "tool_description": "Extracts structured data fields from identity documents using OCR and pattern recognition to parse names, dates, addresses, and ID numbers.",
+    "parameters": {
+      "document_image_base64": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded image of the identity document"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document: drivers_license, passport, state_id, military_id"
+      },
+      "issuing_state": {
+        "type": "string",
+        "required": false,
+        "description": "Two-letter state code for US documents",
+        "default": null
+      },
+      "extract_photo": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract the photo from the document",
+        "default": false
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum OCR confidence score (0.5-1.0)",
+        "default": 0.8
+      }
+    },
+    "error_messages": [
+      "OCR extraction failed: The document image quality is insufficient for text extraction.",
+      "Unrecognized document format: The document layout doesn't match expected patterns for the specified type.",
+      "Invalid state code: Provide a valid two-letter US state code or leave blank for federal documents.",
+      "Confidence threshold out of range: Set confidence_threshold between 0.5 and 1.0."
+    ],
+    "usage": "Submit a base64 encoded document image with the document type. Optionally specify issuing state for better parsing accuracy and whether to extract photos.",
+    "output_details": {
+      "first_name": {
+        "type": "string",
+        "description": "Extracted first name from document"
+      },
+      "last_name": {
+        "type": "string",
+        "description": "Extracted last name from document"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "description": "Date of birth in YYYY-MM-DD format"
+      },
+      "document_number": {
+        "type": "string",
+        "description": "Document ID number"
+      },
+      "address": {
+        "type": "string",
+        "description": "Extracted address from document"
+      },
+      "expiration_date": {
+        "type": "string",
+        "description": "Document expiration date in YYYY-MM-DD format"
+      },
+      "extraction_confidence": {
+        "type": "number",
+        "description": "Overall confidence score for extracted data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Credit Bureau Checker",
+    "tool_description": "Retrieves credit history and scores from major credit bureaus to assess borrower creditworthiness and payment history.",
+    "parameters": {
+      "ssn": {
+        "type": "string",
+        "required": true,
+        "description": "Social Security Number (9 digits, no dashes)"
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Borrower's first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Borrower's last name"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Date of birth in YYYY-MM-DD format"
+      },
+      "bureau_selection": {
+        "type": "array",
+        "required": false,
+        "description": "Credit bureaus to query",
+        "items": {"type": "string"},
+        "default": ["experian", "equifax", "transunion"]
+      }
+    },
+    "error_messages": [
+      "Invalid SSN format: Provide a 9-digit Social Security Number without dashes or spaces.",
+      "No credit history found: The provided information doesn't match any credit bureau records.",
+      "Insufficient personal information: Ensure first_name, last_name, and date_of_birth are accurate and complete.",
+      "Bureau access denied: One or more selected credit bureaus are currently unavailable."
+    ],
+    "usage": "Provide complete personal identification information including SSN, full name, and date of birth. Optionally select specific credit bureaus to query.",
+    "output_details": {
+      "credit_score": {
+        "type": "integer",
+        "description": "Primary credit score (300-850 range)"
+      },
+      "credit_history_length": {
+        "type": "integer",
+        "description": "Length of credit history in months"
+      },
+      "open_accounts": {
+        "type": "integer",
+        "description": "Number of currently open credit accounts"
+      },
+      "total_debt": {
+        "type": "number",
+        "description": "Total outstanding debt amount"
+      },
+      "payment_history_score": {
+        "type": "number",
+        "description": "Payment reliability score (0-100)"
+      },
+      "credit_utilization": {
+        "type": "number",
+        "description": "Credit utilization percentage"
+      },
+      "recent_inquiries": {
+        "type": "integer",
+        "description": "Number of credit inquiries in last 6 months"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Employment Verification Tool",
+    "tool_description": "Verifies current employment status and history by contacting employers directly or through third-party verification services.",
+    "parameters": {
+      "employer_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the current employer"
+      },
+      "employee_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of the employee to verify"
+      },
+      "job_title": {
+        "type": "string",
+        "required": true,
+        "description": "Claimed job title or position"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Employment start date in YYYY-MM-DD format"
+      },
+      "employer_phone": {
+        "type": "string",
+        "required": false,
+        "description": "Employer contact phone number",
+        "default": null
+      },
+      "verification_method": {
+        "type": "string",
+        "required": false,
+        "description": "Verification approach: direct_contact, third_party_service, paystub_analysis",
+        "default": "third_party_service"
+      }
+    },
+    "error_messages": [
+      "Employer not found: The specified employer name could not be located in business databases.",
+      "Employee verification failed: No record found of the employee at the specified employer.",
+      "Invalid date format: Provide start_date in YYYY-MM-DD format.",
+      "Contact information unavailable: Unable to reach employer for verification - provide valid phone number.",
+      "Verification method not supported: Use one of [direct_contact, third_party_service, paystub_analysis]."
+    ],
+    "usage": "Provide employer details, employee information, and employment dates. Choose verification method based on available contact information and privacy preferences.",
+    "output_details": {
+      "employment_verified": {
+        "type": "boolean",
+        "description": "Whether current employment was successfully verified"
+      },
+      "position_confirmed": {
+        "type": "boolean",
+        "description": "Whether the claimed job title matches records"
+      },
+      "start_date_verified": {
+        "type": "boolean",
+        "description": "Whether the employment start date is accurate"
+      },
+      "employment_status": {
+        "type": "string",
+        "description": "Current employment status: active, terminated, on_leave"
+      },
+      "verification_source": {
+        "type": "string",
+        "description": "Source of verification information"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Confidence level: high, medium, low"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Income Document Analyzer",
+    "tool_description": "Analyzes and validates income documentation including pay stubs, tax returns, and bank statements to verify reported income levels.",
+    "parameters": {
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of income document: paystub, tax_return, bank_statement, w2_form"
+      },
+      "document_base64": {
+        "type": "string",
+        "required": true,
+        "description": "Base64 encoded income document"
+      },
+      "claimed_annual_income": {
+        "type": "number",
+        "required": true,
+        "description": "Borrower's claimed annual income amount"
+      },
+      "document_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of the income document in YYYY-MM-DD format"
+      },
+      "employer_name": {
+        "type": "string",
+        "required": false,
+        "description": "Expected employer name for cross-validation",
+        "default": null
+      },
+      "pay_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "Pay frequency: weekly, biweekly, monthly, annual",
+        "default": "biweekly"
+      },
+      "tax_year": {
+        "type": "integer",
+        "required": false,
+        "description": "Tax year for tax documents (2020-2024)",
+        "default": null
+      },
+      "include_deductions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to analyze tax deductions and withholdings",
+        "default": true
+      },
+      "verify_authenticity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform document authenticity checks",
+        "default": true
+      },
+      "minimum_doc_age_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum age requirement for documents in days",
+        "default": 30
+      },
+      "maximum_doc_age_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum acceptable age for documents in days",
+        "default": 90
+      }
+    },
+    "error_messages": [
+      "Document parsing failed: The income document format is unreadable or corrupted - ensure clear, high-quality images.",
+      "Unsupported document type: Use one of [paystub, tax_return, bank_statement, w2_form].",
+      "Document too old or recent: Ensure document date falls within acceptable age range specified by minimum and maximum parameters.",
+      "Income calculation error: Unable to extract consistent income figures from the provided document.",
+      "Authenticity verification failed: Document shows signs of alteration or forgery.",
+      "Invalid pay frequency: Use one of [weekly, biweekly, monthly, annual].",
+      "Tax year out of range: Provide tax year between 2020-2024.",
+      "Employer mismatch: The employer name in document doesn't match the provided employer_name parameter."
+    ],
+    "usage": "Upload income documentation as base64 encoded images along with claimed income amounts. Specify document type, date, and optionally employer information for cross-validation. Configure authenticity checking and document age requirements as needed.",
+    "output_details": {
+      "extracted_income": {
+        "type": "number",
+        "description": "Annual income amount extracted from document"
+      },
+      "income_verification_status": {
+        "type": "string",
+        "description": "Verification result: verified, discrepancy, insufficient_data"
+      },
+      "variance_percentage": {
+        "type": "number",
+        "description": "Percentage difference between claimed and extracted income"
+      },
+      "employer_match": {
+        "type": "boolean",
+        "description": "Whether extracted employer matches provided employer name"
+      },
+      "document_authentic": {
+        "type": "boolean",
+        "description": "Whether document passes authenticity checks"
+      },
+      "gross_income": {
+        "type": "number",
+        "description": "Gross income amount before deductions"
+      },
+      "net_income": {
+        "type": "number",
+        "description": "Net income amount after deductions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Address Verification Service",
+    "tool_description": "Validates and standardizes addresses using postal service databases and confirms residence through utility and public records.",
+    "parameters": {
+      "street_address": {
+        "type": "string",
+        "required": true,
+        "description": "Street number and name"
+      },
+      "city": {
+        "type": "string",
+        "required": true,
+        "description": "City name"
+      },
+      "state": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter state code"
+      },
+      "zip_code": {
+        "type": "string",
+        "required": true,
+        "description": "5 or 9 digit ZIP code"
+      },
+      "resident_name": {
+        "type": "string",
+        "required": false,
+        "description": "Name of person to verify at address",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid address format: Ensure complete address with street, city, state, and ZIP code.",
+      "Address not found: The provided address doesn't exist in postal service records.",
+      "Invalid state code: Provide a valid two-letter US state abbreviation.",
+      "Invalid ZIP code: Provide a valid 5 or 9 digit ZIP code.",
+      "Resident verification failed: No records found linking the person to this address."
+    ],
+    "usage": "Provide complete address information including street, city, state, and ZIP code. Optionally include resident name for occupancy verification.",
+    "output_details": {
+      "address_valid": {
+        "type": "boolean",
+        "description": "Whether the address exists and is deliverable"
+      },
+      "standardized_address": {
+        "type": "string",
+        "description": "USPS standardized format of the address"
+      },
+      "residence_type": {
+        "type": "string",
+        "description": "Type of residence: single_family, apartment, condo, commercial"
+      },
+      "resident_confirmed": {
+        "type": "boolean",
+        "description": "Whether the specified resident is linked to this address"
+      },
+      "address_confidence": {
+        "type": "string",
+        "description": "Confidence level: high, medium, low"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SSN Verification Tool",
+    "tool_description": "Validates Social Security Numbers against official databases and cross-references with personal information for identity confirmation.",
+    "parameters": {
+      "ssn": {
+        "type": "string",
+        "required": true,
+        "description": "9-digit Social Security Number without dashes"
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "First name associated with SSN"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Last name associated with SSN"
+      }
+    },
+    "error_messages": [
+      "Invalid SSN format: Provide a 9-digit number without spaces or dashes.",
+      "SSN not issued: The Social Security Number has not been officially issued.",
+      "Name mismatch: The provided name doesn't match SSN records.",
+      "Deceased individual: The SSN belongs to a deceased person according to death records."
+    ],
+    "usage": "Provide the Social Security Number along with the associated first and last name for verification against official records.",
+    "output_details": {
+      "ssn_valid": {
+        "type": "boolean",
+        "description": "Whether the SSN is valid and has been issued"
+      },
+      "name_match": {
+        "type": "boolean",
+        "description": "Whether the name matches SSN records"
+      },
+      "deceased_flag": {
+        "type": "boolean",
+        "description": "Whether the SSN holder is listed as deceased"
+      },
+      "issue_state": {
+        "type": "string",
+        "description": "State where the SSN was originally issued"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bank Account Validator",
+    "tool_description": "Verifies bank account ownership and status through micro-deposits or real-time account verification services.",
+    "parameters": {
+      "account_number": {
+        "type": "string",
+        "required": true,
+        "description": "Bank account number"
+      },
+      "routing_number": {
+        "type": "string",
+        "required": true,
+        "description": "9-digit bank routing number"
+      },
+      "account_holder_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name on the bank account"
+      },
+      "verification_method": {
+        "type": "string",
+        "required": false,
+        "description": "Verification method: micro_deposit, instant_verification, account_statement",
+        "default": "instant_verification"
+      }
+    },
+    "error_messages": [
+      "Invalid routing number: Provide a valid 9-digit bank routing number.",
+      "Account not found: The account number doesn't exist at the specified bank.",
+      "Name mismatch: The account holder name doesn't match bank records.",
+      "Account closed or frozen: The account is not active and available for transactions.",
+      "Verification method unavailable: The selected verification method is not supported for this bank."
+    ],
+    "usage": "Provide complete bank account information including account number, routing number, and account holder name. Choose appropriate verification method.",
+    "output_details": {
+      "account_verified": {
+        "type": "boolean",
+        "description": "Whether the bank account is verified and active"
+      },
+      "account_type": {
+        "type": "string",
+        "description": "Type of account: checking, savings, money_market"
+      },
+      "owner_verified": {
+        "type": "boolean",
+        "description": "Whether the account holder name matches"
+      },
+      "bank_name": {
+        "type": "string",
+        "description": "Name of the financial institution"
+      },
+      "account_status": {
+        "type": "string",
+        "description": "Account status: active, closed, frozen, restricted"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Identity Cross Referencer",
+    "tool_description": "Cross-references multiple identity data points to detect inconsistencies and calculate overall identity coherence across all verification sources.",
+    "parameters": {
+      "identity_data_sources": {
+        "type": "array",
+        "required": true,
+        "description": "Array of identity data source types being cross-referenced",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 10
+      },
+      "primary_name": {
+        "type": "string",
+        "required": true,
+        "description": "Primary full name from main identity document"
+      },
+      "primary_address": {
+        "type": "string",
+        "required": true,
+        "description": "Primary address from main identity document"
+      },
+      "primary_ssn": {
+        "type": "string",
+        "required": true,
+        "description": "Social Security Number from primary source"
+      },
+      "primary_dob": {
+        "type": "string",
+        "required": true,
+        "description": "Date of birth from primary source in YYYY-MM-DD format"
+      },
+      "secondary_names": {
+        "type": "array",
+        "required": false,
+        "description": "Array of names from other sources for comparison",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "secondary_addresses": {
+        "type": "array",
+        "required": false,
+        "description": "Array of addresses from other sources",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "secondary_ssns": {
+        "type": "array",
+        "required": false,
+        "description": "Array of SSNs from other sources",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "secondary_dobs": {
+        "type": "array",
+        "required": false,
+        "description": "Array of birth dates from other sources",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "tolerance_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Acceptable variance in days for date comparisons",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Insufficient data sources: Provide at least 2 different identity data sources for cross-referencing.",
+      "Invalid date format: Ensure all dates are in YYYY-MM-DD format.",
+      "Mismatched array lengths: Secondary data arrays should align with the number of sources being compared.",
+      "Invalid tolerance range: tolerance_days must be between 0 and 365.",
+      "Missing primary identity data: All primary identity fields (name, address, SSN, DOB) are required."
+    ],
+    "usage": "Provide primary identity information from the main source and secondary data arrays from other verification sources. Specify data source types and tolerance for date variations.",
+    "output_details": {
+      "overall_consistency_score": {
+        "type": "number",
+        "description": "Overall identity consistency score from 0-100"
+      },
+      "name_consistency": {
+        "type": "boolean",
+        "description": "Whether names are consistent across sources"
+      },
+      "address_consistency": {
+        "type": "boolean",
+        "description": "Whether addresses are consistent across sources"
+      },
+      "ssn_consistency": {
+        "type": "boolean",
+        "description": "Whether SSNs match across all sources"
+      },
+      "dob_consistency": {
+        "type": "boolean",
+        "description": "Whether dates of birth are consistent"
+      },
+      "inconsistency_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of specific inconsistencies found"
+      },
+      "confidence_level": {
+        "type": "string",
+        "description": "Overall confidence level: high, medium, low"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fraud Detection Scanner",
+    "tool_description": "Analyzes all verification data using machine learning models to detect potential identity fraud patterns and synthetic identities.",
+    "parameters": {
+      "applicant_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing all collected applicant verification data"
+      },
+      "fraud_model_version": {
+        "type": "string",
+        "required": false,
+        "description": "Fraud detection model version to use",
+        "default": "latest"
+      },
+      "sensitivity_level": {
+        "type": "string",
+        "required": false,
+        "description": "Detection sensitivity: low, medium, high",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Invalid applicant data format: Provide verification data as a valid JSON string.",
+      "Insufficient data for analysis: More verification data points needed for reliable fraud detection.",
+      "Model version not found: Specify a valid fraud detection model version or use 'latest'.",
+      "Invalid sensitivity level: Use one of [low, medium, high]."
+    ],
+    "usage": "Submit all collected verification data as a JSON string. Optionally specify fraud model version and sensitivity level for detection.",
+    "output_details": {
+      "fraud_risk_score": {
+        "type": "number",
+        "description": "Fraud risk score from 0-100 (higher means more risk)"
+      },
+      "fraud_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of specific fraud indicators detected"
+      },
+      "synthetic_identity_probability": {
+        "type": "number",
+        "description": "Probability that identity is synthetic (0-100)"
+      },
+      "risk_category": {
+        "type": "string",
+        "description": "Risk category: low_risk, medium_risk, high_risk, extremely_high_risk"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Recommended action based on fraud analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Status Checker",
+    "tool_description": "Evaluates all verification results against regulatory requirements including KYC, AML, and lending compliance standards.",
+    "parameters": {
+      "verification_results": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing results from all verification tools"
+      },
+      "loan_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of loan: personal, mortgage, auto, business, payday"
+      },
+      "loan_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Requested loan amount in dollars"
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Regulatory jurisdiction (US state code or 'federal')"
+      },
+      "kyc_level": {
+        "type": "string",
+        "required": false,
+        "description": "Required KYC level: basic, enhanced, simplified",
+        "default": "basic"
+      }
+    },
+    "error_messages": [
+      "Invalid verification results format: Provide results as a valid JSON string from verification tools.",
+      "Unsupported loan type: Use one of [personal, mortgage, auto, business, payday].",
+      "Invalid jurisdiction: Provide a valid US state code or 'federal'.",
+      "Loan amount out of range: Loan amount must be greater than 0.",
+      "Invalid KYC level: Use one of [basic, enhanced, simplified]."
+    ],
+    "usage": "Submit complete verification results along with loan details and regulatory jurisdiction. The tool evaluates compliance with applicable regulations.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance status: compliant, non_compliant, requires_additional_verification"
+      },
+      "kyc_compliant": {
+        "type": "boolean",
+        "description": "Whether KYC requirements are met"
+      },
+      "aml_compliant": {
+        "type": "boolean",
+        "description": "Whether AML requirements are satisfied"
+      },
+      "regulatory_issues": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of regulatory compliance issues identified"
+      },
+      "required_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Actions required to achieve compliance"
+      },
+      "approval_recommendation": {
+        "type": "string",
+        "description": "Recommendation: approve, reject, request_additional_documentation"

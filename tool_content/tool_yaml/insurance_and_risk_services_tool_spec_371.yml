@@ -1,0 +1,860 @@
+field_name: insurance_and_risk_services
+subfield: Property and Casualty Claims Processing
+task: First Notice of Loss (FNOL) intake and initial claim registration
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task involves moderate complexity as it requires structured data collection, validation across multiple domains (policy, coverage, incident details), coordination between multiple stakeholders, and has significant downstream impact on claim processing. The task has well-defined workflows but involves handling varied incident types and regulatory requirements. **Medium difficulty**.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium difficulty, I'll target **12 tools** to cover the comprehensive FNOL workflow including intake, validation, documentation, assignment, and communication components.
+
+  **STEP 3 — List all tool names and dependencies**
+  1. **Policy Lookup Tool** - Consumes: policy number, dates → Produces: policy details, coverage info
+  2. **Coverage Validator** - Consumes: policy details, incident type → Produces: coverage determination
+  3. **Incident Reporter** - Consumes: incident details, party info → Produces: structured incident record
+  4. **Loss Estimator** - Consumes: incident data, damage details → Produces: preliminary loss estimate
+  5. **Document Uploader** - Consumes: file data, metadata → Produces: document references
+  6. **Adjuster Assignor** - Consumes: claim details, location, complexity → Produces: adjuster assignment
+  7. **Claim Registrar** - Consumes: validated claim data → Produces: claim number, status
+  8. **Notification Sender** - Consumes: contact info, templates, claim data → Produces: communication records
+  9. **Fraud Detector** - Consumes: claim details, history → Produces: fraud risk assessment
+  10. **Reserve Calculator** - Consumes: loss estimates, policy limits → Produces: reserve amounts
+  11. **Regulatory Reporter** - Consumes: claim data, jurisdiction → Produces: compliance status
+  12. **Timeline Tracker** - Consumes: claim events, deadlines → Produces: milestone schedule
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic FNOL: Policy Lookup → Coverage Validator → Claim Registrar
+  - Document Collection: Incident Reporter → Document Uploader → Notification Sender
+
+  **Medium Plans:**
+  - Standard Processing: Policy Lookup → Coverage Validator → Incident Reporter → Loss Estimator → Adjuster Assignor → Claim Registrar
+  - Risk Assessment: Fraud Detector → Reserve Calculator → Timeline Tracker → Regulatory Reporter
+
+  **Complex Plans:**
+  - Full FNOL Workflow: Policy Lookup → Coverage Validator → Incident Reporter → Loss Estimator → Fraud Detector → Reserve Calculator → Document Uploader → Adjuster Assignor → Claim Registrar → Notification Sender → Regulatory Reporter → Timeline Tracker
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Policy Lookup Tool",
+    "tool_description": "Retrieves policy information and validates policy status for claim intake processing.",
+    "parameters": {
+      "policy_number": {
+        "type": "string",
+        "required": true,
+        "description": "The insurance policy number to lookup"
+      },
+      "loss_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when the loss occurred",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Policy not found: The provided policy number does not exist in the system. Verify the policy number with the insured.",
+      "Policy expired: The policy was not active on the loss date. Check if there's a renewal or gap in coverage.",
+      "Invalid loss date format: Provide loss date in ISO 8601 date-time format.",
+      "Loss date outside policy period: The loss occurred outside the policy effective dates."
+    ],
+    "usage": "Provide the policy_number and loss_date to retrieve policy details and validate coverage was active at time of loss.",
+    "output_details": {
+      "policy_status": {
+        "type": "string",
+        "description": "Current status of the policy (active, expired, cancelled)"
+      },
+      "policy_effective_date": {
+        "type": "string",
+        "description": "Policy start date in ISO format"
+      },
+      "policy_expiration_date": {
+        "type": "string",
+        "description": "Policy end date in ISO format"
+      },
+      "insured_name": {
+        "type": "string",
+        "description": "Name of the primary insured party"
+      },
+      "coverage_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of coverage types included in the policy"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Coverage Validator",
+    "tool_description": "Determines if the reported loss is covered under the policy terms and identifies applicable coverages.",
+    "parameters": {
+      "policy_number": {
+        "type": "string",
+        "required": true,
+        "description": "The insurance policy number"
+      },
+      "incident_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of incident (auto accident, property damage, liability, theft, fire, flood, etc.)"
+      },
+      "loss_cause": {
+        "type": "string",
+        "required": true,
+        "description": "Primary cause of the loss"
+      },
+      "property_location": {
+        "type": "string",
+        "required": false,
+        "description": "Location where the loss occurred",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Policy not found: Unable to retrieve policy information for coverage validation.",
+      "Unsupported incident type: The incident type is not recognized. Use standard incident categories.",
+      "Exclusion applies: The loss cause falls under a policy exclusion and may not be covered.",
+      "Location not covered: The loss location is outside the policy territory."
+    ],
+    "usage": "Provide policy_number, incident_type, and loss_cause to determine coverage applicability. Include property_location for location-specific policies.",
+    "output_details": {
+      "coverage_determination": {
+        "type": "string",
+        "description": "Overall coverage status (covered, not covered, requires investigation)"
+      },
+      "applicable_coverages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of policy coverages that apply to this loss"
+      },
+      "deductible_amount": {
+        "type": "number",
+        "description": "Applicable deductible amount"
+      },
+      "coverage_limits": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Coverage limits for applicable coverages"
+      },
+      "exclusions_noted": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any exclusions that may apply to this claim"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Incident Reporter",
+    "tool_description": "Captures and structures detailed information about the loss incident including parties, circumstances, and initial damage assessment.",
+    "parameters": {
+      "incident_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date and time when the incident occurred",
+        "format": "date-time"
+      },
+      "incident_location": {
+        "type": "string",
+        "required": true,
+        "description": "Address or description of where the incident occurred"
+      },
+      "incident_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of how the incident occurred"
+      },
+      "injured_parties": {
+        "type": "array",
+        "required": false,
+        "description": "Names of any injured parties",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "property_damaged": {
+        "type": "array",
+        "required": false,
+        "description": "List of damaged property or items",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "third_parties_involved": {
+        "type": "array",
+        "required": false,
+        "description": "Names or descriptions of third parties involved",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "police_report_filed": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether a police report was filed",
+        "default": false
+      },
+      "weather_conditions": {
+        "type": "string",
+        "required": false,
+        "description": "Weather conditions at time of incident",
+        "default": "None"
+      },
+      "witness_names": {
+        "type": "array",
+        "required": false,
+        "description": "Names of any witnesses",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "emergency_services_called": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether emergency services were contacted",
+        "default": false
+      },
+      "insured_at_fault": {
+        "type": "string",
+        "required": false,
+        "description": "Initial assessment of fault (yes, no, unknown)",
+        "default": "unknown"
+      }
+    },
+    "error_messages": [
+      "Invalid incident date: Provide incident date in ISO 8601 format and ensure it's not in the future.",
+      "Missing incident location: A specific location description is required for proper claim processing.",
+      "Insufficient incident description: Provide a detailed description of at least 50 characters.",
+      "Invalid fault assessment: Use 'yes', 'no', or 'unknown' for insured_at_fault field."
+    ],
+    "usage": "Provide incident_date, incident_location, and incident_description as minimum required fields. Include additional details like injured_parties, property_damaged, and witnesses as available to create a comprehensive incident record.",
+    "output_details": {
+      "incident_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to this incident report"
+      },
+      "incident_summary": {
+        "type": "string",
+        "description": "Structured summary of the incident details"
+      },
+      "severity_level": {
+        "type": "string",
+        "description": "Initial severity assessment (low, medium, high, critical)"
+      },
+      "injury_indicator": {
+        "type": "boolean",
+        "description": "Whether injuries were reported"
+      },
+      "liability_indicator": {
+        "type": "boolean",
+        "description": "Whether third party liability is involved"
+      },
+      "complexity_score": {
+        "type": "integer",
+        "description": "Complexity rating from 1-10 based on incident factors"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Loss Estimator",
+    "tool_description": "Calculates preliminary loss estimates based on incident details, damage descriptions, and historical claim data patterns.",
+    "parameters": {
+      "incident_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of incident (auto accident, property damage, liability, etc.)"
+      },
+      "damage_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of damages observed"
+      },
+      "property_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of property damaged (vehicle, home, commercial building, etc.)",
+        "default": "None"
+      },
+      "injury_severity": {
+        "type": "string",
+        "required": false,
+        "description": "Severity of any injuries (none, minor, moderate, severe)",
+        "default": "none"
+      },
+      "geographic_location": {
+        "type": "string",
+        "required": false,
+        "description": "Geographic area for cost adjustment factors",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Unsupported incident type: Use standard incident types for accurate estimation.",
+      "Insufficient damage description: Provide detailed damage information for reliable estimation.",
+      "Invalid injury severity: Use 'none', 'minor', 'moderate', or 'severe' for injury_severity.",
+      "Estimation model unavailable: Unable to generate estimate for this combination of factors."
+    ],
+    "usage": "Provide incident_type and damage_description for basic estimation. Include property_type, injury_severity, and geographic_location for more accurate preliminary loss estimates.",
+    "output_details": {
+      "property_damage_estimate": {
+        "type": "number",
+        "description": "Estimated cost for property damage repairs"
+      },
+      "medical_expense_estimate": {
+        "type": "number",
+        "description": "Estimated medical expenses if injuries are involved"
+      },
+      "total_loss_estimate": {
+        "type": "number",
+        "description": "Combined estimate of total potential loss"
+      },
+      "estimation_confidence": {
+        "type": "string",
+        "description": "Confidence level of the estimate (low, medium, high)"
+      },
+      "cost_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Breakdown of cost categories included in estimate"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document Uploader",
+    "tool_description": "Manages upload and organization of claim-related documents with proper categorization and metadata tracking.",
+    "parameters": {
+      "claim_number": {
+        "type": "string",
+        "required": true,
+        "description": "Claim number to associate documents with"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document (police report, photos, estimates, medical records, etc.)"
+      },
+      "file_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the file being uploaded"
+      },
+      "file_size": {
+        "type": "integer",
+        "required": true,
+        "description": "Size of the file in bytes"
+      },
+      "upload_source": {
+        "type": "string",
+        "required": false,
+        "description": "Source of the upload (insured, agent, adjuster, third party)",
+        "default": "insured"
+      }
+    },
+    "error_messages": [
+      "Invalid claim number: The provided claim number does not exist or is not accessible.",
+      "Unsupported document type: Use standard document categories for proper filing.",
+      "File too large: Maximum file size is 50MB. Compress or split large files.",
+      "Invalid file format: Only standard document formats are supported (PDF, JPG, PNG, DOC, XLS).",
+      "Upload quota exceeded: Maximum number of documents per claim has been reached."
+    ],
+    "usage": "Provide claim_number, document_type, file_name, and file_size to upload documents. Specify upload_source to track document origin for audit purposes.",
+    "output_details": {
+      "document_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to the uploaded document"
+      },
+      "upload_timestamp": {
+        "type": "string",
+        "description": "Timestamp when document was successfully uploaded"
+      },
+      "file_location": {
+        "type": "string",
+        "description": "Storage location reference for the uploaded file"
+      },
+      "document_status": {
+        "type": "string",
+        "description": "Processing status of the document (uploaded, processing, indexed)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Adjuster Assignor",
+    "tool_description": "Assigns the most appropriate claims adjuster based on location, expertise, workload, and claim complexity factors.",
+    "parameters": {
+      "claim_location": {
+        "type": "string",
+        "required": true,
+        "description": "Geographic location of the claim"
+      },
+      "claim_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of claim requiring adjustment"
+      },
+      "complexity_level": {
+        "type": "string",
+        "required": true,
+        "description": "Claim complexity (simple, moderate, complex, catastrophic)"
+      },
+      "estimated_value": {
+        "type": "number",
+        "required": true,
+        "description": "Estimated claim value for authority matching"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Priority level (low, normal, high, urgent)",
+        "default": "normal"
+      },
+      "special_requirements": {
+        "type": "array",
+        "required": false,
+        "description": "Any special skills or certifications required",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      }
+    },
+    "error_messages": [
+      "No available adjusters: No adjusters available in the specified location with required expertise.",
+      "Invalid complexity level: Use 'simple', 'moderate', 'complex', or 'catastrophic'.",
+      "Claim value exceeds authority: Estimated value exceeds available adjuster authority levels.",
+      "Invalid urgency level: Use 'low', 'normal', 'high', or 'urgent' for urgency_level.",
+      "Unsupported special requirement: One or more special requirements cannot be matched."
+    ],
+    "usage": "Provide claim_location, claim_type, complexity_level, and estimated_value for basic assignment. Include urgency_level and special_requirements for more precise adjuster matching.",
+    "output_details": {
+      "assigned_adjuster_id": {
+        "type": "string",
+        "description": "Unique identifier of the assigned adjuster"
+      },
+      "adjuster_name": {
+        "type": "string",
+        "description": "Full name of the assigned adjuster"
+      },
+      "adjuster_contact": {
+        "type": "string",
+        "description": "Contact information for the assigned adjuster"
+      },
+      "assignment_timestamp": {
+        "type": "string",
+        "description": "When the assignment was made"
+      },
+      "expected_contact_date": {
+        "type": "string",
+        "description": "Expected date for initial contact with insured"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Claim Registrar",
+    "tool_description": "Creates official claim record in the system with unique claim number and establishes initial claim status and tracking.",
+    "parameters": {
+      "policy_number": {
+        "type": "string",
+        "required": true,
+        "description": "Insurance policy number associated with the claim"
+      },
+      "incident_id": {
+        "type": "string",
+        "required": true,
+        "description": "Reference to the incident report"
+      },
+      "loss_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when the loss occurred",
+        "format": "date-time"
+      },
+      "report_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when the claim was reported",
+        "format": "date-time"
+      },
+      "coverage_types": {
+        "type": "array",
+        "required": true,
+        "description": "Applicable coverage types for this claim",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "estimated_loss": {
+        "type": "number",
+        "required": true,
+        "description": "Preliminary loss estimate amount"
+      },
+      "assigned_adjuster": {
+        "type": "string",
+        "required": false,
+        "description": "ID of assigned adjuster if already determined",
+        "default": "None"
+      },
+      "priority_flag": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether this claim requires priority handling",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Policy validation failed: Cannot register claim for invalid or expired policy.",
+      "Incident report not found: The provided incident_id does not exist in the system.",
+      "Invalid date sequence: Report date cannot be earlier than loss date.",
+      "No applicable coverage: At least one coverage type must be specified.",
+      "Registration system unavailable: Unable to generate claim number due to system issues.",
+      "Duplicate claim detected: A claim for this incident may already exist."
+    ],
+    "usage": "Provide policy_number, incident_id, loss_date, report_date, coverage_types, and estimated_loss to register a new claim. Include assigned_adjuster and priority_flag as needed.",
+    "output_details": {
+      "claim_number": {
+        "type": "string",
+        "description": "Unique claim number assigned to this claim"
+      },
+      "claim_status": {
+        "type": "string",
+        "description": "Initial status of the registered claim"
+      },
+      "registration_timestamp": {
+        "type": "string",
+        "description": "When the claim was officially registered"
+      },
+      "workflow_stage": {
+        "type": "string",
+        "description": "Current stage in the claims workflow process"
+      },
+      "next_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of next required actions for claim processing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Sender",
+    "tool_description": "Sends automated notifications and communications to relevant parties including insured, agents, adjusters, and third parties using appropriate templates.",
+    "parameters": {
+      "claim_number": {
+        "type": "string",
+        "required": true,
+        "description": "Claim number for the notification"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification (acknowledgment, assignment, status update, denial, etc.)"
+      },
+      "recipient_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of recipient (insured, agent, adjuster, third party, attorney)"
+      },
+      "delivery_method": {
+        "type": "array",
+        "required": true,
+        "description": "How to deliver the notification",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "contact_information": {
+        "type": "array",
+        "required": true,
+        "description": "Contact details for the recipient",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Urgency of the notification (routine, urgent, critical)",
+        "default": "routine"
+      },
+      "custom_message": {
+        "type": "string",
+        "required": false,
+        "description": "Additional custom message to include",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Claim not found: The specified claim number does not exist for notification.",
+      "Invalid notification type: Use standard notification types for proper template selection.",
+      "Invalid recipient type: Recipient type must be one of the supported categories.",
+      "Invalid delivery method: Use supported delivery methods (email, phone, mail, SMS).",
+      "Missing contact information: Valid contact information is required for notification delivery.",
+      "Notification template error: Unable to generate notification using selected template.",
+      "Delivery failure: Notification could not be delivered using specified methods."
+    ],
+    "usage": "Provide claim_number, notification_type, recipient_type, delivery_method, and contact_information. Set urgency_level and include custom_message as needed for personalized communications.",
+    "output_details": {
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent notification"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Status of notification delivery (sent, delivered, failed)"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "When the notification was sent"
+      },
+      "template_used": {
+        "type": "string",
+        "description": "Name of the template used for the notification"
+      },
+      "tracking_number": {
+        "type": "string",
+        "description": "Tracking reference for delivery confirmation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fraud Detector",
+    "tool_description": "Analyzes claim details against fraud indicators and patterns to generate risk assessment and flag suspicious claims for investigation.",
+    "parameters": {
+      "claim_number": {
+        "type": "string",
+        "required": true,
+        "description": "Claim number to analyze for fraud indicators"
+      },
+      "policy_history": {
+        "type": "array",
+        "required": false,
+        "description": "Previous claims history for pattern analysis",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "incident_details": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed incident description for analysis"
+      },
+      "timing_factors": {
+        "type": "string",
+        "required": false,
+        "description": "Timing-related information (policy inception, previous claims, etc.)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Claim not found: Cannot analyze fraud indicators for non-existent claim.",
+      "Insufficient incident details: More detailed incident information required for fraud analysis.",
+      "Analysis system unavailable: Fraud detection system is currently unavailable.",
+      "Historical data incomplete: Unable to complete pattern analysis due to missing historical data."
+    ],
+    "usage": "Provide claim_number and incident_details for basic fraud screening. Include policy_history and timing_factors for comprehensive fraud risk assessment.",
+    "output_details": {
+      "fraud_risk_score": {
+        "type": "integer",
+        "description": "Fraud risk score from 1-100 (higher indicates more risk)"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Overall risk assessment (low, medium, high, critical)"
+      },
+      "red_flags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of specific fraud indicators detected"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended actions based on fraud analysis"
+      },
+      "investigation_priority": {
+        "type": "boolean",
+        "description": "Whether immediate investigation is recommended"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reserve Calculator",
+    "tool_description": "Calculates and establishes appropriate financial reserves for the claim based on loss estimates, coverage limits, and regulatory requirements.",
+    "parameters": {
+      "claim_number": {
+        "type": "string",
+        "required": true,
+        "description": "Claim number for reserve calculation"
+      },
+      "loss_estimate": {
+        "type": "number",
+        "required": true,
+        "description": "Current estimated loss amount"
+      },
+      "coverage_limits": {
+        "type": "array",
+        "required": true,
+        "description": "Policy coverage limits for applicable coverages",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1
+      },
+      "deductible": {
+        "type": "number",
+        "required": true,
+        "description": "Applicable deductible amount"
+      },
+      "claim_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of claim for reserve methodology selection"
+      },
+      "expense_estimate": {
+        "type": "number",
+        "required": false,
+        "description": "Estimated claim handling expenses",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Claim not found: Cannot calculate reserves for non-existent claim number.",
+      "Invalid loss estimate: Loss estimate must be a positive number.",
+      "Invalid coverage limits: All coverage limits must be positive numbers.",
+      "Invalid deductible: Deductible amount must be zero or positive.",
+      "Unsupported claim type: Use standard claim types for reserve calculation.",
+      "Reserve calculation error: Unable to complete reserve calculation with provided parameters."
+    ],
+    "usage": "Provide claim_number, loss_estimate, coverage_limits, deductible, and claim_type for reserve calculation. Include expense_estimate for more accurate total reserves.",
+    "output_details": {
+      "indemnity_reserve": {
+        "type": "number",
+        "description": "Reserve amount for indemnity payments"
+      },
+      "expense_reserve": {
+        "type": "number",
+        "description": "Reserve amount for claim handling expenses"
+      },
+      "total_reserve": {
+        "type": "number",
+        "description": "Combined total reserve amount"
+      },
+      "reserve_adequacy": {
+        "type": "string",
+        "description": "Assessment of reserve adequacy (adequate, marginal, insufficient)"
+      },
+      "reserve_confidence": {
+        "type": "string",
+        "description": "Confidence level in reserve estimate (low, medium, high)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Regulatory Reporter",
+    "tool_description": "Ensures compliance with regulatory reporting requirements and generates necessary reports for insurance departments and other authorities.",
+    "parameters": {
+      "claim_number": {
+        "type": "string",
+        "required": true,
+        "description": "Claim number for regulatory reporting"
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "State or regulatory jurisdiction for the claim"
+      },
+      "incident_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of incident for reporting classification"
+      },
+      "loss_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Current loss amount for threshold reporting",
+        "default": 0
+      },
+      "injury_severity": {
+        "type": "string",
+        "required": false,
+        "description": "Severity of any injuries for mandatory reporting",
+        "default": "none"
+      }
+    },
+    "error_messages": [
+      "Claim not found: Cannot generate regulatory reports for non-existent claim.",
+      "Unsupported jurisdiction: Regulatory requirements not available for specified jurisdiction.",
+      "Invalid incident type: Use standard incident classifications for regulatory reporting.",
+      "Missing required data: Additional claim information required for compliance reporting.",
+      "Reporting deadline missed: Claim exceeds regulatory reporting timeframes.",
+      "Report generation failed: Unable to generate required regulatory reports."
+    ],
+    "usage": "Provide claim_number, jurisdiction, and incident_type for basic compliance checking. Include loss_amount and injury_severity for threshold-based reporting requirements.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall regulatory compliance status (compliant, pending, non-compliant)"
+      },
+      "required_reports": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of regulatory reports required for this claim"
+      },
+      "reporting_deadlines": {
+        "type": "array",
+        "items": {
+          "type":

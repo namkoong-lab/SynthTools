@@ -1,0 +1,852 @@
+field_name: healthcare_medical
+subfield: Laboratory Information Systems
+task: Test result data entry and validation
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task involves medium complexity due to the critical nature of medical data accuracy, strict regulatory compliance requirements, complex validation rules across different test types, and the need for integration with multiple healthcare systems while maintaining data integrity and audit trails.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'm targeting 12 tools to cover data entry, validation, quality control, reporting, and system integration aspects of laboratory information management.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Test Order Validator** - Consumes: order details → Produces: validated order data
+  2. **Patient Identity Verifier** - Consumes: patient identifiers → Produces: verified patient info
+  3. **Sample Tracker** - Consumes: sample IDs, status → Produces: sample chain of custody
+  4. **Reference Range Checker** - Consumes: test values, demographics → Produces: range validation results
+  5. **Critical Value Detector** - Consumes: test results → Produces: critical alerts
+  6. **Quality Control Analyzer** - Consumes: QC data → Produces: QC validation status
+  7. **Result Entry Interface** - Consumes: test data → Produces: formatted results
+  8. **Data Integrity Validator** - Consumes: result datasets → Produces: integrity reports
+  9. **Audit Trail Generator** - Consumes: system actions → Produces: audit records
+  10. **Report Generator** - Consumes: validated results → Produces: formatted reports
+  11. **System Integration Bridge** - Consumes: lab data → Produces: EHR-formatted data
+  12. **Regulatory Compliance Checker** - Consumes: lab processes → Produces: compliance status
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Patient verification + Sample tracking + Result entry (basic data entry workflow)
+  - Reference range checking + Critical value detection (basic validation workflow)
+
+  **Medium Plans:**
+  - Test order validation + Patient verification + Sample tracking + Result entry + Reference range checking (complete data entry and validation)
+  - Quality control analysis + Data integrity validation + Audit trail generation (quality assurance workflow)
+
+  **Complex Plans:**
+  - Full workflow: Test order validation → Patient verification → Sample tracking → Result entry → Reference range checking → Critical value detection → Quality control analysis → Data integrity validation → Report generation → System integration → Audit trail generation
+  - Regulatory compliance workflow: All validation tools + Quality control + Data integrity + Audit trail + Regulatory compliance checker
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Test Order Validator",
+    "tool_description": "Validates incoming laboratory test orders against ordering physician credentials, test availability, and patient insurance coverage.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the test order"
+      },
+      "physician_id": {
+        "type": "string",
+        "required": true,
+        "description": "Ordering physician's license or ID number"
+      },
+      "test_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of requested test procedure codes",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "patient_insurance": {
+        "type": "string",
+        "required": false,
+        "description": "Patient insurance provider code",
+        "default": "self_pay"
+      }
+    },
+    "error_messages": [
+      "Invalid order ID: Order ID must be a non-empty string and follow standard format.",
+      "Physician not authorized: The provided physician ID is not found or lacks ordering privileges for requested tests.",
+      "Test code not recognized: One or more test codes are invalid or not available in this laboratory.",
+      "Insurance verification failed: Unable to verify coverage for requested tests with provided insurance information."
+    ],
+    "usage": "Provide order_id, physician_id, and test_codes array. Optionally include patient_insurance for coverage verification. The tool validates all components and returns authorization status.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: approved, rejected, or pending"
+      },
+      "authorized_tests": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of approved test codes"
+      },
+      "rejected_tests": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of rejected test codes with reasons"
+      },
+      "coverage_status": {
+        "type": "string",
+        "description": "Insurance coverage verification result"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Patient Identity Verifier",
+    "tool_description": "Verifies patient identity using multiple identifiers and cross-references with existing records to prevent misidentification.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Primary patient identifier or medical record number"
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's last name"
+      },
+      "date_of_birth": {
+        "type": "string",
+        "required": true,
+        "description": "Patient's date of birth in ISO format",
+        "format": "date-time"
+      },
+      "ssn_last_four": {
+        "type": "string",
+        "required": false,
+        "description": "Last four digits of Social Security Number",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Patient not found: No patient record matches the provided identifiers.",
+      "Multiple matches found: Identifiers match multiple patients, additional verification needed.",
+      "Invalid date format: Date of birth must be in valid ISO date-time format.",
+      "Insufficient identifiers: At least three matching identifiers required for verification.",
+      "Identity mismatch: Provided information conflicts with existing patient records."
+    ],
+    "usage": "Provide patient_id, first_name, last_name, and date_of_birth. Optionally include ssn_last_four for enhanced verification. The tool cross-references all identifiers against patient database.",
+    "output_details": {
+      "verification_status": {
+        "type": "string",
+        "description": "Patient identity verification result: verified, unverified, or conflict"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Identity match confidence score from 0 to 100"
+      },
+      "matched_record_id": {
+        "type": "string",
+        "description": "Database record ID of matched patient"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sample Tracker",
+    "tool_description": "Tracks laboratory specimens through collection, processing, testing, and disposal phases with complete chain of custody documentation.",
+    "parameters": {
+      "sample_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique sample barcode or identifier"
+      },
+      "collection_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "When the sample was collected",
+        "format": "date-time"
+      },
+      "collection_site": {
+        "type": "string",
+        "required": true,
+        "description": "Location where sample was collected"
+      },
+      "sample_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of specimen: blood, urine, tissue, etc."
+      },
+      "collector_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of person who collected the sample"
+      },
+      "temperature_controlled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether sample requires temperature control",
+        "default": false
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Sample processing priority: routine, urgent, stat",
+        "default": "routine"
+      }
+    },
+    "error_messages": [
+      "Invalid sample ID: Sample identifier must follow laboratory barcode standards.",
+      "Collection timestamp error: Timestamp cannot be in the future or more than 7 days old without special handling.",
+      "Unknown collection site: Collection site must be registered in the laboratory information system.",
+      "Unsupported sample type: Sample type not recognized or not processed by this laboratory.",
+      "Collector not authorized: Collector ID not found or lacks collection privileges.",
+      "Priority level invalid: Priority must be routine, urgent, or stat."
+    ],
+    "usage": "Provide sample_id, collection_timestamp, collection_site, sample_type, and collector_id. Set temperature_controlled to true if special handling required. Specify priority_level for processing queue placement.",
+    "output_details": {
+      "tracking_status": {
+        "type": "string",
+        "description": "Current sample status in processing workflow"
+      },
+      "chain_of_custody_id": {
+        "type": "string",
+        "description": "Unique identifier for custody documentation"
+      },
+      "processing_queue": {
+        "type": "string",
+        "description": "Which processing queue the sample is assigned to"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated completion time for all tests",
+        "format": "date-time"
+      },
+      "storage_location": {
+        "type": "string",
+        "description": "Current physical storage location of sample"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reference Range Checker",
+    "tool_description": "Validates test results against age, gender, and condition-specific reference ranges to flag abnormal values.",
+    "parameters": {
+      "test_code": {
+        "type": "string",
+        "required": true,
+        "description": "Laboratory test procedure code"
+      },
+      "result_value": {
+        "type": "number",
+        "required": true,
+        "description": "Numeric test result value"
+      },
+      "result_unit": {
+        "type": "string",
+        "required": true,
+        "description": "Unit of measurement for the result"
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "patient_gender": {
+        "type": "string",
+        "required": true,
+        "description": "Patient gender: male, female, or other"
+      },
+      "pregnancy_status": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether patient is pregnant (affects reference ranges)",
+        "default": false
+      },
+      "medication_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of current medications that may affect test results",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Unknown test code: Test code not found in reference range database.",
+      "Invalid result format: Result value must be numeric and unit must be recognized.",
+      "Age out of range: Patient age must be between 0 and 150 years.",
+      "Invalid gender: Gender must be specified as male, female, or other.",
+      "Unit mismatch: Result unit does not match expected unit for this test.",
+      "Reference range unavailable: No reference range available for this demographic combination."
+    ],
+    "usage": "Provide test_code, result_value, result_unit, patient_age, and patient_gender. Include pregnancy_status and medication_list when relevant for accurate range interpretation.",
+    "output_details": {
+      "range_status": {
+        "type": "string",
+        "description": "Result interpretation: normal, abnormal_high, abnormal_low, or critical"
+      },
+      "reference_range_low": {
+        "type": "number",
+        "description": "Lower bound of normal reference range"
+      },
+      "reference_range_high": {
+        "type": "number",
+        "description": "Upper bound of normal reference range"
+      },
+      "deviation_percentage": {
+        "type": "number",
+        "description": "Percentage deviation from normal range"
+      },
+      "clinical_significance": {
+        "type": "string",
+        "description": "Brief clinical interpretation of the abnormal result"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Critical Value Detector",
+    "tool_description": "Identifies test results that require immediate clinical attention and generates urgent notifications to healthcare providers.",
+    "parameters": {
+      "test_code": {
+        "type": "string",
+        "required": true,
+        "description": "Laboratory test procedure code"
+      },
+      "result_value": {
+        "type": "number",
+        "required": true,
+        "description": "Test result numeric value"
+      },
+      "patient_location": {
+        "type": "string",
+        "required": true,
+        "description": "Current patient location: inpatient, outpatient, ICU, ER"
+      },
+      "ordering_physician": {
+        "type": "string",
+        "required": true,
+        "description": "ID of physician who ordered the test"
+      },
+      "result_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "When the result was obtained",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Test code not monitored: This test is not configured for critical value detection.",
+      "Invalid result value: Result must be numeric and within measurable range for this test.",
+      "Unknown patient location: Patient location must be one of: inpatient, outpatient, ICU, ER.",
+      "Physician not found: Ordering physician ID not found in provider database.",
+      "Timestamp error: Result timestamp cannot be in the future."
+    ],
+    "usage": "Provide test_code, result_value, patient_location, ordering_physician, and result_timestamp. The tool automatically determines if the result meets critical value thresholds and initiates appropriate notifications.",
+    "output_details": {
+      "is_critical": {
+        "type": "boolean",
+        "description": "Whether the result meets critical value criteria"
+      },
+      "urgency_level": {
+        "type": "string",
+        "description": "Urgency classification: routine, urgent, or stat"
+      },
+      "notification_required": {
+        "type": "boolean",
+        "description": "Whether immediate physician notification is required"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Suggested clinical response to the critical value"
+      },
+      "notification_deadline": {
+        "type": "string",
+        "description": "Time by which physician must be notified",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Quality Control Analyzer",
+    "tool_description": "Analyzes quality control data to ensure analytical accuracy and precision, detecting systematic errors and instrument drift.",
+    "parameters": {
+      "instrument_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the testing instrument"
+      },
+      "qc_level": {
+        "type": "string",
+        "required": true,
+        "description": "Quality control level: level1, level2, or level3"
+      },
+      "target_value": {
+        "type": "number",
+        "required": true,
+        "description": "Expected QC material target value"
+      },
+      "measured_value": {
+        "type": "number",
+        "required": true,
+        "description": "Actual measured QC value"
+      },
+      "test_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date and time of QC measurement",
+        "format": "date-time"
+      },
+      "operator_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of laboratory technician performing QC"
+      },
+      "lot_number": {
+        "type": "string",
+        "required": true,
+        "description": "QC material lot number"
+      },
+      "temperature": {
+        "type": "number",
+        "required": false,
+        "description": "Ambient temperature during testing in Celsius",
+        "default": 22
+      },
+      "humidity": {
+        "type": "number",
+        "required": false,
+        "description": "Relative humidity percentage during testing",
+        "default": 50
+      },
+      "previous_qc_values": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Array of recent QC values for trend analysis",
+        "default": null,
+        "maxItems": 20
+      }
+    },
+    "error_messages": [
+      "Instrument not found: Instrument ID not registered in quality control system.",
+      "Invalid QC level: QC level must be level1, level2, or level3.",
+      "Value out of range: Target or measured value exceeds reasonable limits for this test.",
+      "Invalid date: Test date cannot be in the future or more than 30 days old.",
+      "Operator not authorized: Operator ID not found or lacks QC privileges.",
+      "Invalid environmental conditions: Temperature must be 15-30°C, humidity 30-70%.",
+      "Lot number expired: QC material lot number is expired or not recognized."
+    ],
+    "usage": "Provide instrument_id, qc_level, target_value, measured_value, test_date, operator_id, and lot_number. Include environmental conditions and previous QC values for comprehensive analysis.",
+    "output_details": {
+      "qc_status": {
+        "type": "string",
+        "description": "QC result status: pass, warning, or fail"
+      },
+      "bias_percentage": {
+        "type": "number",
+        "description": "Percentage bias from target value"
+      },
+      "cv_percentage": {
+        "type": "number",
+        "description": "Coefficient of variation percentage"
+      },
+      "trend_analysis": {
+        "type": "string",
+        "description": "Trend assessment: stable, drifting_up, drifting_down, or erratic"
+      },
+      "corrective_action": {
+        "type": "string",
+        "description": "Recommended corrective action if QC fails"
+      },
+      "next_qc_due": {
+        "type": "string",
+        "description": "When next QC measurement is due",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Result Entry Interface",
+    "tool_description": "Provides structured data entry interface for laboratory results with built-in validation and formatting controls.",
+    "parameters": {
+      "sample_id": {
+        "type": "string",
+        "required": true,
+        "description": "Sample identifier linked to test results"
+      },
+      "test_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of test results in 'testcode:value:unit' format",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "technician_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of laboratory technician entering results"
+      },
+      "entry_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "When results were entered into system",
+        "format": "date-time"
+      },
+      "instrument_used": {
+        "type": "string",
+        "required": false,
+        "description": "Instrument used for testing",
+        "default": "manual"
+      },
+      "dilution_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Sample dilution factor if applicable",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Sample not found: Sample ID does not exist in the laboratory information system.",
+      "Invalid result format: Results must follow 'testcode:value:unit' format exactly.",
+      "Technician not authorized: Technician ID not found or lacks result entry privileges.",
+      "Entry timestamp invalid: Timestamp cannot be in the future or before sample collection.",
+      "Instrument not calibrated: Selected instrument is not currently calibrated for these tests.",
+      "Dilution factor error: Dilution factor must be a positive number between 0.1 and 1000."
+    ],
+    "usage": "Provide sample_id, test_results array in specified format, technician_id, and entry_timestamp. Include instrument_used and dilution_factor when applicable for accurate result interpretation.",
+    "output_details": {
+      "entry_status": {
+        "type": "string",
+        "description": "Result entry status: successful, partial, or failed"
+      },
+      "processed_results": {
+        "type": "integer",
+        "description": "Number of results successfully entered"
+      },
+      "failed_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of results that failed entry with error reasons"
+      },
+      "entry_id": {
+        "type": "string",
+        "description": "Unique identifier for this result entry session"
+      },
+      "validation_warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation warnings that require attention"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Integrity Validator",
+    "tool_description": "Performs comprehensive validation of laboratory data integrity including completeness, consistency, and accuracy checks across multiple data elements.",
+    "parameters": {
+      "validation_scope": {
+        "type": "string",
+        "required": true,
+        "description": "Scope of validation: single_sample, batch, daily, or full_audit"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for validation period",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for validation period",
+        "format": "date-time"
+      },
+      "data_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Types of data to validate: patient_data, test_results, qc_data, sample_tracking",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "validation_rules": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Specific validation rules to apply",
+        "default": null,
+        "maxItems": 20
+      },
+      "severity_threshold": {
+        "type": "string",
+        "required": false,
+        "description": "Minimum severity level to report: low, medium, high, critical",
+        "default": "medium"
+      },
+      "include_recommendations": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include corrective action recommendations",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid validation scope: Scope must be single_sample, batch, daily, or full_audit.",
+      "Date range error: End date must be after start date and within acceptable limits.",
+      "Unknown data type: One or more data types are not recognized by the validation system.",
+      "Invalid severity threshold: Threshold must be low, medium, high, or critical.",
+      "Validation rules conflict: Some specified validation rules conflict with each other.",
+      "Date range too large: Full audit scope limited to maximum 30-day periods."
+    ],
+    "usage": "Specify validation_scope, date range, and data_types array. Customize with specific validation_rules and severity_threshold. Set include_recommendations to receive actionable guidance.",
+    "output_details": {
+      "validation_summary": {
+        "type": "string",
+        "description": "Overall validation results summary"
+      },
+      "total_records_checked": {
+        "type": "integer",
+        "description": "Total number of records validated"
+      },
+      "integrity_violations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of detected integrity violations with details"
+      },
+      "compliance_score": {
+        "type": "number",
+        "description": "Data integrity compliance score as percentage"
+      },
+      "critical_issues": {
+        "type": "integer",
+        "description": "Number of critical issues requiring immediate attention"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended corrective actions for identified issues"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audit Trail Generator",
+    "tool_description": "Creates comprehensive audit trails documenting all laboratory system activities for regulatory compliance and security monitoring.",
+    "parameters": {
+      "activity_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of activity: user_login, data_entry, result_modification, system_access, report_generation"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of user performing the activity"
+      },
+      "timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Exact time of activity",
+        "format": "date-time"
+      },
+      "affected_records": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of record IDs affected by this activity",
+        "default": null,
+        "maxItems": 1000
+      },
+      "activity_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of the activity performed"
+      },
+      "ip_address": {
+        "type": "string",
+        "required": false,
+        "description": "IP address of user's workstation",
+        "default": "unknown"
+      },
+      "session_id": {
+        "type": "string",
+        "required": false,
+        "description": "User session identifier",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid activity type: Activity type must be one of the predefined categories.",
+      "User not found: User ID does not exist in the system user database.",
+      "Invalid timestamp: Timestamp must be in valid ISO format and not in the future.",
+      "Description too vague: Activity description must be specific and detailed for audit purposes.",
+      "IP address format error: IP address must be in valid IPv4 or IPv6 format.",
+      "Session expired: Session ID is no longer valid or has expired."
+    ],
+    "usage": "Provide activity_type, user_id, timestamp, and detailed activity_description. Include affected_records, ip_address, and session_id for complete audit documentation.",
+    "output_details": {
+      "audit_id": {
+        "type": "string",
+        "description": "Unique identifier for this audit trail entry"
+      },
+      "logging_status": {
+        "type": "string",
+        "description": "Status of audit log creation: success, warning, or error"
+      },
+      "integrity_hash": {
+        "type": "string",
+        "description": "Cryptographic hash ensuring audit record integrity"
+      },
+      "retention_period": {
+        "type": "string",
+        "description": "How long this audit record will be retained"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Report Generator",
+    "tool_description": "Generates formatted laboratory reports for healthcare providers with customizable layouts and delivery options.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: individual_results, cumulative, critical_values, qc_summary, departmental"
+      },
+      "patient_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of patient identifiers for report generation",
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for report data",
+        "format": "date-time"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for report data",
+        "format": "date-time"
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "description": "Report format: pdf, html, csv, or xml",
+        "default": "pdf"
+      },
+      "include_graphs": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include trend graphs in the report",
+        "default": false
+      },
+      "recipient_list": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of recipient email addresses for report delivery",
+        "default": null,
+        "maxItems": 20
+      },
+      "confidentiality_level": {
+        "type": "string",
+        "required": false,
+        "description": "Report confidentiality: standard, restricted, or confidential",
+        "default": "standard"
+      },
+      "custom_header": {
+        "type": "string",
+        "required": false,
+        "description": "Custom header text for the report",
+        "default": null
+      },
+      "include_reference_ranges": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include reference ranges in results",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid report type: Report type must be one of the supported formats.",
+      "Patient data not found: One or more patient IDs do not exist or have no data in the specified date range.",
+      "Date range error: End date must be after start date and within system limits.",
+      "Unsupported output format: Output format must be pdf, html, csv, or xml.",
+      "Invalid email addresses: One or more recipient email addresses are incorrectly formatted.",
+      "Confidentiality mismatch: User lacks permission to generate reports at requested confidentiality level.",
+      "Date range too large: Report generation limited to maximum 1-year date ranges."
+    ],
+    "usage": "Specify report_type, patient_ids array, and date range. Customize output_format, include visual elements, and set delivery options. Ensure appropriate confidentiality_level for data sensitivity.",
+    "output_details": {
+      "report_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated report"
+      },
+      "generation_status": {
+        "type": "string",
+        "description": "Report generation status: completed, partial, or failed"
+      },
+      "page_count": {

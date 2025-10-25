@@ -1,0 +1,867 @@
+field_name: developer_tools
+subfield: Code Version Control and Collaboration
+task: Code Review and Pull Request Workflow
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. Code review and pull request workflows involve multiple coordinated activities including change analysis, automated testing, reviewer assignment, feedback collection, and merge management. While individual components are well-defined, the coordination between human reviewers, automated systems, and various quality gates creates moderate complexity with dependencies that can impact project timelines.
+
+  **STEP 2 — Set a tool budget**
+
+  For a medium difficulty task, I'll target **12 tools** within the 10-15 range to cover the comprehensive workflow from pull request creation to merge completion.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **PR Creation Tool** - Consumes: branch info, changes → Produces: PR metadata
+  2. **Code Diff Analyzer** - Consumes: file paths, commits → Produces: change analysis
+  3. **Automated Test Runner** - Consumes: codebase, test configs → Produces: test results
+  4. **Reviewer Assignment Tool** - Consumes: PR metadata, team info → Produces: reviewer list
+  5. **Code Quality Checker** - Consumes: source files → Produces: quality metrics
+  6. **Conflict Detection Tool** - Consumes: branch refs → Produces: merge conflicts
+  7. **Review Comment Manager** - Consumes: comments, locations → Produces: feedback threads
+  8. **Approval Status Tracker** - Consumes: reviews → Produces: approval state
+  9. **CI Status Monitor** - Consumes: pipeline IDs → Produces: build status
+  10. **Merge Eligibility Validator** - Consumes: PR state, policies → Produces: merge readiness
+  11. **Branch Merge Executor** - Consumes: validated PR → Produces: merge result
+  12. **Notification Dispatcher** - Consumes: events, recipients → Produces: notifications
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic review: PR Creation Tool → Reviewer Assignment Tool → Review Comment Manager → Approval Status Tracker
+  - Quick quality check: Code Diff Analyzer → Code Quality Checker → Notification Dispatcher
+
+  **Medium Plans:**
+  - Standard workflow: PR Creation Tool → Code Diff Analyzer → Automated Test Runner → Reviewer Assignment Tool → Review Comment Manager → Approval Status Tracker → Branch Merge Executor
+  - Pre-merge validation: Conflict Detection Tool → CI Status Monitor → Merge Eligibility Validator → Branch Merge Executor
+
+  **Complex Plans:**
+  - Full enterprise workflow: PR Creation Tool → Code Diff Analyzer → Automated Test Runner → Code Quality Checker → Conflict Detection Tool → Reviewer Assignment Tool → Review Comment Manager → CI Status Monitor → Approval Status Tracker → Merge Eligibility Validator → Branch Merge Executor → Notification Dispatcher
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "PR Creation Tool",
+    "tool_description": "Creates a new pull request with metadata, linking source and target branches with description and initial settings.",
+    "parameters": {
+      "source_branch": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the source branch containing changes"
+      },
+      "target_branch": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the target branch to merge into"
+      },
+      "title": {
+        "type": "string",
+        "required": true,
+        "description": "Title of the pull request"
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "description": "Detailed description of changes",
+        "default": ""
+      },
+      "draft_mode": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to create as draft PR",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Branch not found: Ensure source_branch and target_branch exist in the repository.",
+      "Invalid branch names: Branch names cannot be empty or contain invalid characters.",
+      "Same branch error: Source and target branches cannot be identical.",
+      "Permission denied: User lacks permission to create pull requests in this repository."
+    ],
+    "usage": "Provide source_branch, target_branch, and title to create a pull request. Optionally add description and set draft_mode to true for work-in-progress changes.",
+    "output_details": {
+      "pr_id": {
+        "type": "string",
+        "description": "Unique identifier for the created pull request"
+      },
+      "pr_url": {
+        "type": "string",
+        "description": "URL to access the pull request"
+      },
+      "status": {
+        "type": "string",
+        "description": "Current status of the pull request"
+      },
+      "created_at": {
+        "type": "string",
+        "description": "Timestamp when PR was created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Code Diff Analyzer",
+    "tool_description": "Analyzes code differences between branches, providing detailed statistics about changes including added/removed lines, modified files, and complexity metrics.",
+    "parameters": {
+      "source_commit": {
+        "type": "string",
+        "required": true,
+        "description": "Commit hash or branch reference for source code"
+      },
+      "target_commit": {
+        "type": "string",
+        "required": true,
+        "description": "Commit hash or branch reference for target code"
+      },
+      "file_patterns": {
+        "type": "array",
+        "required": false,
+        "description": "File patterns to include in analysis",
+        "items": {"type": "string"},
+        "default": ["*"]
+      },
+      "ignore_whitespace": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to ignore whitespace changes",
+        "default": false
+      },
+      "include_binary": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include binary files in analysis",
+        "default": false
+      },
+      "max_files": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of files to analyze",
+        "default": 1000
+      }
+    },
+    "error_messages": [
+      "Invalid commit reference: Ensure source_commit and target_commit are valid commit hashes or branch names.",
+      "Repository access error: Cannot access repository or commits do not exist.",
+      "File pattern error: Invalid regex pattern in file_patterns array.",
+      "Analysis timeout: Analysis exceeded time limits, reduce scope or use max_files parameter."
+    ],
+    "usage": "Provide source_commit and target_commit to analyze differences. Use file_patterns to focus on specific files, set ignore_whitespace for cleaner diffs, and adjust max_files to control scope.",
+    "output_details": {
+      "files_changed": {
+        "type": "integer",
+        "description": "Total number of files modified"
+      },
+      "lines_added": {
+        "type": "integer",
+        "description": "Total lines of code added"
+      },
+      "lines_removed": {
+        "type": "integer",
+        "description": "Total lines of code removed"
+      },
+      "modified_files": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of file paths that were modified"
+      },
+      "complexity_score": {
+        "type": "number",
+        "description": "Calculated complexity score for the changes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Automated Test Runner",
+    "tool_description": "Executes automated test suites against code changes, supporting multiple test types and providing comprehensive results with coverage metrics.",
+    "parameters": {
+      "test_suite": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the test suite to execute"
+      },
+      "branch_ref": {
+        "type": "string",
+        "required": true,
+        "description": "Git branch reference to test against"
+      },
+      "test_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of tests to run",
+        "items": {"type": "string"},
+        "default": ["unit", "integration"]
+      },
+      "parallel_jobs": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of parallel test jobs (1-10)",
+        "default": 2
+      },
+      "timeout_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum execution time in minutes",
+        "default": 30
+      },
+      "coverage_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to collect code coverage metrics",
+        "default": true
+      },
+      "fail_fast": {
+        "type": "boolean",
+        "required": false,
+        "description": "Stop execution on first test failure",
+        "default": false
+      },
+      "environment_vars": {
+        "type": "array",
+        "required": false,
+        "description": "Environment variables for test execution",
+        "items": {"type": "string"},
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Test suite not found: The specified test_suite does not exist in the repository.",
+      "Invalid branch reference: The branch_ref is not a valid git reference.",
+      "Configuration error: parallel_jobs must be between 1-10, timeout_minutes must be positive.",
+      "Environment setup failed: Unable to configure test environment with provided variables.",
+      "Test execution timeout: Tests exceeded the specified timeout_minutes limit."
+    ],
+    "usage": "Specify test_suite and branch_ref to run tests. Configure test_types array for specific test categories, adjust parallel_jobs for performance, and set timeout_minutes appropriately for your test suite size.",
+    "output_details": {
+      "tests_run": {
+        "type": "integer",
+        "description": "Total number of tests executed"
+      },
+      "tests_passed": {
+        "type": "integer",
+        "description": "Number of tests that passed"
+      },
+      "tests_failed": {
+        "type": "integer",
+        "description": "Number of tests that failed"
+      },
+      "execution_time": {
+        "type": "number",
+        "description": "Total execution time in seconds"
+      },
+      "coverage_percentage": {
+        "type": "number",
+        "description": "Code coverage percentage if enabled"
+      },
+      "failed_tests": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of failed test names"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reviewer Assignment Tool",
+    "tool_description": "Automatically assigns code reviewers based on file expertise, workload balancing, and team policies.",
+    "parameters": {
+      "pr_id": {
+        "type": "string",
+        "required": true,
+        "description": "Pull request identifier"
+      },
+      "changed_files": {
+        "type": "array",
+        "required": true,
+        "description": "List of files modified in the PR",
+        "items": {"type": "string"}
+      },
+      "author_username": {
+        "type": "string",
+        "required": true,
+        "description": "Username of the pull request author"
+      },
+      "required_reviewers": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of reviewers required",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Pull request not found: The specified pr_id does not exist.",
+      "Invalid file paths: One or more paths in changed_files are invalid.",
+      "Author not found: The author_username is not a valid user in the system.",
+      "No available reviewers: Cannot find sufficient reviewers matching the criteria."
+    ],
+    "usage": "Provide pr_id, changed_files array, and author_username to automatically assign appropriate reviewers. Set required_reviewers to specify minimum reviewer count based on your team policy.",
+    "output_details": {
+      "assigned_reviewers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Usernames of assigned reviewers"
+      },
+      "reviewer_expertise": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Expertise areas of assigned reviewers"
+      },
+      "assignment_reason": {
+        "type": "string",
+        "description": "Explanation of assignment logic used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Code Quality Checker",
+    "tool_description": "Analyzes code quality using static analysis tools, checking for style violations, security issues, and maintainability metrics.",
+    "parameters": {
+      "file_paths": {
+        "type": "array",
+        "required": true,
+        "description": "Paths to files for quality analysis",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "language": {
+        "type": "string",
+        "required": true,
+        "description": "Programming language of the code"
+      },
+      "ruleset": {
+        "type": "string",
+        "required": false,
+        "description": "Quality ruleset to apply",
+        "default": "standard"
+      },
+      "severity_threshold": {
+        "type": "string",
+        "required": false,
+        "description": "Minimum severity level to report",
+        "default": "warning"
+      },
+      "include_security": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include security vulnerability checks",
+        "default": true
+      },
+      "max_issues": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of issues to report",
+        "default": 100
+      }
+    },
+    "error_messages": [
+      "File access error: Cannot read one or more files in file_paths array.",
+      "Unsupported language: The specified language is not supported for quality analysis.",
+      "Invalid ruleset: The specified ruleset is not available for this language.",
+      "Invalid severity threshold: Use one of: error, warning, info, suggestion."
+    ],
+    "usage": "Provide file_paths array and language for analysis. Configure ruleset for specific coding standards, set severity_threshold to filter results, and enable include_security for vulnerability scanning.",
+    "output_details": {
+      "total_issues": {
+        "type": "integer",
+        "description": "Total number of quality issues found"
+      },
+      "error_count": {
+        "type": "integer",
+        "description": "Number of error-level issues"
+      },
+      "warning_count": {
+        "type": "integer",
+        "description": "Number of warning-level issues"
+      },
+      "security_issues": {
+        "type": "integer",
+        "description": "Number of security-related issues"
+      },
+      "maintainability_score": {
+        "type": "number",
+        "description": "Overall maintainability score (0-100)"
+      },
+      "issue_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed descriptions of found issues"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Conflict Detection Tool",
+    "tool_description": "Detects and analyzes merge conflicts between branches, providing detailed conflict information and resolution suggestions.",
+    "parameters": {
+      "source_branch": {
+        "type": "string",
+        "required": true,
+        "description": "Source branch to check for conflicts"
+      },
+      "target_branch": {
+        "type": "string",
+        "required": true,
+        "description": "Target branch to merge into"
+      }
+    },
+    "error_messages": [
+      "Branch not found: One or both specified branches do not exist in the repository.",
+      "Invalid branch names: Branch names cannot be empty or contain invalid characters.",
+      "Repository access error: Cannot access the repository or insufficient permissions.",
+      "Merge analysis failed: Unable to perform conflict detection due to repository state."
+    ],
+    "usage": "Provide source_branch and target_branch names to detect potential merge conflicts. The tool will analyze file-level conflicts and provide guidance for resolution.",
+    "output_details": {
+      "has_conflicts": {
+        "type": "boolean",
+        "description": "Whether merge conflicts exist"
+      },
+      "conflicted_files": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of files with merge conflicts"
+      },
+      "conflict_count": {
+        "type": "integer",
+        "description": "Total number of conflict regions"
+      },
+      "auto_mergeable": {
+        "type": "boolean",
+        "description": "Whether conflicts can be automatically resolved"
+      },
+      "resolution_suggestions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Suggestions for resolving conflicts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Review Comment Manager",
+    "tool_description": "Manages review comments on pull requests, including creating, updating, resolving, and organizing feedback threads with proper context linking.",
+    "parameters": {
+      "pr_id": {
+        "type": "string",
+        "required": true,
+        "description": "Pull request identifier"
+      },
+      "action": {
+        "type": "string",
+        "required": true,
+        "description": "Action to perform: create, update, resolve, list"
+      },
+      "comment_text": {
+        "type": "string",
+        "required": false,
+        "description": "Text content of the comment",
+        "default": ""
+      },
+      "file_path": {
+        "type": "string",
+        "required": false,
+        "description": "File path for line-specific comments",
+        "default": ""
+      },
+      "line_number": {
+        "type": "integer",
+        "required": false,
+        "description": "Line number for line-specific comments",
+        "default": null
+      },
+      "comment_id": {
+        "type": "string",
+        "required": false,
+        "description": "Existing comment ID for update/resolve actions",
+        "default": ""
+      },
+      "reviewer_username": {
+        "type": "string",
+        "required": true,
+        "description": "Username of the reviewer making the comment"
+      },
+      "comment_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of comment: suggestion, question, issue, praise",
+        "default": "suggestion"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Priority level: low, medium, high, blocking",
+        "default": "medium"
+      },
+      "suggested_change": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested code change for the comment",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Pull request not found: The specified pr_id does not exist.",
+      "Invalid action: Action must be one of: create, update, resolve, list.",
+      "Comment not found: The specified comment_id does not exist for update/resolve actions.",
+      "Invalid line reference: file_path and line_number combination is invalid.",
+      "Permission denied: reviewer_username lacks permission to comment on this pull request.",
+      "Missing required fields: comment_text is required for create and update actions.",
+      "Invalid comment type: Use one of: suggestion, question, issue, praise.",
+      "Invalid priority: Use one of: low, medium, high, blocking."
+    ],
+    "usage": "Specify pr_id, action, and reviewer_username for all operations. For creating comments, provide comment_text and optionally file_path/line_number for line-specific feedback. Use comment_id for update/resolve actions.",
+    "output_details": {
+      "comment_id": {
+        "type": "string",
+        "description": "Unique identifier of the comment"
+      },
+      "status": {
+        "type": "string",
+        "description": "Current status of the comment"
+      },
+      "created_at": {
+        "type": "string",
+        "description": "Timestamp when comment was created"
+      },
+      "thread_id": {
+        "type": "string",
+        "description": "Thread identifier for grouped comments"
+      },
+      "all_comments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "All comments for the PR when action is list"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Approval Status Tracker",
+    "tool_description": "Tracks and manages approval status for pull requests, monitoring reviewer responses and enforcing approval policies.",
+    "parameters": {
+      "pr_id": {
+        "type": "string",
+        "required": true,
+        "description": "Pull request identifier to track"
+      },
+      "reviewer_username": {
+        "type": "string",
+        "required": false,
+        "description": "Specific reviewer to check status for",
+        "default": ""
+      },
+      "approval_action": {
+        "type": "string",
+        "required": false,
+        "description": "Action to record: approve, request_changes, dismiss",
+        "default": ""
+      },
+      "review_comment": {
+        "type": "string",
+        "required": false,
+        "description": "Comment accompanying the approval action",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Pull request not found: The specified pr_id does not exist.",
+      "Reviewer not found: The reviewer_username is not assigned to this pull request.",
+      "Invalid approval action: Use one of: approve, request_changes, dismiss.",
+      "Permission denied: User lacks permission to modify approval status.",
+      "Duplicate approval: Reviewer has already provided approval for this pull request."
+    ],
+    "usage": "Provide pr_id to check overall approval status, or include reviewer_username and approval_action to record a specific reviewer's decision. Add review_comment to provide context for the approval decision.",
+    "output_details": {
+      "overall_status": {
+        "type": "string",
+        "description": "Overall approval status of the pull request"
+      },
+      "approvals_received": {
+        "type": "integer",
+        "description": "Number of approvals received"
+      },
+      "approvals_required": {
+        "type": "integer",
+        "description": "Number of approvals required by policy"
+      },
+      "changes_requested": {
+        "type": "integer",
+        "description": "Number of reviewers requesting changes"
+      },
+      "pending_reviewers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of reviewers who haven't responded"
+      },
+      "approval_ready": {
+        "type": "boolean",
+        "description": "Whether PR meets approval requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "CI Status Monitor",
+    "tool_description": "Monitors continuous integration pipeline status and build results for pull request validation.",
+    "parameters": {
+      "pr_id": {
+        "type": "string",
+        "required": true,
+        "description": "Pull request identifier to monitor"
+      },
+      "pipeline_name": {
+        "type": "string",
+        "required": false,
+        "description": "Specific pipeline to monitor",
+        "default": "default"
+      },
+      "wait_for_completion": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to wait for pipeline completion",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Pull request not found: The specified pr_id does not exist.",
+      "Pipeline not found: The specified pipeline_name is not configured for this repository.",
+      "CI system unavailable: Cannot connect to continuous integration system.",
+      "Monitoring timeout: Pipeline monitoring exceeded maximum wait time."
+    ],
+    "usage": "Provide pr_id to monitor CI status. Specify pipeline_name for specific pipelines, and set wait_for_completion to true if you need to wait for build completion before returning results.",
+    "output_details": {
+      "build_status": {
+        "type": "string",
+        "description": "Current build status of the CI pipeline"
+      },
+      "build_url": {
+        "type": "string",
+        "description": "URL to view detailed build information"
+      },
+      "completion_time": {
+        "type": "string",
+        "description": "Timestamp when build completed"
+      },
+      "success_rate": {
+        "type": "number",
+        "description": "Success percentage of pipeline stages"
+      },
+      "failed_stages": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of failed pipeline stages"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Merge Eligibility Validator",
+    "tool_description": "Validates whether a pull request meets all requirements for merging based on approval status, CI results, and repository policies.",
+    "parameters": {
+      "pr_id": {
+        "type": "string",
+        "required": true,
+        "description": "Pull request identifier to validate"
+      },
+      "override_policies": {
+        "type": "array",
+        "required": false,
+        "description": "Policy names to override for this validation",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "force_validation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to force validation despite warnings",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Pull request not found: The specified pr_id does not exist.",
+      "Invalid override policies: One or more policy names in override_policies are not recognized.",
+      "Validation access denied: User lacks permission to validate merge eligibility.",
+      "Repository policy error: Cannot access or parse repository merge policies."
+    ],
+    "usage": "Provide pr_id to validate merge eligibility against all configured policies. Use override_policies array to bypass specific policies if authorized, and set force_validation to true to override warning conditions.",
+    "output_details": {
+      "merge_eligible": {
+        "type": "boolean",
+        "description": "Whether the pull request is eligible for merging"
+      },
+      "blocking_issues": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of issues preventing merge"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Non-blocking warnings about the merge"
+      },
+      "policy_compliance": {
+        "type": "string",
+        "description": "Overall policy compliance status"
+      },
+      "validation_timestamp": {
+        "type": "string",
+        "description": "When validation was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Branch Merge Executor",
+    "tool_description": "Executes the actual merge operation for approved pull requests, handling different merge strategies and post-merge cleanup.",
+    "parameters": {
+      "pr_id": {
+        "type": "string",
+        "required": true,
+        "description": "Pull request identifier to merge"
+      },
+      "merge_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Merge strategy: merge, squash, rebase",
+        "default": "merge"
+      },
+      "delete_source_branch": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to delete source branch after merge",
+        "default": true
+      },
+      "merge_commit_message": {
+        "type": "string",
+        "required": false,
+        "description": "Custom commit message for the merge",
+        "default": ""
+      }
+    },
+    "error_messages": [
+      "Pull request not found: The specified pr_id does not exist.",
+      "Merge not allowed: Pull request does not meet merge requirements.",
+      "Invalid merge strategy: Use one of: merge, squash, rebase.",
+      "Merge conflict: Cannot automatically merge due to conflicts that need manual resolution.",
+      "Branch protection: Target branch has protection rules preventing this merge."
+    ],
+    "usage": "Provide pr_id of a validated and approved pull request. Choose appropriate merge_strategy based on your workflow, set delete_source_branch as needed, and optionally provide custom merge_commit_message.",
+    "output_details": {
+      "merge_successful": {
+        "type": "boolean",
+        "description": "Whether the merge operation succeeded"
+      },
+      "merge_commit_hash": {
+        "type": "string",
+        "description": "Commit hash of the merge commit"
+      },
+      "merged_at": {
+        "type": "string",
+        "description": "Timestamp when merge was completed"
+      },
+      "branch_deleted": {
+        "type": "boolean",
+        "description": "Whether source branch was deleted"
+      },
+      "merge_details": {
+        "type": "string",
+        "description": "Additional details about the merge operation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Dispatcher",
+    "tool_description": "Sends notifications to relevant team members about pull request events, status changes, and required actions.",
+    "parameters": {
+      "event_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of event triggering notification"
+      },
+      "pr_id": {
+        "type": "string",
+        "required": true,
+        "description": "Pull request identifier associated with event"
+      },
+      "recipients": {
+        "type": "array",
+        "required": true,
+        "description": "List of usernames to notify",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "notification_channels": {
+        "type": "array",
+        "required": false,
+        "description": "Channels to send notifications through",
+        "items": {"type": "string"},
+        "default": ["email"]
+      },
+      "custom_message": {
+        "type": "string",
+        "required": false,
+        "description": "Custom message to include in notification",
+        "default": ""
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Notification priority level",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Invalid event type: The specified event_type is not supported for notifications.",
+      "Pull request not found: The specified pr_id does not exist.",
+      "Invalid recipients: One or more usernames in recipients array are not valid users.",
+      "Unsupported channel: One or more notification_channels are not configured.",
+      "Notification delivery failed: Unable to deliver notifications through specified channels."
+    ],
+    "usage": "Specify event_type, pr_id, and recipients array to send notifications. Configure notification_channels based on your team's preferences and add custom_message for additional context.",
+    "output_details": {
+      "notifications_sent": {
+        "type": "integer",
+        "description": "Number of notifications successfully sent"
+      },
+      "successful_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Channels that successfully delivered notifications"
+      },
+      "failed_deliveries": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recipients or channels where delivery failed"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "description": "When notifications were dispatched"
+      }
+    }
+  }
+  ```

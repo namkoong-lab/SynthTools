@@ -1,0 +1,809 @@
+field_name: facilities_management
+subfield: HVAC Systems Management
+task: Schedule and track preventive maintenance for HVAC equipment and components
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task has medium difficulty. It involves multiple interconnected workflows including equipment inventory management, maintenance scheduling algorithms, resource allocation, and compliance tracking. While the core scheduling logic is well-defined, coordinating technician availability, parts inventory, and regulatory requirements across multiple HVAC systems creates moderate complexity with dependencies between subsystems.
+
+  STEP 2 — Set a tool budget
+
+  Given the medium difficulty rating, I'll target 12 tools to cover the key workflows: equipment management, scheduling algorithms, resource coordination, work order management, compliance tracking, and reporting capabilities.
+
+  STEP 3 — List all tool names with dependencies and affordances
+
+  1. **HVAC Equipment Registrar** - Consumes: equipment specs, location data | Produces: equipment inventory database
+  2. **Maintenance Schedule Generator** - Consumes: equipment data, maintenance intervals | Produces: scheduled maintenance tasks
+  3. **Technician Availability Checker** - Consumes: date ranges, skill requirements | Produces: available technician slots
+  4. **Parts Inventory Tracker** - Consumes: part numbers, quantities | Produces: inventory status and alerts
+  5. **Work Order Creator** - Consumes: maintenance tasks, resources | Produces: detailed work orders
+  6. **Maintenance Task Executor** - Consumes: work orders, completion data | Produces: completed task records
+  7. **Compliance Rule Validator** - Consumes: maintenance schedules, regulations | Produces: compliance status reports
+  8. **Emergency Priority Adjuster** - Consumes: urgent requests, current schedules | Produces: reprioritized schedules
+  9. **Cost Calculator** - Consumes: labor, parts, equipment data | Produces: maintenance cost estimates
+  10. **Performance Analytics** - Consumes: historical maintenance data | Produces: equipment performance insights
+  11. **Maintenance Report Generator** - Consumes: completed tasks, metrics | Produces: formatted reports
+  12. **Schedule Optimizer** - Consumes: multiple constraints, preferences | Produces: optimized maintenance calendar
+
+  STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  - Equipment Registration + Schedule Generation: Register new HVAC units and create basic maintenance schedules
+  - Parts Tracking + Cost Calculation: Monitor inventory levels and estimate maintenance costs
+
+  **Medium Plans:**
+  - Schedule Generation + Technician Availability + Work Order Creation: Create comprehensive work orders with assigned technicians
+  - Compliance Validation + Report Generation + Performance Analytics: Generate regulatory compliance reports with performance insights
+
+  **Complex Plans:**
+  - Equipment Registration + Schedule Generation + Schedule Optimizer + Technician Availability + Parts Tracking + Work Order Creation: End-to-end preventive maintenance planning
+  - Emergency Priority Adjustment + Schedule Optimizer + Technician Availability + Parts Tracking + Task Execution + Report Generation: Handle emergency situations while maintaining scheduled maintenance
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "HVAC Equipment Registrar",
+    "tool_description": "Registers and manages HVAC equipment inventory with location, specifications, and maintenance requirements.",
+    "parameters": {
+      "equipment_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the HVAC equipment"
+      },
+      "equipment_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of HVAC equipment (chiller, boiler, air_handler, fan_coil, vav_box, exhaust_fan, heat_pump)"
+      },
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Physical location or zone identifier"
+      },
+      "manufacturer": {
+        "type": "string",
+        "required": true,
+        "description": "Equipment manufacturer name"
+      },
+      "model_number": {
+        "type": "string",
+        "required": true,
+        "description": "Manufacturer model number"
+      },
+      "installation_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when equipment was installed",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Duplicate equipment ID: The equipment_id already exists in the system. Use a unique identifier.",
+      "Invalid equipment type: Use one of [chiller, boiler, air_handler, fan_coil, vav_box, exhaust_fan, heat_pump].",
+      "Invalid installation date: Provide a valid ISO 8601 date-time that is not in the future."
+    ],
+    "usage": "Provide all required parameters to register new HVAC equipment. The tool creates a record in the equipment database with generated maintenance intervals based on equipment type.",
+    "output_details": {
+      "registration_status": {
+        "type": "string",
+        "description": "Confirmation of successful equipment registration"
+      },
+      "equipment_record_id": {
+        "type": "string",
+        "description": "Generated unique record identifier"
+      },
+      "recommended_maintenance_interval": {
+        "type": "integer",
+        "description": "Suggested maintenance interval in days based on equipment type"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Maintenance Schedule Generator",
+    "tool_description": "Creates preventive maintenance schedules for HVAC equipment based on manufacturer recommendations and operational requirements.",
+    "parameters": {
+      "equipment_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of equipment IDs to schedule",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "schedule_start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for maintenance scheduling",
+        "format": "date-time"
+      },
+      "schedule_horizon_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days to schedule ahead (30-365)"
+      },
+      "maintenance_interval_override": {
+        "type": "integer",
+        "required": false,
+        "description": "Override default maintenance interval in days (7-180)",
+        "default": null
+      },
+      "preferred_days": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred days of week for maintenance (monday, tuesday, wednesday, thursday, friday, saturday, sunday)",
+        "items": {"type": "string"},
+        "default": ["monday", "tuesday", "wednesday", "thursday", "friday"]
+      },
+      "exclude_dates": {
+        "type": "array",
+        "required": false,
+        "description": "Dates to exclude from scheduling",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Maintenance priority (low, medium, high, critical)",
+        "default": "medium"
+      }
+    },
+    "error_messages": [
+      "Invalid equipment ID: One or more equipment IDs not found in the system database.",
+      "Invalid schedule horizon: schedule_horizon_days must be between 30 and 365 days.",
+      "Invalid maintenance interval: maintenance_interval_override must be between 7 and 180 days if specified.",
+      "Invalid preferred days: Use valid day names (monday through sunday).",
+      "Invalid priority level: Use one of [low, medium, high, critical].",
+      "Invalid date format: All dates must be in ISO 8601 format."
+    ],
+    "usage": "Provide equipment_ids, schedule_start_date, and schedule_horizon_days. Optionally customize with maintenance_interval_override, preferred_days, exclude_dates, and priority_level to generate optimized maintenance schedules.",
+    "output_details": {
+      "schedule_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated schedule"
+      },
+      "total_tasks_scheduled": {
+        "type": "integer",
+        "description": "Total number of maintenance tasks created"
+      },
+      "scheduled_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of scheduled maintenance dates"
+      },
+      "equipment_coverage": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of equipment IDs included in the schedule"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Technician Availability Checker",
+    "tool_description": "Checks technician availability and skill matching for scheduled maintenance tasks.",
+    "parameters": {
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for availability check",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for availability check",
+        "format": "date-time"
+      },
+      "required_skills": {
+        "type": "array",
+        "required": true,
+        "description": "Required technical skills",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "estimated_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Estimated hours for the task (0.5-8.0)",
+        "default": 2.0
+      }
+    },
+    "error_messages": [
+      "Invalid date range: end_date must be after start_date and both must be valid ISO 8601 dates.",
+      "Invalid estimated hours: Must be between 0.5 and 8.0 hours.",
+      "No matching technicians: No technicians found with the required skill set.",
+      "Invalid skill specification: Provide at least one required skill from the approved skills list."
+    ],
+    "usage": "Provide start_date, end_date, and required_skills array. Optionally specify estimated_hours to find available technicians with matching qualifications.",
+    "output_details": {
+      "available_technicians": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of available technician IDs with required skills"
+      },
+      "availability_slots": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Available time slots in ISO 8601 format"
+      },
+      "skill_match_score": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Skill matching scores for each available technician (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Parts Inventory Tracker",
+    "tool_description": "Tracks HVAC parts inventory levels, manages stock alerts, and forecasts parts requirements for scheduled maintenance.",
+    "parameters": {
+      "part_numbers": {
+        "type": "array",
+        "required": true,
+        "description": "Array of part numbers to check",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "required_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Required quantity for each part",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "check_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when parts are needed",
+        "format": "date-time"
+      },
+      "location_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred warehouse location",
+        "default": "primary"
+      },
+      "urgent_flag": {
+        "type": "boolean",
+        "required": false,
+        "description": "Mark as urgent for priority handling",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: part_numbers and required_quantities arrays must have the same length.",
+      "Invalid part number: One or more part numbers not found in the inventory system.",
+      "Invalid quantity: All quantities must be positive integers greater than 0.",
+      "Invalid check date: Date must be in ISO 8601 format and not more than 365 days in the future.",
+      "Invalid location preference: Use a valid warehouse location identifier."
+    ],
+    "usage": "Provide part_numbers array with corresponding required_quantities array and check_date. Optionally specify location_preference and urgent_flag to get inventory status and availability.",
+    "output_details": {
+      "inventory_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Status for each part: available, low_stock, out_of_stock, on_order"
+      },
+      "available_quantities": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Current available quantity for each requested part"
+      },
+      "estimated_delivery_dates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Estimated delivery dates for out-of-stock items"
+      },
+      "total_estimated_cost": {
+        "type": "number",
+        "description": "Total estimated cost for all requested parts"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Work Order Creator",
+    "tool_description": "Creates detailed work orders for HVAC maintenance tasks with assigned resources, timelines, and specifications.",
+    "parameters": {
+      "schedule_id": {
+        "type": "string",
+        "required": true,
+        "description": "Schedule ID from maintenance schedule generator"
+      },
+      "equipment_id": {
+        "type": "string",
+        "required": true,
+        "description": "Equipment identifier for maintenance"
+      },
+      "assigned_technician_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of assigned technician"
+      },
+      "scheduled_start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Scheduled start time for maintenance",
+        "format": "date-time"
+      },
+      "estimated_duration_hours": {
+        "type": "number",
+        "required": true,
+        "description": "Estimated duration in hours (0.5-8.0)"
+      },
+      "maintenance_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of maintenance (preventive, corrective, emergency, inspection)"
+      },
+      "required_parts": {
+        "type": "array",
+        "required": false,
+        "description": "Array of required part numbers",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "description": "Special instructions or safety requirements",
+        "default": ""
+      },
+      "priority_level": {
+        "type": "string",
+        "required": false,
+        "description": "Work order priority (low, medium, high, critical)",
+        "default": "medium"
+      },
+      "estimated_cost": {
+        "type": "number",
+        "required": false,
+        "description": "Estimated total cost for the work order",
+        "default": 0.0
+      }
+    },
+    "error_messages": [
+      "Invalid schedule reference: schedule_id not found in the system.",
+      "Invalid equipment reference: equipment_id not found in registered equipment.",
+      "Invalid technician assignment: assigned_technician_id not found or unavailable.",
+      "Invalid duration: estimated_duration_hours must be between 0.5 and 8.0 hours.",
+      "Invalid maintenance type: Use one of [preventive, corrective, emergency, inspection].",
+      "Invalid priority level: Use one of [low, medium, high, critical].",
+      "Invalid start time: scheduled_start_time must be a valid future ISO 8601 date-time."
+    ],
+    "usage": "Provide schedule_id, equipment_id, assigned_technician_id, scheduled_start_time, estimated_duration_hours, and maintenance_type. Optionally add required_parts, special_instructions, priority_level, and estimated_cost to create comprehensive work orders.",
+    "output_details": {
+      "work_order_id": {
+        "type": "string",
+        "description": "Unique work order identifier"
+      },
+      "creation_timestamp": {
+        "type": "string",
+        "description": "When the work order was created"
+      },
+      "status": {
+        "type": "string",
+        "description": "Current work order status"
+      },
+      "resource_requirements_summary": {
+        "type": "string",
+        "description": "Summary of technician, parts, and time requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Maintenance Task Executor",
+    "tool_description": "Records completion of maintenance tasks, captures performance data, and updates equipment maintenance history.",
+    "parameters": {
+      "work_order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Work order identifier being completed"
+      },
+      "completion_status": {
+        "type": "string",
+        "required": true,
+        "description": "Task completion status (completed, partially_completed, failed, deferred)"
+      },
+      "actual_start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Actual start time of maintenance work",
+        "format": "date-time"
+      },
+      "actual_end_time": {
+        "type": "string",
+        "required": true,
+        "description": "Actual completion time of maintenance work",
+        "format": "date-time"
+      },
+      "technician_notes": {
+        "type": "string",
+        "required": true,
+        "description": "Technician observations and notes"
+      },
+      "parts_used": {
+        "type": "array",
+        "required": false,
+        "description": "Array of part numbers actually used",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "quantities_used": {
+        "type": "array",
+        "required": false,
+        "description": "Quantities of parts used",
+        "items": {"type": "integer"},
+        "default": []
+      },
+      "issues_found": {
+        "type": "array",
+        "required": false,
+        "description": "Array of issues discovered during maintenance",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "follow_up_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether follow-up maintenance is needed",
+        "default": false
+      },
+      "equipment_condition_rating": {
+        "type": "integer",
+        "required": false,
+        "description": "Equipment condition rating (1-10 scale)",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Invalid work order: work_order_id not found or already completed.",
+      "Invalid completion status: Use one of [completed, partially_completed, failed, deferred].",
+      "Invalid time sequence: actual_end_time must be after actual_start_time.",
+      "Mismatched parts arrays: parts_used and quantities_used arrays must have the same length.",
+      "Invalid condition rating: equipment_condition_rating must be between 1 and 10.",
+      "Missing technician notes: technician_notes cannot be empty for completed tasks."
+    ],
+    "usage": "Provide work_order_id, completion_status, actual start/end times, and technician_notes. Optionally include parts_used, quantities_used, issues_found, follow_up_required, and equipment_condition_rating to create comprehensive completion records.",
+    "output_details": {
+      "completion_record_id": {
+        "type": "string",
+        "description": "Unique completion record identifier"
+      },
+      "actual_duration_hours": {
+        "type": "number",
+        "description": "Calculated actual duration in hours"
+      },
+      "next_scheduled_maintenance": {
+        "type": "string",
+        "description": "Next scheduled maintenance date based on completion"
+      },
+      "cost_summary": {
+        "type": "number",
+        "description": "Total cost including labor and parts"
+      },
+      "update_status": {
+        "type": "string",
+        "description": "Confirmation of record updates"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Rule Validator",
+    "tool_description": "Validates maintenance schedules against regulatory requirements, industry standards, and organizational policies.",
+    "parameters": {
+      "schedule_id": {
+        "type": "string",
+        "required": true,
+        "description": "Schedule identifier to validate"
+      },
+      "regulation_standards": {
+        "type": "array",
+        "required": true,
+        "description": "Applicable regulation standards to check against",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "facility_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of facility (office, hospital, school, manufacturing, retail, warehouse)"
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": false,
+        "description": "Regulatory jurisdiction (federal, state, local, international)",
+        "default": "federal"
+      }
+    },
+    "error_messages": [
+      "Invalid schedule reference: schedule_id not found in the system.",
+      "Invalid regulation standards: One or more regulation standards not recognized.",
+      "Invalid facility type: Use one of [office, hospital, school, manufacturing, retail, warehouse].",
+      "Invalid jurisdiction: Use one of [federal, state, local, international]."
+    ],
+    "usage": "Provide schedule_id, regulation_standards array, and facility_type to validate maintenance schedules against compliance requirements. Optionally specify jurisdiction for location-specific regulations.",
+    "output_details": {
+      "compliance_status": {
+        "type": "string",
+        "description": "Overall compliance status: compliant, non_compliant, warning"
+      },
+      "violations_found": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of compliance violations or issues identified"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Recommendations to achieve or maintain compliance"
+      },
+      "next_audit_date": {
+        "type": "string",
+        "description": "Recommended next compliance audit date"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Emergency Priority Adjuster",
+    "tool_description": "Adjusts maintenance schedules to accommodate emergency repairs and urgent maintenance requests while minimizing disruption.",
+    "parameters": {
+      "emergency_equipment_id": {
+        "type": "string",
+        "required": true,
+        "description": "Equipment ID requiring emergency maintenance"
+      },
+      "emergency_priority": {
+        "type": "string",
+        "required": true,
+        "description": "Emergency priority level (urgent, critical, emergency_shutdown)"
+      },
+      "requested_completion_time": {
+        "type": "string",
+        "required": true,
+        "description": "When emergency maintenance must be completed",
+        "format": "date-time"
+      },
+      "affected_schedules": {
+        "type": "array",
+        "required": true,
+        "description": "Schedule IDs that may be impacted",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "required_technician_skills": {
+        "type": "array",
+        "required": true,
+        "description": "Required skills for emergency repair",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "estimated_emergency_hours": {
+        "type": "number",
+        "required": true,
+        "description": "Estimated hours for emergency repair (0.5-12.0)"
+      }
+    },
+    "error_messages": [
+      "Invalid equipment reference: emergency_equipment_id not found in registered equipment.",
+      "Invalid emergency priority: Use one of [urgent, critical, emergency_shutdown].",
+      "Invalid completion time: requested_completion_time must be a valid future ISO 8601 date-time.",
+      "Invalid schedule references: One or more schedule IDs not found.",
+      "Invalid estimated hours: Must be between 0.5 and 12.0 hours.",
+      "Insufficient available resources: No technicians available with required skills in the requested timeframe."
+    ],
+    "usage": "Provide emergency_equipment_id, emergency_priority, requested_completion_time, affected_schedules array, required_technician_skills, and estimated_emergency_hours to reschedule maintenance priorities and accommodate emergency repairs.",
+    "output_details": {
+      "adjustment_plan_id": {
+        "type": "string",
+        "description": "Unique identifier for the schedule adjustment plan"
+      },
+      "rescheduled_tasks": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of task IDs that were rescheduled"
+      },
+      "assigned_emergency_technician": {
+        "type": "string",
+        "description": "Technician ID assigned to emergency repair"
+      },
+      "estimated_impact_hours": {
+        "type": "number",
+        "description": "Total hours of delayed maintenance due to emergency"
+      },
+      "new_emergency_schedule_time": {
+        "type": "string",
+        "description": "Confirmed time slot for emergency maintenance"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cost Calculator",
+    "tool_description": "Calculates comprehensive costs for HVAC maintenance including labor, parts, overhead, and opportunity costs.",
+    "parameters": {
+      "labor_hours": {
+        "type": "number",
+        "required": true,
+        "description": "Total labor hours required"
+      },
+      "technician_rate_per_hour": {
+        "type": "number",
+        "required": true,
+        "description": "Hourly rate for technician labor"
+      },
+      "parts_costs": {
+        "type": "array",
+        "required": false,
+        "description": "Array of individual part costs",
+        "items": {"type": "number"},
+        "default": []
+      },
+      "overhead_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Overhead percentage to apply (0-100)",
+        "default": 15.0
+      },
+      "travel_time_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Travel time in hours",
+        "default": 0.0
+      }
+    },
+    "error_messages": [
+      "Invalid labor hours: Must be greater than 0 and less than 24 hours.",
+      "Invalid technician rate: Must be greater than 0.",
+      "Invalid overhead percentage: Must be between 0 and 100.",
+      "Invalid travel time: Must be between 0 and 8 hours.",
+      "Invalid parts costs: All part costs must be positive numbers."
+    ],
+    "usage": "Provide labor_hours and technician_rate_per_hour as minimum requirements. Optionally include parts_costs array, overhead_percentage, and travel_time_hours for comprehensive cost calculations.",
+    "output_details": {
+      "total_labor_cost": {
+        "type": "number",
+        "description": "Total cost for labor including travel time"
+      },
+      "total_parts_cost": {
+        "type": "number",
+        "description": "Total cost for all parts"
+      },
+      "overhead_cost": {
+        "type": "number",
+        "description": "Calculated overhead cost"
+      },
+      "total_maintenance_cost": {
+        "type": "number",
+        "description": "Total comprehensive maintenance cost"
+      },
+      "cost_breakdown": {
+        "type": "string",
+        "description": "Detailed breakdown of cost components"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Performance Analytics",
+    "tool_description": "Analyzes HVAC equipment performance trends, maintenance effectiveness, and provides predictive insights based on historical data.",
+    "parameters": {
+      "equipment_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of equipment IDs to analyze",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "analysis_start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period",
+        "format": "date-time"
+      },
+      "analysis_end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period",
+        "format": "date-time"
+      },
+      "metrics_to_analyze": {
+        "type": "array",
+        "required": true,
+        "description": "Performance metrics to analyze",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 15
+      },
+      "trend_analysis_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable trend analysis and forecasting",
+        "default": true
+      },
+      "benchmark_comparison": {
+        "type": "boolean",
+        "required": false,
+        "description": "Compare against industry benchmarks",
+        "default": false
+      },
+      "anomaly_detection": {
+        "type": "boolean",
+        "required": false,
+        "description": "Enable anomaly detection in performance data",
+        "default": true
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Statistical confidence threshold (0.80-0.99)",
+        "default": 0.95
+      },
+      "forecast_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of days to forecast ahead (7-90)",
+        "default": 30
+      },
+      "include_cost_analysis": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include cost-effectiveness analysis",
+        "default": false
+      },
+      "grouping_criteria": {
+        "type": "string",
+        "required": false,
+        "description": "How to group analysis results (by_equipment, by_type, by_location, by_age)",
+        "default": "by_equipment"
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "description": "Desired output detail level (summary, detailed, comprehensive)",
+        "default": "detailed"
+      }
+    },
+    "error_messages": [
+      "Invalid equipment references: One or more equipment IDs not found in the system.",
+      "Invalid date range: analysis_end_date must be after analysis_start_date and both must be valid ISO 8601 dates.",
+      "Invalid metrics specification: One or more metrics not available for analysis.",
+      "Invalid confidence threshold: Must be between 0.80 and 0.99.",
+      "Invalid forecast period: forecast_days must be between 7 and 90 days.",
+      "Invalid grouping criteria: Use one of [by_equipment, by_type, by_location, by_age].",
+      "Invalid output format: Use one of [summary, detailed, comprehensive].",
+      "Insufficient data: Not enough historical data available for meaningful analysis."
+    ],
+    "usage": "Provide equipment_ids array, analysis date range, and metrics_to_analyze. Configure optional parameters like trend_analysis_enabled, benchmark_comparison, anomaly_detection, and others to customize the analysis depth and output format.",

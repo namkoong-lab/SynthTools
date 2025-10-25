@@ -1,0 +1,823 @@
+field_name: weather_services
+subfield: Meteorological Forecasting and Prediction
+task: Collect and aggregate real-time weather data from multiple observation stations and sensors
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. It involves coordinating data collection from multiple heterogeneous sources, handling real-time data streams, managing potential sensor failures, and ensuring data quality and consistency across different observation stations with varying data formats and update frequencies.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target **12 tools** to cover the various aspects of real-time weather data collection, validation, transformation, and aggregation from multiple sources.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  Tools and their data flow:
+  1. **Station Discovery Tool** → produces station metadata
+  2. **Data Source Connector** → consumes connection parameters → produces raw sensor data
+  3. **Real-time Data Fetcher** → consumes station IDs → produces timestamped measurements
+  4. **Data Quality Validator** → consumes raw data → produces validation results
+  5. **Unit Converter** → consumes measurements → produces standardized units
+  6. **Timestamp Synchronizer** → consumes timestamped data → produces synchronized data
+  7. **Missing Data Handler** → consumes incomplete data → produces interpolated/flagged data
+  8. **Outlier Detection Tool** → consumes measurements → produces anomaly flags
+  9. **Data Aggregator** → consumes validated data → produces aggregated metrics
+  10. **Station Status Monitor** → produces operational status
+  11. **Data Export Tool** → consumes aggregated data → produces formatted output
+  12. **Alert Generator** → consumes quality metrics → produces alerts
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  1. Basic data collection: Station Discovery → Data Source Connector → Real-time Data Fetcher → Data Export
+  2. Quality check workflow: Data Quality Validator → Unit Converter → Data Export
+
+  **Medium plans:**
+  1. Standard aggregation: Real-time Data Fetcher → Data Quality Validator → Unit Converter → Timestamp Synchronizer → Data Aggregator → Data Export
+  2. Monitoring workflow: Station Status Monitor → Real-time Data Fetcher → Outlier Detection → Alert Generator
+
+  **Complex plans:**
+  1. Full pipeline: Station Discovery → Data Source Connector → Real-time Data Fetcher → Data Quality Validator → Unit Converter → Timestamp Synchronizer → Missing Data Handler → Outlier Detection → Data Aggregator → Data Export
+  2. Quality assurance pipeline: Real-time Data Fetcher → Data Quality Validator → Outlier Detection → Missing Data Handler → Unit Converter → Timestamp Synchronizer → Station Status Monitor → Alert Generator → Data Aggregator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Station Discovery Tool",
+    "tool_description": "Discovers and catalogs available weather observation stations within a geographic region, returning station metadata including coordinates, sensor types, and data availability.",
+    "parameters": {
+      "region_bounds": {
+        "type": "array",
+        "required": true,
+        "description": "Geographic bounding box as [min_lat, min_lon, max_lat, max_lon]",
+        "items": {"type": "number"},
+        "minItems": 4,
+        "maxItems": 4
+      },
+      "station_types": {
+        "type": "array",
+        "required": false,
+        "description": "Filter by station types: automatic, manual, radar, satellite, buoy",
+        "items": {"type": "string"},
+        "default": ["automatic", "manual"]
+      },
+      "min_data_availability": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum data availability percentage (0-100)",
+        "default": 80
+      }
+    },
+    "error_messages": [
+      "Invalid region bounds: Provide valid latitude (-90 to 90) and longitude (-180 to 180) values in correct order [min_lat, min_lon, max_lat, max_lon].",
+      "Invalid station types: Use supported types [automatic, manual, radar, satellite, buoy].",
+      "Invalid availability threshold: min_data_availability must be between 0 and 100."
+    ],
+    "usage": "Provide geographic bounds as a 4-element array, optionally filter by station types and minimum data availability percentage to discover relevant weather stations.",
+    "output_details": {
+      "station_count": {
+        "type": "integer",
+        "description": "Number of stations found"
+      },
+      "station_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of station identifier codes"
+      },
+      "station_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of station names"
+      },
+      "coordinates": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Flattened array of lat,lon pairs for each station"
+      },
+      "sensor_types": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Available sensor types per station"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Source Connector",
+    "tool_description": "Establishes connections to weather data sources using various protocols (API, FTP, TCP) and authentication methods, managing connection pooling and retry logic.",
+    "parameters": {
+      "source_url": {
+        "type": "string",
+        "required": true,
+        "description": "URL or endpoint of the weather data source"
+      },
+      "protocol": {
+        "type": "string",
+        "required": true,
+        "description": "Connection protocol: http, https, ftp, tcp, websocket"
+      },
+      "auth_type": {
+        "type": "string",
+        "required": false,
+        "description": "Authentication type: none, basic, bearer, api_key",
+        "default": "none"
+      },
+      "credentials": {
+        "type": "string",
+        "required": false,
+        "description": "Authentication credentials (API key, token, or base64 encoded user:pass)",
+        "default": null
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Connection timeout in seconds (5-300)",
+        "default": 30
+      },
+      "max_retries": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of connection retry attempts (0-10)",
+        "default": 3
+      },
+      "headers": {
+        "type": "array",
+        "required": false,
+        "description": "Custom HTTP headers as key:value pairs",
+        "items": {"type": "string"},
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid URL format: Provide a valid URL starting with the specified protocol.",
+      "Unsupported protocol: Use one of [http, https, ftp, tcp, websocket].",
+      "Invalid authentication type: Use one of [none, basic, bearer, api_key].",
+      "Authentication required: Provide credentials when auth_type is not 'none'.",
+      "Connection timeout: timeout_seconds must be between 5 and 300.",
+      "Invalid retry count: max_retries must be between 0 and 10.",
+      "Invalid headers format: Each header must be in 'key:value' format."
+    ],
+    "usage": "Specify the data source URL and protocol, configure authentication if required, and set connection parameters to establish a reliable connection to weather data sources.",
+    "output_details": {
+      "connection_id": {
+        "type": "string",
+        "description": "Unique identifier for the established connection"
+      },
+      "connection_status": {
+        "type": "string",
+        "description": "Status of the connection attempt"
+      },
+      "response_time_ms": {
+        "type": "integer",
+        "description": "Connection establishment time in milliseconds"
+      },
+      "supported_formats": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Data formats supported by the source"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Real-time Data Fetcher",
+    "tool_description": "Continuously fetches real-time weather measurements from connected observation stations, handling different data formats and update frequencies.",
+    "parameters": {
+      "station_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of weather station identifiers to fetch data from",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "measurement_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of measurements to fetch: temperature, humidity, pressure, wind_speed, wind_direction, precipitation, visibility",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "fetch_interval_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Data fetch interval in minutes (1-60)",
+        "default": 5
+      },
+      "data_format": {
+        "type": "string",
+        "required": false,
+        "description": "Expected data format: json, xml, csv, metar, synop",
+        "default": "json"
+      }
+    },
+    "error_messages": [
+      "Invalid station IDs: Provide 1-50 valid station identifier strings.",
+      "Invalid measurement types: Use supported types [temperature, humidity, pressure, wind_speed, wind_direction, precipitation, visibility].",
+      "Invalid fetch interval: fetch_interval_minutes must be between 1 and 60.",
+      "Unsupported data format: Use one of [json, xml, csv, metar, synop].",
+      "Station unavailable: One or more stations are currently offline or not responding."
+    ],
+    "usage": "Specify station IDs and desired measurement types, optionally configure fetch interval and expected data format to continuously retrieve real-time weather data.",
+    "output_details": {
+      "fetch_timestamp": {
+        "type": "string",
+        "description": "Timestamp when data was fetched (ISO 8601 format)"
+      },
+      "station_data_count": {
+        "type": "integer",
+        "description": "Number of stations that provided data"
+      },
+      "measurements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Raw measurement values as received from stations"
+      },
+      "measurement_timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Timestamps for each measurement"
+      },
+      "station_sources": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Source station ID for each measurement"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Quality Validator",
+    "tool_description": "Validates weather data quality by checking value ranges, consistency, completeness, and temporal continuity to identify potentially erroneous measurements.",
+    "parameters": {
+      "measurements": {
+        "type": "array",
+        "required": true,
+        "description": "Raw measurement values to validate",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "measurement_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types corresponding to each measurement",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "validation_rules": {
+        "type": "array",
+        "required": false,
+        "description": "Validation rules to apply: range_check, spike_detection, consistency_check, temporal_continuity",
+        "items": {"type": "string"},
+        "default": ["range_check", "consistency_check"]
+      },
+      "tolerance_level": {
+        "type": "string",
+        "required": false,
+        "description": "Validation strictness: strict, normal, lenient",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: measurements and measurement_types arrays must have the same length.",
+      "Empty measurement data: Provide at least one measurement to validate.",
+      "Invalid validation rules: Use supported rules [range_check, spike_detection, consistency_check, temporal_continuity].",
+      "Invalid tolerance level: Use one of [strict, normal, lenient].",
+      "Unparseable measurement values: Ensure all measurements are in valid numeric or text format."
+    ],
+    "usage": "Provide raw measurements with their corresponding types, select validation rules and tolerance level to assess data quality and identify potential issues.",
+    "output_details": {
+      "validation_summary": {
+        "type": "string",
+        "description": "Overall validation result summary"
+      },
+      "valid_count": {
+        "type": "integer",
+        "description": "Number of measurements that passed validation"
+      },
+      "invalid_count": {
+        "type": "integer",
+        "description": "Number of measurements that failed validation"
+      },
+      "quality_flags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Quality flags for each measurement"
+      },
+      "error_codes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Error codes for invalid measurements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Unit Converter",
+    "tool_description": "Converts weather measurements between different unit systems (metric, imperial, scientific) to ensure consistency across data sources.",
+    "parameters": {
+      "values": {
+        "type": "array",
+        "required": true,
+        "description": "Numeric values to convert",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "from_units": {
+        "type": "array",
+        "required": true,
+        "description": "Source units for each value",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "to_units": {
+        "type": "array",
+        "required": true,
+        "description": "Target units for each value",
+        "items": {"type": "string"},
+        "minItems": 1
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: values, from_units, and to_units arrays must have the same length.",
+      "Invalid unit conversion: Cannot convert between incompatible measurement types.",
+      "Unsupported unit: Use supported units for temperature (C, F, K), pressure (hPa, mmHg, inHg), speed (m/s, km/h, mph, knots), etc.",
+      "Invalid numeric values: All values must be valid numbers."
+    ],
+    "usage": "Provide arrays of values with their source and target units to perform unit conversions for weather measurements.",
+    "output_details": {
+      "converted_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Values converted to target units"
+      },
+      "conversion_factors": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Conversion factors applied to each value"
+      },
+      "success_count": {
+        "type": "integer",
+        "description": "Number of successful conversions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Timestamp Synchronizer",
+    "tool_description": "Synchronizes timestamps from different weather stations to a common time reference, handling timezone conversions and time drift corrections.",
+    "parameters": {
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Original timestamps to synchronize (ISO 8601 format)",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "source_timezones": {
+        "type": "array",
+        "required": true,
+        "description": "Source timezone for each timestamp (e.g., UTC, EST, PST)",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "target_timezone": {
+        "type": "string",
+        "required": false,
+        "description": "Target timezone for synchronized timestamps",
+        "default": "UTC"
+      },
+      "time_drift_correction": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply time drift correction for station clock differences",
+        "default": true
+      },
+      "synchronization_window_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Time window for grouping measurements (1-60 minutes)",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: timestamps and source_timezones arrays must have the same length.",
+      "Invalid timestamp format: Use ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).",
+      "Invalid timezone: Provide valid timezone identifiers (UTC, EST, PST, etc.).",
+      "Invalid synchronization window: synchronization_window_minutes must be between 1 and 60."
+    ],
+    "usage": "Provide timestamps with their source timezones, specify target timezone and synchronization parameters to align temporal data from multiple sources.",
+    "output_details": {
+      "synchronized_timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Timestamps converted to target timezone"
+      },
+      "drift_corrections": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Time drift corrections applied in seconds"
+      },
+      "sync_groups": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Synchronization group ID for each timestamp"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Missing Data Handler",
+    "tool_description": "Handles missing weather data through interpolation, gap filling, and quality flagging based on temporal patterns and nearby station data.",
+    "parameters": {
+      "measurement_values": {
+        "type": "array",
+        "required": true,
+        "description": "Measurement values with gaps (use null for missing values)",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Timestamps corresponding to measurements",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "measurement_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of measurement being processed"
+      },
+      "interpolation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Interpolation method: linear, spline, nearest, seasonal",
+        "default": "linear"
+      },
+      "max_gap_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum gap duration to attempt interpolation (1-72 hours)",
+        "default": 6
+      },
+      "nearby_station_data": {
+        "type": "array",
+        "required": false,
+        "description": "Data from nearby stations for reference",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "quality_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum quality score for filled data (0-1)",
+        "default": 0.7
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: measurement_values and timestamps must have the same length.",
+      "Invalid interpolation method: Use one of [linear, spline, nearest, seasonal].",
+      "Invalid gap duration: max_gap_hours must be between 1 and 72.",
+      "Invalid quality threshold: quality_threshold must be between 0 and 1.",
+      "Insufficient data: Need at least 3 valid measurements for interpolation.",
+      "All data missing: Cannot process dataset with no valid measurements."
+    ],
+    "usage": "Provide measurement data with missing values marked as null, specify interpolation method and constraints to fill gaps and improve data completeness.",
+    "output_details": {
+      "filled_values": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Measurement values with gaps filled"
+      },
+      "fill_flags": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Flags indicating original vs filled data"
+      },
+      "quality_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Quality scores for each filled value"
+      },
+      "gaps_filled": {
+        "type": "integer",
+        "description": "Number of gaps successfully filled"
+      },
+      "gaps_remaining": {
+        "type": "integer",
+        "description": "Number of gaps that could not be filled"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Outlier Detection Tool",
+    "tool_description": "Detects anomalous weather measurements using statistical methods, seasonal patterns, and cross-station comparisons to flag potential sensor errors or extreme events.",
+    "parameters": {
+      "measurement_values": {
+        "type": "array",
+        "required": true,
+        "description": "Numeric measurement values to analyze",
+        "items": {"type": "number"},
+        "minItems": 10
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Timestamps for each measurement",
+        "items": {"type": "string"},
+        "minItems": 10
+      },
+      "measurement_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of measurement being analyzed"
+      },
+      "detection_methods": {
+        "type": "array",
+        "required": false,
+        "description": "Detection methods: zscore, iqr, isolation_forest, seasonal_decomp",
+        "items": {"type": "string"},
+        "default": ["zscore", "iqr"]
+      },
+      "sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Detection sensitivity: low, medium, high",
+        "default": "medium"
+      },
+      "seasonal_adjustment": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply seasonal pattern adjustment",
+        "default": true
+      },
+      "reference_data": {
+        "type": "array",
+        "required": false,
+        "description": "Reference measurements from nearby stations",
+        "items": {"type": "number"},
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 10 measurements for reliable outlier detection.",
+      "Mismatched array lengths: measurement_values and timestamps must have the same length.",
+      "Invalid detection methods: Use supported methods [zscore, iqr, isolation_forest, seasonal_decomp].",
+      "Invalid sensitivity level: Use one of [low, medium, high].",
+      "Invalid measurement values: All values must be valid numbers."
+    ],
+    "usage": "Provide measurement data with timestamps and type, configure detection methods and sensitivity to identify anomalous values that may indicate sensor errors or extreme weather events.",
+    "output_details": {
+      "outlier_flags": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Boolean flags indicating outlier status for each measurement"
+      },
+      "anomaly_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Anomaly scores for each measurement (0-1 scale)"
+      },
+      "outlier_indices": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Array indices of detected outliers"
+      },
+      "outlier_count": {
+        "type": "integer",
+        "description": "Total number of outliers detected"
+      },
+      "detection_summary": {
+        "type": "string",
+        "description": "Summary of outlier detection results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Aggregator",
+    "tool_description": "Aggregates validated weather measurements across time periods and geographic regions, computing statistical summaries and trend analyses.",
+    "parameters": {
+      "measurement_data": {
+        "type": "array",
+        "required": true,
+        "description": "Validated measurement values to aggregate",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Timestamps for measurements",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "station_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Station identifiers for each measurement",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "aggregation_period": {
+        "type": "string",
+        "required": true,
+        "description": "Time period for aggregation: hourly, daily, weekly, monthly"
+      },
+      "statistics": {
+        "type": "array",
+        "required": false,
+        "description": "Statistical measures to compute: mean, median, min, max, std, count",
+        "items": {"type": "string"},
+        "default": ["mean", "min", "max", "count"]
+      },
+      "geographic_grouping": {
+        "type": "boolean",
+        "required": false,
+        "description": "Group measurements by geographic regions",
+        "default": false
+      },
+      "quality_weights": {
+        "type": "array",
+        "required": false,
+        "description": "Quality weights for each measurement (0-1 scale)",
+        "items": {"type": "number"},
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: measurement_data, timestamps, and station_ids must have the same length.",
+      "Invalid aggregation period: Use one of [hourly, daily, weekly, monthly].",
+      "Invalid statistics: Use supported statistics [mean, median, min, max, std, count].",
+      "Invalid quality weights: All weights must be between 0 and 1.",
+      "Insufficient data: Need at least one valid measurement for aggregation."
+    ],
+    "usage": "Provide validated measurements with timestamps and station IDs, specify aggregation period and desired statistics to compute temporal and spatial summaries.",
+    "output_details": {
+      "aggregation_summary": {
+        "type": "string",
+        "description": "Summary of aggregation results"
+      },
+      "aggregated_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Aggregated measurement values"
+      },
+      "aggregation_timestamps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Time periods for aggregated values"
+      },
+      "station_counts": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Number of stations contributing to each aggregate"
+      },
+      "data_coverage": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Data coverage percentage for each time period"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Station Status Monitor",
+    "tool_description": "Monitors operational status of weather observation stations, tracking uptime, data transmission rates, and sensor health indicators.",
+    "parameters": {
+      "station_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Weather station identifiers to monitor",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "monitoring_duration_hours": {
+        "type": "integer",
+        "required": false,
+        "description": "Duration to monitor stations (1-168 hours)",
+        "default": 24
+      },
+      "check_interval_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Interval between status checks (5-60 minutes)",
+        "default": 15
+      }
+    },
+    "error_messages": [
+      "Invalid station count: Provide 1-100 station identifiers.",
+      "Invalid monitoring duration: monitoring_duration_hours must be between 1 and 168.",
+      "Invalid check interval: check_interval_minutes must be between 5 and 60.",
+      "Station not found: One or more station IDs are not recognized."
+    ],
+    "usage": "Provide station IDs and monitoring parameters to track operational status and identify stations with connectivity or sensor issues.",
+    "output_details": {
+      "monitoring_summary": {
+        "type": "string",
+        "description": "Overall monitoring results summary"
+      },
+      "station_status": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Current status for each monitored station"
+      },
+      "uptime_percentages": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Uptime percentage for each station"
+      },
+      "last_contact_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Last successful contact time for each station"
+      },
+      "offline_stations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of currently offline station IDs"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Data Export Tool",
+    "tool_description": "Exports aggregated weather data to various formats and destinations, handling data formatting, compression, and delivery to external systems or storage.",
+    "parameters": {
+      "data_values": {
+        "type": "array",
+        "required": true,
+        "description": "Weather data values to export",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "timestamps": {
+        "type": "array",
+        "required": true,
+        "description": "Timestamps for data values",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "station_metadata": {
+        "type": "array",
+        "required": true,
+        "description": "Station identifiers and metadata",
+        "items": {"type": "string"},
+        "minItems": 1
+      },
+      "export_format": {
+        "type": "string",
+        "required": true,
+        "description": "Output format: csv, json, xml, netcdf, grib"
+      },
+      "destination": {
+        "type": "string",
+        "required": true,
+        "description": "Export destination: local_file, ftp, s3, database, api_endpoint"
+      },
+      "file_compression": {
+        "type": "boolean",
+        "required": false,
+        "description": "Apply compression to exported files",
+        "default": false
+      },
+      "include_quality_flags": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include data quality flags in export",
+        "default": true
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of records per batch for large datasets (100-10000)",
+        "default": 1000
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: data_values, timestamps, and station_metadata must have the same length.",
+      "Invalid export format: Use one of [csv, json, xml, netcdf, grib]

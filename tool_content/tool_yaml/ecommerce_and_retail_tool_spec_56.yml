@@ -1,0 +1,905 @@
+field_name: ecommerce_and_retail
+subfield: Customer Account Management
+task: User registration and profile creation with identity verification
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task has medium difficulty due to the coordination between multiple verification steps, regulatory compliance requirements (KYC/AML), security considerations for handling sensitive personal data, and the need for robust error handling across multiple validation points. The task involves moderate complexity in data validation, document processing, and identity verification workflows.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the medium difficulty, I'm targeting 12 tools within the 10-15 range to cover user input validation, identity verification, document processing, profile creation, notification systems, and compliance checks.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  1. **Email Validator** - Consumes: email string → Produces: validation status
+  2. **Phone Number Validator** - Consumes: phone number, country code → Produces: validation status
+  3. **Password Strength Analyzer** - Consumes: password string → Produces: strength score, requirements
+  4. **Personal Information Validator** - Consumes: personal details → Produces: validation results
+  5. **Document Processor** - Consumes: document images, document type → Produces: extracted data
+  6. **Identity Verification Service** - Consumes: personal data, document data → Produces: verification status
+  7. **Age Verification Tool** - Consumes: birth date, jurisdiction → Produces: age compliance status
+  8. **Address Verification Service** - Consumes: address components → Produces: standardized address, verification status
+  9. **Duplicate Account Detector** - Consumes: user identifiers → Produces: duplicate detection results
+  10. **User Profile Creator** - Consumes: validated user data → Produces: profile creation status
+  11. **Compliance Checker** - Consumes: user data, jurisdiction → Produces: compliance status
+  12. **Registration Notification Service** - Consumes: user data, notification preferences → Produces: notification status
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. Basic email registration: Email Validator → Password Strength Analyzer → User Profile Creator
+  2. Contact validation: Email Validator → Phone Number Validator → Registration Notification Service
+
+  **Medium Plans:**
+  1. Standard registration: Personal Information Validator → Email Validator → Phone Number Validator → Duplicate Account Detector → User Profile Creator → Registration Notification Service
+  2. Age-restricted signup: Personal Information Validator → Age Verification Tool → Compliance Checker → User Profile Creator
+
+  **Complex Plans:**
+  1. Full KYC registration: Personal Information Validator → Document Processor → Identity Verification Service → Address Verification Service → Age Verification Tool → Compliance Checker → Duplicate Account Detector → User Profile Creator → Registration Notification Service
+  2. International user onboarding: Personal Information Validator → Phone Number Validator → Address Verification Service → Compliance Checker → Identity Verification Service → User Profile Creator → Registration Notification Service
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Email Validator",
+    "tool_description": "Validates email addresses for proper format, domain existence, and deliverability checks.",
+    "parameters": {
+      "email_address": {
+        "type": "string",
+        "required": true,
+        "description": "The email address to validate"
+      },
+      "check_deliverability": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform deliverability checks",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid email format: Ensure the email follows standard format (user@domain.com).",
+      "Domain does not exist: The email domain cannot be resolved.",
+      "Temporary email detected: Disposable email addresses are not allowed."
+    ],
+    "usage": "Provide an email_address and optionally set check_deliverability. Returns validation status and any issues found.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the email address is valid"
+      },
+      "deliverable": {
+        "type": "boolean",
+        "description": "Whether the email can receive messages"
+      },
+      "issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation issues found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Phone Number Validator",
+    "tool_description": "Validates phone numbers for format, country compliance, and carrier information.",
+    "parameters": {
+      "phone_number": {
+        "type": "string",
+        "required": true,
+        "description": "The phone number to validate"
+      },
+      "country_code": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter ISO country code (e.g., US, GB, FR)"
+      },
+      "require_mobile": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to require mobile phone type",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid phone number format: Ensure the number follows the country's standard format.",
+      "Unsupported country code: Use a valid ISO 3166-1 alpha-2 country code.",
+      "Landline not allowed: Mobile phone number required when require_mobile is true."
+    ],
+    "usage": "Provide phone_number and country_code, optionally set require_mobile. Returns validation status and phone type information.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the phone number is valid"
+      },
+      "phone_type": {
+        "type": "string",
+        "description": "Type of phone number (mobile, landline, voip)"
+      },
+      "formatted_number": {
+        "type": "string",
+        "description": "Standardized international format of the phone number"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Password Strength Analyzer",
+    "tool_description": "Analyzes password strength and provides recommendations for improvement based on security best practices.",
+    "parameters": {
+      "password": {
+        "type": "string",
+        "required": true,
+        "description": "The password to analyze"
+      },
+      "min_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum required password length",
+        "default": 8
+      },
+      "require_uppercase": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether uppercase letters are required",
+        "default": true
+      },
+      "require_lowercase": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether lowercase letters are required",
+        "default": true
+      },
+      "require_numbers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether numbers are required",
+        "default": true
+      },
+      "require_special": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether special characters are required",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Password too short: Password must be at least min_length characters long.",
+      "Missing character types: Password must include required character types (uppercase, lowercase, numbers, special).",
+      "Common password detected: This password appears in common password lists and should be avoided."
+    ],
+    "usage": "Provide a password and optionally set character requirements. Returns strength score and specific recommendations.",
+    "output_details": {
+      "strength_score": {
+        "type": "integer",
+        "description": "Password strength score from 0-100"
+      },
+      "is_acceptable": {
+        "type": "boolean",
+        "description": "Whether password meets minimum requirements"
+      },
+      "missing_requirements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of unmet password requirements"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggestions for improving password strength"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Personal Information Validator",
+    "tool_description": "Validates personal information fields including names, birth dates, and basic demographic data for completeness and format compliance.",
+    "parameters": {
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's last name"
+      },
+      "birth_date": {
+        "type": "string",
+        "required": true,
+        "description": "User's birth date in YYYY-MM-DD format",
+        "format": "date-time"
+      },
+      "gender": {
+        "type": "string",
+        "required": false,
+        "description": "User's gender (male, female, other, prefer_not_to_say)",
+        "default": "prefer_not_to_say"
+      },
+      "nationality": {
+        "type": "string",
+        "required": false,
+        "description": "User's nationality as ISO country code",
+        "default": null
+      },
+      "allow_special_characters": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to allow special characters in names",
+        "default": true
+      },
+      "min_age": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum age requirement",
+        "default": 13
+      }
+    },
+    "error_messages": [
+      "Invalid name format: Names must contain only letters, spaces, hyphens, and apostrophes when special characters are not allowed.",
+      "Invalid birth date: Provide date in YYYY-MM-DD format.",
+      "Age requirement not met: User must be at least min_age years old.",
+      "Invalid gender value: Use one of [male, female, other, prefer_not_to_say].",
+      "Invalid nationality: Provide a valid ISO 3166-1 alpha-2 country code."
+    ],
+    "usage": "Provide first_name, last_name, and birth_date; optionally set gender, nationality, and validation preferences. Returns validation status for all fields.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether all personal information is valid"
+      },
+      "field_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of field-specific validation errors"
+      },
+      "calculated_age": {
+        "type": "integer",
+        "description": "User's age calculated from birth date"
+      },
+      "normalized_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Names with proper capitalization and formatting"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document Processor",
+    "tool_description": "Processes identity documents using OCR to extract text and verify document authenticity and quality.",
+    "parameters": {
+      "document_image_url": {
+        "type": "string",
+        "required": true,
+        "description": "URL or base64 encoded image of the document"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document (passport, drivers_license, national_id, utility_bill)"
+      },
+      "expected_country": {
+        "type": "string",
+        "required": false,
+        "description": "Expected document issuing country (ISO country code)",
+        "default": null
+      },
+      "quality_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum image quality score (0.0-1.0)",
+        "default": 0.7
+      },
+      "extract_photo": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract person's photo from document",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Document image not accessible: Unable to retrieve or decode the document image.",
+      "Unsupported document type: Use one of [passport, drivers_license, national_id, utility_bill].",
+      "Poor image quality: Document image quality is below the required threshold.",
+      "Document not recognized: Unable to identify the document format or extract information.",
+      "Country mismatch: Document appears to be from a different country than expected."
+    ],
+    "usage": "Provide document_image_url and document_type; optionally set expected_country and quality preferences. Returns extracted information and document validation status.",
+    "output_details": {
+      "extraction_successful": {
+        "type": "boolean",
+        "description": "Whether information was successfully extracted"
+      },
+      "quality_score": {
+        "type": "number",
+        "description": "Image quality score from 0.0 to 1.0"
+      },
+      "extracted_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of successfully extracted data fields"
+      },
+      "document_number": {
+        "type": "string",
+        "description": "Extracted document identification number"
+      },
+      "issuing_country": {
+        "type": "string",
+        "description": "Country that issued the document"
+      },
+      "expiry_date": {
+        "type": "string",
+        "description": "Document expiration date",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Identity Verification Service",
+    "tool_description": "Performs comprehensive identity verification by cross-referencing personal information with document data and external databases.",
+    "parameters": {
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's first name from registration"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's last name from registration"
+      },
+      "birth_date": {
+        "type": "string",
+        "required": true,
+        "description": "User's birth date",
+        "format": "date-time"
+      },
+      "document_data": {
+        "type": "array",
+        "required": true,
+        "description": "Extracted data from processed documents",
+        "items": {
+          "type": "string"
+        }
+      },
+      "verification_level": {
+        "type": "string",
+        "required": false,
+        "description": "Level of verification required (basic, standard, enhanced)",
+        "default": "standard"
+      },
+      "match_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum match score for successful verification (0.0-1.0)",
+        "default": 0.8
+      },
+      "check_watchlists": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check against sanctions and watchlists",
+        "default": true
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": false,
+        "description": "Regulatory jurisdiction for compliance",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Insufficient document data: Document processing must be completed before identity verification.",
+      "Name mismatch: Names provided do not sufficiently match document information.",
+      "Date mismatch: Birth date does not match document information.",
+      "Verification level not supported: Use one of [basic, standard, enhanced].",
+      "Watchlist match found: Identity appears on sanctions or prohibited persons lists.",
+      "Verification service unavailable: External verification services are temporarily unavailable."
+    ],
+    "usage": "Provide personal information and document_data from document processing; optionally set verification preferences and compliance requirements. Returns verification status and confidence scores.",
+    "output_details": {
+      "verification_status": {
+        "type": "string",
+        "description": "Overall verification result (verified, rejected, manual_review)"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence score for the verification (0.0-1.0)"
+      },
+      "match_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed matching results for each verified field"
+      },
+      "risk_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any risk factors or concerns identified"
+      },
+      "verification_reference": {
+        "type": "string",
+        "description": "Unique reference ID for this verification attempt"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Age Verification Tool",
+    "tool_description": "Verifies user age compliance with legal requirements and platform policies for different jurisdictions.",
+    "parameters": {
+      "birth_date": {
+        "type": "string",
+        "required": true,
+        "description": "User's birth date",
+        "format": "date-time"
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Legal jurisdiction (ISO country code)"
+      },
+      "service_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of service requiring age verification (general, financial, adult_content, gambling)",
+        "default": "general"
+      }
+    },
+    "error_messages": [
+      "Invalid birth date: Provide a valid date in the past.",
+      "Unsupported jurisdiction: Age verification rules not available for this jurisdiction.",
+      "Age requirement not met: User does not meet minimum age requirements for the specified service type.",
+      "Invalid service type: Use one of [general, financial, adult_content, gambling]."
+    ],
+    "usage": "Provide birth_date and jurisdiction; optionally specify service_type. Returns age compliance status and any restrictions.",
+    "output_details": {
+      "is_compliant": {
+        "type": "boolean",
+        "description": "Whether user meets age requirements"
+      },
+      "calculated_age": {
+        "type": "integer",
+        "description": "User's current age in years"
+      },
+      "minimum_age_required": {
+        "type": "integer",
+        "description": "Minimum age required for the service"
+      },
+      "restrictions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any age-related restrictions that apply"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Address Verification Service",
+    "tool_description": "Validates and standardizes postal addresses using authoritative address databases and postal services.",
+    "parameters": {
+      "street_address": {
+        "type": "string",
+        "required": true,
+        "description": "Street address including house number and street name"
+      },
+      "city": {
+        "type": "string",
+        "required": true,
+        "description": "City or locality name"
+      },
+      "state_province": {
+        "type": "string",
+        "required": false,
+        "description": "State, province, or region",
+        "default": null
+      },
+      "postal_code": {
+        "type": "string",
+        "required": true,
+        "description": "Postal or ZIP code"
+      },
+      "country": {
+        "type": "string",
+        "required": true,
+        "description": "Country (ISO country code)"
+      },
+      "require_deliverable": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether address must be mail deliverable",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Address not found: The provided address cannot be located in postal databases.",
+      "Incomplete address: Required address components are missing or invalid.",
+      "Non-deliverable address: Address exists but is not suitable for mail delivery.",
+      "Invalid country code: Use a valid ISO 3166-1 alpha-2 country code.",
+      "Postal code mismatch: Postal code does not match the specified city and state."
+    ],
+    "usage": "Provide complete address components including street_address, city, postal_code, and country; optionally set state_province and deliverability requirements. Returns standardized address and verification status.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the address is valid and standardized"
+      },
+      "is_deliverable": {
+        "type": "boolean",
+        "description": "Whether mail can be delivered to this address"
+      },
+      "standardized_address": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Address components in standardized format"
+      },
+      "address_type": {
+        "type": "string",
+        "description": "Type of address (residential, commercial, po_box)"
+      },
+      "coordinates": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Latitude and longitude coordinates [lat, lng]"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Duplicate Account Detector",
+    "tool_description": "Detects potential duplicate accounts by comparing user identifiers, personal information, and device fingerprints.",
+    "parameters": {
+      "email_address": {
+        "type": "string",
+        "required": true,
+        "description": "User's email address"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "User's phone number",
+        "default": null
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's last name"
+      },
+      "birth_date": {
+        "type": "string",
+        "required": false,
+        "description": "User's birth date",
+        "format": "date-time",
+        "default": null
+      },
+      "ip_address": {
+        "type": "string",
+        "required": false,
+        "description": "User's IP address",
+        "default": null
+      },
+      "device_fingerprint": {
+        "type": "string",
+        "required": false,
+        "description": "Unique device identifier",
+        "default": null
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum similarity score to flag as duplicate (0.0-1.0)",
+        "default": 0.85
+      }
+    },
+    "error_messages": [
+      "Exact duplicate found: An account with identical email address already exists.",
+      "Phone number already registered: This phone number is associated with another account.",
+      "Multiple matches found: Similar accounts detected that require manual review.",
+      "Invalid similarity threshold: Value must be between 0.0 and 1.0."
+    ],
+    "usage": "Provide user identifiers and personal information; optionally set device information and similarity preferences. Returns duplicate detection results and recommended actions.",
+    "output_details": {
+      "has_duplicates": {
+        "type": "boolean",
+        "description": "Whether potential duplicates were found"
+      },
+      "exact_matches": {
+        "type": "integer",
+        "description": "Number of exact matches found"
+      },
+      "similar_accounts": {
+        "type": "integer",
+        "description": "Number of similar accounts detected"
+      },
+      "match_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Details of matching fields for each duplicate found"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Recommended action (allow, reject, manual_review)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "User Profile Creator",
+    "tool_description": "Creates a new user profile with validated information and generates necessary user credentials and initial settings.",
+    "parameters": {
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique user identifier"
+      },
+      "email_address": {
+        "type": "string",
+        "required": true,
+        "description": "Verified email address"
+      },
+      "password_hash": {
+        "type": "string",
+        "required": true,
+        "description": "Hashed password"
+      },
+      "first_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's first name"
+      },
+      "last_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's last name"
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "Verified phone number",
+        "default": null
+      },
+      "birth_date": {
+        "type": "string",
+        "required": false,
+        "description": "User's birth date",
+        "format": "date-time",
+        "default": null
+      },
+      "address_data": {
+        "type": "array",
+        "required": false,
+        "description": "Verified address information",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "verification_status": {
+        "type": "string",
+        "required": false,
+        "description": "Identity verification status",
+        "default": "pending"
+      },
+      "account_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Initial account tier (basic, standard, premium)",
+        "default": "basic"
+      },
+      "privacy_settings": {
+        "type": "array",
+        "required": false,
+        "description": "Initial privacy preferences",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "User ID already exists: The specified user_id is already in use.",
+      "Invalid email format: Email address must be properly formatted and verified.",
+      "Invalid account tier: Use one of [basic, standard, premium].",
+      "Profile creation failed: Unable to create user profile due to database error.",
+      "Required field missing: Essential user information is missing or invalid."
+    ],
+    "usage": "Provide verified user information including user_id, email_address, password_hash, and names; optionally set additional profile data and preferences. Returns profile creation status and user credentials.",
+    "output_details": {
+      "profile_created": {
+        "type": "boolean",
+        "description": "Whether the profile was successfully created"
+      },
+      "user_id": {
+        "type": "string",
+        "description": "Assigned unique user identifier"
+      },
+      "account_status": {
+        "type": "string",
+        "description": "Initial account status (active, pending_verification)"
+      },
+      "created_timestamp": {
+        "type": "string",
+        "description": "Profile creation timestamp",
+        "format": "date-time"
+      },
+      "assigned_permissions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of permissions granted to the user"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Checker",
+    "tool_description": "Verifies user registration compliance with regulatory requirements including KYC, AML, GDPR, and jurisdiction-specific rules.",
+    "parameters": {
+      "user_data": {
+        "type": "array",
+        "required": true,
+        "description": "User registration data for compliance checking",
+        "items": {
+          "type": "string"
+        }
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Primary regulatory jurisdiction (ISO country code)"
+      },
+      "business_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of business service (ecommerce, financial, healthcare, general)"
+      },
+      "additional_jurisdictions": {
+        "type": "array",
+        "required": false,
+        "description": "Additional jurisdictions to check",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "kyc_required": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether KYC compliance is required",
+        "default": false
+      },
+      "aml_screening": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether AML screening is required",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Incomplete user data: Required information for compliance checking is missing.",
+      "Jurisdiction not supported: Compliance rules not available for specified jurisdiction.",
+      "KYC requirements not met: User data does not meet Know Your Customer requirements.",
+      "AML screening failed: User appears on anti-money laundering watchlists.",
+      "GDPR compliance issue: User data processing does not comply with GDPR requirements.",
+      "Invalid business type: Use one of [ecommerce, financial, healthcare, general]."
+    ],
+    "usage": "Provide user_data, jurisdiction, and business_type; optionally set additional compliance requirements. Returns comprehensive compliance status and any required actions.",
+    "output_details": {
+      "is_compliant": {
+        "type": "boolean",
+        "description": "Whether user registration meets all compliance requirements"
+      },
+      "compliance_score": {
+        "type": "number",
+        "description": "Overall compliance score (0.0-1.0)"
+      },
+      "failed_checks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of compliance checks that failed"
+      },
+      "required_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Actions required to achieve compliance"
+      },
+      "compliance_reference": {
+        "type": "string",
+        "description": "Unique reference for this compliance check"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Registration Notification Service",
+    "tool_description": "Sends welcome messages, verification emails, and registration confirmations through multiple communication channels.",
+    "parameters": {
+      "user_email": {
+        "type": "string",
+        "required": true,
+        "description": "User's email address for notifications"
+      },
+      "user_name": {
+        "type": "string",
+        "required": true,
+        "description": "User's name for personalization"
+      },
+      "notification_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of notifications to send",
+        "items": {
+          "type": "string"
+        }
+      },
+      "phone_number": {
+        "type": "string",
+        "required": false,
+        "description": "Phone number for SMS notifications",
+        "default": null
+      },
+      "language_preference": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred language for notifications (ISO language code)",
+        "default": "en"
+      },
+      "send_immediately": {

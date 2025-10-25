@@ -1,0 +1,796 @@
+field_name: ecommerce_and_retail
+subfield: Price Management and Dynamic Pricing
+task: Cost-based pricing calculations incorporating supplier costs and margin requirements
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task has medium complexity due to its moderate scope involving multiple cost components, supplier integration requirements, and margin optimization calculations. While the core pricing formulas are straightforward, the task requires handling variable supplier costs, complex margin structures, and coordinating multiple data sources with potential real-time updates.
+
+  STEP 2 — Set a tool budget
+
+  Given the medium difficulty assessment, I'm targeting 12 tools within the 10-15 range to cover data ingestion, cost analysis, margin calculations, pricing optimization, and output generation workflows.
+
+  STEP 3 — List all tool names and dependencies
+
+  **Tools and their data flow:**
+  1. **Supplier Cost Fetcher** → produces supplier pricing data
+  2. **Product Cost Calculator** → consumes supplier costs → produces total product costs
+  3. **Margin Requirements Validator** → produces validated margin rules
+  4. **Base Price Calculator** → consumes product costs + margins → produces base prices
+  5. **Volume Discount Analyzer** → consumes order volumes → produces discount structures
+  6. **Competitive Price Benchmarker** → produces market price references
+  7. **Seasonal Adjustment Calculator** → produces seasonal pricing factors
+  8. **Price Tier Generator** → consumes base prices + adjustments → produces tiered pricing
+  9. **Profit Margin Analyzer** → consumes costs + prices → produces margin analysis
+  10. **Price Sensitivity Estimator** → produces demand elasticity data
+  11. **Dynamic Price Optimizer** → consumes all pricing data → produces optimized prices
+  12. **Pricing Report Generator** → consumes all outputs → produces comprehensive reports
+
+  STEP 4 — Multi-tool plans
+
+  **Simple workflows (2-3 tools):**
+  - Basic cost-plus pricing: Supplier Cost Fetcher → Product Cost Calculator → Base Price Calculator
+  - Margin validation: Product Cost Calculator → Margin Requirements Validator → Profit Margin Analyzer
+
+  **Medium workflows (4-6 tools):**
+  - Seasonal pricing strategy: Supplier Cost Fetcher → Product Cost Calculator → Base Price Calculator → Seasonal Adjustment Calculator → Price Tier Generator → Pricing Report Generator
+  - Competitive pricing analysis: Base Price Calculator → Competitive Price Benchmarker → Price Sensitivity Estimator → Dynamic Price Optimizer → Profit Margin Analyzer
+
+  **Complex workflows (7+ tools):**
+  - Comprehensive pricing optimization: Supplier Cost Fetcher → Product Cost Calculator → Margin Requirements Validator → Base Price Calculator → Volume Discount Analyzer → Competitive Price Benchmarker → Seasonal Adjustment Calculator → Price Tier Generator → Price Sensitivity Estimator → Dynamic Price Optimizer → Profit Margin Analyzer → Pricing Report Generator
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Supplier Cost Fetcher",
+    "tool_description": "Retrieves current supplier costs and pricing data for specified products from multiple suppliers, including bulk pricing tiers and lead times.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": true,
+        "description": "List of product identifiers to fetch supplier costs for",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "supplier_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Specific supplier IDs to query; if empty, queries all suppliers",
+        "default": null
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Target currency code (ISO 4217)",
+        "default": "USD"
+      }
+    },
+    "error_messages": [
+      "Invalid product ID: One or more product IDs are not found in the supplier database",
+      "Supplier not available: One or more specified suppliers are currently unavailable or do not carry the requested products",
+      "Currency conversion failed: The specified currency is not supported or conversion rates are unavailable",
+      "Rate limit exceeded: Too many requests made in a short period; please wait before retrying"
+    ],
+    "usage": "Provide an array of product_ids to fetch current supplier costs. Optionally specify supplier_ids to limit the search and currency for cost conversion.",
+    "output_details": {
+      "product_costs": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of product cost entries in format 'product_id:supplier_id:unit_cost:currency'"
+      },
+      "suppliers_queried": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of supplier IDs that were successfully queried"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "UTC timestamp when the cost data was retrieved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Cost Calculator",
+    "tool_description": "Calculates total product costs by combining supplier costs with additional overhead expenses like shipping, handling, storage, and operational costs.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for cost calculation"
+      },
+      "supplier_unit_cost": {
+        "type": "number",
+        "required": true,
+        "description": "Base unit cost from supplier"
+      },
+      "shipping_cost_per_unit": {
+        "type": "number",
+        "required": false,
+        "description": "Shipping cost per unit",
+        "default": 0
+      },
+      "handling_fee_per_unit": {
+        "type": "number",
+        "required": false,
+        "description": "Handling fee per unit",
+        "default": 0
+      },
+      "storage_cost_per_unit": {
+        "type": "number",
+        "required": false,
+        "description": "Storage/warehousing cost per unit",
+        "default": 0
+      },
+      "overhead_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Additional overhead as percentage of base cost (0-50)",
+        "default": 0
+      },
+      "quantity": {
+        "type": "integer",
+        "required": false,
+        "description": "Quantity for bulk cost calculations",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Invalid cost values: All cost parameters must be non-negative numbers",
+      "Overhead percentage out of range: overhead_percentage must be between 0 and 50",
+      "Invalid quantity: quantity must be a positive integer",
+      "Calculation overflow: The resulting cost calculation exceeds maximum allowed value"
+    ],
+    "usage": "Provide product_id and supplier_unit_cost, then optionally add various cost components and overhead percentage to calculate comprehensive product costs.",
+    "output_details": {
+      "product_id": {
+        "type": "string",
+        "description": "The product identifier that was calculated"
+      },
+      "total_cost_per_unit": {
+        "type": "number",
+        "description": "Final calculated cost per unit including all components"
+      },
+      "cost_breakdown": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed breakdown of cost components in format 'component:amount'"
+      },
+      "total_quantity_cost": {
+        "type": "number",
+        "description": "Total cost for the specified quantity"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Margin Requirements Validator",
+    "tool_description": "Validates and enforces margin requirements for products based on business rules, category constraints, and profitability targets.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier to validate margins for"
+      },
+      "product_category": {
+        "type": "string",
+        "required": true,
+        "description": "Product category (e.g., electronics, clothing, food, books)"
+      },
+      "target_margin_percentage": {
+        "type": "number",
+        "required": true,
+        "description": "Desired margin percentage (5-80)"
+      },
+      "minimum_margin_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum acceptable margin percentage",
+        "default": 5
+      },
+      "competitor_margin_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Average competitor margin for benchmarking",
+        "default": null
+      },
+      "business_unit": {
+        "type": "string",
+        "required": false,
+        "description": "Business unit or division",
+        "default": "default"
+      }
+    },
+    "error_messages": [
+      "Invalid margin percentage: target_margin_percentage must be between 5 and 80",
+      "Minimum margin too high: minimum_margin_percentage cannot exceed target_margin_percentage",
+      "Unsupported product category: The specified category does not have established margin rules",
+      "Margin below minimum threshold: The target margin is below the business minimum for this category"
+    ],
+    "usage": "Provide product_id, product_category, and target_margin_percentage. The tool validates these against business rules and category-specific constraints.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Validation result: 'passed', 'warning', or 'failed'"
+      },
+      "validated_margin_percentage": {
+        "type": "number",
+        "description": "Final validated margin percentage after applying business rules"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation warnings or recommendations"
+      },
+      "category_benchmarks": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Industry benchmarks for the product category in format 'metric:value'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Base Price Calculator",
+    "tool_description": "Calculates base selling prices using cost-plus pricing methodology, incorporating total costs and validated margin requirements.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for price calculation"
+      },
+      "total_cost_per_unit": {
+        "type": "number",
+        "required": true,
+        "description": "Total cost per unit including all expenses"
+      },
+      "margin_percentage": {
+        "type": "number",
+        "required": true,
+        "description": "Validated margin percentage to apply (5-80)"
+      },
+      "pricing_method": {
+        "type": "string",
+        "required": false,
+        "description": "Pricing calculation method: 'markup' or 'margin'",
+        "default": "margin"
+      },
+      "price_rounding": {
+        "type": "string",
+        "required": false,
+        "description": "Price rounding strategy: 'none', 'nearest_cent', 'nearest_dollar', 'psychological'",
+        "default": "nearest_cent"
+      }
+    },
+    "error_messages": [
+      "Invalid cost input: total_cost_per_unit must be a positive number",
+      "Invalid margin: margin_percentage must be between 5 and 80",
+      "Unknown pricing method: pricing_method must be either 'markup' or 'margin'",
+      "Invalid rounding strategy: price_rounding must be one of 'none', 'nearest_cent', 'nearest_dollar', 'psychological'"
+    ],
+    "usage": "Provide product_id, total_cost_per_unit, and margin_percentage. Optionally specify pricing_method and price_rounding strategy to calculate the base selling price.",
+    "output_details": {
+      "product_id": {
+        "type": "string",
+        "description": "Product identifier for the calculated price"
+      },
+      "base_price": {
+        "type": "number",
+        "description": "Calculated base selling price"
+      },
+      "actual_margin_percentage": {
+        "type": "number",
+        "description": "Actual margin percentage after rounding adjustments"
+      },
+      "profit_per_unit": {
+        "type": "number",
+        "description": "Profit amount per unit at the calculated price"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Volume Discount Analyzer",
+    "tool_description": "Analyzes order volumes and creates volume-based discount structures while maintaining minimum profitability thresholds.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for volume analysis"
+      },
+      "base_price": {
+        "type": "number",
+        "required": true,
+        "description": "Base unit price before volume discounts"
+      },
+      "minimum_margin_percentage": {
+        "type": "number",
+        "required": true,
+        "description": "Minimum allowable margin percentage (1-50)"
+      },
+      "volume_tiers": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Volume breakpoints for discount tiers (e.g., [10, 50, 100])",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "max_discount_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum discount percentage allowed (1-30)",
+        "default": 15
+      },
+      "discount_progression": {
+        "type": "string",
+        "required": false,
+        "description": "Discount progression method: 'linear', 'exponential', 'custom'",
+        "default": "linear"
+      },
+      "cost_savings_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Cost savings from bulk processing (0-20)",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid price input: base_price must be a positive number",
+      "Invalid margin threshold: minimum_margin_percentage must be between 1 and 50",
+      "Invalid volume tiers: volume_tiers must contain positive integers in ascending order",
+      "Invalid discount limit: max_discount_percentage must be between 1 and 30",
+      "Unknown discount progression: discount_progression must be 'linear', 'exponential', or 'custom'",
+      "Cost savings out of range: cost_savings_percentage must be between 0 and 20"
+    ],
+    "usage": "Provide product_id, base_price, minimum_margin_percentage, and volume_tiers array. The tool calculates appropriate discount percentages for each tier while maintaining profitability.",
+    "output_details": {
+      "product_id": {
+        "type": "string",
+        "description": "Product identifier for the volume analysis"
+      },
+      "discount_tiers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Volume discount tiers in format 'min_quantity:max_quantity:discount_pct:price_per_unit'"
+      },
+      "maximum_achievable_discount": {
+        "type": "number",
+        "description": "Highest discount percentage that maintains minimum margin"
+      },
+      "profitability_maintained": {
+        "type": "boolean",
+        "description": "Whether all discount tiers maintain minimum margin requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Competitive Price Benchmarker",
+    "tool_description": "Compares calculated prices against competitor pricing data and market positioning to ensure competitive viability and market alignment.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for competitive analysis"
+      },
+      "our_price": {
+        "type": "number",
+        "required": true,
+        "description": "Our calculated price for comparison"
+      },
+      "competitor_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of competitor prices for the same or similar products",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "market_position": {
+        "type": "string",
+        "required": false,
+        "description": "Desired market position: 'premium', 'competitive', 'budget'",
+        "default": "competitive"
+      },
+      "quality_differential": {
+        "type": "number",
+        "required": false,
+        "description": "Quality score differential vs competitors (-20 to +20)",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid price input: our_price must be a positive number",
+      "Invalid competitor prices: All competitor prices must be positive numbers",
+      "Unknown market position: market_position must be 'premium', 'competitive', or 'budget'",
+      "Quality differential out of range: quality_differential must be between -20 and +20",
+      "Insufficient competitor data: At least one competitor price is required for benchmarking"
+    ],
+    "usage": "Provide product_id, our_price, and competitor_prices array. Optionally specify market_position and quality_differential for contextualized competitive analysis.",
+    "output_details": {
+      "competitive_position": {
+        "type": "string",
+        "description": "Our price position relative to competitors: 'below_market', 'competitive', 'above_market'"
+      },
+      "price_percentile": {
+        "type": "number",
+        "description": "Percentile ranking of our price among all analyzed prices"
+      },
+      "market_statistics": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Market price statistics in format 'metric:value' (min, max, average, median)"
+      },
+      "positioning_recommendation": {
+        "type": "string",
+        "description": "Recommendation for price adjustment based on competitive analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Seasonal Adjustment Calculator",
+    "tool_description": "Calculates seasonal pricing adjustments based on historical demand patterns, seasonal trends, and inventory management requirements.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for seasonal analysis"
+      },
+      "base_price": {
+        "type": "number",
+        "required": true,
+        "description": "Base price before seasonal adjustments"
+      },
+      "current_season": {
+        "type": "string",
+        "required": true,
+        "description": "Current season: 'spring', 'summer', 'fall', 'winter'"
+      },
+      "product_category": {
+        "type": "string",
+        "required": true,
+        "description": "Product category for seasonal pattern lookup"
+      },
+      "inventory_level": {
+        "type": "string",
+        "required": false,
+        "description": "Current inventory status: 'low', 'normal', 'high'",
+        "default": "normal"
+      },
+      "historical_demand_multiplier": {
+        "type": "number",
+        "required": false,
+        "description": "Historical demand multiplier for this season (0.5-3.0)",
+        "default": 1.0
+      },
+      "max_adjustment_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum allowed seasonal price adjustment (5-50)",
+        "default": 25
+      }
+    },
+    "error_messages": [
+      "Invalid base price: base_price must be a positive number",
+      "Unknown season: current_season must be one of 'spring', 'summer', 'fall', 'winter'",
+      "Invalid inventory level: inventory_level must be 'low', 'normal', or 'high'",
+      "Demand multiplier out of range: historical_demand_multiplier must be between 0.5 and 3.0",
+      "Max adjustment out of range: max_adjustment_percentage must be between 5 and 50",
+      "Category not found: The specified product_category has no seasonal adjustment data"
+    ],
+    "usage": "Provide product_id, base_price, current_season, and product_category. Optionally specify inventory_level, historical_demand_multiplier, and max_adjustment_percentage for refined seasonal pricing.",
+    "output_details": {
+      "seasonal_price": {
+        "type": "number",
+        "description": "Price adjusted for seasonal factors"
+      },
+      "adjustment_percentage": {
+        "type": "number",
+        "description": "Applied seasonal adjustment percentage (positive for increase, negative for decrease)"
+      },
+      "seasonal_factor": {
+        "type": "number",
+        "description": "Combined seasonal factor used in calculation"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Strategic recommendation for seasonal pricing approach"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price Tier Generator",
+    "tool_description": "Generates comprehensive pricing tiers combining base prices, volume discounts, seasonal adjustments, and customer segment considerations.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for tier generation"
+      },
+      "base_price": {
+        "type": "number",
+        "required": true,
+        "description": "Starting base price for tier calculations"
+      },
+      "volume_discounts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Volume discount tiers in format 'min_qty:max_qty:discount_pct'",
+        "default": null
+      },
+      "seasonal_adjustment": {
+        "type": "number",
+        "required": false,
+        "description": "Seasonal price adjustment percentage (-50 to +50)",
+        "default": 0
+      },
+      "customer_segments": {
+        "type": "array",
+        "items": {"type": "string"},
+        "required": false,
+        "description": "Customer segments for specialized pricing: 'retail', 'wholesale', 'vip', 'employee'",
+        "default": ["retail"]
+      },
+      "promotional_discount": {
+        "type": "number",
+        "required": false,
+        "description": "Additional promotional discount percentage (0-30)",
+        "default": 0
+      },
+      "minimum_price": {
+        "type": "number",
+        "required": false,
+        "description": "Absolute minimum price floor",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid base price: base_price must be a positive number",
+      "Invalid volume discount format: Each volume discount must be in format 'min_qty:max_qty:discount_pct'",
+      "Seasonal adjustment out of range: seasonal_adjustment must be between -50 and +50",
+      "Unknown customer segment: Valid segments are 'retail', 'wholesale', 'vip', 'employee'",
+      "Promotional discount out of range: promotional_discount must be between 0 and 30",
+      "Price below minimum: Calculated price would fall below the specified minimum_price"
+    ],
+    "usage": "Provide product_id and base_price. Optionally add volume_discounts, seasonal_adjustment, customer_segments, promotional_discount, and minimum_price to generate comprehensive pricing tiers.",
+    "output_details": {
+      "product_id": {
+        "type": "string",
+        "description": "Product identifier for generated tiers"
+      },
+      "pricing_tiers": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Complete pricing tiers in format 'segment:min_qty:max_qty:unit_price:total_discounts'"
+      },
+      "tier_count": {
+        "type": "integer",
+        "description": "Total number of pricing tiers generated"
+      },
+      "price_range": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array containing [minimum_price, maximum_price] across all tiers"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Profit Margin Analyzer",
+    "tool_description": "Analyzes profit margins across different pricing scenarios, calculating absolute and percentage margins, break-even points, and profitability metrics.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for margin analysis"
+      },
+      "unit_cost": {
+        "type": "number",
+        "required": true,
+        "description": "Total unit cost including all expenses"
+      },
+      "selling_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Array of selling prices to analyze",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "fixed_costs": {
+        "type": "number",
+        "required": false,
+        "description": "Fixed costs to allocate per unit",
+        "default": 0
+      },
+      "target_margin_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Target margin percentage for comparison",
+        "default": null
+      },
+      "expected_volumes": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": false,
+        "description": "Expected sales volumes corresponding to each price point",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid unit cost: unit_cost must be a positive number",
+      "Invalid selling prices: All selling prices must be positive numbers",
+      "Fixed costs cannot be negative: fixed_costs must be zero or positive",
+      "Target margin out of range: target_margin_percentage must be between 1 and 80",
+      "Volume count mismatch: expected_volumes array must match selling_prices array length if provided",
+      "Invalid volume data: All expected volumes must be positive integers"
+    ],
+    "usage": "Provide product_id, unit_cost, and selling_prices array. Optionally include fixed_costs, target_margin_percentage, and expected_volumes for comprehensive margin analysis.",
+    "output_details": {
+      "margin_analysis": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Margin analysis for each price in format 'price:margin_pct:profit_per_unit:total_profit'"
+      },
+      "best_margin_scenario": {
+        "type": "string",
+        "description": "Price point with the highest margin percentage"
+      },
+      "break_even_price": {
+        "type": "number",
+        "description": "Minimum price needed to break even"
+      },
+      "target_achievement": {
+        "type": "array",
+        "items": {"type": "boolean"},
+        "description": "Whether each price point achieves the target margin percentage"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price Sensitivity Estimator",
+    "tool_description": "Estimates price sensitivity and demand elasticity using historical sales data and market research to predict volume impact of pricing changes.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for sensitivity analysis"
+      },
+      "historical_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Historical price points",
+        "minItems": 3,
+        "maxItems": 50
+      },
+      "historical_volumes": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "required": true,
+        "description": "Historical sales volumes corresponding to price points",
+        "minItems": 3,
+        "maxItems": 50
+      },
+      "proposed_price": {
+        "type": "number",
+        "required": true,
+        "description": "Proposed new price for sensitivity estimation"
+      },
+      "market_conditions": {
+        "type": "string",
+        "required": false,
+        "description": "Current market conditions: 'growing', 'stable', 'declining'",
+        "default": "stable"
+      },
+      "competitor_activity": {
+        "type": "string",
+        "required": false,
+        "description": "Recent competitor activity: 'none', 'price_increases', 'price_decreases', 'new_entrants'",
+        "default": "none"
+      }
+    },
+    "error_messages": [
+      "Data length mismatch: historical_prices and historical_volumes must have the same length",
+      "Insufficient data: At least 3 historical data points are required for sensitivity estimation",
+      "Invalid price data: All historical prices and proposed_price must be positive numbers",
+      "Invalid volume data: All historical volumes must be non-negative integers",
+      "Unknown market conditions: market_conditions must be 'growing', 'stable', or 'declining'",
+      "Unknown competitor activity: competitor_activity must be 'none', 'price_increases', 'price_decreases', or 'new_entrants'"
+    ],
+    "usage": "Provide product_id, historical_prices, historical_volumes arrays, and proposed_price. Optionally specify market_conditions and competitor_activity for context-aware sensitivity estimation.",
+    "output_details": {
+      "price_elasticity": {
+        "type": "number",
+        "description": "Estimated price elasticity coefficient"
+      },
+      "predicted_volume": {
+        "type": "integer",
+        "description": "Predicted sales volume at the proposed price"
+      },
+      "volume_change_percentage": {
+        "type": "number",
+        "description": "Predicted percentage change in volume from current levels"
+      },
+      "sensitivity_rating": {
+        "type": "string",
+        "description": "Price sensitivity rating: 'low', 'medium', 'high'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Dynamic Price Optimizer",
+    "tool_description": "Optimizes pricing decisions by analyzing multiple factors including costs, margins, competition, demand sensitivity, and business objectives to recommend optimal pricing strategies.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for optimization"
+      },
+      "cost_per_unit": {
+        "type": "number",
+        "required": true,
+        "description": "Total cost per unit"
+      },
+      "minimum_margin_percentage": {
+        "type": "number",
+        "required": true,
+        "description": "Minimum required margin percentage"
+      },
+      "competitive_price_range": {
+        "type": "array",
+        "items": {"type": "number"},
+        "required": true,
+        "description": "Competitive price range as [min_price, max_price]",
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "price_elasticity": {
+        "type": "number",
+        "required": true,
+        "description": "Price elasticity coefficient from sensitivity analysis"
+      },
+      "current_volume": {
+        "type": "integer",
+        "required": true,
+        "description": "Current sales volume"
+      },
+      "optimization_goal": {
+        "type": "string",
+        "required": false,
+        "description": "Primary optimization objective: 'maximize_profit', 'maximize_revenue', 'maximize_volume', 'competitive_position'",
+        "default": "maximize_profit"
+      },
+      "seasonal_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Seasonal adjustment factor (0.5-2.0

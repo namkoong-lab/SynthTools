@@ -1,0 +1,889 @@
+field_name: ecommerce_and_retail
+subfield: Return and Refund Processing
+task: Communicate return status updates to customers across channels
+tool_description: |-
+  STEP 1 — Rate task difficulty
+  This task has medium complexity due to the need to coordinate across multiple communication channels (email, SMS, push notifications, etc.), handle diverse return statuses and customer preferences, ensure message consistency, and manage delivery failures with appropriate fallback mechanisms.
+
+  STEP 2 — Set a tool budget
+  Given the medium complexity, I'll target 12 tools to cover the various aspects of multi-channel customer communication for return status updates.
+
+  STEP 3 — List all tool names and dependencies
+  1. **Return Status Retriever** - Consumes: return_id → Produces: current status, timeline data
+  2. **Customer Profile Fetcher** - Consumes: customer_id → Produces: contact preferences, channel settings
+  3. **Message Template Generator** - Consumes: status, customer data, template type → Produces: personalized message content
+  4. **Email Notification Sender** - Consumes: message content, recipient data → Produces: delivery confirmation
+  5. **SMS Notification Sender** - Consumes: message content, phone number → Produces: delivery status
+  6. **Push Notification Dispatcher** - Consumes: message, device tokens → Produces: push delivery results
+  7. **Channel Availability Checker** - Consumes: customer_id, channel list → Produces: available channels
+  8. **Message Delivery Tracker** - Consumes: message_id, channel → Produces: delivery status, timestamps
+  9. **Fallback Channel Selector** - Consumes: failed channels, customer preferences → Produces: alternative channel
+  10. **Notification History Logger** - Consumes: notification data → Produces: log entry confirmation
+  11. **Message Content Validator** - Consumes: message content, channel type → Produces: validation results
+  12. **Bulk Communication Orchestrator** - Consumes: return list, message parameters → Produces: batch processing results
+
+  STEP 4 — Multi-tool plans
+
+  **Simple Plans:**
+  1. Single customer, single channel: Return Status Retriever → Customer Profile Fetcher → Message Template Generator → Email Notification Sender
+  2. Message validation: Message Template Generator → Message Content Validator → Email Notification Sender
+
+  **Medium Plans:**
+  1. Multi-channel notification: Return Status Retriever → Customer Profile Fetcher → Channel Availability Checker → Message Template Generator → Email Notification Sender + SMS Notification Sender → Message Delivery Tracker
+  2. Failed delivery with fallback: Email Notification Sender → Message Delivery Tracker → Fallback Channel Selector → SMS Notification Sender → Notification History Logger
+
+  **Complex Plans:**
+  1. Full customer communication workflow: Return Status Retriever → Customer Profile Fetcher → Channel Availability Checker → Message Template Generator → Message Content Validator → Email Notification Sender + SMS Notification Sender + Push Notification Dispatcher → Message Delivery Tracker → Notification History Logger
+  2. Bulk processing with fallbacks: Bulk Communication Orchestrator → (for each return) Return Status Retriever → Customer Profile Fetcher → Message Template Generator → multiple channel senders → Message Delivery Tracker → Fallback Channel Selector (if needed) → Notification History Logger
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Return Status Retriever",
+    "tool_description": "Retrieves current return status information and timeline data for a specific return request.",
+    "parameters": {
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the return request"
+      },
+      "include_timeline": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include detailed timeline information",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Return not found: The provided return_id does not exist in the system.",
+      "Access denied: Insufficient permissions to access this return information.",
+      "System unavailable: Return management system is temporarily unavailable."
+    ],
+    "usage": "Provide the return_id to retrieve current status and optionally include timeline details for comprehensive return information.",
+    "output_details": {
+      "return_id": {
+        "type": "string",
+        "description": "The return request identifier"
+      },
+      "current_status": {
+        "type": "string",
+        "description": "Current status of the return (e.g., received, processing, approved, refunded)"
+      },
+      "customer_id": {
+        "type": "string",
+        "description": "Customer identifier associated with the return"
+      },
+      "timeline": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of status change timestamps and descriptions"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated completion date-time",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Profile Fetcher",
+    "tool_description": "Retrieves customer contact information and communication preferences for personalized messaging.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "include_preferences": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include detailed communication preferences",
+        "default": true
+      },
+      "include_contact_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include recent contact history",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist.",
+      "Privacy restrictions: Customer has restricted profile access.",
+      "Database connection failed: Unable to retrieve customer data at this time."
+    ],
+    "usage": "Use customer_id to fetch contact details and preferences. Set include_preferences to true for channel-specific settings.",
+    "output_details": {
+      "customer_id": {
+        "type": "string",
+        "description": "The customer identifier"
+      },
+      "email": {
+        "type": "string",
+        "description": "Customer's email address"
+      },
+      "phone_number": {
+        "type": "string",
+        "description": "Customer's phone number"
+      },
+      "preferred_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of preferred communication channels"
+      },
+      "language": {
+        "type": "string",
+        "description": "Customer's preferred language code"
+      },
+      "timezone": {
+        "type": "string",
+        "description": "Customer's timezone"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Message Template Generator",
+    "tool_description": "Generates personalized message content based on return status, customer data, and selected template type.",
+    "parameters": {
+      "template_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of message template (status_update, confirmation, completion, delay_notice)"
+      },
+      "return_status": {
+        "type": "string",
+        "required": true,
+        "description": "Current return status"
+      },
+      "customer_name": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's name for personalization"
+      },
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Return request identifier"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Language code for message localization",
+        "default": "en"
+      },
+      "channel": {
+        "type": "string",
+        "required": true,
+        "description": "Target communication channel (email, sms, push)"
+      },
+      "custom_data": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Additional data for message personalization",
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid template type: Use one of [status_update, confirmation, completion, delay_notice].",
+      "Unsupported language: The specified language code is not supported.",
+      "Invalid channel: Channel must be one of [email, sms, push].",
+      "Template generation failed: Unable to generate message with provided parameters."
+    ],
+    "usage": "Specify template_type, return_status, customer details, and target channel to generate personalized messages. Include custom_data for additional context.",
+    "output_details": {
+      "subject": {
+        "type": "string",
+        "description": "Message subject line (for email/push)"
+      },
+      "body": {
+        "type": "string",
+        "description": "Main message content"
+      },
+      "call_to_action": {
+        "type": "string",
+        "description": "Action button text or link"
+      },
+      "message_length": {
+        "type": "integer",
+        "description": "Character count of the message"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Email Notification Sender",
+    "tool_description": "Sends email notifications to customers with return status updates and tracks delivery status.",
+    "parameters": {
+      "recipient_email": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's email address"
+      },
+      "subject": {
+        "type": "string",
+        "required": true,
+        "description": "Email subject line"
+      },
+      "body": {
+        "type": "string",
+        "required": true,
+        "description": "Email body content"
+      },
+      "sender_name": {
+        "type": "string",
+        "required": false,
+        "description": "Display name for the sender",
+        "default": "Customer Service"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Email priority level (low, normal, high)",
+        "default": "normal"
+      }
+    },
+    "error_messages": [
+      "Invalid email address: Recipient email format is incorrect.",
+      "Email service unavailable: SMTP service is currently unavailable.",
+      "Content too large: Email content exceeds size limits.",
+      "Blocked recipient: Email address is on the blocked list."
+    ],
+    "usage": "Provide recipient_email, subject, and body content. Optionally set sender_name and priority for customized delivery.",
+    "output_details": {
+      "message_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent message"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Initial delivery status (sent, queued, failed)"
+      },
+      "sent_timestamp": {
+        "type": "string",
+        "description": "Timestamp when email was sent",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SMS Notification Sender",
+    "tool_description": "Sends SMS notifications to customers with return status updates via mobile phone.",
+    "parameters": {
+      "phone_number": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's phone number in international format"
+      },
+      "message_content": {
+        "type": "string",
+        "required": true,
+        "description": "SMS message content"
+      },
+      "sender_id": {
+        "type": "string",
+        "required": false,
+        "description": "Sender identifier or short code",
+        "default": "RETURNS"
+      }
+    },
+    "error_messages": [
+      "Invalid phone number: Phone number format is incorrect or invalid.",
+      "Message too long: SMS content exceeds character limit for single message.",
+      "SMS service error: Unable to connect to SMS gateway.",
+      "Blocked number: Phone number is on the do-not-contact list."
+    ],
+    "usage": "Provide phone_number and message_content. Keep message under 160 characters for optimal delivery. Optionally customize sender_id.",
+    "output_details": {
+      "message_id": {
+        "type": "string",
+        "description": "Unique identifier for the sent SMS"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "SMS delivery status (sent, delivered, failed)"
+      },
+      "character_count": {
+        "type": "integer",
+        "description": "Number of characters in the message"
+      },
+      "cost": {
+        "type": "number",
+        "description": "Cost of sending the SMS"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Push Notification Dispatcher",
+    "tool_description": "Sends push notifications to customer mobile apps with return status updates.",
+    "parameters": {
+      "device_tokens": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of device tokens for push notification delivery",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "title": {
+        "type": "string",
+        "required": true,
+        "description": "Push notification title"
+      },
+      "body": {
+        "type": "string",
+        "required": true,
+        "description": "Push notification body text"
+      },
+      "deep_link": {
+        "type": "string",
+        "required": false,
+        "description": "Deep link URL for app navigation",
+        "default": null
+      },
+      "badge_count": {
+        "type": "integer",
+        "required": false,
+        "description": "App badge count to display",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid device tokens: One or more device tokens are malformed.",
+      "Push service unavailable: Push notification service is temporarily down.",
+      "Content too large: Title or body exceeds character limits.",
+      "No valid tokens: All provided device tokens are invalid or expired."
+    ],
+    "usage": "Provide array of device_tokens, title, and body. Optionally include deep_link for navigation and badge_count for app badge.",
+    "output_details": {
+      "batch_id": {
+        "type": "string",
+        "description": "Unique identifier for the push notification batch"
+      },
+      "successful_sends": {
+        "type": "integer",
+        "description": "Number of successfully sent notifications"
+      },
+      "failed_sends": {
+        "type": "integer",
+        "description": "Number of failed notification attempts"
+      },
+      "invalid_tokens": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of invalid or expired device tokens"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Channel Availability Checker",
+    "tool_description": "Checks which communication channels are available and functional for a specific customer.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier to check channel availability"
+      },
+      "channels_to_check": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of channels to verify (email, sms, push)",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "perform_validation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to validate contact information format",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist.",
+      "Invalid channel list: One or more channel names are not supported.",
+      "Service check failed: Unable to verify channel availability at this time."
+    ],
+    "usage": "Provide customer_id and list of channels_to_check. Set perform_validation to true to validate contact information format.",
+    "output_details": {
+      "available_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of available and functional channels"
+      },
+      "unavailable_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of unavailable or non-functional channels"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation errors for contact information"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Message Delivery Tracker",
+    "tool_description": "Tracks the delivery status of sent messages across different communication channels and provides detailed delivery information.",
+    "parameters": {
+      "message_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier of the message to track"
+      },
+      "channel": {
+        "type": "string",
+        "required": true,
+        "description": "Communication channel used (email, sms, push)"
+      },
+      "include_events": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include detailed delivery event history",
+        "default": true
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum time to wait for delivery status (1-300 seconds)",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Message not found: The provided message_id does not exist in tracking system.",
+      "Invalid channel: Channel must be one of [email, sms, push].",
+      "Timeout exceeded: Tracking timeout must be between 1 and 300 seconds.",
+      "Tracking service unavailable: Message tracking service is temporarily unavailable."
+    ],
+    "usage": "Provide message_id and channel to track delivery status. Set include_events for detailed tracking history and adjust timeout_seconds as needed.",
+    "output_details": {
+      "message_id": {
+        "type": "string",
+        "description": "The tracked message identifier"
+      },
+      "delivery_status": {
+        "type": "string",
+        "description": "Current delivery status (pending, delivered, failed, bounced)"
+      },
+      "delivered_timestamp": {
+        "type": "string",
+        "description": "Timestamp when message was delivered",
+        "format": "date-time"
+      },
+      "events": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Chronological list of delivery events and timestamps"
+      },
+      "failure_reason": {
+        "type": "string",
+        "description": "Reason for delivery failure if applicable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fallback Channel Selector",
+    "tool_description": "Selects alternative communication channels when primary delivery methods fail, based on customer preferences and channel availability.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for preference lookup"
+      },
+      "failed_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of channels that failed delivery",
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "available_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of remaining available channels",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "priority_order": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Custom priority order for channel selection",
+        "default": []
+      },
+      "exclude_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Channels to exclude from selection",
+        "default": []
+      }
+    },
+    "error_messages": [
+      "No fallback options: No alternative channels available after filtering.",
+      "Invalid channel specification: One or more channel names are not recognized.",
+      "Customer preferences unavailable: Unable to retrieve customer channel preferences.",
+      "Circular dependency: Priority order creates circular channel dependencies."
+    ],
+    "usage": "Provide customer_id, failed_channels, and available_channels. Optionally specify priority_order for custom selection logic or exclude_channels to remove options.",
+    "output_details": {
+      "selected_channel": {
+        "type": "string",
+        "description": "The recommended fallback channel"
+      },
+      "selection_reason": {
+        "type": "string",
+        "description": "Reason for selecting this channel"
+      },
+      "alternative_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Additional fallback options in priority order"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification History Logger",
+    "tool_description": "Logs notification attempts and delivery results for audit trails and customer communication history.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for the notification"
+      },
+      "return_id": {
+        "type": "string",
+        "required": true,
+        "description": "Return request identifier"
+      },
+      "channel": {
+        "type": "string",
+        "required": true,
+        "description": "Communication channel used"
+      },
+      "message_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique message identifier"
+      },
+      "delivery_status": {
+        "type": "string",
+        "required": true,
+        "description": "Final delivery status"
+      },
+      "timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Notification timestamp",
+        "format": "date-time"
+      },
+      "message_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification sent"
+      },
+      "failure_reason": {
+        "type": "string",
+        "required": false,
+        "description": "Reason for delivery failure if applicable",
+        "default": null
+      },
+      "retry_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of delivery attempts made",
+        "default": 1
+      },
+      "additional_metadata": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Additional metadata for the log entry",
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid timestamp format: Timestamp must be in valid ISO 8601 format.",
+      "Required field missing: customer_id, return_id, channel, message_id, delivery_status, timestamp, and message_type are required.",
+      "Database write failed: Unable to write log entry to database.",
+      "Invalid retry count: retry_count must be a positive integer."
+    ],
+    "usage": "Provide all required notification details including customer_id, return_id, channel, message_id, delivery_status, timestamp, and message_type. Include failure_reason for failed deliveries and retry_count for multiple attempts.",
+    "output_details": {
+      "log_entry_id": {
+        "type": "string",
+        "description": "Unique identifier for the created log entry"
+      },
+      "logged_timestamp": {
+        "type": "string",
+        "description": "Timestamp when log entry was created",
+        "format": "date-time"
+      },
+      "success": {
+        "type": "boolean",
+        "description": "Whether the log entry was successfully created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Message Content Validator",
+    "tool_description": "Validates message content for compliance, formatting, and channel-specific requirements before sending.",
+    "parameters": {
+      "message_content": {
+        "type": "string",
+        "required": true,
+        "description": "The message content to validate"
+      },
+      "channel": {
+        "type": "string",
+        "required": true,
+        "description": "Target communication channel (email, sms, push)"
+      },
+      "subject": {
+        "type": "string",
+        "required": false,
+        "description": "Message subject line (for email and push)",
+        "default": null
+      },
+      "check_compliance": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform regulatory compliance checks",
+        "default": true
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Language code for content validation",
+        "default": "en"
+      }
+    },
+    "error_messages": [
+      "Invalid channel: Channel must be one of [email, sms, push].",
+      "Content too long: Message exceeds maximum length for the specified channel.",
+      "Compliance violation: Message content violates regulatory requirements.",
+      "Invalid characters: Message contains unsupported characters for the channel.",
+      "Missing required subject: Email and push notifications require a subject line."
+    ],
+    "usage": "Provide message_content and target channel. Include subject for email/push notifications. Set check_compliance to validate against regulations.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the message content is valid"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of validation errors found"
+      },
+      "character_count": {
+        "type": "integer",
+        "description": "Total character count of the message"
+      },
+      "compliance_status": {
+        "type": "string",
+        "description": "Compliance check result (pass, fail, not_checked)"
+      },
+      "suggestions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Suggestions for improving message content"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bulk Communication Orchestrator",
+    "tool_description": "Orchestrates bulk communication campaigns for multiple return status updates with batch processing, rate limiting, and progress tracking.",
+    "parameters": {
+      "return_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Array of return identifiers to process",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "message_template_type": {
+        "type": "string",
+        "required": true,
+        "description": "Template type for all messages (status_update, confirmation, completion, delay_notice)"
+      },
+      "channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Communication channels to use for bulk sending",
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of messages to process in each batch (1-100)",
+        "default": 50
+      },
+      "rate_limit_per_minute": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum messages to send per minute (1-1000)",
+        "default": 100
+      },
+      "retry_failed": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to retry failed message deliveries",
+        "default": true
+      },
+      "max_retries": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of retry attempts for failed deliveries (1-5)",
+        "default": 3
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Processing priority (low, normal, high)",
+        "default": "normal"
+      },
+      "schedule_time": {
+        "type": "string",
+        "required": false,
+        "description": "Scheduled execution time for bulk operation",
+        "format": "date-time",
+        "default": null
+      },
+      "filter_criteria": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Additional filtering criteria for processing",
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Invalid batch size: batch_size must be between 1 and 100.",
+      "Invalid rate limit: rate_limit_per_minute must be between 1 and 1000.",
+      "Too many return IDs: Maximum 1000 return IDs allowed per bulk operation.",
+      "Invalid template type: Use one of [status_update, confirmation, completion, delay_notice].",
+      "Invalid channels: One or more specified channels are not supported.",
+      "Invalid retry configuration: max_retries must be between 1 and 5.",
+      "Invalid priority: Priority must be one of [low, normal, high].",
+      "Invalid schedule time: schedule_time must be a future timestamp in ISO 8601 format.",
+      "System overload: Bulk communication system is at capacity, try again later."
+    ],
+    "usage": "Provide return_ids array, message_template_type, and channels for bulk processing. Configure batch_size and rate_limit_per_minute for performance tuning. Use schedule_time for delayed execution and filter_criteria for conditional processing.",
+    "output_details": {
+      "batch_id": {
+        "type": "string",
+        "description": "Unique identifier for the bulk communication batch"
+      },
+      "total_returns": {
+        "type": "integer",
+        "description": "Total number of returns to process"
+      },
+      "processed_count": {
+        "type": "integer",
+        "description": "Number of returns successfully processed"
+      },
+      "failed_count": {
+        "type": "integer",
+        "description": "Number of returns that failed processing"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated completion time for the bulk operation",
+        "format": "date-time"
+      },
+      "status": {
+        "type": "string",
+        "description": "Current status of the bulk operation (queued, processing, completed, failed)"
+      },
+      "failed_return_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of return IDs that failed processing"
+      }
+    }
+  }
+  ```

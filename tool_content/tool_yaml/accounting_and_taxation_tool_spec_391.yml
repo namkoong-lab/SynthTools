@@ -1,0 +1,827 @@
+field_name: accounting_and_taxation
+subfield: accounts_receivable_management
+task: Invoice generation and customization
+tool_description: |-
+  STEP 1 — Rate task difficulty
+
+  This task is of medium difficulty. While invoice generation involves well-defined business processes, it requires handling multiple data sources (customer information, product catalogs, tax rules), coordinating various customization options (templates, branding, line items), and ensuring compliance with accounting standards and tax regulations across different jurisdictions.
+
+  STEP 2 — Set a tool budget
+
+  Given the medium complexity, I'll target 12 tools within the 10-15 range to cover customer data retrieval, product/service management, tax calculations, template customization, invoice generation, formatting, and compliance validation.
+
+  STEP 3 — List all tool names and dependencies
+
+  1. Customer Data Retriever - consumes: customer_id → produces: customer details, billing info
+  2. Product Catalog Manager - consumes: product codes → produces: product details, pricing
+  3. Tax Rate Calculator - consumes: customer location, product types → produces: applicable tax rates
+  4. Line Item Builder - consumes: products, quantities, prices → produces: structured line items
+  5. Discount Applicator - consumes: line items, discount rules → produces: discounted totals
+  6. Invoice Template Loader - consumes: template preferences → produces: template structure
+  7. Branding Customizer - consumes: company info, logo specs → produces: branded elements
+  8. Invoice Number Generator - consumes: series preferences → produces: unique invoice numbers
+  9. Payment Terms Manager - consumes: customer terms, policies → produces: payment conditions
+  10. Invoice Assembler - consumes: all components → produces: complete invoice structure
+  11. Format Converter - consumes: invoice data, output format → produces: formatted documents
+  12. Compliance Validator - consumes: invoice data, jurisdiction → produces: compliance status
+
+  STEP 4 — Multi-tool plans
+
+  Simple plans:
+  - Basic invoice creation: Customer Data Retriever → Product Catalog Manager → Line Item Builder → Invoice Assembler → Format Converter
+  - Template customization: Invoice Template Loader → Branding Customizer → Invoice Assembler
+
+  Medium plans:
+  - Standard business invoice: Customer Data Retriever → Product Catalog Manager → Tax Rate Calculator → Line Item Builder → Invoice Number Generator → Invoice Assembler → Format Converter
+  - Discount invoice processing: Customer Data Retriever → Product Catalog Manager → Line Item Builder → Discount Applicator → Payment Terms Manager → Invoice Assembler
+
+  Complex plans:
+  - Full compliance invoice: Customer Data Retriever → Product Catalog Manager → Tax Rate Calculator → Line Item Builder → Discount Applicator → Invoice Template Loader → Branding Customizer → Invoice Number Generator → Payment Terms Manager → Invoice Assembler → Compliance Validator → Format Converter
+  - Multi-jurisdiction custom invoice: Customer Data Retriever → Product Catalog Manager → Tax Rate Calculator → Line Item Builder → Invoice Template Loader → Branding Customizer → Payment Terms Manager → Invoice Assembler → Compliance Validator → Format Converter
+
+  STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Customer Data Retriever",
+    "tool_description": "Retrieves comprehensive customer information including contact details, billing addresses, payment preferences, and account status for invoice generation.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer account"
+      },
+      "include_billing_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include previous billing information",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist in the system. Verify the customer ID is correct.",
+      "Customer account inactive: The customer account is marked as inactive. Contact customer service to reactivate.",
+      "Access denied: Insufficient permissions to access customer data. Ensure proper authorization."
+    ],
+    "usage": "Provide a valid customer_id to retrieve customer information. Set include_billing_history to true if historical billing data is needed for invoice customization.",
+    "output_details": {
+      "customer_name": {
+        "type": "string",
+        "description": "Full name or company name of the customer"
+      },
+      "billing_address": {
+        "type": "string",
+        "description": "Complete billing address formatted for invoice display"
+      },
+      "contact_email": {
+        "type": "string",
+        "description": "Primary email address for invoice delivery"
+      },
+      "phone_number": {
+        "type": "string",
+        "description": "Primary contact phone number"
+      },
+      "tax_id": {
+        "type": "string",
+        "description": "Customer tax identification number if applicable"
+      },
+      "payment_method": {
+        "type": "string",
+        "description": "Preferred payment method on file"
+      },
+      "account_status": {
+        "type": "string",
+        "description": "Current status of the customer account"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Catalog Manager",
+    "tool_description": "Manages product and service information including descriptions, pricing, categories, and inventory status for accurate invoice line item creation.",
+    "parameters": {
+      "product_codes": {
+        "type": "array",
+        "required": true,
+        "description": "List of product or service codes to retrieve",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "pricing_date": {
+        "type": "string",
+        "required": false,
+        "description": "Date for historical pricing lookup in date-time format",
+        "format": "date-time",
+        "default": "None"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Currency code for price conversion (ISO 4217)",
+        "default": "USD"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Customer pricing tier for tiered pricing",
+        "default": "standard"
+      },
+      "include_discontinued": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include discontinued products",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Product not found: One or more product codes do not exist in the catalog. Verify all product codes are correct.",
+      "Invalid currency code: The specified currency is not supported. Use a valid ISO 4217 currency code.",
+      "Pricing data unavailable: Historical pricing for the specified date is not available. Use a different date or current pricing.",
+      "Customer tier invalid: The specified customer tier is not recognized. Use a valid tier designation.",
+      "Product discontinued: Product is discontinued and include_discontinued is false. Set include_discontinued to true or remove the product."
+    ],
+    "usage": "Provide an array of product_codes to retrieve product information. Optionally specify pricing_date for historical prices, currency for price conversion, and customer_tier for tiered pricing.",
+    "output_details": {
+      "products": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of product information strings containing code, description, price, and category"
+      },
+      "total_products": {
+        "type": "integer",
+        "description": "Number of products successfully retrieved"
+      },
+      "pricing_currency": {
+        "type": "string",
+        "description": "Currency used for all returned prices"
+      },
+      "pricing_effective_date": {
+        "type": "string",
+        "description": "Date when the returned prices are effective"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tax Rate Calculator",
+    "tool_description": "Calculates applicable tax rates based on customer location, product types, and current tax regulations for accurate invoice tax computation.",
+    "parameters": {
+      "billing_address": {
+        "type": "string",
+        "required": true,
+        "description": "Customer billing address for tax jurisdiction determination"
+      },
+      "shipping_address": {
+        "type": "string",
+        "required": false,
+        "description": "Shipping address if different from billing",
+        "default": "None"
+      },
+      "product_categories": {
+        "type": "array",
+        "required": true,
+        "description": "Categories of products being invoiced",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "invoice_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of invoice for tax rate determination",
+        "format": "date-time"
+      },
+      "customer_tax_exempt": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether customer has tax-exempt status",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid address format: Billing address format is not recognized. Provide a complete address with city, state/province, and postal code.",
+      "Tax jurisdiction not found: Cannot determine tax jurisdiction from the provided address. Verify address accuracy.",
+      "Product category invalid: One or more product categories are not recognized. Use valid product category codes.",
+      "Tax rates unavailable: Tax rates for the specified date and jurisdiction are not available. Contact tax services.",
+      "Tax exemption invalid: Customer tax exempt status cannot be verified. Provide valid exemption documentation."
+    ],
+    "usage": "Provide billing_address, product_categories, and invoice_date to calculate applicable tax rates. Optionally specify shipping_address if different from billing and set customer_tax_exempt if applicable.",
+    "output_details": {
+      "tax_jurisdiction": {
+        "type": "string",
+        "description": "Determined tax jurisdiction for the transaction"
+      },
+      "tax_rates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of applicable tax rates with descriptions"
+      },
+      "total_tax_rate": {
+        "type": "number",
+        "description": "Combined tax rate as a percentage"
+      },
+      "tax_exempt_applied": {
+        "type": "boolean",
+        "description": "Whether tax exemption was applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Line Item Builder",
+    "tool_description": "Constructs detailed invoice line items with quantities, prices, discounts, and calculations for organized invoice presentation.",
+    "parameters": {
+      "item_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of item codes with quantities",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "unit_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Array of unit prices corresponding to items",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: item_data and unit_prices arrays must have the same length. Ensure each item has a corresponding price.",
+      "Invalid quantity: One or more quantities are zero or negative. All quantities must be positive numbers.",
+      "Invalid price: One or more unit prices are negative. All prices must be non-negative.",
+      "Item format error: Item data format is incorrect. Use format 'ITEM_CODE:QUANTITY' for each item."
+    ],
+    "usage": "Provide item_data as an array of 'ITEM_CODE:QUANTITY' strings and corresponding unit_prices array. The tool will calculate line totals and format items for invoice display.",
+    "output_details": {
+      "line_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Formatted line items with descriptions, quantities, prices, and totals"
+      },
+      "subtotal": {
+        "type": "number",
+        "description": "Sum of all line item totals before taxes and discounts"
+      },
+      "total_items": {
+        "type": "integer",
+        "description": "Total number of line items created"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Discount Applicator",
+    "tool_description": "Applies various discount types including percentage, fixed amount, and promotional discounts to invoice line items with proper calculations and documentation.",
+    "parameters": {
+      "line_items_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of line item data to apply discounts to",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "discount_codes": {
+        "type": "array",
+        "required": false,
+        "description": "Array of discount codes to apply",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "customer_discount_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Customer-specific discount percentage (0-100)",
+        "default": 0
+      },
+      "volume_discount_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum amount for volume discount eligibility",
+        "default": 0
+      },
+      "volume_discount_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Volume discount percentage (0-100)",
+        "default": 0
+      },
+      "apply_early_payment_discount": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply early payment discount",
+        "default": false
+      },
+      "early_payment_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Early payment discount percentage (0-10)",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Invalid discount code: One or more discount codes are not valid or have expired. Verify discount codes are current and applicable.",
+      "Discount rate out of range: Discount rates must be between 0 and 100 percent. Adjust discount percentages accordingly.",
+      "Volume threshold not met: Order total does not meet volume discount threshold. Increase order amount or remove volume discount.",
+      "Conflicting discounts: Multiple discounts cannot be combined. Choose a single discount type to apply.",
+      "Early payment rate invalid: Early payment discount rate must be between 0 and 10 percent. Adjust rate accordingly."
+    ],
+    "usage": "Provide line_items_data and optionally specify discount_codes, customer_discount_rate, volume discount settings, or early payment discount options. The tool will calculate and apply applicable discounts.",
+    "output_details": {
+      "discounted_items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Line items with applied discounts and adjusted totals"
+      },
+      "total_discount_amount": {
+        "type": "number",
+        "description": "Total dollar amount of all discounts applied"
+      },
+      "discount_descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Descriptions of all discounts applied for invoice documentation"
+      },
+      "final_subtotal": {
+        "type": "number",
+        "description": "Subtotal after all discounts are applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Template Loader",
+    "tool_description": "Loads and customizes invoice templates with layout preferences, field positioning, and formatting options for professional invoice presentation.",
+    "parameters": {
+      "template_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the invoice template to load"
+      },
+      "page_size": {
+        "type": "string",
+        "required": false,
+        "description": "Page size for the invoice (A4, Letter, Legal)",
+        "default": "Letter"
+      },
+      "color_scheme": {
+        "type": "string",
+        "required": false,
+        "description": "Color scheme for the template",
+        "default": "blue"
+      },
+      "include_logo": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include company logo in template",
+        "default": true
+      },
+      "header_style": {
+        "type": "string",
+        "required": false,
+        "description": "Header style preference (minimal, standard, detailed)",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Template not found: The specified template name does not exist. Use a valid template name from available options.",
+      "Invalid page size: Page size must be A4, Letter, or Legal. Specify a supported page size.",
+      "Color scheme unavailable: The specified color scheme is not available for this template. Choose an available color option.",
+      "Header style invalid: Header style must be minimal, standard, or detailed. Select a valid header style option."
+    ],
+    "usage": "Specify template_name to load a specific invoice template. Optionally customize with page_size, color_scheme, logo preferences, and header_style for desired appearance.",
+    "output_details": {
+      "template_structure": {
+        "type": "string",
+        "description": "Loaded template structure with formatting specifications"
+      },
+      "available_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of available fields that can be populated in this template"
+      },
+      "template_settings": {
+        "type": "string",
+        "description": "Applied template settings and customizations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Branding Customizer",
+    "tool_description": "Customizes invoice branding elements including company logo, colors, fonts, and contact information for consistent brand presentation.",
+    "parameters": {
+      "company_name": {
+        "type": "string",
+        "required": true,
+        "description": "Company name to display on invoice"
+      },
+      "logo_url": {
+        "type": "string",
+        "required": false,
+        "description": "URL or path to company logo image",
+        "default": "None"
+      },
+      "primary_color": {
+        "type": "string",
+        "required": false,
+        "description": "Primary brand color in hex format",
+        "default": "#0066CC"
+      },
+      "secondary_color": {
+        "type": "string",
+        "required": false,
+        "description": "Secondary brand color in hex format",
+        "default": "#666666"
+      },
+      "font_family": {
+        "type": "string",
+        "required": false,
+        "description": "Font family for invoice text",
+        "default": "Arial"
+      },
+      "company_address": {
+        "type": "string",
+        "required": true,
+        "description": "Company address for invoice header"
+      },
+      "company_phone": {
+        "type": "string",
+        "required": true,
+        "description": "Company phone number"
+      },
+      "company_email": {
+        "type": "string",
+        "required": true,
+        "description": "Company email address"
+      },
+      "website_url": {
+        "type": "string",
+        "required": false,
+        "description": "Company website URL",
+        "default": "None"
+      },
+      "tax_registration": {
+        "type": "string",
+        "required": false,
+        "description": "Company tax registration number",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid color format: Colors must be in hex format (#RRGGBB). Provide valid hex color codes.",
+      "Logo file not accessible: The specified logo URL or path cannot be accessed. Verify the logo location and permissions.",
+      "Font not available: The specified font family is not available. Choose from available font options.",
+      "Invalid email format: Company email address format is invalid. Provide a valid email address.",
+      "Missing required information: Company name, address, phone, and email are required for invoice branding."
+    ],
+    "usage": "Provide required company information (name, address, phone, email) and optionally customize visual elements like logo, colors, and fonts to match brand guidelines.",
+    "output_details": {
+      "branding_elements": {
+        "type": "string",
+        "description": "Compiled branding elements ready for invoice integration"
+      },
+      "logo_settings": {
+        "type": "string",
+        "description": "Logo display settings and positioning information"
+      },
+      "color_scheme": {
+        "type": "string",
+        "description": "Applied color scheme for invoice elements"
+      },
+      "company_info_block": {
+        "type": "string",
+        "description": "Formatted company information block for invoice header"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Number Generator",
+    "tool_description": "Generates unique invoice numbers following customizable numbering schemes and series management for proper invoice tracking and organization.",
+    "parameters": {
+      "numbering_scheme": {
+        "type": "string",
+        "required": false,
+        "description": "Numbering scheme (sequential, date-based, prefix-sequential)",
+        "default": "sequential"
+      },
+      "prefix": {
+        "type": "string",
+        "required": false,
+        "description": "Prefix to add before the invoice number",
+        "default": "INV"
+      },
+      "starting_number": {
+        "type": "integer",
+        "required": false,
+        "description": "Starting number for new series (minimum 1)",
+        "default": 1
+      },
+      "include_year": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include year in the invoice number",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid numbering scheme: Scheme must be sequential, date-based, or prefix-sequential. Choose a valid numbering option.",
+      "Starting number invalid: Starting number must be a positive integer greater than 0. Provide a valid starting number.",
+      "Prefix format error: Prefix contains invalid characters. Use only alphanumeric characters and hyphens.",
+      "Number generation failed: Unable to generate unique invoice number. Check series settings and try again."
+    ],
+    "usage": "Optionally specify numbering_scheme, prefix, starting_number, and whether to include_year. The tool will generate the next available invoice number in the series.",
+    "output_details": {
+      "invoice_number": {
+        "type": "string",
+        "description": "Generated unique invoice number"
+      },
+      "next_sequence": {
+        "type": "integer",
+        "description": "Next number in the sequence for tracking purposes"
+      },
+      "number_format": {
+        "type": "string",
+        "description": "Format pattern used for number generation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Terms Manager",
+    "tool_description": "Manages payment terms, due dates, and payment instructions based on customer agreements and company policies for clear payment expectations.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for payment terms lookup"
+      },
+      "invoice_date": {
+        "type": "string",
+        "required": true,
+        "description": "Invoice date for due date calculation",
+        "format": "date-time"
+      },
+      "payment_terms_override": {
+        "type": "string",
+        "required": false,
+        "description": "Override default payment terms (Net 15, Net 30, Net 60, Due on Receipt)",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Customer payment terms not found: No payment terms defined for this customer. Set up customer payment terms or use override.",
+      "Invalid payment terms: Payment terms format is not recognized. Use standard terms like Net 30, Net 15, or Due on Receipt.",
+      "Invalid invoice date: Invoice date format is incorrect or date is in the future. Provide a valid current or past date."
+    ],
+    "usage": "Provide customer_id and invoice_date to retrieve payment terms and calculate due date. Optionally use payment_terms_override to specify different terms for this invoice.",
+    "output_details": {
+      "payment_terms": {
+        "type": "string",
+        "description": "Payment terms applied to this invoice"
+      },
+      "due_date": {
+        "type": "string",
+        "description": "Calculated payment due date"
+      },
+      "payment_instructions": {
+        "type": "string",
+        "description": "Payment instructions and methods available to customer"
+      },
+      "early_payment_terms": {
+        "type": "string",
+        "description": "Early payment discount terms if applicable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Invoice Assembler",
+    "tool_description": "Combines all invoice components including customer data, line items, taxes, discounts, branding, and terms into a complete invoice structure ready for formatting and delivery.",
+    "parameters": {
+      "customer_data": {
+        "type": "string",
+        "required": true,
+        "description": "Customer information data block"
+      },
+      "company_branding": {
+        "type": "string",
+        "required": true,
+        "description": "Company branding and header information"
+      },
+      "invoice_number": {
+        "type": "string",
+        "required": true,
+        "description": "Generated invoice number"
+      },
+      "line_items": {
+        "type": "array",
+        "required": true,
+        "description": "Array of formatted line items with pricing",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "tax_information": {
+        "type": "string",
+        "required": true,
+        "description": "Tax calculations and jurisdictions"
+      },
+      "discount_data": {
+        "type": "string",
+        "required": false,
+        "description": "Discount information and calculations",
+        "default": "None"
+      },
+      "payment_terms": {
+        "type": "string",
+        "required": true,
+        "description": "Payment terms and due date information"
+      },
+      "template_structure": {
+        "type": "string",
+        "required": true,
+        "description": "Template structure and formatting specifications"
+      },
+      "invoice_date": {
+        "type": "string",
+        "required": true,
+        "description": "Invoice creation date",
+        "format": "date-time"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "description": "Invoice currency code",
+        "default": "USD"
+      },
+      "notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional notes or terms to include on invoice",
+        "default": "None"
+      },
+      "reference_number": {
+        "type": "string",
+        "required": false,
+        "description": "Customer reference or purchase order number",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Missing required components: One or more required invoice components are missing or invalid. Ensure all required data is provided.",
+      "Line items validation failed: Line items contain invalid data or calculations. Verify line item formatting and calculations.",
+      "Tax calculation mismatch: Tax calculations do not align with line items. Recalculate taxes based on current line items.",
+      "Template structure invalid: Template structure is corrupted or incompatible. Load a valid template structure.",
+      "Currency format invalid: Currency code must be a valid ISO 4217 code. Provide a standard currency code."
+    ],
+    "usage": "Provide all required invoice components including customer_data, company_branding, invoice_number, line_items, tax_information, payment_terms, template_structure, and invoice_date. The tool will validate and assemble a complete invoice.",
+    "output_details": {
+      "complete_invoice": {
+        "type": "string",
+        "description": "Assembled complete invoice structure with all components integrated"
+      },
+      "invoice_summary": {
+        "type": "string",
+        "description": "Summary of invoice totals and key information"
+      },
+      "validation_status": {
+        "type": "string",
+        "description": "Validation status of the assembled invoice"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Final total amount of the invoice including taxes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Format Converter",
+    "tool_description": "Converts assembled invoice data into various output formats including PDF, HTML, XML, and plain text for different delivery and storage requirements.",
+    "parameters": {
+      "invoice_data": {
+        "type": "string",
+        "required": true,
+        "description": "Complete invoice data structure to convert"
+      },
+      "output_format": {
+        "type": "string",
+        "required": true,
+        "description": "Desired output format (PDF, HTML, XML, TXT, JSON)"
+      },
+      "quality_setting": {
+        "type": "string",
+        "required": false,
+        "description": "Output quality setting (draft, standard, high)",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid output format: Specified format is not supported. Use PDF, HTML, XML, TXT, or JSON.",
+      "Invoice data malformed: Invoice data structure is invalid or corrupted. Provide valid invoice data.",
+      "Conversion failed: Unable to convert to specified format. Check data integrity and format compatibility.",
+      "Quality setting invalid: Quality setting must be draft, standard, or high. Choose a valid quality option."
+    ],
+    "usage": "Provide complete invoice_data and specify the desired output_format. Optionally set quality_setting for output optimization. The tool returns the invoice in the requested format.",
+    "output_details": {
+      "formatted_invoice": {
+        "type": "string",
+        "description": "Invoice converted to the requested format"
+      },
+      "file_size": {
+        "type": "integer",
+        "description": "Size of the formatted output in bytes"
+      },
+      "format_metadata": {
+        "type": "string",
+        "description": "Metadata about the formatting process and settings used"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Validator",
+    "tool_description": "Validates invoice compliance with accounting standards, tax regulations, and jurisdiction-specific requirements to ensure legal and regulatory adherence.",
+    "parameters": {
+      "invoice_data": {
+        "type": "string",
+        "required": true,
+        "description": "Complete invoice data to validate"
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Tax jurisdiction for compliance checking"
+      },
+      "accounting_standard": {
+        "type": "string",
+        "required": false,
+        "description": "Accounting standard to validate against (GAAP, IFRS, local)",
+        "default": "GAAP"
+      },
+      "industry_type": {
+        "type": "string",
+        "required": false,
+        "description": "Industry type for specific compliance requirements",
+        "default": "general"
+      }
+    },
+    "error_messages": [
+      "Jurisdiction not supported: The specified jurisdiction is not supported for compliance validation. Use a supported jurisdiction.",
+      "Accounting standard invalid: Accounting standard must be GAAP, IFRS, or local. Specify a valid accounting standard.",
+      "Required fields missing: Invoice is missing required fields for compliance. Add all mandatory information.",
+      "Tax

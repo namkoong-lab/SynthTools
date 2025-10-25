@@ -1,0 +1,788 @@
+field_name: ecommerce_and_retail
+subfield: Return and Refund Processing
+task: Process refund payments and update financial records
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium difficulty. It involves multiple coordinated subprocesses (payment reversals, financial record updates, inventory adjustments), requires integration with external payment systems, and has moderate risk since financial errors can impact customer satisfaction and business accounting accuracy.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target 12 tools to handle the various aspects of refund processing, payment reversals, financial reconciliation, and audit trail maintenance.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Refund Request Validator** - Consumes: refund requests → Produces: validated refund data
+  2. **Payment Gateway Interface** - Consumes: payment details → Produces: transaction status
+  3. **Financial Record Updater** - Consumes: transaction data → Produces: updated accounting entries
+  4. **Inventory Adjuster** - Consumes: return items → Produces: inventory updates
+  5. **Tax Calculator** - Consumes: refund amounts → Produces: tax adjustments
+  6. **Customer Account Manager** - Consumes: customer data → Produces: account updates
+  7. **Audit Trail Generator** - Consumes: transaction events → Produces: audit logs
+  8. **Reconciliation Checker** - Consumes: financial data → Produces: balance verification
+  9. **Notification Dispatcher** - Consumes: refund status → Produces: customer/internal notifications
+  10. **Refund Batch Processor** - Consumes: multiple refunds → Produces: batch results
+  11. **Fraud Detection Scanner** - Consumes: refund patterns → Produces: risk assessment
+  12. **Financial Report Generator** - Consumes: refund data → Produces: financial summaries
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Single refund processing: Refund Request Validator → Payment Gateway Interface → Customer Account Manager
+  2. Basic reconciliation: Financial Record Updater → Reconciliation Checker → Audit Trail Generator
+
+  **Medium Plans:**
+  1. Standard refund workflow: Refund Request Validator → Fraud Detection Scanner → Tax Calculator → Payment Gateway Interface → Financial Record Updater → Inventory Adjuster → Notification Dispatcher
+  2. Daily reconciliation: Refund Batch Processor → Financial Record Updater → Reconciliation Checker → Financial Report Generator
+
+  **Complex Plans:**
+  1. Complete refund processing: Refund Request Validator → Fraud Detection Scanner → Tax Calculator → Payment Gateway Interface → Financial Record Updater → Inventory Adjuster → Customer Account Manager → Audit Trail Generator → Reconciliation Checker → Notification Dispatcher
+  2. End-of-period financial closing: Refund Batch Processor → Tax Calculator → Financial Record Updater → Reconciliation Checker → Financial Report Generator → Audit Trail Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Refund Request Validator",
+    "tool_description": "Validates refund requests against business rules and return policies to ensure eligibility and data completeness.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the original order"
+      },
+      "refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Requested refund amount in currency units"
+      },
+      "refund_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for refund request"
+      }
+    },
+    "error_messages": [
+      "Invalid order ID: Order not found in system or format incorrect.",
+      "Refund amount exceeds original payment: Requested amount is greater than the original transaction value.",
+      "Refund window expired: Request submitted beyond allowed return period.",
+      "Missing required fields: order_id, refund_amount, and refund_reason must all be provided."
+    ],
+    "usage": "Provide order_id, refund_amount, and refund_reason to validate the refund request against business rules and return policies.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Status of validation (approved, rejected, pending)"
+      },
+      "eligible_amount": {
+        "type": "number",
+        "description": "Maximum refund amount eligible for processing"
+      },
+      "validation_notes": {
+        "type": "string",
+        "description": "Additional notes about validation results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Payment Gateway Interface",
+    "tool_description": "Interfaces with payment processors to execute refund transactions and retrieve payment status information.",
+    "parameters": {
+      "original_transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the original payment transaction"
+      },
+      "refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Amount to refund in currency units"
+      },
+      "gateway_provider": {
+        "type": "string",
+        "required": true,
+        "description": "Payment gateway provider (stripe, paypal, square, authorize_net)"
+      },
+      "currency_code": {
+        "type": "string",
+        "required": true,
+        "description": "Three-letter ISO currency code"
+      },
+      "reason_code": {
+        "type": "string",
+        "required": false,
+        "description": "Standardized reason code for the refund",
+        "default": "customer_request"
+      }
+    },
+    "error_messages": [
+      "Payment gateway unavailable: Unable to connect to the specified payment provider.",
+      "Transaction not found: Original transaction ID not found in gateway records.",
+      "Insufficient funds: Merchant account has insufficient funds for refund processing.",
+      "Invalid currency code: Currency code must be a valid 3-letter ISO code.",
+      "Unsupported gateway provider: Provider must be one of [stripe, paypal, square, authorize_net]."
+    ],
+    "usage": "Provide original_transaction_id, refund_amount, gateway_provider, and currency_code to process the refund through the payment gateway.",
+    "output_details": {
+      "refund_transaction_id": {
+        "type": "string",
+        "description": "Unique ID for the refund transaction"
+      },
+      "status": {
+        "type": "string",
+        "description": "Transaction status (completed, pending, failed)"
+      },
+      "processing_fee": {
+        "type": "number",
+        "description": "Fee charged by gateway for processing the refund"
+      },
+      "estimated_settlement_date": {
+        "type": "string",
+        "description": "Expected date when refund will appear in customer account"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Financial Record Updater",
+    "tool_description": "Updates accounting records with refund transactions, including journal entries and general ledger adjustments.",
+    "parameters": {
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the refund transaction"
+      },
+      "refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total refund amount including tax adjustments"
+      },
+      "tax_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Tax portion of the refund"
+      },
+      "account_codes": {
+        "type": "array",
+        "required": true,
+        "description": "General ledger account codes to be updated",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for the refund"
+      },
+      "order_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of original order",
+        "format": "date-time"
+      },
+      "refund_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when refund was processed",
+        "format": "date-time"
+      },
+      "department_code": {
+        "type": "string",
+        "required": false,
+        "description": "Department code for cost allocation",
+        "default": "RETAIL"
+      },
+      "posting_period": {
+        "type": "string",
+        "required": false,
+        "description": "Accounting period for the transaction (YYYY-MM format)",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid account codes: One or more account codes not found in chart of accounts.",
+      "Posting period closed: Cannot post to a closed accounting period.",
+      "Amount validation failed: Refund amount and tax amount must be positive numbers.",
+      "Customer not found: Customer ID does not exist in the system.",
+      "Date format error: Dates must be in valid ISO 8601 format.",
+      "Duplicate transaction: Transaction ID already exists in financial records."
+    ],
+    "usage": "Provide transaction_id, amounts, account_codes, customer_id, and relevant dates to update financial records with the refund transaction.",
+    "output_details": {
+      "journal_entry_id": {
+        "type": "string",
+        "description": "Unique identifier for the created journal entry"
+      },
+      "posting_status": {
+        "type": "string",
+        "description": "Status of the posting (posted, pending, failed)"
+      },
+      "affected_accounts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of account codes that were updated"
+      },
+      "total_debits": {
+        "type": "number",
+        "description": "Total debit amount posted"
+      },
+      "total_credits": {
+        "type": "number",
+        "description": "Total credit amount posted"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Inventory Adjuster",
+    "tool_description": "Adjusts inventory levels and status for returned items based on their condition and restocking policies.",
+    "parameters": {
+      "return_items": {
+        "type": "array",
+        "required": true,
+        "description": "List of SKUs being returned",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities for each returned item",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "warehouse_location": {
+        "type": "string",
+        "required": true,
+        "description": "Warehouse or location code where items are being processed"
+      },
+      "item_conditions": {
+        "type": "array",
+        "required": true,
+        "description": "Condition of each returned item",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      }
+    },
+    "error_messages": [
+      "SKU not found: One or more SKUs do not exist in the inventory system.",
+      "Invalid warehouse location: Warehouse location code not recognized.",
+      "Quantity mismatch: Number of quantities must match number of return items.",
+      "Condition mismatch: Number of item conditions must match number of return items.",
+      "Invalid condition code: Item condition must be one of [new, like_new, damaged, defective, expired]."
+    ],
+    "usage": "Provide return_items, quantities, warehouse_location, and item_conditions to adjust inventory levels for returned merchandise.",
+    "output_details": {
+      "adjustment_id": {
+        "type": "string",
+        "description": "Unique identifier for the inventory adjustment"
+      },
+      "restocked_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "SKUs that were successfully restocked"
+      },
+      "disposed_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "SKUs that were marked for disposal or liquidation"
+      },
+      "inventory_value_change": {
+        "type": "number",
+        "description": "Net change in inventory value from the adjustment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tax Calculator",
+    "tool_description": "Calculates tax adjustments and refunds based on refund amounts and applicable tax rates.",
+    "parameters": {
+      "refund_subtotal": {
+        "type": "number",
+        "required": true,
+        "description": "Pre-tax refund amount"
+      },
+      "tax_jurisdiction": {
+        "type": "string",
+        "required": true,
+        "description": "Tax jurisdiction code for calculating applicable rates"
+      },
+      "original_tax_paid": {
+        "type": "number",
+        "required": true,
+        "description": "Original tax amount paid on the order"
+      }
+    },
+    "error_messages": [
+      "Invalid tax jurisdiction: Jurisdiction code not found in tax rate database.",
+      "Negative amounts: Refund subtotal and original tax paid must be positive values.",
+      "Tax calculation error: Unable to calculate tax refund due to missing rate information."
+    ],
+    "usage": "Provide refund_subtotal, tax_jurisdiction, and original_tax_paid to calculate the appropriate tax refund amount.",
+    "output_details": {
+      "tax_refund_amount": {
+        "type": "number",
+        "description": "Amount of tax to be refunded"
+      },
+      "applicable_tax_rate": {
+        "type": "number",
+        "description": "Tax rate used in calculation"
+      },
+      "total_refund_with_tax": {
+        "type": "number",
+        "description": "Total refund including tax portion"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Account Manager",
+    "tool_description": "Updates customer account information with refund details and manages store credit or loyalty point adjustments.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique customer identifier"
+      },
+      "refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total refund amount processed"
+      },
+      "refund_method": {
+        "type": "string",
+        "required": true,
+        "description": "Method of refund (original_payment, store_credit, gift_card)"
+      },
+      "loyalty_points_adjustment": {
+        "type": "integer",
+        "required": false,
+        "description": "Points to deduct from customer loyalty account",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Customer not found: Customer ID does not exist in the system.",
+      "Invalid refund method: Method must be one of [original_payment, store_credit, gift_card].",
+      "Insufficient loyalty points: Customer does not have enough points for the required deduction.",
+      "Account locked: Customer account is locked and cannot be updated."
+    ],
+    "usage": "Provide customer_id, refund_amount, and refund_method to update the customer's account with refund information.",
+    "output_details": {
+      "account_update_status": {
+        "type": "string",
+        "description": "Status of account update (success, partial, failed)"
+      },
+      "new_store_credit_balance": {
+        "type": "number",
+        "description": "Updated store credit balance if applicable"
+      },
+      "new_loyalty_points_balance": {
+        "type": "integer",
+        "description": "Updated loyalty points balance"
+      },
+      "refund_confirmation_number": {
+        "type": "string",
+        "description": "Confirmation number for the customer"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Audit Trail Generator",
+    "tool_description": "Creates comprehensive audit logs for refund transactions to ensure compliance and traceability.",
+    "parameters": {
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the refund transaction"
+      },
+      "user_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the user who processed the refund"
+      },
+      "action_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of action performed (refund_processed, inventory_adjusted, account_updated)"
+      },
+      "system_module": {
+        "type": "string",
+        "required": true,
+        "description": "System module that initiated the action"
+      },
+      "data_before": {
+        "type": "string",
+        "required": false,
+        "description": "JSON string of data state before the action",
+        "default": null
+      },
+      "data_after": {
+        "type": "string",
+        "required": false,
+        "description": "JSON string of data state after the action",
+        "default": null
+      },
+      "ip_address": {
+        "type": "string",
+        "required": false,
+        "description": "IP address of the user who performed the action",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid transaction ID: Transaction ID format is incorrect or not found.",
+      "User not found: User ID does not exist in the system.",
+      "Invalid action type: Action type must be a recognized system action.",
+      "JSON parsing error: data_before or data_after contains invalid JSON format.",
+      "Audit log creation failed: Unable to create audit record due to system error."
+    ],
+    "usage": "Provide transaction_id, user_id, action_type, and system_module to create an audit trail entry for the refund transaction.",
+    "output_details": {
+      "audit_log_id": {
+        "type": "string",
+        "description": "Unique identifier for the created audit log entry"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Timestamp when the audit log was created"
+      },
+      "compliance_status": {
+        "type": "string",
+        "description": "Compliance validation status for the audit entry"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reconciliation Checker",
+    "tool_description": "Verifies that all refund-related financial entries are balanced and consistent across different systems.",
+    "parameters": {
+      "reconciliation_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date for which to perform reconciliation",
+        "format": "date-time"
+      },
+      "account_codes": {
+        "type": "array",
+        "required": true,
+        "description": "List of account codes to reconcile",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "transaction_source": {
+        "type": "string",
+        "required": true,
+        "description": "Source system for transactions (ecommerce, pos, manual)"
+      },
+      "tolerance_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Acceptable variance amount for reconciliation",
+        "default": 0.01
+      }
+    },
+    "error_messages": [
+      "Invalid reconciliation date: Date must be in valid ISO 8601 format and not in the future.",
+      "Account codes not found: One or more account codes do not exist in the system.",
+      "Invalid transaction source: Source must be one of [ecommerce, pos, manual].",
+      "Tolerance amount invalid: Tolerance must be a positive number.",
+      "Reconciliation failed: Unable to complete reconciliation due to system connectivity issues."
+    ],
+    "usage": "Provide reconciliation_date, account_codes, and transaction_source to verify financial balance and consistency of refund transactions.",
+    "output_details": {
+      "reconciliation_status": {
+        "type": "string",
+        "description": "Overall reconciliation status (balanced, unbalanced, warning)"
+      },
+      "total_variance": {
+        "type": "number",
+        "description": "Total variance amount found during reconciliation"
+      },
+      "unreconciled_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of transaction IDs that could not be reconciled"
+      },
+      "reconciliation_report_id": {
+        "type": "string",
+        "description": "ID of the generated reconciliation report"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Notification Dispatcher",
+    "tool_description": "Sends refund status notifications to customers and internal stakeholders via multiple communication channels.",
+    "parameters": {
+      "recipient_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of recipient (customer, internal, vendor)"
+      },
+      "notification_channels": {
+        "type": "array",
+        "required": true,
+        "description": "Communication channels to use",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "customer_email": {
+        "type": "string",
+        "required": false,
+        "description": "Customer email address for notifications",
+        "default": null
+      },
+      "refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Refund amount to include in notification"
+      },
+      "confirmation_number": {
+        "type": "string",
+        "required": true,
+        "description": "Refund confirmation number"
+      },
+      "estimated_processing_days": {
+        "type": "integer",
+        "required": false,
+        "description": "Expected days for refund to appear in customer account",
+        "default": 3
+      },
+      "template_type": {
+        "type": "string",
+        "required": false,
+        "description": "Notification template to use (standard, expedited, store_credit)",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid recipient type: Type must be one of [customer, internal, vendor].",
+      "Invalid notification channels: Channels must be from [email, sms, push, webhook, slack].",
+      "Missing customer email: Email address required when recipient_type is customer and email is in channels.",
+      "Invalid template type: Template must be one of [standard, expedited, store_credit].",
+      "Notification delivery failed: Unable to send notification via one or more channels."
+    ],
+    "usage": "Provide recipient_type, notification_channels, refund_amount, and confirmation_number to send appropriate refund notifications.",
+    "output_details": {
+      "delivery_status": {
+        "type": "string",
+        "description": "Overall delivery status (success, partial, failed)"
+      },
+      "successful_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Channels that successfully delivered the notification"
+      },
+      "failed_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Channels that failed to deliver the notification"
+      },
+      "notification_id": {
+        "type": "string",
+        "description": "Unique identifier for tracking the notification"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Refund Batch Processor",
+    "tool_description": "Processes multiple refund transactions in batches for efficiency and generates batch summary reports.",
+    "parameters": {
+      "batch_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name identifier for the refund batch"
+      },
+      "transaction_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of transaction IDs to process in the batch",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 100
+      },
+      "processing_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Processing priority level (low, normal, high)",
+        "default": "normal"
+      },
+      "auto_reconcile": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to automatically reconcile after processing",
+        "default": true
+      },
+      "notification_enabled": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to send notifications for batch completion",
+        "default": true
+      },
+      "max_retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of retry attempts for failed transactions",
+        "default": 3
+      },
+      "batch_size_limit": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of transactions to process simultaneously",
+        "default": 10
+      },
+      "processing_timeout": {
+        "type": "integer",
+        "required": false,
+        "description": "Timeout in minutes for batch processing",
+        "default": 60
+      },
+      "error_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Maximum acceptable error rate (0.0-1.0) before batch fails",
+        "default": 0.1
+      },
+      "schedule_time": {
+        "type": "string",
+        "required": false,
+        "description": "Scheduled start time for batch processing",
+        "format": "date-time",
+        "default": null
+      },
+      "department_code": {
+        "type": "string",
+        "required": false,
+        "description": "Department code for batch tracking and reporting",
+        "default": "REFUNDS"
+      }
+    },
+    "error_messages": [
+      "Empty batch: Transaction IDs array cannot be empty and must contain at least 2 transactions.",
+      "Invalid priority level: Priority must be one of [low, normal, high].",
+      "Batch size exceeded: Number of transaction IDs exceeds maximum allowed batch size of 100.",
+      "Invalid retry attempts: max_retry_attempts must be between 0 and 10.",
+      "Invalid error threshold: error_threshold must be between 0.0 and 1.0.",
+      "Batch processing timeout: Processing exceeded the specified timeout limit.",
+      "Duplicate transaction IDs: Batch contains duplicate transaction identifiers."
+    ],
+    "usage": "Provide batch_name and transaction_ids to process multiple refunds efficiently. Optionally configure processing parameters for priority, reconciliation, and error handling.",
+    "output_details": {
+      "batch_id": {
+        "type": "string",
+        "description": "Unique identifier assigned to the batch"
+      },
+      "processing_status": {
+        "type": "string",
+        "description": "Overall batch processing status"
+      },
+      "successful_transactions": {
+        "type": "integer",
+        "description": "Number of transactions processed successfully"
+      },
+      "failed_transactions": {
+        "type": "integer",
+        "description": "Number of transactions that failed processing"
+      },
+      "total_refund_amount": {
+        "type": "number",
+        "description": "Total amount of all refunds processed in the batch"
+      },
+      "processing_duration": {
+        "type": "integer",
+        "description": "Time taken to process the batch in minutes"
+      },
+      "error_summary": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Summary of errors encountered during batch processing"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fraud Detection Scanner",
+    "tool_description": "Analyzes refund requests for potential fraudulent patterns and assigns risk scores to transactions.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for the refund request"
+      },
+      "refund_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Requested refund amount"
+      },
+      "order_age_days": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of days since original order was placed"
+      },
+      "refund_frequency": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of previous refunds by this customer in the last 90 days",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Customer not found: Customer ID does not exist in the fraud detection database.",
+      "Invalid refund amount: Amount must be a positive number greater than zero.",
+      "Invalid order age: Order age must be a non-negative integer.",
+      "Fraud detection service unavailable: Unable to connect to fraud detection service."
+    ],
+    "usage": "Provide customer_id, refund_amount, and order_age_days to analyze the refund request for potential fraud indicators.",
+    "output_details": {
+      "risk_score": {
+        "type": "number",
+        "description": "Fraud risk score from 0-100 (higher indicates more risk)"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Risk classification (low, medium, high)"
+      },
+      "fraud_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of identified fraud risk indicators"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Recommended action based on risk assessment"
+      }
+    }
+  }
+  ```

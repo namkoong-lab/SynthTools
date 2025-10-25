@@ -1,0 +1,820 @@
+field_name: travel_and_transportation
+subfield: hotel_and_accommodation_reservations
+task: Compare hotel prices, ratings, and availability across multiple booking platforms
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium complexity due to the need to integrate multiple booking platforms with different APIs, handle real-time availability data, normalize varying rating systems, and coordinate price comparisons across different fee structures and cancellation policies.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to handle the various aspects of multi-platform hotel comparison, data normalization, filtering, and analysis.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Hotel Search Engine** - Consumes: search criteria → Produces: raw hotel results from multiple platforms
+  2. **Platform Data Fetcher** - Consumes: platform IDs, hotel IDs → Produces: detailed hotel information
+  3. **Price Comparison Analyzer** - Consumes: hotel pricing data → Produces: normalized price comparisons
+  4. **Rating Normalizer** - Consumes: ratings from different platforms → Produces: standardized rating scores
+  5. **Availability Checker** - Consumes: hotel IDs, dates → Produces: real-time availability status
+  6. **Hotel Filter Engine** - Consumes: hotels list, filter criteria → Produces: filtered hotel results
+  7. **Amenity Matcher** - Consumes: hotel amenities lists → Produces: standardized amenity comparisons
+  8. **Location Distance Calculator** - Consumes: hotel coordinates, reference point → Produces: distance metrics
+  9. **Fee Breakdown Analyzer** - Consumes: booking details → Produces: total cost analysis with fees
+  10. **Cancellation Policy Comparator** - Consumes: policy details → Produces: policy flexibility scores
+  11. **Review Sentiment Analyzer** - Consumes: review text → Produces: sentiment scores and themes
+  12. **Hotel Ranking Generator** - Consumes: all comparison data → Produces: ranked hotel recommendations
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic Price Search: Hotel Search Engine → Price Comparison Analyzer → Hotel Ranking Generator
+  - Availability Check: Hotel Search Engine → Availability Checker → Hotel Filter Engine
+
+  **Medium Plans:**
+  - Comprehensive Comparison: Hotel Search Engine → Platform Data Fetcher → Price Comparison Analyzer → Rating Normalizer → Fee Breakdown Analyzer → Hotel Ranking Generator
+  - Location-Based Search: Hotel Search Engine → Location Distance Calculator → Hotel Filter Engine → Amenity Matcher → Hotel Ranking Generator
+
+  **Complex Plans:**
+  - Full Analysis Pipeline: Hotel Search Engine → Platform Data Fetcher → Price Comparison Analyzer → Rating Normalizer → Availability Checker → Fee Breakdown Analyzer → Cancellation Policy Comparator → Review Sentiment Analyzer → Amenity Matcher → Hotel Ranking Generator
+  - Multi-Criteria Optimization: Hotel Search Engine → Hotel Filter Engine → Location Distance Calculator → Price Comparison Analyzer → Rating Normalizer → Cancellation Policy Comparator → Amenity Matcher → Hotel Ranking Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Hotel Search Engine",
+    "tool_description": "Searches for hotels across multiple booking platforms based on location, dates, and guest requirements, returning comprehensive hotel listings with basic information.",
+    "parameters": {
+      "destination": {
+        "type": "string",
+        "required": true,
+        "description": "City, address, or landmark for hotel search"
+      },
+      "check_in_date": {
+        "type": "string",
+        "required": true,
+        "description": "Check-in date in ISO 8601 format",
+        "format": "date-time"
+      },
+      "check_out_date": {
+        "type": "string",
+        "required": true,
+        "description": "Check-out date in ISO 8601 format",
+        "format": "date-time"
+      },
+      "guest_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of guests (1-20)"
+      },
+      "room_count": {
+        "type": "integer",
+        "required": false,
+        "default": 1,
+        "description": "Number of rooms needed (1-10)"
+      },
+      "platforms": {
+        "type": "array",
+        "required": false,
+        "default": ["booking", "expedia", "hotels", "agoda"],
+        "items": {"type": "string"},
+        "description": "Booking platforms to search: booking, expedia, hotels, agoda, kayak"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: Check-in date must be before check-out date and not in the past.",
+      "Invalid guest count: Guest count must be between 1 and 20.",
+      "Invalid room count: Room count must be between 1 and 10.",
+      "Unsupported platform: Use only supported platforms: booking, expedia, hotels, agoda, kayak.",
+      "Location not found: The specified destination could not be located."
+    ],
+    "usage": "Provide destination, check_in_date, check_out_date, and guest_count. Optionally specify room_count and platforms to search. Returns hotel listings from multiple platforms with basic details.",
+    "output_details": {
+      "total_results": {
+        "type": "integer",
+        "description": "Total number of hotels found across all platforms"
+      },
+      "hotel_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Unique identifiers for each hotel found"
+      },
+      "hotel_names": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Names of hotels found"
+      },
+      "platforms_searched": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of platforms successfully searched"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Platform Data Fetcher",
+    "tool_description": "Retrieves detailed hotel information from specific booking platforms including pricing, amenities, photos, and platform-specific details.",
+    "parameters": {
+      "hotel_ids": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "List of hotel identifiers to fetch data for",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "platforms": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Platforms to fetch data from",
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "data_fields": {
+        "type": "array",
+        "required": false,
+        "default": ["pricing", "amenities", "ratings", "photos", "policies"],
+        "items": {"type": "string"},
+        "description": "Specific data fields to retrieve"
+      },
+      "check_in_date": {
+        "type": "string",
+        "required": true,
+        "description": "Check-in date for pricing accuracy",
+        "format": "date-time"
+      },
+      "check_out_date": {
+        "type": "string",
+        "required": true,
+        "description": "Check-out date for pricing accuracy",
+        "format": "date-time"
+      },
+      "guest_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of guests for accurate pricing"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "default": "USD",
+        "description": "Preferred currency code (ISO 4217)"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "default": "en",
+        "description": "Language preference for content"
+      }
+    },
+    "error_messages": [
+      "Hotel ID not found: One or more hotel IDs could not be found on the specified platforms.",
+      "Platform unavailable: One or more specified platforms are currently unavailable.",
+      "Invalid currency code: Use a valid ISO 4217 currency code.",
+      "Rate limit exceeded: Too many requests, please retry after a few minutes.",
+      "Invalid data fields: Specify valid fields from: pricing, amenities, ratings, photos, policies, location, description."
+    ],
+    "usage": "Provide hotel_ids, platforms, check_in_date, check_out_date, and guest_count. Optionally specify data_fields, currency, and language. Returns detailed hotel information from each platform.",
+    "output_details": {
+      "hotels_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "JSON strings containing detailed hotel data from each platform"
+      },
+      "successful_fetches": {
+        "type": "integer",
+        "description": "Number of successful data retrievals"
+      },
+      "failed_fetches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of hotel IDs that failed to fetch"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price Comparison Analyzer",
+    "tool_description": "Analyzes and compares hotel prices across different platforms, normalizing currencies and identifying the best deals with price variation statistics.",
+    "parameters": {
+      "hotel_pricing_data": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "JSON strings containing pricing data from different platforms",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "target_currency": {
+        "type": "string",
+        "required": false,
+        "default": "USD",
+        "description": "Currency to normalize all prices to"
+      },
+      "include_taxes_fees": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include taxes and fees in price comparison"
+      }
+    },
+    "error_messages": [
+      "Invalid pricing data: Pricing data must contain valid price information with currency codes.",
+      "Currency conversion failed: Unable to convert currencies, check currency codes and network connectivity.",
+      "Insufficient data: Need at least one complete pricing record to perform comparison."
+    ],
+    "usage": "Provide hotel_pricing_data array containing pricing information from different platforms. Optionally specify target_currency and include_taxes_fees flag. Returns normalized price comparisons and statistics.",
+    "output_details": {
+      "best_price": {
+        "type": "number",
+        "description": "Lowest price found across all platforms"
+      },
+      "worst_price": {
+        "type": "number",
+        "description": "Highest price found across all platforms"
+      },
+      "average_price": {
+        "type": "number",
+        "description": "Average price across all platforms"
+      },
+      "price_variance": {
+        "type": "number",
+        "description": "Price variance percentage across platforms"
+      },
+      "platform_prices": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Platform names and their corresponding normalized prices"
+      },
+      "best_deal_platform": {
+        "type": "string",
+        "description": "Platform offering the best price"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Rating Normalizer",
+    "tool_description": "Normalizes hotel ratings from different platforms that use various rating scales, converting them to a standardized 0-10 scale for fair comparison.",
+    "parameters": {
+      "hotel_ratings": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "JSON strings containing rating data from different platforms",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "output_scale": {
+        "type": "string",
+        "required": false,
+        "default": "10-point",
+        "description": "Output rating scale: 5-point, 10-point, or 100-point"
+      }
+    },
+    "error_messages": [
+      "Invalid rating data: Rating data must contain numerical ratings and platform information.",
+      "Unknown rating scale: Unable to identify the rating scale used by one or more platforms.",
+      "Invalid output scale: Use one of: 5-point, 10-point, 100-point."
+    ],
+    "usage": "Provide hotel_ratings array with rating information from different platforms. Optionally specify output_scale for the normalized ratings. Returns standardized ratings for fair comparison.",
+    "output_details": {
+      "normalized_ratings": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Normalized ratings on the specified scale"
+      },
+      "average_rating": {
+        "type": "number",
+        "description": "Average normalized rating across all platforms"
+      },
+      "rating_consistency": {
+        "type": "number",
+        "description": "Rating consistency score (0-1, where 1 is highly consistent)"
+      },
+      "platform_ratings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Original and normalized ratings by platform"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Availability Checker",
+    "tool_description": "Checks real-time availability for specific hotels across multiple booking platforms for given dates and room requirements.",
+    "parameters": {
+      "hotel_ids": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Hotel identifiers to check availability for",
+        "minItems": 1,
+        "maxItems": 30
+      },
+      "check_in_date": {
+        "type": "string",
+        "required": true,
+        "description": "Check-in date",
+        "format": "date-time"
+      },
+      "check_out_date": {
+        "type": "string",
+        "required": true,
+        "description": "Check-out date",
+        "format": "date-time"
+      },
+      "room_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of rooms needed"
+      },
+      "guest_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Total number of guests"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: Check-in must be before check-out and both dates must be in the future.",
+      "Hotel not found: One or more hotel IDs could not be located.",
+      "Platform timeout: One or more platforms failed to respond within the time limit.",
+      "Invalid room or guest count: Room count must be 1-10, guest count must be 1-20."
+    ],
+    "usage": "Provide hotel_ids, check_in_date, check_out_date, room_count, and guest_count. Returns real-time availability status for each hotel across platforms.",
+    "output_details": {
+      "available_hotels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Hotel IDs with available rooms"
+      },
+      "unavailable_hotels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Hotel IDs with no availability"
+      },
+      "partial_availability": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Hotel IDs with limited room availability"
+      },
+      "availability_summary": {
+        "type": "string",
+        "description": "Summary of availability check results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Hotel Filter Engine",
+    "tool_description": "Filters hotel results based on multiple criteria including price range, star rating, amenities, location, and guest preferences to narrow down options.",
+    "parameters": {
+      "hotel_data": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "JSON strings containing hotel information to filter",
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "min_price": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Minimum price per night"
+      },
+      "max_price": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Maximum price per night"
+      },
+      "min_rating": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Minimum hotel rating (0-10 scale)"
+      },
+      "required_amenities": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {"type": "string"},
+        "description": "Amenities that must be present"
+      },
+      "star_rating": {
+        "type": "array",
+        "required": false,
+        "default": [1, 2, 3, 4, 5],
+        "items": {"type": "integer"},
+        "description": "Acceptable star ratings"
+      },
+      "max_distance_km": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Maximum distance from city center in kilometers"
+      },
+      "hotel_type": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "items": {"type": "string"},
+        "description": "Preferred hotel types: hotel, resort, apartment, guesthouse, hostel"
+      },
+      "free_cancellation": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Require free cancellation option"
+      },
+      "breakfast_included": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Require breakfast inclusion"
+      },
+      "sort_by": {
+        "type": "string",
+        "required": false,
+        "default": "price",
+        "description": "Sort criteria: price, rating, distance, popularity"
+      },
+      "sort_order": {
+        "type": "string",
+        "required": false,
+        "default": "asc",
+        "description": "Sort order: asc or desc"
+      }
+    },
+    "error_messages": [
+      "Invalid price range: min_price must be less than max_price and both must be positive.",
+      "Invalid rating range: min_rating must be between 0 and 10.",
+      "Invalid star ratings: Star ratings must be integers between 1 and 5.",
+      "Unknown amenities: One or more specified amenities are not recognized.",
+      "Invalid sort criteria: Use one of: price, rating, distance, popularity.",
+      "Invalid sort order: Use either 'asc' or 'desc'."
+    ],
+    "usage": "Provide hotel_data array and specify filtering criteria such as price range, ratings, amenities, and preferences. The tool returns filtered results sorted according to specifications.",
+    "output_details": {
+      "filtered_hotels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Hotel data that matches all filter criteria"
+      },
+      "total_matches": {
+        "type": "integer",
+        "description": "Number of hotels matching the filter criteria"
+      },
+      "filter_summary": {
+        "type": "string",
+        "description": "Summary of applied filters and results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Amenity Matcher",
+    "tool_description": "Compares and standardizes hotel amenities across different platforms, creating unified amenity lists and identifying unique offerings for each property.",
+    "parameters": {
+      "hotel_amenity_data": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "JSON strings containing amenity information from different platforms",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "amenity_categories": {
+        "type": "array",
+        "required": false,
+        "default": ["internet", "parking", "fitness", "dining", "business", "family", "accessibility"],
+        "items": {"type": "string"},
+        "description": "Amenity categories to focus on"
+      }
+    },
+    "error_messages": [
+      "Invalid amenity data: Amenity data must contain recognizable amenity information.",
+      "Unknown category: One or more specified amenity categories are not supported.",
+      "Data parsing error: Unable to parse amenity information from one or more platforms."
+    ],
+    "usage": "Provide hotel_amenity_data containing amenity information from different platforms. Optionally specify amenity_categories to focus on. Returns standardized amenity comparisons.",
+    "output_details": {
+      "standardized_amenities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Unified list of available amenities"
+      },
+      "amenity_score": {
+        "type": "number",
+        "description": "Overall amenity richness score (0-100)"
+      },
+      "category_breakdown": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Amenities organized by category"
+      },
+      "unique_amenities": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Unique or rare amenities offered"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Location Distance Calculator",
+    "tool_description": "Calculates distances from hotels to various points of interest, transportation hubs, and city centers using multiple distance metrics and transportation modes.",
+    "parameters": {
+      "hotel_coordinates": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "number"},
+        "description": "Hotel latitude and longitude [lat, lng]",
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "reference_points": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Points of interest to calculate distances to",
+        "minItems": 1,
+        "maxItems": 20
+      }
+    },
+    "error_messages": [
+      "Invalid coordinates: Hotel coordinates must be valid latitude and longitude values.",
+      "Reference point not found: One or more reference points could not be geocoded.",
+      "Too many reference points: Maximum 20 reference points allowed per calculation."
+    ],
+    "usage": "Provide hotel_coordinates as [latitude, longitude] and reference_points as addresses or landmark names. Returns distance calculations to each reference point.",
+    "output_details": {
+      "distances_km": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Straight-line distances in kilometers to each reference point"
+      },
+      "walking_times": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Estimated walking times in minutes to each reference point"
+      },
+      "driving_times": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Estimated driving times in minutes to each reference point"
+      },
+      "nearest_point": {
+        "type": "string",
+        "description": "Name of the closest reference point"
+      },
+      "location_score": {
+        "type": "number",
+        "description": "Overall location convenience score (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fee Breakdown Analyzer",
+    "tool_description": "Analyzes the complete cost structure of hotel bookings including hidden fees, taxes, resort fees, and service charges to provide transparent total cost comparisons.",
+    "parameters": {
+      "booking_details": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "JSON strings containing booking pricing details from platforms",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "nights": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of nights for the booking"
+      },
+      "rooms": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of rooms being booked"
+      },
+      "include_optional_fees": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include optional fees in calculations"
+      },
+      "target_currency": {
+        "type": "string",
+        "required": false,
+        "default": "USD",
+        "description": "Currency for final cost display"
+      }
+    },
+    "error_messages": [
+      "Invalid booking details: Booking details must contain pricing information.",
+      "Invalid night/room count: Nights and rooms must be positive integers.",
+      "Currency conversion failed: Unable to convert to target currency.",
+      "Missing fee information: Some platforms did not provide complete fee breakdown."
+    ],
+    "usage": "Provide booking_details with pricing information, nights, and rooms. Optionally include optional fees and specify target currency. Returns complete cost breakdown analysis.",
+    "output_details": {
+      "base_price": {
+        "type": "number",
+        "description": "Base room price before fees and taxes"
+      },
+      "total_fees": {
+        "type": "number",
+        "description": "Sum of all additional fees"
+      },
+      "taxes": {
+        "type": "number",
+        "description": "Total tax amount"
+      },
+      "final_total": {
+        "type": "number",
+        "description": "Complete total cost including all fees"
+      },
+      "fee_breakdown": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed breakdown of each fee type and amount"
+      },
+      "price_transparency_score": {
+        "type": "number",
+        "description": "Score rating price transparency (0-100, higher is more transparent)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cancellation Policy Comparator",
+    "tool_description": "Compares cancellation policies across different booking platforms and hotels, scoring policy flexibility and identifying the most favorable terms.",
+    "parameters": {
+      "policy_data": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "JSON strings containing cancellation policy information",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "check_in_date": {
+        "type": "string",
+        "required": true,
+        "description": "Planned check-in date for policy evaluation",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid policy data: Policy information must contain cancellation terms and deadlines.",
+      "Invalid check-in date: Check-in date must be in the future and properly formatted.",
+      "Policy parsing error: Unable to interpret cancellation terms from one or more sources."
+    ],
+    "usage": "Provide policy_data containing cancellation policy information and check_in_date for timeline calculations. Returns policy comparison and flexibility scores.",
+    "output_details": {
+      "flexibility_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Flexibility scores for each policy (0-100, higher is more flexible)"
+      },
+      "free_cancellation_deadline": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Free cancellation deadlines for each option"
+      },
+      "penalty_amounts": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Cancellation penalty amounts after free period"
+      },
+      "most_flexible_option": {
+        "type": "string",
+        "description": "Platform/option with the most flexible cancellation terms"
+      },
+      "policy_summary": {
+        "type": "string",
+        "description": "Summary comparison of all cancellation policies"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Review Sentiment Analyzer",
+    "tool_description": "Analyzes guest reviews from multiple platforms to extract sentiment scores, identify common themes, and highlight strengths and weaknesses mentioned by guests.",
+    "parameters": {
+      "review_data": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "JSON strings containing guest review text and metadata",
+        "minItems": 5,
+        "maxItems": 500
+      },
+      "language_filter": {
+        "type": "array",
+        "required": false,
+        "default": ["en"],
+        "items": {"type": "string"},
+        "description": "Language codes to analyze (en, es, fr, de, etc.)"
+      },
+      "recency_months": {
+        "type": "integer",
+        "required": false,
+        "default": 12,
+        "description": "Only analyze reviews from the last N months"
+      }
+    },
+    "error_messages": [
+      "Insufficient reviews: Need at least 5 reviews for meaningful sentiment analysis.",
+      "Invalid language codes: Use standard ISO language codes (en, es, fr, de, etc.).",
+      "Review data format error: Review data must contain text content and timestamps.",
+      "Language detection failed: Unable to detect or process languages in review data."
+    ],
+    "usage": "Provide review_data containing guest reviews with text and metadata. Optionally filter by language and recency. Returns sentiment analysis and theme identification.",
+    "output_details": {
+      "overall_sentiment": {
+        "type": "number",
+        "description": "Overall sentiment score (-1 to 1, where 1 is most positive)"
+      },
+      "positive_themes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Most commonly mentioned positive aspects"
+      },
+      "negative_themes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Most commonly mentioned negative aspects"
+      },
+      "sentiment_trend": {
+        "type": "string",
+        "description": "Whether sentiment is improving, declining, or stable over time"
+      },
+      "review_summary": {
+        "type": "string",
+        "description": "Summary of key insights from guest reviews"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Hotel Ranking Generator",
+    "tool_description": "Creates comprehensive hotel rankings by combining multiple factors including price, ratings, location, amenities, and policies with customizable weighting for different priorities.",
+    "parameters": {
+      "hotel_comparison_data": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "JSON strings containing comprehensive hotel comparison data",
+        "minItems": 2,
+        "maxItems": 100
+      },
+      "price_weight": {
+        "type": "number",
+        "required": false,
+        "default": 0.3,
+        "description": "Weight for price factor (0.0-1.0)"
+      },
+      "rating_weight": {
+        "type": "number",
+        "required": false,
+        "default": 0.25,
+        "description": "Weight for rating factor (0.0-1.0)"
+      },
+      "location_weight": {
+        "type": "number",
+        "required": false,
+        "default": 0.2,
+        "description": "Weight for location factor (0.0-1.0)"
+      },
+      "amenity_weight": {
+        "type": "number",
+        "required": false,
+        "default": 0.15,
+        "description": "Weight for amenities factor (0.0-1.0

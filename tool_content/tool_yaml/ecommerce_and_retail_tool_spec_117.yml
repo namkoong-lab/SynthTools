@@ -1,0 +1,869 @@
+field_name: ecommerce_and_retail
+subfield: Return and Refund Processing
+task: Generate return shipping labels and coordinate pickup logistics
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task has medium complexity due to multiple interconnected workflows (label generation, carrier coordination, address validation, tracking integration), moderate data requirements across shipping carriers and logistics providers, and dependencies between subsystems that must be carefully coordinated to avoid shipping errors or customer service issues.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target 12 tools to cover the various aspects of return shipping label generation and pickup logistics coordination.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Address Validator** - Consumes: raw addresses → Produces: validated, standardized addresses
+  2. **Shipping Cost Calculator** - Consumes: package details, addresses → Produces: cost estimates across carriers
+  3. **Return Authorization Generator** - Consumes: order details, return reasons → Produces: RMA numbers and policies
+  4. **Shipping Label Creator** - Consumes: validated addresses, carrier choice, package details → Produces: shipping labels
+  5. **Carrier Rate Comparator** - Consumes: package specs, destinations → Produces: carrier rate comparisons
+  6. **Package Dimension Optimizer** - Consumes: item specifications → Produces: optimal packaging recommendations
+  7. **Pickup Scheduler** - Consumes: addresses, time preferences, carrier → Produces: pickup appointments
+  8. **Tracking Number Generator** - Consumes: shipment details, carrier → Produces: tracking numbers and URLs
+  9. **Return Policy Checker** - Consumes: product details, purchase date → Produces: return eligibility status
+  10. **Carrier Service Selector** - Consumes: urgency, budget, destination → Produces: recommended service levels
+  11. **Pickup Status Monitor** - Consumes: pickup requests → Produces: real-time pickup status updates
+  12. **Label Format Converter** - Consumes: raw label data, printer specs → Produces: formatted labels for different printers
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Return Label**: Return Policy Checker → Address Validator → Shipping Label Creator (validates return eligibility, confirms address, generates label)
+  2. **Cost Comparison**: Package Dimension Optimizer → Shipping Cost Calculator → Carrier Rate Comparator (optimizes packaging, calculates costs, compares rates)
+
+  **Medium Plans:**
+  1. **Standard Return Process**: Return Policy Checker → Return Authorization Generator → Address Validator → Package Dimension Optimizer → Carrier Service Selector → Shipping Label Creator → Tracking Number Generator (complete return workflow with optimization)
+  2. **Pickup Coordination**: Address Validator → Carrier Service Selector → Pickup Scheduler → Pickup Status Monitor (schedules and monitors pickup logistics)
+
+  **Complex Plans:**
+  1. **Full Return & Pickup Workflow**: Return Policy Checker → Return Authorization Generator → Address Validator → Package Dimension Optimizer → Carrier Rate Comparator → Carrier Service Selector → Shipping Label Creator → Label Format Converter → Tracking Number Generator → Pickup Scheduler → Pickup Status Monitor (end-to-end return processing)
+  2. **Multi-Package Return Optimization**: Return Authorization Generator → Package Dimension Optimizer → Shipping Cost Calculator → Carrier Rate Comparator → Carrier Service Selector → Shipping Label Creator → Pickup Scheduler (optimizes multiple items for cost-effective returns)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Address Validator",
+    "tool_description": "Validates and standardizes shipping addresses to ensure deliverability and reduce shipping errors.",
+    "parameters": {
+      "street_address": {
+        "type": "string",
+        "required": true,
+        "description": "Street address including number and street name"
+      },
+      "city": {
+        "type": "string",
+        "required": true,
+        "description": "City name"
+      },
+      "state_province": {
+        "type": "string",
+        "required": true,
+        "description": "State or province code"
+      },
+      "postal_code": {
+        "type": "string",
+        "required": true,
+        "description": "ZIP or postal code"
+      },
+      "country": {
+        "type": "string",
+        "required": false,
+        "default": "US",
+        "description": "Country code (ISO 3166-1 alpha-2)"
+      }
+    },
+    "error_messages": [
+      "Invalid address format: Ensure street address contains both number and street name.",
+      "Unrecognized city/state combination: Verify city exists in the specified state/province.",
+      "Invalid postal code: Postal code format does not match country standards.",
+      "Undeliverable address: Address cannot be validated against postal service records."
+    ],
+    "usage": "Provide complete address components to receive standardized, validated address suitable for shipping labels.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the address is valid and deliverable"
+      },
+      "standardized_street": {
+        "type": "string",
+        "description": "Standardized street address"
+      },
+      "standardized_city": {
+        "type": "string",
+        "description": "Standardized city name"
+      },
+      "standardized_state": {
+        "type": "string",
+        "description": "Standardized state/province code"
+      },
+      "standardized_postal": {
+        "type": "string",
+        "description": "Standardized postal code"
+      },
+      "delivery_point": {
+        "type": "string",
+        "description": "Additional delivery point information if available"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Authorization Generator",
+    "tool_description": "Generates return merchandise authorization (RMA) numbers and validates return requests against company policies.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": true,
+        "description": "Original order identifier"
+      },
+      "item_skus": {
+        "type": "array",
+        "required": true,
+        "description": "Product SKUs being returned",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "return_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for return: defective, wrong_item, not_as_described, changed_mind, damaged_shipping"
+      },
+      "customer_email": {
+        "type": "string",
+        "required": true,
+        "description": "Customer's email address"
+      },
+      "return_quantities": {
+        "type": "array",
+        "required": true,
+        "description": "Quantities being returned for each SKU",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "photos_provided": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether customer provided damage/defect photos"
+      },
+      "original_condition": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether items are in original condition"
+      }
+    },
+    "error_messages": [
+      "Order not found: Provide a valid order_id that exists in the system.",
+      "Return window expired: Returns must be initiated within the allowed return period.",
+      "Invalid return reason: Use one of [defective, wrong_item, not_as_described, changed_mind, damaged_shipping].",
+      "Mismatched array lengths: item_skus and return_quantities arrays must have the same length.",
+      "Non-returnable items: Some items in the order are not eligible for return based on product policy.",
+      "Excessive return quantity: Return quantity cannot exceed originally purchased quantity."
+    ],
+    "usage": "Provide order details and return information to generate an RMA number and validate the return request against policies.",
+    "output_details": {
+      "rma_number": {
+        "type": "string",
+        "description": "Generated return merchandise authorization number"
+      },
+      "is_approved": {
+        "type": "boolean",
+        "description": "Whether the return request is approved"
+      },
+      "return_deadline": {
+        "type": "string",
+        "description": "Deadline for completing the return shipment"
+      },
+      "refund_amount": {
+        "type": "number",
+        "description": "Expected refund amount after processing"
+      },
+      "return_instructions": {
+        "type": "string",
+        "description": "Special instructions for the return process"
+      },
+      "approved_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of SKUs approved for return"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Cost Calculator",
+    "tool_description": "Calculates shipping costs for return packages across multiple carriers based on package dimensions, weight, and destination.",
+    "parameters": {
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin postal code"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination postal code"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Package weight in pounds"
+      },
+      "package_length": {
+        "type": "number",
+        "required": true,
+        "description": "Package length in inches"
+      },
+      "package_width": {
+        "type": "number",
+        "required": true,
+        "description": "Package width in inches"
+      },
+      "package_height": {
+        "type": "number",
+        "required": true,
+        "description": "Package height in inches"
+      },
+      "declared_value": {
+        "type": "number",
+        "required": false,
+        "default": 100,
+        "description": "Declared value for insurance purposes"
+      },
+      "service_level": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Service level: standard, expedited, overnight"
+      }
+    },
+    "error_messages": [
+      "Invalid postal codes: Both origin and destination postal codes must be valid.",
+      "Package exceeds size limits: Package dimensions exceed carrier maximum size restrictions.",
+      "Package exceeds weight limits: Package weight exceeds carrier maximum weight restrictions.",
+      "Invalid service level: Use one of [standard, expedited, overnight].",
+      "Declared value too high: Declared value exceeds maximum insurance coverage available."
+    ],
+    "usage": "Provide package dimensions, weight, origin/destination, and service preferences to calculate shipping costs across carriers.",
+    "output_details": {
+      "carrier_rates": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of carrier names and their rates"
+      },
+      "transit_times": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Expected transit times for each carrier"
+      },
+      "cheapest_option": {
+        "type": "string",
+        "description": "Carrier with the lowest cost"
+      },
+      "fastest_option": {
+        "type": "string",
+        "description": "Carrier with the fastest delivery"
+      },
+      "recommended_carrier": {
+        "type": "string",
+        "description": "Best balance of cost and speed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Shipping Label Creator",
+    "tool_description": "Generates shipping labels with all required information for return packages including barcodes and carrier-specific formatting.",
+    "parameters": {
+      "rma_number": {
+        "type": "string",
+        "required": true,
+        "description": "Return merchandise authorization number"
+      },
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping carrier: ups, fedex, usps, dhl"
+      },
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Service type: ground, express, priority, overnight"
+      },
+      "origin_name": {
+        "type": "string",
+        "required": true,
+        "description": "Sender's name"
+      },
+      "origin_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete standardized origin address"
+      },
+      "destination_name": {
+        "type": "string",
+        "required": true,
+        "description": "Recipient's name"
+      },
+      "destination_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete standardized destination address"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Package weight in pounds"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Tracking number for the shipment"
+      },
+      "insurance_value": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "description": "Insurance coverage amount"
+      },
+      "signature_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether signature confirmation is required"
+      },
+      "label_format": {
+        "type": "string",
+        "required": false,
+        "default": "pdf",
+        "description": "Label format: pdf, png, zpl, epl"
+      }
+    },
+    "error_messages": [
+      "Invalid carrier: Use one of [ups, fedex, usps, dhl].",
+      "Incompatible service type: Selected service type is not available for the chosen carrier.",
+      "Invalid address format: Addresses must be pre-validated and properly formatted.",
+      "Invalid tracking number: Tracking number format does not match carrier requirements.",
+      "Label generation failed: Technical error occurred during label creation.",
+      "Invalid label format: Use one of [pdf, png, zpl, epl]."
+    ],
+    "usage": "Provide all shipping details including validated addresses, carrier selection, and tracking information to generate a printable shipping label.",
+    "output_details": {
+      "label_data": {
+        "type": "string",
+        "description": "Base64-encoded label data"
+      },
+      "label_url": {
+        "type": "string",
+        "description": "URL to download the generated label"
+      },
+      "barcode_data": {
+        "type": "string",
+        "description": "Barcode information for tracking"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery date"
+      },
+      "total_cost": {
+        "type": "number",
+        "description": "Total shipping cost including fees"
+      },
+      "label_size": {
+        "type": "string",
+        "description": "Label dimensions (e.g., 4x6, 8.5x11)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pickup Scheduler",
+    "tool_description": "Schedules package pickups with carriers and manages pickup appointments for return shipments.",
+    "parameters": {
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Carrier for pickup: ups, fedex, usps, dhl"
+      },
+      "pickup_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete address where pickup will occur"
+      },
+      "contact_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of person available for pickup"
+      },
+      "contact_phone": {
+        "type": "string",
+        "required": true,
+        "description": "Phone number for pickup contact"
+      },
+      "preferred_date": {
+        "type": "string",
+        "required": true,
+        "description": "Preferred pickup date",
+        "format": "date-time"
+      },
+      "time_window": {
+        "type": "string",
+        "required": true,
+        "description": "Preferred time window: morning, afternoon, evening, anytime"
+      },
+      "package_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of packages for pickup"
+      },
+      "total_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Total weight of all packages in pounds"
+      },
+      "tracking_numbers": {
+        "type": "array",
+        "required": true,
+        "description": "Tracking numbers for packages being picked up",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "special_instructions": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "description": "Special pickup instructions"
+      },
+      "residential": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether pickup location is residential"
+      }
+    },
+    "error_messages": [
+      "Invalid carrier: Use one of [ups, fedex, usps, dhl].",
+      "Invalid pickup date: Pickup date must be at least 1 business day in advance.",
+      "Invalid time window: Use one of [morning, afternoon, evening, anytime].",
+      "Package count mismatch: Number of tracking numbers must match package_count.",
+      "Weight exceeds limits: Total weight exceeds carrier pickup limits.",
+      "Invalid phone format: Phone number must be in valid format with area code.",
+      "Pickup unavailable: Carrier does not service the specified pickup address."
+    ],
+    "usage": "Provide pickup location, contact information, preferred timing, and package details to schedule carrier pickup.",
+    "output_details": {
+      "pickup_confirmation": {
+        "type": "string",
+        "description": "Pickup confirmation number"
+      },
+      "scheduled_date": {
+        "type": "string",
+        "description": "Confirmed pickup date"
+      },
+      "time_window": {
+        "type": "string",
+        "description": "Confirmed pickup time window"
+      },
+      "pickup_fee": {
+        "type": "number",
+        "description": "Cost for pickup service if applicable"
+      },
+      "driver_instructions": {
+        "type": "string",
+        "description": "Instructions provided to pickup driver"
+      },
+      "cancellation_deadline": {
+        "type": "string",
+        "description": "Deadline for canceling or modifying pickup"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Carrier Rate Comparator",
+    "tool_description": "Compares shipping rates and service options across multiple carriers to help select the best option for return shipments.",
+    "parameters": {
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin postal code"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination postal code"
+      },
+      "package_weight": {
+        "type": "number",
+        "required": true,
+        "description": "Package weight in pounds"
+      }
+    },
+    "error_messages": [
+      "Invalid postal codes: Provide valid origin and destination postal codes.",
+      "Weight exceeds maximum: Package weight exceeds carrier shipping limits.",
+      "No rates available: No carriers service this route or package specification."
+    ],
+    "usage": "Provide basic shipment details to compare rates and services across all available carriers.",
+    "output_details": {
+      "rate_comparisons": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Formatted comparison of rates by carrier and service"
+      },
+      "cheapest_rate": {
+        "type": "number",
+        "description": "Lowest available shipping rate"
+      },
+      "fastest_service": {
+        "type": "string",
+        "description": "Fastest available service option"
+      },
+      "best_value": {
+        "type": "string",
+        "description": "Recommended service balancing cost and speed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Package Dimension Optimizer",
+    "tool_description": "Analyzes product specifications to recommend optimal packaging dimensions and materials for cost-effective shipping.",
+    "parameters": {
+      "item_dimensions": {
+        "type": "array",
+        "required": true,
+        "description": "Length, width, height for each item in inches",
+        "items": {"type": "number"},
+        "minItems": 3,
+        "maxItems": 150
+      },
+      "item_weights": {
+        "type": "array",
+        "required": true,
+        "description": "Weight of each item in pounds",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "fragile_items": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "description": "Indices of items that are fragile",
+        "items": {"type": "integer"}
+      },
+      "available_boxes": {
+        "type": "array",
+        "required": false,
+        "default": ["small", "medium", "large"],
+        "description": "Available box sizes",
+        "items": {"type": "string"}
+      }
+    },
+    "error_messages": [
+      "Dimension array format error: item_dimensions must contain groups of 3 values (length, width, height).",
+      "Mismatched item counts: Number of items in dimensions and weights arrays must match.",
+      "Invalid fragile item index: fragile_items indices must correspond to valid items.",
+      "Items too large for available boxes: Some items exceed maximum packaging dimensions."
+    ],
+    "usage": "Provide item specifications and packaging constraints to receive optimal packaging recommendations.",
+    "output_details": {
+      "recommended_box": {
+        "type": "string",
+        "description": "Recommended box size for optimal shipping"
+      },
+      "total_weight": {
+        "type": "number",
+        "description": "Total package weight including packaging"
+      },
+      "final_dimensions": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Final package dimensions [length, width, height]"
+      },
+      "packaging_cost": {
+        "type": "number",
+        "description": "Estimated cost of recommended packaging"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tracking Number Generator",
+    "tool_description": "Generates valid tracking numbers for shipments and provides tracking URLs for customer communication.",
+    "parameters": {
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping carrier: ups, fedex, usps, dhl"
+      },
+      "service_type": {
+        "type": "string",
+        "required": true,
+        "description": "Service level: ground, express, priority, overnight"
+      },
+      "origin_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Origin postal code"
+      },
+      "destination_zip": {
+        "type": "string",
+        "required": true,
+        "description": "Destination postal code"
+      }
+    },
+    "error_messages": [
+      "Invalid carrier: Use one of [ups, fedex, usps, dhl].",
+      "Incompatible service type: Service type not available for selected carrier.",
+      "Invalid postal code format: Postal codes must be valid for the carrier's service area.",
+      "Tracking generation failed: Unable to generate tracking number due to system error."
+    ],
+    "usage": "Provide carrier and shipment details to generate a valid tracking number and URL for the shipment.",
+    "output_details": {
+      "tracking_number": {
+        "type": "string",
+        "description": "Generated tracking number"
+      },
+      "tracking_url": {
+        "type": "string",
+        "description": "URL for tracking shipment status"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery date"
+      },
+      "barcode_format": {
+        "type": "string",
+        "description": "Barcode format for the tracking number"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Return Policy Checker",
+    "tool_description": "Validates return requests against company policies including time limits, product eligibility, and condition requirements.",
+    "parameters": {
+      "product_sku": {
+        "type": "string",
+        "required": true,
+        "description": "Product SKU to check return policy"
+      },
+      "purchase_date": {
+        "type": "string",
+        "required": true,
+        "description": "Original purchase date",
+        "format": "date-time"
+      },
+      "return_reason": {
+        "type": "string",
+        "required": true,
+        "description": "Reason for return: defective, wrong_item, not_as_described, changed_mind, damaged_shipping"
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Customer loyalty tier: standard, premium, vip"
+      }
+    },
+    "error_messages": [
+      "Product not found: SKU does not exist in the product database.",
+      "Invalid return reason: Use one of [defective, wrong_item, not_as_described, changed_mind, damaged_shipping].",
+      "Return period expired: Return window has closed for this product and purchase date.",
+      "Non-returnable product: Product category is not eligible for returns."
+    ],
+    "usage": "Provide product and purchase details to verify return eligibility and applicable policies.",
+    "output_details": {
+      "is_returnable": {
+        "type": "boolean",
+        "description": "Whether the item is eligible for return"
+      },
+      "return_window_days": {
+        "type": "integer",
+        "description": "Number of days remaining in return window"
+      },
+      "refund_percentage": {
+        "type": "number",
+        "description": "Percentage of original price refundable"
+      },
+      "return_conditions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Conditions that must be met for return"
+      },
+      "restocking_fee": {
+        "type": "number",
+        "description": "Restocking fee if applicable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Carrier Service Selector",
+    "tool_description": "Recommends optimal carrier and service level based on customer preferences, budget constraints, and delivery requirements.",
+    "parameters": {
+      "budget_max": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum acceptable shipping cost"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": true,
+        "description": "Delivery urgency: low, medium, high, critical"
+      },
+      "destination_type": {
+        "type": "string",
+        "required": true,
+        "description": "Delivery location type: residential, commercial, po_box"
+      },
+      "package_value": {
+        "type": "number",
+        "required": true,
+        "description": "Declared value of package contents"
+      },
+      "customer_preference": {
+        "type": "string",
+        "required": false,
+        "default": "balanced",
+        "description": "Customer preference: cheapest, fastest, balanced, most_reliable"
+      },
+      "insurance_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether insurance coverage is required"
+      },
+      "signature_required": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether delivery signature is required"
+      },
+      "available_carriers": {
+        "type": "array",
+        "required": false,
+        "default": ["ups", "fedex", "usps"],
+        "description": "Carriers available for selection",
+        "items": {"type": "string"}
+      }
+    },
+    "error_messages": [
+      "Invalid urgency level: Use one of [low, medium, high, critical].",
+      "Invalid destination type: Use one of [residential, commercial, po_box].",
+      "Invalid customer preference: Use one of [cheapest, fastest, balanced, most_reliable].",
+      "Budget too low: Maximum budget is below minimum shipping costs for available options.",
+      "No carriers available: None of the specified carriers can meet the requirements.",
+      "Invalid carrier list: available_carriers must contain valid carrier names."
+    ],
+    "usage": "Provide shipping requirements and preferences to receive personalized carrier and service recommendations.",
+    "output_details": {
+      "recommended_carrier": {
+        "type": "string",
+        "description": "Best carrier based on all criteria"
+      },
+      "recommended_service": {
+        "type": "string",
+        "description": "Optimal service level"
+      },
+      "estimated_cost": {
+        "type": "number",
+        "description": "Estimated total shipping cost"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery timeframe"
+      },
+      "alternative_options": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative carrier/service combinations"
+      },
+      "recommendation_reason": {
+        "type": "string",
+        "description": "Explanation for the recommendation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Pickup Status Monitor",
+    "tool_description": "Monitors the status of scheduled pickups and provides real-time updates on pickup completion and any issues.",
+    "parameters": {
+      "pickup_confirmation": {
+        "type": "string",
+        "required": true,
+        "description": "Pickup confirmation number from carrier"
+      },
+      "carrier": {
+        "type": "string",
+        "required": true,
+        "description": "Carrier handling the pickup: ups, fedex, usps, dhl"
+      }
+    },
+    "error_messages": [
+      "Invalid confirmation number: Pickup confirmation number not found in system.",
+      "Invalid carrier: Use one of [ups, fedex, usps, dhl].",
+      "Pickup not scheduled: No pickup found for the provided confirmation number.",
+      "Status unavailable: Unable to retrieve current pickup status from carrier."
+    ],
+    "usage": "Provide pickup confirmation number and carrier to get current status and any updates on the pickup request.",
+    "output_details": {
+      "pickup_status": {
+        "type": "string",
+        "description": "Current status: scheduled, in_progress, completed, cancelled, failed"
+      },
+      "scheduled_time": {
+        "type": "string",
+        "description": "Originally scheduled pickup time"
+      },
+      "actual_pickup_time": {
+        "type": "string",
+        "description": "Actual pickup completion time if completed"
+      },
+      "driver_notes": {
+        "type": "string",
+        "description": "Any notes from the pickup driver"
+      },
+      "packages_collected": {
+        "type": "integer",
+        "description": "Number of packages successfully picked up"
+      },
+      "next_update_time": {
+        "type": "string",
+        "description": "When next status update is expected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Label Format Converter

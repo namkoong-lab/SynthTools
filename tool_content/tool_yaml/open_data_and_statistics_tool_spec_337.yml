@@ -1,0 +1,858 @@
+field_name: open_data_and_statistics
+subfield: Government Transparency and Public Records
+task: Freedom of Information Act (FOIA) request submission and tracking
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. While FOIA requests involve straightforward form submission, the complexity lies in navigating different agency requirements, tracking multiple requests across jurisdictions, handling appeals processes, and managing document processing workflows with various compliance requirements and potential legal considerations.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium difficulty, I'll target **12 tools** to cover the comprehensive workflow of FOIA request lifecycle management, from initial research through final document processing.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Agency Database Lookup** - Consumes: agency name/keywords → Produces: contact details, submission requirements
+  2. **Request Form Generator** - Consumes: request details, agency info → Produces: formatted FOIA request
+  3. **Fee Calculator** - Consumes: request parameters, requester type → Produces: estimated costs
+  4. **Request Submitter** - Consumes: formatted request, agency details → Produces: submission confirmation
+  5. **Status Tracker** - Consumes: tracking numbers, agency info → Produces: current status updates
+  6. **Appeal Form Generator** - Consumes: original request, denial reasons → Produces: formatted appeal
+  7. **Response Analyzer** - Consumes: agency response text → Produces: categorized response analysis
+  8. **Document Processor** - Consumes: received documents → Produces: organized, indexed documents
+  9. **Timeline Calculator** - Consumes: submission date, agency type → Produces: expected dates
+  10. **Request Template Manager** - Consumes: request type, topic → Produces: template suggestions
+  11. **Multi-Request Tracker** - Consumes: multiple tracking numbers → Produces: consolidated status
+  12. **Compliance Checker** - Consumes: request details, agency requirements → Produces: compliance report
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Single Request Submission: Agency Database Lookup → Fee Calculator → Request Form Generator → Request Submitter
+  - Basic Status Check: Status Tracker → Response Analyzer → Timeline Calculator
+
+  **Medium Plans:**
+  - Template-Based Request: Request Template Manager → Agency Database Lookup → Fee Calculator → Request Form Generator → Compliance Checker → Request Submitter
+  - Appeal Process: Response Analyzer → Appeal Form Generator → Agency Database Lookup → Request Submitter
+
+  **Complex Plans:**
+  - Multi-Agency Campaign: Request Template Manager → Agency Database Lookup (multiple) → Fee Calculator (multiple) → Request Form Generator (multiple) → Compliance Checker (multiple) → Request Submitter (multiple) → Multi-Request Tracker → Status Tracker → Document Processor
+  - Full Lifecycle Management: Agency Database Lookup → Request Template Manager → Request Form Generator → Compliance Checker → Fee Calculator → Request Submitter → Status Tracker → Response Analyzer → Appeal Form Generator → Document Processor → Timeline Calculator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Agency Database Lookup",
+    "tool_description": "Searches government agency databases to find contact information, submission requirements, and FOIA processing details for specific agencies.",
+    "parameters": {
+      "agency_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name or partial name of the government agency"
+      },
+      "jurisdiction": {
+        "type": "string",
+        "required": false,
+        "description": "Federal, state, or local jurisdiction level",
+        "default": "federal"
+      },
+      "state": {
+        "type": "string",
+        "required": false,
+        "description": "Two-letter state code for state/local agencies",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Agency not found: The specified agency name does not match any records. Try using partial names or common abbreviations.",
+      "Invalid jurisdiction: Use 'federal', 'state', or 'local' for jurisdiction parameter.",
+      "State required: For state or local jurisdictions, provide a valid two-letter state code.",
+      "Multiple matches found: The agency name is too generic. Be more specific or review suggested matches."
+    ],
+    "usage": "Provide agency_name and optionally specify jurisdiction and state. Returns comprehensive agency contact and submission information for FOIA requests.",
+    "output_details": {
+      "agency_full_name": {
+        "type": "string",
+        "description": "Complete official name of the agency"
+      },
+      "foia_office_email": {
+        "type": "string",
+        "description": "Email address for FOIA submissions"
+      },
+      "foia_office_address": {
+        "type": "string",
+        "description": "Mailing address for FOIA office"
+      },
+      "processing_time_days": {
+        "type": "integer",
+        "description": "Typical processing time in business days"
+      },
+      "online_portal_url": {
+        "type": "string",
+        "description": "URL for online FOIA submission portal if available"
+      },
+      "special_requirements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of special submission requirements or procedures"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Request Form Generator",
+    "tool_description": "Creates properly formatted FOIA request letters with all required elements, legal language, and agency-specific formatting requirements.",
+    "parameters": {
+      "agency_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of the target agency"
+      },
+      "requester_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full legal name of the person making the request"
+      },
+      "requester_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete mailing address of requester"
+      },
+      "requester_email": {
+        "type": "string",
+        "required": true,
+        "description": "Email address for correspondence"
+      },
+      "requester_phone": {
+        "type": "string",
+        "required": true,
+        "description": "Phone number with area code"
+      },
+      "request_description": {
+        "type": "string",
+        "required": true,
+        "description": "Detailed description of requested records"
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for record search range",
+        "format": "date-time",
+        "default": "None"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": false,
+        "description": "End date for record search range",
+        "format": "date-time",
+        "default": "None"
+      },
+      "requester_category": {
+        "type": "string",
+        "required": true,
+        "description": "Requester type: individual, media, academic, commercial, nonprofit"
+      },
+      "fee_waiver_requested": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to request fee waiver",
+        "default": false
+      },
+      "fee_waiver_justification": {
+        "type": "string",
+        "required": false,
+        "description": "Justification for fee waiver request",
+        "default": "None"
+      },
+      "expedited_processing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to request expedited processing",
+        "default": false
+      },
+      "expedited_justification": {
+        "type": "string",
+        "required": false,
+        "description": "Justification for expedited processing",
+        "default": "None"
+      },
+      "preferred_format": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred format: electronic, paper, or either",
+        "default": "electronic"
+      }
+    },
+    "error_messages": [
+      "Missing required contact information: Ensure all requester contact fields (name, address, email, phone) are provided.",
+      "Invalid requester category: Use one of [individual, media, academic, commercial, nonprofit].",
+      "Invalid date range: End date must be after start date when both are provided.",
+      "Fee waiver justification required: When fee_waiver_requested is true, provide fee_waiver_justification.",
+      "Expedited justification required: When expedited_processing is true, provide expedited_justification.",
+      "Invalid preferred format: Use 'electronic', 'paper', or 'either'.",
+      "Request description too vague: Provide more specific details about the requested records."
+    ],
+    "usage": "Provide all required requester information, agency name, detailed request description, and requester category. Optionally add date ranges, fee waiver requests, and expedited processing. Returns a properly formatted FOIA request letter.",
+    "output_details": {
+      "formatted_request": {
+        "type": "string",
+        "description": "Complete formatted FOIA request letter"
+      },
+      "subject_line": {
+        "type": "string",
+        "description": "Suggested email subject line"
+      },
+      "tracking_reference": {
+        "type": "string",
+        "description": "Internal reference number for tracking"
+      },
+      "estimated_pages": {
+        "type": "integer",
+        "description": "Estimated number of pages in formatted request"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Fee Calculator",
+    "tool_description": "Calculates estimated FOIA processing fees based on requester category, scope of request, and agency fee schedules.",
+    "parameters": {
+      "agency_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the agency for fee schedule lookup"
+      },
+      "requester_category": {
+        "type": "string",
+        "required": true,
+        "description": "Requester type: individual, media, academic, commercial, nonprofit"
+      },
+      "estimated_pages": {
+        "type": "integer",
+        "required": true,
+        "description": "Estimated number of pages to be reviewed"
+      },
+      "estimated_search_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Estimated hours of search time required",
+        "default": 2.0
+      },
+      "estimated_review_hours": {
+        "type": "number",
+        "required": false,
+        "description": "Estimated hours of review time required",
+        "default": 1.0
+      }
+    },
+    "error_messages": [
+      "Invalid requester category: Use one of [individual, media, academic, commercial, nonprofit].",
+      "Agency fee schedule not found: The specified agency is not in the fee database.",
+      "Invalid hour estimates: Search and review hours must be positive numbers.",
+      "Invalid page estimate: Estimated pages must be a positive integer."
+    ],
+    "usage": "Provide agency_name, requester_category, and estimated_pages. Optionally specify estimated search and review hours for more accurate calculations. Returns detailed fee breakdown and total estimated cost.",
+    "output_details": {
+      "search_fee": {
+        "type": "number",
+        "description": "Estimated search fees in dollars"
+      },
+      "review_fee": {
+        "type": "number",
+        "description": "Estimated review fees in dollars"
+      },
+      "duplication_fee": {
+        "type": "number",
+        "description": "Estimated copying/duplication fees in dollars"
+      },
+      "total_estimated_fee": {
+        "type": "number",
+        "description": "Total estimated fees in dollars"
+      },
+      "free_hours_used": {
+        "type": "number",
+        "description": "Number of free hours available to this requester category"
+      },
+      "billable_hours": {
+        "type": "number",
+        "description": "Hours that will be billed after free allowance"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Request Submitter",
+    "tool_description": "Submits FOIA requests to agencies via email or online portals and provides submission confirmation details.",
+    "parameters": {
+      "submission_method": {
+        "type": "string",
+        "required": true,
+        "description": "Method of submission: email or portal"
+      },
+      "formatted_request": {
+        "type": "string",
+        "required": true,
+        "description": "Complete formatted FOIA request text"
+      },
+      "recipient_email": {
+        "type": "string",
+        "required": false,
+        "description": "Agency FOIA office email address",
+        "default": "None"
+      },
+      "portal_url": {
+        "type": "string",
+        "required": false,
+        "description": "URL of agency online submission portal",
+        "default": "None"
+      },
+      "subject_line": {
+        "type": "string",
+        "required": true,
+        "description": "Email subject line or portal submission title"
+      }
+    },
+    "error_messages": [
+      "Invalid submission method: Use either 'email' or 'portal'.",
+      "Missing email address: For email submission, provide recipient_email.",
+      "Missing portal URL: For portal submission, provide portal_url.",
+      "Submission failed: Unable to deliver request. Check email address or portal availability.",
+      "Request too large: The formatted request exceeds size limits for the chosen submission method."
+    ],
+    "usage": "Specify submission_method and provide the corresponding recipient_email or portal_url. Include the formatted_request text and subject_line. Returns confirmation of successful submission.",
+    "output_details": {
+      "submission_confirmed": {
+        "type": "boolean",
+        "description": "Whether submission was successfully completed"
+      },
+      "tracking_number": {
+        "type": "string",
+        "description": "Agency-provided tracking number if available"
+      },
+      "submission_timestamp": {
+        "type": "string",
+        "description": "Timestamp of successful submission",
+        "format": "date-time"
+      },
+      "confirmation_message": {
+        "type": "string",
+        "description": "Confirmation message from agency system"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Status Tracker",
+    "tool_description": "Checks the current status of submitted FOIA requests using tracking numbers or reference information.",
+    "parameters": {
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Agency-provided tracking or reference number"
+      },
+      "agency_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the agency handling the request"
+      },
+      "requester_email": {
+        "type": "string",
+        "required": false,
+        "description": "Email address used in original request",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Tracking number not found: The provided tracking number is not recognized by the agency system.",
+      "Agency system unavailable: Unable to connect to agency tracking system. Try again later.",
+      "Access denied: Additional verification required to access request status."
+    ],
+    "usage": "Provide the tracking_number and agency_name from your submitted request. Optionally include requester_email for verification. Returns current status and any available updates.",
+    "output_details": {
+      "current_status": {
+        "type": "string",
+        "description": "Current processing status of the request"
+      },
+      "status_date": {
+        "type": "string",
+        "description": "Date of last status update",
+        "format": "date-time"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated completion date if available",
+        "format": "date-time"
+      },
+      "pages_processed": {
+        "type": "integer",
+        "description": "Number of pages processed so far"
+      },
+      "pages_remaining": {
+        "type": "integer",
+        "description": "Number of pages still to be processed"
+      },
+      "additional_notes": {
+        "type": "string",
+        "description": "Any additional status notes from the agency"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Response Analyzer",
+    "tool_description": "Analyzes agency responses to FOIA requests, categorizing response types, identifying exemptions used, and extracting key information.",
+    "parameters": {
+      "response_text": {
+        "type": "string",
+        "required": true,
+        "description": "Full text of the agency response"
+      },
+      "agency_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the responding agency"
+      },
+      "original_request_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of original request submission",
+        "format": "date-time"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": false,
+        "description": "Tracking number from original request",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty response text: Provide the complete text of the agency response.",
+      "Invalid date format: Use ISO 8601 date-time format for original_request_date.",
+      "Response parsing failed: The response format is not recognized or corrupted."
+    ],
+    "usage": "Provide the complete response_text from the agency, along with agency_name and original_request_date. Optionally include tracking_number for reference. Returns detailed analysis of the response.",
+    "output_details": {
+      "response_type": {
+        "type": "string",
+        "description": "Category of response: full_grant, partial_grant, full_denial, referral, no_records"
+      },
+      "exemptions_cited": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of FOIA exemptions cited in denials"
+      },
+      "pages_released": {
+        "type": "integer",
+        "description": "Number of pages released to requester"
+      },
+      "pages_withheld": {
+        "type": "integer",
+        "description": "Number of pages completely withheld"
+      },
+      "pages_redacted": {
+        "type": "integer",
+        "description": "Number of pages released with redactions"
+      },
+      "appeal_deadline": {
+        "type": "string",
+        "description": "Deadline for filing an appeal if applicable",
+        "format": "date-time"
+      },
+      "fees_assessed": {
+        "type": "number",
+        "description": "Total fees charged for processing"
+      },
+      "appeal_recommended": {
+        "type": "boolean",
+        "description": "Whether an appeal might be worthwhile based on analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Appeal Form Generator",
+    "tool_description": "Creates formatted FOIA appeal letters addressing specific exemptions and denial reasons from initial agency responses.",
+    "parameters": {
+      "original_tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Tracking number from original FOIA request"
+      },
+      "agency_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of agency that issued the denial"
+      },
+      "requester_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of the person filing the appeal"
+      },
+      "requester_address": {
+        "type": "string",
+        "required": true,
+        "description": "Complete mailing address of requester"
+      },
+      "requester_email": {
+        "type": "string",
+        "required": true,
+        "description": "Email address for correspondence"
+      },
+      "denial_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date of the denial response",
+        "format": "date-time"
+      },
+      "exemptions_to_challenge": {
+        "type": "array",
+        "required": true,
+        "description": "List of exemptions being appealed",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "appeal_arguments": {
+        "type": "array",
+        "required": true,
+        "description": "Specific arguments against each exemption",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "public_interest_argument": {
+        "type": "string",
+        "required": false,
+        "description": "Public interest justification for release",
+        "default": "None"
+      },
+      "expedited_appeal": {
+        "type": "boolean",
+        "required": false,
+        "description": "Request expedited appeal processing",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Missing required contact information: Provide all requester contact details (name, address, email).",
+      "Invalid denial date: Use ISO 8601 date-time format and ensure date is not in the future.",
+      "Empty exemptions list: Provide at least one exemption to challenge.",
+      "Mismatched arrays: The number of exemptions_to_challenge must match the number of appeal_arguments.",
+      "Appeal deadline passed: The deadline for filing this appeal may have expired.",
+      "Invalid exemption codes: One or more exemption codes are not recognized FOIA exemptions."
+    ],
+    "usage": "Provide original request details, requester information, denial specifics, and appeal arguments. The tool generates a properly formatted appeal letter with legal arguments against the cited exemptions.",
+    "output_details": {
+      "formatted_appeal": {
+        "type": "string",
+        "description": "Complete formatted FOIA appeal letter"
+      },
+      "appeal_subject_line": {
+        "type": "string",
+        "description": "Recommended email subject line for appeal"
+      },
+      "appeal_office_address": {
+        "type": "string",
+        "description": "Correct address for filing the appeal"
+      },
+      "filing_deadline": {
+        "type": "string",
+        "description": "Deadline for submitting the appeal",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document Processor",
+    "tool_description": "Organizes, indexes, and processes received FOIA documents, extracting metadata and creating searchable summaries.",
+    "parameters": {
+      "document_files": {
+        "type": "array",
+        "required": true,
+        "description": "List of document file paths or names",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "request_topic": {
+        "type": "string",
+        "required": true,
+        "description": "Main topic or subject of the original FOIA request"
+      },
+      "agency_name": {
+        "type": "string",
+        "required": true,
+        "description": "Agency that provided the documents"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Original request tracking number"
+      },
+      "date_received": {
+        "type": "string",
+        "required": true,
+        "description": "Date documents were received",
+        "format": "date-time"
+      },
+      "create_index": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to create searchable index",
+        "default": true
+      },
+      "extract_entities": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract names, dates, and key terms",
+        "default": true
+      },
+      "redaction_analysis": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to analyze redacted content",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Document files not accessible: One or more specified document files cannot be read or accessed.",
+      "Unsupported file format: Some documents are in formats that cannot be processed.",
+      "Processing failed: Document processing encountered errors. Check file integrity.",
+      "Invalid date format: Use ISO 8601 date-time format for date_received."
+    ],
+    "usage": "Provide list of document_files, request details (topic, agency, tracking number), and date_received. Optionally enable index creation, entity extraction, and redaction analysis. Returns organized document metadata and analysis.",
+    "output_details": {
+      "total_documents": {
+        "type": "integer",
+        "description": "Total number of documents processed"
+      },
+      "total_pages": {
+        "type": "integer",
+        "description": "Total number of pages across all documents"
+      },
+      "document_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Types of documents found (email, memo, report, etc.)"
+      },
+      "date_range": {
+        "type": "string",
+        "description": "Date range covered by the documents"
+      },
+      "key_entities": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Important names, organizations, and terms extracted"
+      },
+      "redaction_summary": {
+        "type": "string",
+        "description": "Analysis of redaction patterns and extent"
+      },
+      "organization_summary": {
+        "type": "string",
+        "description": "Summary of how documents were organized and indexed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Timeline Calculator",
+    "tool_description": "Calculates expected timelines, deadlines, and key dates for FOIA requests based on agency type and processing requirements.",
+    "parameters": {
+      "agency_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the agency processing the request"
+      },
+      "submission_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date the request was submitted",
+        "format": "date-time"
+      },
+      "request_complexity": {
+        "type": "string",
+        "required": true,
+        "description": "Complexity level: simple, complex, or expedited"
+      },
+      "estimated_pages": {
+        "type": "integer",
+        "required": false,
+        "description": "Estimated number of responsive pages",
+        "default": 100
+      }
+    },
+    "error_messages": [
+      "Invalid submission date: Use ISO 8601 date-time format and ensure date is not in the future.",
+      "Invalid complexity level: Use 'simple', 'complex', or 'expedited'.",
+      "Agency not recognized: The specified agency is not in the processing time database.",
+      "Invalid page estimate: Estimated pages must be a positive integer."
+    ],
+    "usage": "Provide agency_name, submission_date, and request_complexity. Optionally specify estimated_pages for more accurate timeline calculation. Returns comprehensive timeline with key dates and deadlines.",
+    "output_details": {
+      "initial_response_due": {
+        "type": "string",
+        "description": "Date agency must provide initial response",
+        "format": "date-time"
+      },
+      "estimated_completion": {
+        "type": "string",
+        "description": "Estimated date for full response",
+        "format": "date-time"
+      },
+      "appeal_deadline": {
+        "type": "string",
+        "description": "Deadline for filing appeal after response",
+        "format": "date-time"
+      },
+      "statutory_deadline": {
+        "type": "string",
+        "description": "Legal deadline for agency response",
+        "format": "date-time"
+      },
+      "business_days_elapsed": {
+        "type": "integer",
+        "description": "Business days since submission"
+      },
+      "status_check_recommended": {
+        "type": "string",
+        "description": "Recommended date for next status check",
+        "format": "date-time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Request Template Manager",
+    "tool_description": "Provides pre-written FOIA request templates and language suggestions for common topics and request types.",
+    "parameters": {
+      "request_topic": {
+        "type": "string",
+        "required": true,
+        "description": "General topic area: law_enforcement, environmental, financial, healthcare, immigration, defense, other"
+      },
+      "specific_subject": {
+        "type": "string",
+        "required": false,
+        "description": "More specific subject within the topic area",
+        "default": "None"
+      },
+      "template_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of template: basic, detailed, or comprehensive",
+        "default": "basic"
+      }
+    },
+    "error_messages": [
+      "Invalid request topic: Use one of [law_enforcement, environmental, financial, healthcare, immigration, defense, other].",
+      "Invalid template type: Use 'basic', 'detailed', or 'comprehensive'.",
+      "No templates available: No templates found for the specified topic and subject combination."
+    ],
+    "usage": "Specify the request_topic and optionally provide specific_subject and template_type. Returns appropriate template language and guidance for crafting effective FOIA requests.",
+    "output_details": {
+      "template_text": {
+        "type": "string",
+        "description": "Template request language with placeholders"
+      },
+      "key_terms": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Important search terms and phrases for this topic"
+      },
+      "common_exemptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Exemptions commonly applied to this type of request"
+      },
+      "tips": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific tips for improving success with this request type"
+      },
+      "relevant_agencies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Agencies that commonly handle this type of request"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Multi Request Tracker",
+    "tool_description": "Tracks and manages multiple FOIA requests simultaneously, providing consolidated status updates and deadline management.",
+    "parameters": {
+      "tracking_numbers": {
+        "type": "array",
+        "required": true,
+        "description": "List of tracking numbers to monitor",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 20
+      },
+      "agency_names": {
+        "type": "array",
+        "required": true,
+        "description": "List of agency names corresponding to tracking numbers",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 20
+      },
+      "requester_email": {
+        "type": "string",
+        "required": true,
+        "description": "Requester email for verification across agencies"
+      },
+      "priority_filter": {
+        "type": "string",
+        "required": false,
+        "description": "Show only requests with specific priority: high, medium, low, all",
+        "default": "

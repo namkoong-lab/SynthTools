@@ -1,0 +1,819 @@
+field_name: web_scraping
+subfield: real estate listing aggregation
+task: Real estate agent and broker contact information collection
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **medium** difficulty. It involves coordinating multiple data sources, handling diverse website structures, managing rate limiting and anti-scraping measures, validating contact information accuracy, and dealing with legal compliance requirements. The scope includes multiple sub-problems like web crawling, data extraction, verification, and storage management.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'm targeting **12 tools** to cover the various aspects of real estate contact information collection, including web scraping, data validation, contact verification, and compliance management.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Website Discovery Tool** - Consumes: search criteria → Produces: target URLs
+  2. **Page Content Extractor** - Consumes: URLs → Produces: raw HTML content
+  3. **Contact Info Parser** - Consumes: HTML content → Produces: structured contact data
+  4. **Email Validator** - Consumes: email addresses → Produces: validation results
+  5. **Phone Number Formatter** - Consumes: raw phone numbers → Produces: standardized formats
+  6. **Duplicate Contact Detector** - Consumes: contact records → Produces: deduplicated data
+  7. **Social Media Finder** - Consumes: agent names/agencies → Produces: social profiles
+  8. **License Verification Tool** - Consumes: agent info → Produces: license status
+  9. **Contact Quality Scorer** - Consumes: contact records → Produces: quality scores
+  10. **Rate Limit Manager** - Consumes: request patterns → Produces: throttling recommendations
+  11. **Compliance Checker** - Consumes: scraping targets → Produces: legal assessment
+  12. **Data Export Tool** - Consumes: processed contacts → Produces: formatted exports
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Contact Collection**: Website Discovery Tool → Page Content Extractor → Contact Info Parser → Data Export Tool
+  2. **Email Verification**: Contact Info Parser → Email Validator → Phone Number Formatter → Data Export Tool
+
+  **Medium Plans:**
+  1. **Quality Contact Aggregation**: Website Discovery Tool → Page Content Extractor → Contact Info Parser → Email Validator → Phone Number Formatter → Contact Quality Scorer → Data Export Tool
+  2. **Compliant Scraping**: Compliance Checker → Website Discovery Tool → Rate Limit Manager → Page Content Extractor → Contact Info Parser → Duplicate Contact Detector → Data Export Tool
+
+  **Complex Plans:**
+  1. **Professional Verification Pipeline**: Website Discovery Tool → Page Content Extractor → Contact Info Parser → Email Validator → Phone Number Formatter → License Verification Tool → Social Media Finder → Contact Quality Scorer → Duplicate Contact Detector → Data Export Tool
+  2. **Enterprise Collection System**: Compliance Checker → Website Discovery Tool → Rate Limit Manager → Page Content Extractor → Contact Info Parser → Email Validator → Phone Number Formatter → License Verification Tool → Social Media Finder → Contact Quality Scorer → Duplicate Contact Detector → Data Export Tool
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Website Discovery Tool",
+    "tool_description": "Discovers and collects URLs of real estate websites, agent profiles, and brokerage pages based on search criteria and geographic targeting.",
+    "parameters": {
+      "search_query": {
+        "type": "string",
+        "required": true,
+        "description": "Search terms for finding real estate websites (e.g., 'real estate agents Dallas')"
+      },
+      "location": {
+        "type": "string",
+        "required": true,
+        "description": "Geographic location or area to target for search"
+      },
+      "website_types": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Types of websites to target: agent_profiles, brokerage_sites, listing_portals",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "default": 100,
+        "description": "Maximum number of URLs to discover (1-1000)"
+      }
+    },
+    "error_messages": [
+      "Invalid search query: Provide a non-empty search query string.",
+      "Invalid location: Provide a valid geographic location or area name.",
+      "Invalid website types: Use one or more of [agent_profiles, brokerage_sites, listing_portals].",
+      "Invalid max_results: Value must be between 1 and 1000."
+    ],
+    "usage": "Provide search_query, location, and website_types array. Optionally set max_results to limit the number of discovered URLs. Returns a list of relevant URLs for further processing.",
+    "output_details": {
+      "discovered_urls": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of discovered website URLs"
+      },
+      "url_count": {
+        "type": "integer",
+        "description": "Total number of URLs found"
+      },
+      "search_timestamp": {
+        "type": "string",
+        "description": "Timestamp when the search was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Page Content Extractor",
+    "tool_description": "Extracts HTML content from web pages while handling JavaScript rendering, managing request headers, and implementing retry logic for robust data collection.",
+    "parameters": {
+      "url": {
+        "type": "string",
+        "required": true,
+        "description": "Target URL to extract content from"
+      },
+      "wait_time": {
+        "type": "integer",
+        "required": false,
+        "default": 3,
+        "description": "Seconds to wait for page loading (1-30)"
+      },
+      "use_javascript": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to render JavaScript content"
+      },
+      "user_agent": {
+        "type": "string",
+        "required": false,
+        "default": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "description": "User agent string for requests"
+      },
+      "retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "default": 3,
+        "description": "Number of retry attempts on failure (1-10)"
+      }
+    },
+    "error_messages": [
+      "Invalid URL: Provide a valid HTTP/HTTPS URL.",
+      "Page load timeout: Page failed to load within the specified wait_time. Try increasing wait_time.",
+      "Access denied: The website blocked the request. Try changing user_agent or reducing request frequency.",
+      "Network error: Unable to connect to the target URL. Check URL validity and network connection.",
+      "Invalid wait_time: Value must be between 1 and 30 seconds.",
+      "Invalid retry_attempts: Value must be between 1 and 10."
+    ],
+    "usage": "Provide the target URL and optionally configure wait_time, use_javascript, user_agent, and retry_attempts. Returns the extracted HTML content and metadata.",
+    "output_details": {
+      "html_content": {
+        "type": "string",
+        "description": "Extracted HTML content from the page"
+      },
+      "status_code": {
+        "type": "integer",
+        "description": "HTTP response status code"
+      },
+      "page_title": {
+        "type": "string",
+        "description": "Title of the extracted page"
+      },
+      "extraction_timestamp": {
+        "type": "string",
+        "description": "Timestamp when content was extracted"
+      },
+      "final_url": {
+        "type": "string",
+        "description": "Final URL after any redirects"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contact Info Parser",
+    "tool_description": "Parses HTML content to extract structured contact information including names, emails, phone numbers, addresses, and professional details of real estate agents and brokers.",
+    "parameters": {
+      "html_content": {
+        "type": "string",
+        "required": true,
+        "description": "HTML content to parse for contact information"
+      },
+      "source_url": {
+        "type": "string",
+        "required": true,
+        "description": "Original URL of the content for reference"
+      },
+      "extraction_scope": {
+        "type": "array",
+        "required": false,
+        "default": ["names", "emails", "phones", "addresses", "titles"],
+        "items": {
+          "type": "string"
+        },
+        "description": "Types of information to extract: names, emails, phones, addresses, titles, companies, websites",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.7,
+        "description": "Minimum confidence score for extracted data (0.1-1.0)"
+      },
+      "max_contacts_per_page": {
+        "type": "integer",
+        "required": false,
+        "default": 50,
+        "description": "Maximum number of contacts to extract per page (1-200)"
+      },
+      "include_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include duplicate contacts found on the same page"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "default": "en",
+        "description": "Language code for parsing optimization (en, es, fr, etc.)"
+      }
+    },
+    "error_messages": [
+      "Empty HTML content: Provide valid HTML content to parse.",
+      "Invalid source URL: Provide a valid URL for reference.",
+      "Invalid extraction scope: Use valid options from [names, emails, phones, addresses, titles, companies, websites].",
+      "Invalid confidence threshold: Value must be between 0.1 and 1.0.",
+      "Invalid max_contacts_per_page: Value must be between 1 and 200.",
+      "Unsupported language: Provide a valid ISO 639-1 language code.",
+      "Parsing failed: HTML content could not be processed. Check content validity."
+    ],
+    "usage": "Provide html_content and source_url. Optionally configure extraction_scope, confidence_threshold, max_contacts_per_page, include_duplicates, and language for customized parsing.",
+    "output_details": {
+      "contacts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of structured contact information records"
+      },
+      "contact_count": {
+        "type": "integer",
+        "description": "Number of contacts extracted"
+      },
+      "extraction_confidence": {
+        "type": "number",
+        "description": "Average confidence score for extracted data"
+      },
+      "parsing_timestamp": {
+        "type": "string",
+        "description": "Timestamp when parsing was completed"
+      },
+      "source_reference": {
+        "type": "string",
+        "description": "Reference to the original source URL"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Email Validator",
+    "tool_description": "Validates email addresses through syntax checking, domain verification, and deliverability testing to ensure contact information quality.",
+    "parameters": {
+      "email_addresses": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of email addresses to validate",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "validation_level": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Validation depth: basic, standard, or comprehensive"
+      },
+      "check_deliverability": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to perform deliverability checks"
+      }
+    },
+    "error_messages": [
+      "Empty email list: Provide at least one email address to validate.",
+      "Too many emails: Maximum 1000 email addresses allowed per request.",
+      "Invalid validation level: Use one of [basic, standard, comprehensive].",
+      "Invalid email format: One or more email addresses have invalid syntax."
+    ],
+    "usage": "Provide an array of email_addresses and optionally set validation_level and check_deliverability. Returns validation results for each email address.",
+    "output_details": {
+      "validation_results": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of validation results for each email"
+      },
+      "valid_count": {
+        "type": "integer",
+        "description": "Number of valid email addresses"
+      },
+      "invalid_count": {
+        "type": "integer",
+        "description": "Number of invalid email addresses"
+      },
+      "validation_timestamp": {
+        "type": "string",
+        "description": "Timestamp when validation was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Phone Number Formatter",
+    "tool_description": "Standardizes and formats phone numbers to consistent formats while extracting area codes and validating number structure for different regions.",
+    "parameters": {
+      "phone_numbers": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of raw phone numbers to format",
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "default_country": {
+        "type": "string",
+        "required": false,
+        "default": "US",
+        "description": "Default country code for numbers without country prefix"
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "default": "international",
+        "description": "Output format: international, national, or e164"
+      }
+    },
+    "error_messages": [
+      "Empty phone number list: Provide at least one phone number to format.",
+      "Too many phone numbers: Maximum 1000 phone numbers allowed per request.",
+      "Invalid country code: Provide a valid ISO 3166-1 alpha-2 country code.",
+      "Invalid output format: Use one of [international, national, e164].",
+      "Unparseable phone number: One or more phone numbers could not be parsed."
+    ],
+    "usage": "Provide an array of phone_numbers and optionally set default_country and output_format. Returns formatted phone numbers with validation status.",
+    "output_details": {
+      "formatted_numbers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of formatted phone numbers"
+      },
+      "valid_count": {
+        "type": "integer",
+        "description": "Number of successfully formatted phone numbers"
+      },
+      "invalid_count": {
+        "type": "integer",
+        "description": "Number of phone numbers that could not be formatted"
+      },
+      "formatting_timestamp": {
+        "type": "string",
+        "description": "Timestamp when formatting was completed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Duplicate Contact Detector",
+    "tool_description": "Identifies and removes duplicate contact records by comparing names, email addresses, phone numbers, and other identifying information using fuzzy matching algorithms.",
+    "parameters": {
+      "contact_records": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of contact record strings to analyze for duplicates",
+        "minItems": 2,
+        "maxItems": 10000
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "default": 0.85,
+        "description": "Similarity threshold for duplicate detection (0.1-1.0)"
+      },
+      "matching_fields": {
+        "type": "array",
+        "required": false,
+        "default": ["name", "email", "phone"],
+        "items": {
+          "type": "string"
+        },
+        "description": "Fields to use for matching: name, email, phone, address, company",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "keep_strategy": {
+        "type": "string",
+        "required": false,
+        "default": "most_complete",
+        "description": "Strategy for keeping records: first, last, most_complete, or highest_quality"
+      },
+      "case_sensitive": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to perform case-sensitive matching"
+      },
+      "fuzzy_matching": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to enable fuzzy string matching"
+      },
+      "output_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include duplicate records in output"
+      },
+      "merge_fields": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to merge fields from duplicate records"
+      },
+      "min_record_quality": {
+        "type": "number",
+        "required": false,
+        "default": 0.5,
+        "description": "Minimum quality score to keep a record (0.0-1.0)"
+      },
+      "batch_size": {
+        "type": "integer",
+        "required": false,
+        "default": 1000,
+        "description": "Number of records to process in each batch (100-5000)"
+      }
+    },
+    "error_messages": [
+      "Insufficient contact records: Provide at least 2 contact records for duplicate detection.",
+      "Too many contact records: Maximum 10000 contact records allowed per request.",
+      "Invalid similarity threshold: Value must be between 0.1 and 1.0.",
+      "Invalid matching fields: Use valid options from [name, email, phone, address, company].",
+      "Invalid keep strategy: Use one of [first, last, most_complete, highest_quality].",
+      "Invalid min_record_quality: Value must be between 0.0 and 1.0.",
+      "Invalid batch_size: Value must be between 100 and 5000.",
+      "Malformed contact records: One or more contact records could not be parsed."
+    ],
+    "usage": "Provide contact_records array and optionally configure similarity_threshold, matching_fields, keep_strategy, and other parameters for customized duplicate detection and removal.",
+    "output_details": {
+      "unique_contacts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of unique contact records after deduplication"
+      },
+      "duplicate_groups": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of duplicate group identifiers"
+      },
+      "original_count": {
+        "type": "integer",
+        "description": "Number of original contact records processed"
+      },
+      "unique_count": {
+        "type": "integer",
+        "description": "Number of unique contacts after deduplication"
+      },
+      "duplicates_removed": {
+        "type": "integer",
+        "description": "Number of duplicate records removed"
+      },
+      "processing_timestamp": {
+        "type": "string",
+        "description": "Timestamp when deduplication was completed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Social Media Finder",
+    "tool_description": "Searches for and collects social media profiles and professional networking accounts for real estate agents and brokers across multiple platforms.",
+    "parameters": {
+      "agent_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full name of the real estate agent or broker"
+      },
+      "company_name": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Name of the real estate company or brokerage"
+      },
+      "location": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Geographic location to narrow search results"
+      },
+      "platforms": {
+        "type": "array",
+        "required": false,
+        "default": ["linkedin", "facebook", "instagram", "twitter"],
+        "items": {
+          "type": "string"
+        },
+        "description": "Social media platforms to search: linkedin, facebook, instagram, twitter, youtube",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "max_results_per_platform": {
+        "type": "integer",
+        "required": false,
+        "default": 5,
+        "description": "Maximum number of profiles to find per platform (1-20)"
+      }
+    },
+    "error_messages": [
+      "Empty agent name: Provide a valid agent name for social media search.",
+      "Invalid platforms: Use valid platform names from [linkedin, facebook, instagram, twitter, youtube].",
+      "Invalid max_results_per_platform: Value must be between 1 and 20.",
+      "Search failed: Unable to perform social media search. Check network connectivity."
+    ],
+    "usage": "Provide agent_name and optionally specify company_name, location, platforms array, and max_results_per_platform. Returns social media profiles found for the agent.",
+    "output_details": {
+      "social_profiles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of found social media profile URLs and details"
+      },
+      "profiles_found": {
+        "type": "integer",
+        "description": "Total number of social media profiles found"
+      },
+      "search_timestamp": {
+        "type": "string",
+        "description": "Timestamp when social media search was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "License Verification Tool",
+    "tool_description": "Verifies real estate agent and broker licenses by checking state licensing databases and professional registry systems to confirm active status and credentials.",
+    "parameters": {
+      "agent_name": {
+        "type": "string",
+        "required": true,
+        "description": "Full legal name of the real estate professional"
+      },
+      "license_number": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Real estate license number if known"
+      },
+      "state_code": {
+        "type": "string",
+        "required": true,
+        "description": "Two-letter state code where license should be verified"
+      },
+      "verification_depth": {
+        "type": "string",
+        "required": false,
+        "default": "standard",
+        "description": "Verification level: basic, standard, or comprehensive"
+      }
+    },
+    "error_messages": [
+      "Empty agent name: Provide a valid agent name for license verification.",
+      "Invalid state code: Provide a valid two-letter US state code.",
+      "Invalid verification depth: Use one of [basic, standard, comprehensive].",
+      "License database unavailable: Unable to access state licensing database.",
+      "Verification failed: License verification could not be completed."
+    ],
+    "usage": "Provide agent_name and state_code, optionally include license_number and set verification_depth. Returns license status and professional credentials information.",
+    "output_details": {
+      "license_status": {
+        "type": "string",
+        "description": "Current license status (active, inactive, expired, suspended, etc.)"
+      },
+      "license_details": {
+        "type": "string",
+        "description": "Detailed license information including number, issue date, expiration"
+      },
+      "verification_confidence": {
+        "type": "number",
+        "description": "Confidence score for verification results (0.0-1.0)"
+      },
+      "verification_timestamp": {
+        "type": "string",
+        "description": "Timestamp when license verification was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contact Quality Scorer",
+    "tool_description": "Evaluates and scores contact records based on completeness, accuracy, and professional relevance to provide quality metrics for real estate contact databases.",
+    "parameters": {
+      "contact_records": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of contact record strings to evaluate",
+        "minItems": 1,
+        "maxItems": 5000
+      },
+      "scoring_criteria": {
+        "type": "array",
+        "required": false,
+        "default": ["completeness", "accuracy", "professional_relevance", "contact_freshness"],
+        "items": {
+          "type": "string"
+        },
+        "description": "Criteria for scoring: completeness, accuracy, professional_relevance, contact_freshness, license_status",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "weight_completeness": {
+        "type": "number",
+        "required": false,
+        "default": 0.3,
+        "description": "Weight for completeness score (0.0-1.0)"
+      },
+      "weight_accuracy": {
+        "type": "number",
+        "required": false,
+        "default": 0.3,
+        "description": "Weight for accuracy score (0.0-1.0)"
+      },
+      "weight_relevance": {
+        "type": "number",
+        "required": false,
+        "default": 0.25,
+        "description": "Weight for professional relevance score (0.0-1.0)"
+      },
+      "weight_freshness": {
+        "type": "number",
+        "required": false,
+        "default": 0.15,
+        "description": "Weight for contact freshness score (0.0-1.0)"
+      },
+      "minimum_fields": {
+        "type": "integer",
+        "required": false,
+        "default": 3,
+        "description": "Minimum number of fields required for a quality contact (1-10)"
+      },
+      "include_detailed_breakdown": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include detailed scoring breakdown for each contact"
+      }
+    },
+    "error_messages": [
+      "Empty contact records: Provide at least one contact record to evaluate.",
+      "Too many contact records: Maximum 5000 contact records allowed per request.",
+      "Invalid scoring criteria: Use valid options from [completeness, accuracy, professional_relevance, contact_freshness, license_status].",
+      "Invalid weight values: All weight values must be between 0.0 and 1.0.",
+      "Invalid minimum_fields: Value must be between 1 and 10.",
+      "Weight sum error: Sum of all weights must equal 1.0.",
+      "Malformed contact records: One or more contact records could not be parsed for scoring."
+    ],
+    "usage": "Provide contact_records array and optionally configure scoring_criteria, weight values, minimum_fields, and include_detailed_breakdown for customized quality assessment.",
+    "output_details": {
+      "quality_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of quality scores for each contact record (0.0-1.0)"
+      },
+      "average_quality": {
+        "type": "number",
+        "description": "Average quality score across all contacts"
+      },
+      "high_quality_count": {
+        "type": "integer",
+        "description": "Number of contacts with quality score above 0.8"
+      },
+      "low_quality_count": {
+        "type": "integer",
+        "description": "Number of contacts with quality score below 0.5"
+      },
+      "scoring_timestamp": {
+        "type": "string",
+        "description": "Timestamp when quality scoring was completed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Rate Limit Manager",
+    "tool_description": "Manages request rates and implements throttling strategies to avoid being blocked by websites while maintaining efficient scraping performance.",
+    "parameters": {
+      "target_domains": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of domain names to manage rate limits for",
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "requests_per_minute": {
+        "type": "integer",
+        "required": false,
+        "default": 10,
+        "description": "Maximum requests per minute per domain (1-120)"
+      },
+      "burst_allowance": {
+        "type": "integer",
+        "required": false,
+        "default": 5,
+        "description": "Number of burst requests allowed (1-20)"
+      },
+      "backoff_strategy": {
+        "type": "string",
+        "required": false,
+        "default": "exponential",
+        "description": "Backoff strategy when rate limited: linear, exponential, or fixed"
+      }
+    },
+    "error_messages": [
+      "Empty domain list: Provide at least one domain for rate limiting.",
+      "Too many domains: Maximum 100 domains allowed per rate limit manager.",
+      "Invalid requests_per_minute: Value must be between 1 and 120.",
+      "Invalid burst_allowance: Value must be between 1 and 20.",
+      "Invalid backoff strategy: Use one of [linear, exponential, fixed]."
+    ],
+    "usage": "Provide target_domains array and optionally configure requests_per_minute, burst_allowance, and backoff_strategy. Returns rate limiting recommendations and timing guidance.",
+    "output_details": {
+      "rate_limits": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of rate limit configurations for each domain"
+      },
+      "recommended_delays": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of recommended delays in seconds for each domain"
+      },
+      "status_timestamp": {
+        "type": "string",
+        "description": "Timestamp when rate limit analysis was performed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Compliance Checker",
+    "tool_description": "Evaluates websites and scraping activities for legal compliance, checking robots.txt files, terms of service, and providing guidance for ethical data collection practices.",
+    "parameters": {
+      "target_url": {
+        "type": "string",
+        "required": true,
+        "description": "URL of the website to check for compliance"
+      },
+      "check_robots_txt": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to check robots.txt file restrictions"
+      },
+      "check_terms_of_service": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to analyze terms of service for scraping restrictions"
+      },
+      "intended_use": {
+        "type": "string",
+        "required": true,
+        "description": "Intended use case for the scraped data (e.g., 'contact collection', 'market research')"
+      }
+    },
+    "error_messages

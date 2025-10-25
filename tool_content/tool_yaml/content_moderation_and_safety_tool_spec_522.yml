@@ -1,0 +1,802 @@
+field_name: content_moderation_and_safety
+subfield: Image and Video Content Analysis
+task: Detect and classify explicit or inappropriate visual content in images and videos
+tool_description: |-
+  ## STEP 1 — Rate task difficulty
+
+  This task is **hard** due to the complexity of visual content analysis, the need for sophisticated computer vision techniques, the ambiguity in defining "inappropriate" content across different contexts and cultures, high coordination between multiple detection systems, significant risk of false positives/negatives that could impact user experience or safety, and substantial computational infrastructure requirements for processing multimedia content.
+
+  ## STEP 2 — Set a tool budget
+
+  Given the hard difficulty rating, I'm targeting **17 tools** within the 15-20 range to handle the comprehensive workflow of visual content moderation including preprocessing, analysis, classification, reporting, and management functions.
+
+  ## STEP 3 — List all tool names and dependencies
+
+  **Tools and their dependencies:**
+  1. **Media File Validator** (consumes: file paths → produces: validation status)
+  2. **Frame Extractor** (consumes: video files → produces: frame sequences)
+  3. **Image Preprocessor** (consumes: raw images → produces: normalized images)
+  4. **NSFW Content Detector** (consumes: preprocessed images → produces: explicit content scores)
+  5. **Violence Detector** (consumes: images → produces: violence classification)
+  6. **Object Recognition Scanner** (consumes: images → produces: detected objects)
+  7. **Face Detection Analyzer** (consumes: images → produces: face locations/attributes)
+  8. **Text OCR Extractor** (consumes: images → produces: extracted text)
+  9. **Profanity Text Checker** (consumes: text → produces: profanity scores)
+  10. **Skin Tone Analyzer** (consumes: images → produces: skin exposure metrics)
+  11. **Age Appropriateness Classifier** (consumes: analysis results → produces: age ratings)
+  12. **Content Risk Aggregator** (consumes: multiple analysis results → produces: overall risk score)
+  13. **Moderation Decision Engine** (consumes: risk scores + policies → produces: action recommendations)
+  14. **False Positive Checker** (consumes: flagged content → produces: verification results)
+  15. **Batch Content Processor** (consumes: multiple files → produces: batch results)
+  16. **Moderation Report Generator** (consumes: analysis results → produces: detailed reports)
+  17. **Content Appeal Handler** (consumes: appeals + original analysis → produces: appeal decisions)
+
+  ## STEP 4 — Multi-tool plans
+
+  **Simple plans:**
+  - **Single image quick scan**: Media File Validator → Image Preprocessor → NSFW Content Detector → Moderation Decision Engine
+  - **Text overlay check**: Image Preprocessor → Text OCR Extractor → Profanity Text Checker → Content Risk Aggregator
+
+  **Medium plans:**
+  - **Comprehensive image analysis**: Media File Validator → Image Preprocessor → NSFW Content Detector → Violence Detector → Object Recognition Scanner → Skin Tone Analyzer → Content Risk Aggregator → Moderation Decision Engine
+  - **Video content review**: Media File Validator → Frame Extractor → Image Preprocessor → NSFW Content Detector → Violence Detector → Age Appropriateness Classifier → Moderation Report Generator
+
+  **Complex plans:**
+  - **Full content moderation pipeline**: Media File Validator → Frame Extractor → Image Preprocessor → (NSFW Content Detector + Violence Detector + Object Recognition Scanner + Face Detection Analyzer + Text OCR Extractor) → Profanity Text Checker → Skin Tone Analyzer → Content Risk Aggregator → Age Appropriateness Classifier → Moderation Decision Engine → False Positive Checker → Moderation Report Generator
+  - **Appeal processing workflow**: Content Appeal Handler → Image Preprocessor → (multiple detectors) → Content Risk Aggregator → Moderation Decision Engine → Moderation Report Generator
+
+  ## STEP 5 — Produce tools
+
+  ```json
+  {
+    "tool_name": "Media File Validator",
+    "tool_description": "Validates media files for format compatibility, corruption, and basic metadata extraction before content analysis.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the media file to validate"
+      },
+      "max_file_size_mb": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum allowed file size in megabytes",
+        "default": 100
+      }
+    },
+    "error_messages": [
+      "File not found: The specified file path does not exist or is inaccessible.",
+      "Unsupported format: File format is not supported. Use common image formats (JPG, PNG, GIF, WebP) or video formats (MP4, AVI, MOV).",
+      "File too large: File exceeds maximum size limit. Reduce file size or increase max_file_size_mb parameter.",
+      "Corrupted file: File appears to be corrupted or incomplete."
+    ],
+    "usage": "Provide the file_path parameter pointing to your media file. Optionally set max_file_size_mb to control size limits. Use this tool first before any content analysis.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the file passed validation"
+      },
+      "file_type": {
+        "type": "string",
+        "description": "Detected file format (image or video)"
+      },
+      "duration_seconds": {
+        "type": "number",
+        "description": "Duration in seconds for video files, 0 for images"
+      },
+      "resolution": {
+        "type": "string",
+        "description": "File resolution in format 'widthxheight'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Frame Extractor",
+    "tool_description": "Extracts frames from video files at specified intervals for individual image analysis.",
+    "parameters": {
+      "video_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the video file"
+      },
+      "extraction_interval": {
+        "type": "number",
+        "required": false,
+        "description": "Seconds between extracted frames",
+        "default": 5.0
+      },
+      "max_frames": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of frames to extract",
+        "default": 50
+      },
+      "start_time": {
+        "type": "number",
+        "required": false,
+        "description": "Start extraction from this time in seconds",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Video file not accessible: Cannot read the video file. Ensure the path is correct and file is not corrupted.",
+      "Invalid time parameters: start_time must be non-negative and within video duration.",
+      "Extraction failed: Unable to extract frames. Video may be corrupted or in unsupported format.",
+      "Invalid interval: extraction_interval must be greater than 0."
+    ],
+    "usage": "Provide video_path and optionally configure extraction_interval, max_frames, and start_time. The tool returns paths to extracted frame images.",
+    "output_details": {
+      "frame_count": {
+        "type": "integer",
+        "description": "Number of frames successfully extracted"
+      },
+      "frame_paths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of file paths to extracted frame images"
+      },
+      "timestamps": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Array of timestamps in seconds corresponding to each frame"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Image Preprocessor",
+    "tool_description": "Normalizes and preprocesses images for consistent analysis including resizing, format conversion, and quality enhancement.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the input image file"
+      },
+      "target_width": {
+        "type": "integer",
+        "required": false,
+        "description": "Target width for resizing",
+        "default": 512
+      },
+      "target_height": {
+        "type": "integer",
+        "required": false,
+        "description": "Target height for resizing",
+        "default": 512
+      },
+      "normalize_brightness": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to normalize brightness and contrast",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Image not found: The specified image path does not exist or is not accessible.",
+      "Invalid dimensions: target_width and target_height must be positive integers between 64 and 2048.",
+      "Processing failed: Unable to process image. File may be corrupted or in unsupported format.",
+      "Memory error: Image too large to process. Try reducing target dimensions."
+    ],
+    "usage": "Provide image_path and optionally set target dimensions and processing options. The tool outputs a preprocessed image ready for analysis.",
+    "output_details": {
+      "processed_image_path": {
+        "type": "string",
+        "description": "Path to the preprocessed image file"
+      },
+      "original_resolution": {
+        "type": "string",
+        "description": "Original image resolution in 'widthxheight' format"
+      },
+      "processed_resolution": {
+        "type": "string",
+        "description": "Final processed resolution in 'widthxheight' format"
+      },
+      "processing_applied": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of processing steps applied to the image"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "NSFW Content Detector",
+    "tool_description": "Detects explicit sexual content, nudity, and adult material in images using deep learning models.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the preprocessed image file"
+      },
+      "sensitivity_level": {
+        "type": "string",
+        "required": false,
+        "description": "Detection sensitivity: low, medium, high",
+        "default": "medium"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence score (0.0-1.0) to flag content",
+        "default": 0.7
+      }
+    },
+    "error_messages": [
+      "Image not accessible: Cannot read the image file. Ensure the file exists and is properly preprocessed.",
+      "Invalid sensitivity: sensitivity_level must be one of: low, medium, high.",
+      "Invalid threshold: confidence_threshold must be between 0.0 and 1.0.",
+      "Analysis failed: Unable to analyze image. File may be corrupted or in wrong format."
+    ],
+    "usage": "Provide image_path to a preprocessed image. Adjust sensitivity_level and confidence_threshold based on your moderation policies. Higher sensitivity detects more potential issues but may increase false positives.",
+    "output_details": {
+      "is_nsfw": {
+        "type": "boolean",
+        "description": "Whether the image contains NSFW content above threshold"
+      },
+      "nsfw_score": {
+        "type": "number",
+        "description": "Confidence score for NSFW content (0.0-1.0)"
+      },
+      "content_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detected NSFW categories like nudity, sexual, suggestive"
+      },
+      "risk_level": {
+        "type": "string",
+        "description": "Overall risk assessment: low, medium, high, critical"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Violence Detector",
+    "tool_description": "Identifies violent content, weapons, blood, and aggressive behavior in images.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image file to analyze"
+      },
+      "detection_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Types of violence to detect: weapons, blood, fighting, gore",
+        "default": ["weapons", "blood", "fighting"]
+      },
+      "sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Detection sensitivity: strict, moderate, lenient",
+        "default": "moderate"
+      }
+    },
+    "error_messages": [
+      "Image not found: The specified image file does not exist or is not readable.",
+      "Invalid detection types: detection_types must contain only: weapons, blood, fighting, gore.",
+      "Invalid sensitivity: sensitivity must be one of: strict, moderate, lenient.",
+      "Detection failed: Unable to analyze image for violence. Check file format and integrity."
+    ],
+    "usage": "Provide image_path and optionally specify which types of violence to detect and sensitivity level. Stricter sensitivity catches more potential issues but may have more false positives.",
+    "output_details": {
+      "violence_detected": {
+        "type": "boolean",
+        "description": "Whether violent content was detected"
+      },
+      "violence_score": {
+        "type": "number",
+        "description": "Overall violence confidence score (0.0-1.0)"
+      },
+      "detected_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific types of violence detected"
+      },
+      "severity_level": {
+        "type": "string",
+        "description": "Violence severity: mild, moderate, severe, extreme"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Object Recognition Scanner",
+    "tool_description": "Identifies and classifies objects in images that may be relevant for content moderation including prohibited items, drugs, and weapons.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image file"
+      },
+      "object_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Object categories to scan for",
+        "default": ["weapons", "drugs", "alcohol", "tobacco", "inappropriate_items"]
+      },
+      "min_confidence": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence threshold for object detection (0.0-1.0)",
+        "default": 0.6
+      },
+      "max_objects": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of objects to detect",
+        "default": 20
+      }
+    },
+    "error_messages": [
+      "Image file not accessible: Cannot read the specified image file.",
+      "Invalid object categories: Categories must be from the supported list of object types.",
+      "Invalid confidence threshold: min_confidence must be between 0.0 and 1.0.",
+      "Invalid max_objects: max_objects must be a positive integer between 1 and 100.",
+      "Object detection failed: Unable to process image for object recognition."
+    ],
+    "usage": "Provide image_path and optionally specify which object_categories to detect, confidence threshold, and maximum number of objects. Focus on categories relevant to your content policies.",
+    "output_details": {
+      "objects_found": {
+        "type": "integer",
+        "description": "Number of prohibited objects detected"
+      },
+      "object_details": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Detailed descriptions of detected objects with confidence scores"
+      },
+      "risk_objects": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of high-risk objects that require moderation attention"
+      },
+      "overall_object_risk": {
+        "type": "string",
+        "description": "Combined risk level from all detected objects: safe, caution, moderate, high"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Face Detection Analyzer",
+    "tool_description": "Detects faces in images and analyzes facial attributes relevant to content moderation including age estimation and emotion detection.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image file to analyze"
+      },
+      "detect_age": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to estimate age of detected faces",
+        "default": true
+      },
+      "detect_emotions": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to analyze emotional expressions",
+        "default": true
+      },
+      "min_face_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum face size in pixels for detection",
+        "default": 30
+      },
+      "max_faces": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of faces to analyze",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Image not readable: Cannot access or read the specified image file.",
+      "Invalid face size: min_face_size must be between 20 and 200 pixels.",
+      "Invalid max faces: max_faces must be between 1 and 50.",
+      "Face detection failed: Unable to process image for face detection. Check image quality and format.",
+      "Analysis error: Face attribute analysis failed. Image may be too low quality."
+    ],
+    "usage": "Provide image_path and configure which facial attributes to analyze. Use detect_age for age-restricted content policies and detect_emotions for context understanding.",
+    "output_details": {
+      "faces_detected": {
+        "type": "integer",
+        "description": "Number of faces found in the image"
+      },
+      "estimated_ages": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Estimated ages for each detected face"
+      },
+      "dominant_emotions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Primary emotion detected for each face"
+      },
+      "minor_present": {
+        "type": "boolean",
+        "description": "Whether any face appears to be under 18 years old"
+      },
+      "face_analysis_summary": {
+        "type": "string",
+        "description": "Summary of face analysis results and potential concerns"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Text OCR Extractor",
+    "tool_description": "Extracts text content from images using optical character recognition for text-based content moderation.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image file"
+      },
+      "languages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Languages to recognize (ISO 639-1 codes)",
+        "default": ["en", "es", "fr", "de"]
+      },
+      "min_confidence": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum OCR confidence threshold (0.0-1.0)",
+        "default": 0.5
+      }
+    },
+    "error_messages": [
+      "Image not accessible: Cannot read the specified image file for text extraction.",
+      "Unsupported language: One or more language codes are not supported. Use standard ISO 639-1 codes.",
+      "Invalid confidence: min_confidence must be between 0.0 and 1.0.",
+      "OCR processing failed: Unable to extract text from image. Image may be too blurry or low resolution.",
+      "No text detected: No readable text found in the image above the confidence threshold."
+    ],
+    "usage": "Provide image_path and optionally specify target languages and confidence threshold. Higher confidence reduces false text detection but may miss valid text.",
+    "output_details": {
+      "extracted_text": {
+        "type": "string",
+        "description": "All extracted text content concatenated"
+      },
+      "text_blocks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Individual text blocks with their confidence scores"
+      },
+      "detected_languages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Languages detected in the extracted text"
+      },
+      "text_confidence": {
+        "type": "number",
+        "description": "Average confidence score of all extracted text"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Profanity Text Checker",
+    "tool_description": "Analyzes extracted text for profanity, hate speech, harassment, and other inappropriate language content.",
+    "parameters": {
+      "text_content": {
+        "type": "string",
+        "required": true,
+        "description": "Text content to analyze for inappropriate language"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Primary language of the text (ISO 639-1 code)",
+        "default": "en"
+      },
+      "check_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "Categories to check: profanity, hate_speech, harassment, threats, spam",
+        "default": ["profanity", "hate_speech", "harassment", "threats"]
+      },
+      "severity_threshold": {
+        "type": "string",
+        "required": false,
+        "description": "Minimum severity level to flag: mild, moderate, severe",
+        "default": "moderate"
+      }
+    },
+    "error_messages": [
+      "Empty text: text_content cannot be empty or whitespace only.",
+      "Unsupported language: The specified language code is not supported for text analysis.",
+      "Invalid categories: check_categories must contain only supported category types.",
+      "Invalid severity: severity_threshold must be one of: mild, moderate, severe.",
+      "Text analysis failed: Unable to process text content for inappropriate language detection."
+    ],
+    "usage": "Provide text_content extracted from images and configure which types of inappropriate content to detect. Adjust severity_threshold based on your content policies.",
+    "output_details": {
+      "is_inappropriate": {
+        "type": "boolean",
+        "description": "Whether inappropriate content was detected above threshold"
+      },
+      "detected_issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of specific inappropriate content types found"
+      },
+      "severity_score": {
+        "type": "number",
+        "description": "Overall severity score from 0.0 (clean) to 1.0 (highly inappropriate)"
+      },
+      "flagged_phrases": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific phrases or words that triggered the flags"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Skin Tone Analyzer",
+    "tool_description": "Analyzes skin exposure and tone in images to detect potential nudity or inappropriate exposure levels.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image file to analyze"
+      },
+      "exposure_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Skin exposure percentage threshold (0.0-1.0) to trigger flags",
+        "default": 0.3
+      },
+      "context_aware": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to consider context (beach, sports, medical) in analysis",
+        "default": true
+      },
+      "regional_standards": {
+        "type": "string",
+        "required": false,
+        "description": "Regional content standards: conservative, moderate, liberal",
+        "default": "moderate"
+      }
+    },
+    "error_messages": [
+      "Image not found: Cannot access the specified image file for skin analysis.",
+      "Invalid threshold: exposure_threshold must be between 0.0 and 1.0.",
+      "Invalid standards: regional_standards must be one of: conservative, moderate, liberal.",
+      "Skin analysis failed: Unable to analyze skin tone and exposure. Image quality may be insufficient.",
+      "Processing error: Skin detection algorithms failed to process the image properly."
+    ],
+    "usage": "Provide image_path and configure exposure sensitivity based on your content policies. Use context_aware for more nuanced detection and set regional_standards to match your target audience.",
+    "output_details": {
+      "skin_exposure_percentage": {
+        "type": "number",
+        "description": "Percentage of image showing skin (0.0-1.0)"
+      },
+      "exposure_classification": {
+        "type": "string",
+        "description": "Classification: minimal, moderate, significant, excessive"
+      },
+      "context_detected": {
+        "type": "string",
+        "description": "Detected context like beach, sports, medical, or unknown"
+      },
+      "requires_review": {
+        "type": "boolean",
+        "description": "Whether the content requires human review based on exposure levels"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Age Appropriateness Classifier",
+    "tool_description": "Classifies content into age-appropriate categories based on combined analysis results from multiple detection tools.",
+    "parameters": {
+      "nsfw_score": {
+        "type": "number",
+        "required": true,
+        "description": "NSFW detection score from content analysis"
+      },
+      "violence_score": {
+        "type": "number",
+        "required": true,
+        "description": "Violence detection score from content analysis"
+      },
+      "profanity_score": {
+        "type": "number",
+        "required": true,
+        "description": "Profanity/inappropriate language score"
+      },
+      "skin_exposure_level": {
+        "type": "number",
+        "required": true,
+        "description": "Skin exposure percentage from analysis"
+      },
+      "detected_objects": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of detected objects from object recognition",
+        "default": []
+      },
+      "minor_faces_detected": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether faces of minors were detected in the content",
+        "default": false
+      },
+      "classification_system": {
+        "type": "string",
+        "required": false,
+        "description": "Rating system to use: ESRB, MPAA, PEGI, or CUSTOM",
+        "default": "ESRB"
+      }
+    },
+    "error_messages": [
+      "Invalid score range: All score parameters must be between 0.0 and 1.0.",
+      "Invalid classification system: classification_system must be one of: ESRB, MPAA, PEGI, CUSTOM.",
+      "Missing required scores: nsfw_score, violence_score, profanity_score, and skin_exposure_level are required.",
+      "Classification failed: Unable to determine appropriate age classification based on provided data.",
+      "Inconsistent data: The provided analysis scores contain conflicting or invalid information."
+    ],
+    "usage": "Provide analysis scores from content detection tools along with any detected objects and face analysis results. Choose appropriate classification_system for your platform's needs.",
+    "output_details": {
+      "age_rating": {
+        "type": "string",
+        "description": "Age-appropriate rating like E, T, M for ESRB or G, PG, R for MPAA"
+      },
+      "content_warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific content warnings like violence, language, suggestive themes"
+      },
+      "recommended_action": {
+        "type": "string",
+        "description": "Recommended moderation action: approve, restrict, review, block"
+      },
+      "confidence_level": {
+        "type": "number",
+        "description": "Confidence in the age classification (0.0-1.0)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Content Risk Aggregator",
+    "tool_description": "Combines multiple analysis results to calculate overall content risk scores and prioritize moderation actions.",
+    "parameters": {
+      "nsfw_result": {
+        "type": "string",
+        "required": true,
+        "description": "NSFW analysis result in format 'detected:score' or 'clean:score'"
+      },
+      "violence_result": {
+        "type": "string",
+        "required": true,
+        "description": "Violence analysis result in format 'detected:score:severity' or 'clean:score'"
+      },
+      "object_result": {
+        "type": "string",
+        "required": true,
+        "description": "Object detection result listing detected prohibited items"
+      },
+      "text_result": {
+        "type": "string",
+        "required": true,
+        "description": "Text analysis result for inappropriate language"
+      },
+      "skin_result": {
+        "type": "string",
+        "required": true,
+        "description": "Skin analysis result with exposure classification"
+      },
+      "age_result": {
+        "type": "string",
+        "required": true,
+        "description": "Age appropriateness classification result"
+      },
+      "face_result": {
+        "type": "string",
+        "required": false,
+        "description": "Face detection and age estimation results",
+        "default": "no_faces"
+      },
+      "risk_weights": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "required": false,
+        "description": "Weight values for each analysis type (7 values: nsfw, violence, objects, text, skin, age, faces)",
+        "default": [0.25, 0.20, 0.15, 0.15, 0.10, 0.10, 0.05]
+      }
+    },
+    "error_messages": [
+      "Invalid result format: All result parameters must follow the specified format patterns.",
+      "Missing analysis results: All required analysis result parameters must be provided.",
+      "Invalid risk weights: risk_weights array must contain exactly 7 numbers that sum to 1.0.",
+      "Malformed input: One or more result strings are malformed or unparseable.",
+      "Aggregation failed: Unable to calculate combined risk score from provided analysis results."
+    ],
+    "usage": "Provide results from all content analysis tools in the specified string formats. Optionally adjust risk_weights to emphasize certain types of content issues for your platform.",
+    "output_details": {
+      "overall_risk_score": {
+        "type": "number",
+        "description": "Combined risk score from 0.0 (safe) to 1.0 (high risk)"
+      },
+      "risk_category": {
+        "type": "string",
+        "description": "Overall risk level: low, moderate, high, critical"
+      },
+      "primary_concerns": {
+        "type": "array",
+        "items": {
+          "type": "

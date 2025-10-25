@@ -1,0 +1,879 @@
+field_name: reading_and_book_clubs
+subfield: Book Discovery and Recommendation
+task: Generate personalized book recommendations based on reading history and preferences
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task has medium difficulty. It involves analyzing reading patterns, understanding user preferences across multiple dimensions (genre, author, themes, reading level), and generating relevant recommendations. The challenge lies in balancing personalization with discovery, handling sparse data for new users, and ensuring recommendations are both accurate and diverse.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium complexity, I'll target 12 tools to cover the various aspects of book recommendation: user profile analysis, preference extraction, similarity matching, content analysis, filtering, and recommendation generation.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+  1. **Reading History Parser** - Consumes: raw reading data → Produces: structured reading records
+  2. **User Preference Extractor** - Consumes: structured reading records → Produces: preference profiles
+  3. **Book Metadata Fetcher** - Consumes: book identifiers → Produces: detailed book information
+  4. **Genre Similarity Calculator** - Consumes: book metadata → Produces: genre similarity scores
+  5. **Author Affinity Analyzer** - Consumes: reading history, author data → Produces: author preference scores
+  6. **Content Feature Extractor** - Consumes: book descriptions, reviews → Produces: content feature vectors
+  7. **Reading Pattern Analyzer** - Consumes: reading history with timestamps → Produces: reading behavior insights
+  8. **Collaborative Filter** - Consumes: user preferences, community data → Produces: similar user recommendations
+  9. **Content Filter** - Consumes: user preferences, book features → Produces: content-based recommendations
+  10. **Diversity Controller** - Consumes: recommendation lists → Produces: diversified recommendations
+  11. **Recommendation Ranker** - Consumes: multiple recommendation sources → Produces: ranked final recommendations
+  12. **Recommendation Explainer** - Consumes: recommendations, user data → Produces: explanation text
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic Genre Recommendations: Reading History Parser → User Preference Extractor → Genre Similarity Calculator → Content Filter → Recommendation Ranker
+  2. Author-Based Suggestions: Reading History Parser → Author Affinity Analyzer → Book Metadata Fetcher → Recommendation Ranker
+
+  **Medium Plans:**
+  1. Hybrid Recommendation System: Reading History Parser → User Preference Extractor → Content Feature Extractor → Collaborative Filter → Content Filter → Diversity Controller → Recommendation Ranker
+  2. Explained Recommendations: Reading History Parser → User Preference Extractor → Content Filter → Recommendation Ranker → Recommendation Explainer
+
+  **Complex Plans:**
+  1. Full Personalized System: Reading History Parser → User Preference Extractor → Book Metadata Fetcher → Genre Similarity Calculator → Author Affinity Analyzer → Content Feature Extractor → Reading Pattern Analyzer → Collaborative Filter → Content Filter → Diversity Controller → Recommendation Ranker → Recommendation Explainer
+  2. Multi-Source Discovery: Reading History Parser → User Preference Extractor → Reading Pattern Analyzer → Collaborative Filter → Content Filter → Genre Similarity Calculator → Diversity Controller → Recommendation Ranker
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Reading History Parser",
+    "tool_description": "Parses and structures raw reading history data from various sources into a standardized format for analysis.",
+    "parameters": {
+      "reading_data": {
+        "type": "array",
+        "required": true,
+        "description": "Raw reading history entries as strings",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "data_format": {
+        "type": "string",
+        "required": true,
+        "description": "Format of input data: csv, json, or goodreads_export"
+      }
+    },
+    "error_messages": [
+      "Invalid data format: Use one of [csv, json, goodreads_export].",
+      "Empty reading data: Provide at least one reading history entry.",
+      "Malformed data structure: Ensure data matches the specified format.",
+      "Too many entries: Maximum 1000 entries allowed per request."
+    ],
+    "usage": "Provide reading_data array and specify the data_format. The tool will parse and return structured reading records with standardized fields.",
+    "output_details": {
+      "parsed_count": {
+        "type": "integer",
+        "description": "Number of successfully parsed reading entries"
+      },
+      "book_titles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of extracted book titles"
+      },
+      "authors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of extracted author names"
+      },
+      "ratings": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "List of user ratings (1-5 scale)"
+      },
+      "read_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of reading completion dates in ISO format"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "User Preference Extractor",
+    "tool_description": "Analyzes structured reading history to extract user preferences across genres, authors, themes, and reading characteristics.",
+    "parameters": {
+      "book_titles": {
+        "type": "array",
+        "required": true,
+        "description": "List of book titles from reading history",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "authors": {
+        "type": "array",
+        "required": true,
+        "description": "List of author names corresponding to books",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "ratings": {
+        "type": "array",
+        "required": true,
+        "description": "User ratings for books (1-5 scale)",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 500
+      },
+      "min_rating_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum rating to consider as positive preference (1-5)",
+        "default": 3.5
+      },
+      "analysis_depth": {
+        "type": "string",
+        "required": false,
+        "description": "Level of preference analysis: basic, detailed, or comprehensive",
+        "default": "detailed"
+      }
+    },
+    "error_messages": [
+      "Mismatched array lengths: book_titles, authors, and ratings must have the same length.",
+      "Invalid rating values: Ratings must be between 1 and 5.",
+      "Invalid threshold: min_rating_threshold must be between 1 and 5.",
+      "Invalid analysis depth: Use one of [basic, detailed, comprehensive].",
+      "Insufficient data: Need at least 3 rated books for meaningful preference extraction."
+    ],
+    "usage": "Provide matched arrays of book_titles, authors, and ratings. Optionally set min_rating_threshold and analysis_depth. Returns extracted preference profiles.",
+    "output_details": {
+      "preferred_genres": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of preferred genres based on high-rated books"
+      },
+      "preferred_authors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of preferred authors based on ratings"
+      },
+      "average_rating": {
+        "type": "number",
+        "description": "User's average rating across all books"
+      },
+      "genre_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Preference scores for different genres (0-1 scale)"
+      },
+      "reading_diversity": {
+        "type": "number",
+        "description": "Measure of reading diversity across genres (0-1 scale)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Book Metadata Fetcher",
+    "tool_description": "Retrieves comprehensive metadata for books including genre, publication info, descriptions, and ratings from multiple sources.",
+    "parameters": {
+      "book_identifiers": {
+        "type": "array",
+        "required": true,
+        "description": "List of book titles, ISBNs, or IDs to fetch metadata for",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "identifier_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of identifier provided: title, isbn, or goodreads_id"
+      },
+      "include_reviews": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include sample reviews in metadata",
+        "default": false
+      },
+      "include_similar_books": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include lists of similar books",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid identifier type: Use one of [title, isbn, goodreads_id].",
+      "Book not found: One or more book identifiers could not be resolved.",
+      "API rate limit exceeded: Too many requests in short time period.",
+      "Invalid ISBN format: Ensure ISBNs are properly formatted 10 or 13 digit numbers.",
+      "Request too large: Maximum 50 books per request."
+    ],
+    "usage": "Provide book_identifiers array and specify identifier_type. Optionally enable include_reviews and include_similar_books. Returns comprehensive metadata for each book.",
+    "output_details": {
+      "fetched_count": {
+        "type": "integer",
+        "description": "Number of books with successfully fetched metadata"
+      },
+      "titles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Confirmed book titles"
+      },
+      "genres": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Primary genres for each book"
+      },
+      "publication_years": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Publication years for each book"
+      },
+      "average_ratings": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Community average ratings (1-5 scale)"
+      },
+      "descriptions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Book descriptions or summaries"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Genre Similarity Calculator",
+    "tool_description": "Calculates similarity scores between different genres and identifies related genres for recommendation purposes.",
+    "parameters": {
+      "target_genres": {
+        "type": "array",
+        "required": true,
+        "description": "List of user's preferred genres",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "candidate_genres": {
+        "type": "array",
+        "required": true,
+        "description": "List of genres to compare against",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "similarity_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for calculating similarity: semantic, collaborative, or hybrid",
+        "default": "hybrid"
+      }
+    },
+    "error_messages": [
+      "Invalid similarity method: Use one of [semantic, collaborative, hybrid].",
+      "Unknown genre: One or more genres are not recognized in the genre database.",
+      "Empty genre lists: Both target_genres and candidate_genres must contain at least one genre.",
+      "Too many genres: Maximum 20 target genres and 100 candidate genres allowed."
+    ],
+    "usage": "Provide target_genres (user preferences) and candidate_genres (books to evaluate). Optionally specify similarity_method. Returns similarity scores for genre matching.",
+    "output_details": {
+      "similarity_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Similarity scores between target and candidate genres (0-1 scale)"
+      },
+      "matched_genres": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of candidate genres with high similarity scores"
+      },
+      "genre_clusters": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Groups of related genres based on similarity"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Author Affinity Analyzer",
+    "tool_description": "Analyzes user's reading history to determine author preferences and identify similar authors for recommendations.",
+    "parameters": {
+      "read_authors": {
+        "type": "array",
+        "required": true,
+        "description": "List of authors the user has read",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "author_ratings": {
+        "type": "array",
+        "required": true,
+        "description": "User ratings for books by these authors (1-5 scale)",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "candidate_authors": {
+        "type": "array",
+        "required": false,
+        "description": "List of authors to evaluate for recommendations",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "similarity_factors": {
+        "type": "array",
+        "required": false,
+        "description": "Factors to consider: writing_style, genre, themes, popularity",
+        "items": {
+          "type": "string"
+        },
+        "default": ["writing_style", "genre", "themes"]
+      },
+      "min_books_per_author": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum books read per author to establish preference (1-5)",
+        "default": 1
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: read_authors and author_ratings must have the same length.",
+      "Invalid rating values: All ratings must be between 1 and 5.",
+      "Invalid similarity factors: Use combinations of [writing_style, genre, themes, popularity].",
+      "Invalid min_books_per_author: Must be between 1 and 5.",
+      "Author not found: One or more authors could not be found in the database."
+    ],
+    "usage": "Provide read_authors with corresponding author_ratings. Optionally specify candidate_authors, similarity_factors, and min_books_per_author. Returns author affinity analysis.",
+    "output_details": {
+      "preferred_authors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of authors with high user ratings"
+      },
+      "similar_authors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of authors similar to user's preferences"
+      },
+      "author_affinity_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Affinity scores for recommended authors (0-1 scale)"
+      },
+      "writing_style_preferences": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Identified writing style preferences"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Content Feature Extractor",
+    "tool_description": "Extracts and analyzes content features from book descriptions, reviews, and metadata to create feature vectors for similarity matching.",
+    "parameters": {
+      "book_descriptions": {
+        "type": "array",
+        "required": true,
+        "description": "List of book descriptions or summaries",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "book_titles": {
+        "type": "array",
+        "required": true,
+        "description": "Corresponding book titles for the descriptions",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "additional_text": {
+        "type": "array",
+        "required": false,
+        "description": "Additional text like reviews or excerpts",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "feature_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of features to extract: themes, mood, complexity, length, characters",
+        "items": {
+          "type": "string"
+        },
+        "default": ["themes", "mood", "complexity"]
+      },
+      "analysis_language": {
+        "type": "string",
+        "required": false,
+        "description": "Language for text analysis: english, spanish, french, german",
+        "default": "english"
+      },
+      "extract_keywords": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract key themes and topics",
+        "default": true
+      },
+      "sentiment_analysis": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform sentiment/mood analysis",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: book_descriptions and book_titles must have the same length.",
+      "Invalid feature types: Use combinations of [themes, mood, complexity, length, characters].",
+      "Unsupported language: Use one of [english, spanish, french, german].",
+      "Empty descriptions: All book descriptions must contain meaningful text.",
+      "Text too long: Individual descriptions should be under 5000 characters.",
+      "Processing error: Failed to extract features from one or more descriptions."
+    ],
+    "usage": "Provide book_descriptions and book_titles arrays. Optionally include additional_text, specify feature_types, analysis_language, and enable extract_keywords or sentiment_analysis. Returns content feature vectors.",
+    "output_details": {
+      "processed_count": {
+        "type": "integer",
+        "description": "Number of books successfully processed"
+      },
+      "extracted_themes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of main themes found across books"
+      },
+      "mood_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Mood/sentiment scores for each book (-1 to 1 scale)"
+      },
+      "complexity_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Reading complexity scores (1-10 scale)"
+      },
+      "feature_vectors": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Numerical feature vectors for similarity calculations"
+      },
+      "keywords": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Extracted keywords and important terms"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reading Pattern Analyzer",
+    "tool_description": "Analyzes temporal reading patterns, frequency, and behavioral insights to understand user reading habits and preferences.",
+    "parameters": {
+      "read_dates": {
+        "type": "array",
+        "required": true,
+        "description": "List of book completion dates in ISO format",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 1000
+      },
+      "book_lengths": {
+        "type": "array",
+        "required": false,
+        "description": "Page counts or word counts for corresponding books",
+        "items": {
+          "type": "integer"
+        },
+        "default": null
+      },
+      "genres": {
+        "type": "array",
+        "required": false,
+        "description": "Genres of books read, corresponding to dates",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "analysis_period": {
+        "type": "string",
+        "required": false,
+        "description": "Time period for analysis: weekly, monthly, quarterly, yearly",
+        "default": "monthly"
+      }
+    },
+    "error_messages": [
+      "Invalid date format: All dates must be in ISO 8601 format (YYYY-MM-DD).",
+      "Insufficient data: Need at least 2 reading dates for pattern analysis.",
+      "Mismatched arrays: If provided, book_lengths and genres must match read_dates length.",
+      "Invalid analysis period: Use one of [weekly, monthly, quarterly, yearly].",
+      "Date range too short: Need at least 30 days of reading history for meaningful patterns."
+    ],
+    "usage": "Provide read_dates array with book completion dates. Optionally include book_lengths, genres, and specify analysis_period. Returns reading pattern insights.",
+    "output_details": {
+      "reading_frequency": {
+        "type": "number",
+        "description": "Average books read per month"
+      },
+      "reading_velocity": {
+        "type": "number",
+        "description": "Average pages read per day"
+      },
+      "seasonal_patterns": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Identified seasonal reading patterns"
+      },
+      "preferred_reading_months": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Months with highest reading activity"
+      },
+      "genre_rotation": {
+        "type": "string",
+        "description": "Pattern of genre switching behavior"
+      },
+      "consistency_score": {
+        "type": "number",
+        "description": "Consistency of reading habits (0-1 scale)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Collaborative Filter",
+    "tool_description": "Generates recommendations based on similar users' reading preferences using collaborative filtering techniques.",
+    "parameters": {
+      "user_book_ratings": {
+        "type": "array",
+        "required": true,
+        "description": "User's ratings for books they've read",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 3,
+        "maxItems": 500
+      },
+      "user_book_titles": {
+        "type": "array",
+        "required": true,
+        "description": "Titles of books the user has rated",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 3,
+        "maxItems": 500
+      },
+      "community_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of similar users to consider (10-1000)",
+        "default": 100
+      },
+      "min_common_books": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum books in common to consider users similar (2-20)",
+        "default": 5
+      },
+      "recommendation_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of recommendations to generate (5-50)",
+        "default": 20
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: user_book_ratings and user_book_titles must have the same length.",
+      "Insufficient ratings: Need at least 3 book ratings for collaborative filtering.",
+      "Invalid community size: Must be between 10 and 1000.",
+      "Invalid min_common_books: Must be between 2 and 20.",
+      "Invalid recommendation count: Must be between 5 and 50.",
+      "No similar users found: Unable to find users with sufficient overlap in reading history."
+    ],
+    "usage": "Provide user_book_ratings and user_book_titles arrays. Optionally set community_size, min_common_books, and recommendation_count. Returns collaborative recommendations.",
+    "output_details": {
+      "recommended_books": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of recommended book titles"
+      },
+      "recommendation_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Confidence scores for each recommendation (0-1 scale)"
+      },
+      "similar_users_count": {
+        "type": "integer",
+        "description": "Number of similar users found and used"
+      },
+      "average_similarity": {
+        "type": "number",
+        "description": "Average similarity score with identified similar users"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Content Filter",
+    "tool_description": "Generates content-based recommendations by matching user preferences with book content features and characteristics.",
+    "parameters": {
+      "user_preferences": {
+        "type": "array",
+        "required": true,
+        "description": "User's preferred genres, themes, or characteristics",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "candidate_books": {
+        "type": "array",
+        "required": true,
+        "description": "List of book titles to evaluate for recommendations",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 10,
+        "maxItems": 1000
+      },
+      "book_features": {
+        "type": "array",
+        "required": true,
+        "description": "Feature descriptions or vectors for candidate books",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 10,
+        "maxItems": 1000
+      },
+      "preference_weights": {
+        "type": "array",
+        "required": false,
+        "description": "Importance weights for different preferences (0-1 scale)",
+        "items": {
+          "type": "number"
+        },
+        "default": null
+      },
+      "similarity_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum similarity score for recommendations (0-1 scale)",
+        "default": 0.3
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: candidate_books and book_features must have the same length.",
+      "Invalid preference weights: All weights must be between 0 and 1.",
+      "Invalid similarity threshold: Must be between 0 and 1.",
+      "Insufficient candidates: Need at least 10 candidate books for meaningful recommendations.",
+      "Feature extraction failed: Unable to process features for one or more books.",
+      "No matching content: No books meet the similarity threshold for user preferences."
+    ],
+    "usage": "Provide user_preferences, candidate_books, and book_features arrays. Optionally set preference_weights and similarity_threshold. Returns content-based recommendations.",
+    "output_details": {
+      "recommended_books": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of recommended book titles based on content similarity"
+      },
+      "similarity_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Content similarity scores for each recommendation (0-1 scale)"
+      },
+      "matched_features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Features that contributed to each recommendation"
+      },
+      "recommendations_count": {
+        "type": "integer",
+        "description": "Total number of recommendations generated"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Diversity Controller",
+    "tool_description": "Ensures recommendation diversity by balancing genres, authors, publication dates, and other factors to avoid over-concentration.",
+    "parameters": {
+      "recommendations": {
+        "type": "array",
+        "required": true,
+        "description": "List of recommended book titles to diversify",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 5,
+        "maxItems": 100
+      },
+      "recommendation_scores": {
+        "type": "array",
+        "required": true,
+        "description": "Relevance scores for each recommendation",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 5,
+        "maxItems": 100
+      },
+      "diversity_factors": {
+        "type": "array",
+        "required": false,
+        "description": "Factors to diversify: genre, author, publication_year, length, popularity",
+        "items": {
+          "type": "string"
+        },
+        "default": ["genre", "author", "publication_year"]
+      },
+      "diversity_weight": {
+        "type": "number",
+        "required": false,
+        "description": "Balance between relevance and diversity (0-1 scale)",
+        "default": 0.3
+      },
+      "max_books_per_author": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum books per author in final recommendations (1-10)",
+        "default": 2
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: recommendations and recommendation_scores must have the same length.",
+      "Invalid diversity factors: Use combinations of [genre, author, publication_year, length, popularity].",
+      "Invalid diversity weight: Must be between 0 and 1.",
+      "Invalid max_books_per_author: Must be between 1 and 10.",
+      "Insufficient recommendations: Need at least 5 recommendations for diversity analysis.",
+      "Metadata unavailable: Unable to retrieve diversity metadata for some recommendations."
+    ],
+    "usage": "Provide recommendations and recommendation_scores arrays. Optionally specify diversity_factors, diversity_weight, and max_books_per_author. Returns diversified recommendation list.",
+    "output_details": {
+      "diversified_recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Reordered and filtered recommendations for diversity"
+      },
+      "final_scores": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "description": "Combined relevance and diversity scores"
+      },
+      "diversity_metrics": {
+        "type": "array",
+        "items": {
+          "type": "number"

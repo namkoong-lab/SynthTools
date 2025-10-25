@@ -1,0 +1,774 @@
+field_name: healthcare_medical
+subfield: Clinical Decision Support
+task: Clinical guideline recommendation and protocol matching for specific conditions
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard**. It involves complex medical knowledge synthesis across multiple domains, requires handling ambiguous patient presentations, coordinating between various clinical protocols, carries high risk due to patient safety implications, and demands integration of diverse medical data sources including guidelines, patient records, and evidence databases.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** to handle the complexity of clinical decision support, guideline matching, and protocol recommendations.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Patient_Data_Validator** - Consumes: raw patient data → Produces: validated, structured patient information
+  2. **Condition_Classifier** - Consumes: patient symptoms/data → Produces: potential diagnoses with confidence scores
+  3. **Guideline_Database_Query** - Consumes: condition codes → Produces: relevant clinical guidelines
+  4. **Protocol_Matcher** - Consumes: patient profile + guidelines → Produces: matching protocols
+  5. **Evidence_Level_Assessor** - Consumes: guidelines/recommendations → Produces: evidence strength ratings
+  6. **Contraindication_Checker** - Consumes: patient data + recommendations → Produces: safety flags
+  7. **Drug_Interaction_Analyzer** - Consumes: medication lists → Produces: interaction warnings
+  8. **Comorbidity_Analyzer** - Consumes: patient conditions → Produces: comorbidity assessments
+  9. **Risk_Stratification_Calculator** - Consumes: patient data + condition → Produces: risk scores
+  10. **Treatment_Option_Generator** - Consumes: condition + patient profile → Produces: treatment alternatives
+  11. **Clinical_Score_Calculator** - Consumes: patient data + scoring system → Produces: clinical scores
+  12. **Guideline_Compliance_Checker** - Consumes: proposed treatment + guidelines → Produces: compliance assessment
+  13. **Patient_Preference_Integrator** - Consumes: treatment options + preferences → Produces: personalized recommendations
+  14. **Alert_Priority_Ranker** - Consumes: multiple alerts/warnings → Produces: prioritized alert list
+  15. **Decision_Tree_Navigator** - Consumes: patient data + clinical pathways → Produces: pathway recommendations
+  16. **Outcome_Predictor** - Consumes: treatment plan + patient data → Produces: predicted outcomes
+  17. **Recommendation_Synthesizer** - Consumes: multiple tool outputs → Produces: final clinical recommendations
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Condition Assessment**: Patient_Data_Validator → Condition_Classifier → Guideline_Database_Query (validates patient data, identifies conditions, retrieves relevant guidelines)
+  2. **Safety Check**: Drug_Interaction_Analyzer → Contraindication_Checker → Alert_Priority_Ranker (analyzes medication safety and prioritizes warnings)
+
+  **Medium Plans:**
+  1. **Comprehensive Risk Assessment**: Patient_Data_Validator → Comorbidity_Analyzer → Risk_Stratification_Calculator → Clinical_Score_Calculator → Evidence_Level_Assessor (complete patient risk profiling with evidence assessment)
+  2. **Protocol Matching Workflow**: Condition_Classifier → Protocol_Matcher → Guideline_Compliance_Checker → Treatment_Option_Generator (matches patient to appropriate protocols and generates compliant treatment options)
+
+  **Complex Plans:**
+  1. **Full Clinical Decision Support**: Patient_Data_Validator → Condition_Classifier → Comorbidity_Analyzer → Risk_Stratification_Calculator → Protocol_Matcher → Treatment_Option_Generator → Contraindication_Checker → Drug_Interaction_Analyzer → Patient_Preference_Integrator → Recommendation_Synthesizer (complete end-to-end clinical decision support)
+  2. **Advanced Pathway Navigation**: Decision_Tree_Navigator → Clinical_Score_Calculator → Outcome_Predictor → Evidence_Level_Assessor → Guideline_Compliance_Checker → Alert_Priority_Ranker → Recommendation_Synthesizer (navigates complex clinical pathways with outcome prediction and compliance verification)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Patient_Data_Validator",
+    "tool_description": "Validates and standardizes patient clinical data to ensure completeness and format consistency for downstream clinical decision support tools.",
+    "parameters": {
+      "patient_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique patient identifier"
+      },
+      "age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years (0-150)"
+      },
+      "gender": {
+        "type": "string",
+        "required": true,
+        "description": "Patient gender (male, female, other)"
+      },
+      "vital_signs": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Array of vital signs in format 'parameter:value:unit'",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid age range: Age must be between 0 and 150 years.",
+      "Invalid gender value: Gender must be 'male', 'female', or 'other'.",
+      "Malformed vital signs: Each vital sign must follow format 'parameter:value:unit'.",
+      "Missing required patient_id: Patient identifier cannot be empty."
+    ],
+    "usage": "Provide patient_id, age, and gender as minimum required data. Optionally include vital_signs array. Tool validates all inputs and returns standardized patient data structure.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: 'valid', 'valid_with_warnings', or 'invalid'"
+      },
+      "validated_data": {
+        "type": "string",
+        "description": "JSON string of standardized patient data"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of validation warnings"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Condition_Classifier",
+    "tool_description": "Analyzes patient symptoms and clinical data to suggest potential diagnoses with confidence scores using medical classification systems.",
+    "parameters": {
+      "symptoms": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Array of patient symptoms or clinical findings",
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "duration": {
+        "type": "string",
+        "required": true,
+        "description": "Symptom duration (acute, subacute, chronic)"
+      },
+      "severity": {
+        "type": "string",
+        "required": true,
+        "description": "Symptom severity (mild, moderate, severe)"
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "classification_system": {
+        "type": "string",
+        "required": false,
+        "description": "Medical classification system (ICD-10, ICD-11, SNOMED)",
+        "default": "ICD-10"
+      }
+    },
+    "error_messages": [
+      "Empty symptoms list: At least one symptom must be provided.",
+      "Invalid duration: Duration must be 'acute', 'subacute', or 'chronic'.",
+      "Invalid severity: Severity must be 'mild', 'moderate', or 'severe'.",
+      "Unsupported classification system: Use 'ICD-10', 'ICD-11', or 'SNOMED'.",
+      "Invalid symptom format: Symptoms should be clear medical terminology."
+    ],
+    "usage": "Provide symptoms array, duration, severity, and patient_age. Optionally specify classification_system. Returns ranked list of potential conditions with confidence scores.",
+    "output_details": {
+      "primary_diagnosis": {
+        "type": "string",
+        "description": "Most likely diagnosis with code"
+      },
+      "differential_diagnoses": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative diagnoses with codes and confidence scores"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence in primary diagnosis (0.0-1.0)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Guideline_Database_Query",
+    "tool_description": "Searches and retrieves relevant clinical practice guidelines from major medical organizations based on condition codes and patient characteristics.",
+    "parameters": {
+      "condition_code": {
+        "type": "string",
+        "required": true,
+        "description": "Medical condition code (ICD-10, ICD-11, or SNOMED format)"
+      },
+      "guideline_source": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Preferred guideline sources (WHO, AHA, ESC, NICE, etc.)",
+        "default": "None"
+      },
+      "patient_age_group": {
+        "type": "string",
+        "required": false,
+        "description": "Patient age category (pediatric, adult, geriatric)",
+        "default": "adult"
+      },
+      "publication_date_after": {
+        "type": "string",
+        "required": false,
+        "format": "date-time",
+        "description": "Only include guidelines published after this date",
+        "default": "None"
+      },
+      "evidence_level_minimum": {
+        "type": "string",
+        "required": false,
+        "description": "Minimum evidence level (A, B, C)",
+        "default": "C"
+      }
+    },
+    "error_messages": [
+      "Invalid condition code: Provide a valid ICD-10, ICD-11, or SNOMED code.",
+      "Unknown guideline source: Use recognized medical organization abbreviations.",
+      "Invalid age group: Use 'pediatric', 'adult', or 'geriatric'.",
+      "Invalid date format: Use ISO 8601 date-time format.",
+      "Invalid evidence level: Use 'A', 'B', or 'C'."
+    ],
+    "usage": "Provide condition_code as minimum requirement. Filter results by specifying guideline_source, patient_age_group, publication_date_after, or evidence_level_minimum.",
+    "output_details": {
+      "guidelines_found": {
+        "type": "integer",
+        "description": "Number of matching guidelines retrieved"
+      },
+      "guideline_summaries": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of guideline titles and key recommendations"
+      },
+      "evidence_levels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Evidence strength for each guideline"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Protocol_Matcher",
+    "tool_description": "Matches patient clinical profile against institutional or standardized treatment protocols to identify the most appropriate care pathways.",
+    "parameters": {
+      "patient_profile": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing patient demographics, conditions, and relevant clinical data"
+      },
+      "condition_primary": {
+        "type": "string",
+        "required": true,
+        "description": "Primary diagnosis code"
+      },
+      "condition_secondary": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Secondary diagnosis codes",
+        "default": "None"
+      },
+      "care_setting": {
+        "type": "string",
+        "required": true,
+        "description": "Healthcare setting (inpatient, outpatient, emergency, icu, surgery)"
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": true,
+        "description": "Clinical urgency (routine, urgent, emergent, critical)"
+      },
+      "institution_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of healthcare facility (academic, community, specialty)",
+        "default": "community"
+      },
+      "available_resources": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Available clinical resources and specialties",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid patient profile format: Provide valid JSON string with required patient data fields.",
+      "Invalid condition code: Primary condition must be a valid medical diagnosis code.",
+      "Invalid care setting: Use 'inpatient', 'outpatient', 'emergency', 'icu', or 'surgery'.",
+      "Invalid urgency level: Use 'routine', 'urgent', 'emergent', or 'critical'.",
+      "Invalid institution type: Use 'academic', 'community', or 'specialty'.",
+      "Resource mismatch: Some specified resources are not recognized in the system."
+    ],
+    "usage": "Provide patient_profile, condition_primary, care_setting, and urgency_level. Add condition_secondary, institution_type, and available_resources for more precise matching.",
+    "output_details": {
+      "matched_protocols": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of matching protocol names with match scores"
+      },
+      "recommended_pathway": {
+        "type": "string",
+        "description": "Primary recommended care pathway"
+      },
+      "protocol_steps": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Sequential steps in the recommended protocol"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Evidence_Level_Assessor",
+    "tool_description": "Evaluates the quality and strength of evidence supporting clinical recommendations using established evidence grading systems.",
+    "parameters": {
+      "recommendations": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Array of clinical recommendations to assess",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "grading_system": {
+        "type": "string",
+        "required": false,
+        "description": "Evidence grading system (GRADE, Oxford, USPSTF)",
+        "default": "GRADE"
+      }
+    },
+    "error_messages": [
+      "Empty recommendations: At least one clinical recommendation must be provided.",
+      "Invalid grading system: Use 'GRADE', 'Oxford', or 'USPSTF'.",
+      "Malformed recommendation: Each recommendation should be a clear clinical statement."
+    ],
+    "usage": "Provide array of clinical recommendations. Optionally specify grading_system for evidence assessment. Returns evidence strength ratings for each recommendation.",
+    "output_details": {
+      "evidence_grades": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Evidence grade for each recommendation"
+      },
+      "overall_quality": {
+        "type": "string",
+        "description": "Overall evidence quality assessment"
+      },
+      "methodology_notes": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Notes on evidence assessment methodology"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Contraindication_Checker",
+    "tool_description": "Identifies absolute and relative contraindications for proposed treatments based on patient medical history, allergies, and current conditions.",
+    "parameters": {
+      "patient_allergies": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Known patient allergies and sensitivities",
+        "default": "None"
+      },
+      "current_medications": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Current medication list with dosages",
+        "default": "None"
+      },
+      "medical_history": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Relevant past medical history",
+        "default": "None"
+      },
+      "proposed_treatments": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Proposed medications or procedures to check",
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "kidney_function": {
+        "type": "string",
+        "required": false,
+        "description": "Kidney function status (normal, mild, moderate, severe)",
+        "default": "normal"
+      },
+      "liver_function": {
+        "type": "string",
+        "required": false,
+        "description": "Liver function status (normal, mild, moderate, severe)",
+        "default": "normal"
+      },
+      "pregnancy_status": {
+        "type": "boolean",
+        "required": false,
+        "description": "Pregnancy status if applicable",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Empty treatment list: At least one proposed treatment must be provided.",
+      "Invalid age: Patient age must be a positive integer.",
+      "Invalid organ function: Use 'normal', 'mild', 'moderate', or 'severe' for organ function.",
+      "Unrecognized medication: Some proposed treatments are not in the clinical database.",
+      "Missing critical data: Some contraindication checks require additional patient information."
+    ],
+    "usage": "Provide proposed_treatments and patient_age as minimum. Include patient_allergies, current_medications, medical_history, and organ function status for comprehensive contraindication screening.",
+    "output_details": {
+      "absolute_contraindications": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Treatments that are absolutely contraindicated"
+      },
+      "relative_contraindications": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Treatments requiring caution or monitoring"
+      },
+      "safety_score": {
+        "type": "string",
+        "description": "Overall safety assessment (safe, caution, high-risk)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Drug_Interaction_Analyzer",
+    "tool_description": "Analyzes potential drug-drug, drug-food, and drug-condition interactions for medication regimens to identify clinically significant interactions.",
+    "parameters": {
+      "current_medications": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Current medications with names and dosages",
+        "minItems": 1,
+        "maxItems": 30
+      },
+      "proposed_medications": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "New medications being considered",
+        "default": "None"
+      },
+      "interaction_severity": {
+        "type": "string",
+        "required": false,
+        "description": "Minimum severity to report (minor, moderate, major, severe)",
+        "default": "moderate"
+      }
+    },
+    "error_messages": [
+      "Empty medication list: At least one current medication must be provided.",
+      "Invalid severity level: Use 'minor', 'moderate', 'major', or 'severe'.",
+      "Unrecognized medication: Some medications are not found in the interaction database.",
+      "Dosage format error: Medications should include dosage information where possible."
+    ],
+    "usage": "Provide current_medications array with medication names and dosages. Add proposed_medications for comprehensive interaction screening. Set interaction_severity to filter results.",
+    "output_details": {
+      "interaction_count": {
+        "type": "integer",
+        "description": "Total number of interactions found"
+      },
+      "interactions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed interaction descriptions with severity"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Clinical recommendations for managing interactions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Comorbidity_Analyzer",
+    "tool_description": "Analyzes patient's multiple conditions to assess disease interactions, treatment complexity, and care coordination requirements.",
+    "parameters": {
+      "primary_condition": {
+        "type": "string",
+        "required": true,
+        "description": "Primary diagnosis with ICD code"
+      },
+      "secondary_conditions": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "List of secondary diagnoses with ICD codes",
+        "default": "None"
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "functional_status": {
+        "type": "string",
+        "required": false,
+        "description": "Patient functional status (independent, assisted, dependent)",
+        "default": "independent"
+      },
+      "analysis_framework": {
+        "type": "string",
+        "required": false,
+        "description": "Comorbidity scoring system (Charlson, Elixhauser, CCI)",
+        "default": "Charlson"
+      }
+    },
+    "error_messages": [
+      "Invalid primary condition: Provide a valid ICD diagnosis code.",
+      "Invalid functional status: Use 'independent', 'assisted', or 'dependent'.",
+      "Invalid analysis framework: Use 'Charlson', 'Elixhauser', or 'CCI'.",
+      "Age validation error: Patient age must be a positive integer.",
+      "Condition code error: Some diagnosis codes are not recognized."
+    ],
+    "usage": "Provide primary_condition and patient_age. Add secondary_conditions, functional_status, and preferred analysis_framework for comprehensive comorbidity assessment.",
+    "output_details": {
+      "comorbidity_score": {
+        "type": "number",
+        "description": "Calculated comorbidity index score"
+      },
+      "risk_category": {
+        "type": "string",
+        "description": "Risk stratification category (low, moderate, high, very-high)"
+      },
+      "condition_interactions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Identified interactions between conditions"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Risk_Stratification_Calculator",
+    "tool_description": "Calculates disease-specific risk scores and stratifies patients into risk categories using validated clinical risk assessment tools.",
+    "parameters": {
+      "condition_type": {
+        "type": "string",
+        "required": true,
+        "description": "Medical condition for risk assessment (cardiovascular, diabetes, stroke, cancer, surgical)"
+      },
+      "risk_factors": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Array of patient risk factors in format 'factor:value'",
+        "minItems": 1,
+        "maxItems": 25
+      },
+      "scoring_tool": {
+        "type": "string",
+        "required": false,
+        "description": "Specific risk calculator (ASCVD, FRAX, CHA2DS2-VASc, Wells, etc.)",
+        "default": "None"
+      },
+      "time_horizon": {
+        "type": "string",
+        "required": false,
+        "description": "Risk assessment time period (1-year, 5-year, 10-year, lifetime)",
+        "default": "10-year"
+      },
+      "patient_demographics": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Demographics in format 'parameter:value' (age, gender, ethnicity)",
+        "minItems": 2,
+        "maxItems": 10
+      }
+    },
+    "error_messages": [
+      "Invalid condition type: Use supported condition types (cardiovascular, diabetes, stroke, cancer, surgical).",
+      "Insufficient risk factors: At least one risk factor must be provided in 'factor:value' format.",
+      "Invalid time horizon: Use '1-year', '5-year', '10-year', or 'lifetime'.",
+      "Demographics format error: Demographics must be in 'parameter:value' format.",
+      "Incompatible scoring tool: Selected scoring tool is not applicable to the specified condition.",
+      "Missing required factors: Some essential risk factors are missing for the selected calculator."
+    ],
+    "usage": "Provide condition_type, risk_factors array, and patient_demographics. Optionally specify scoring_tool and time_horizon for targeted risk assessment.",
+    "output_details": {
+      "risk_score": {
+        "type": "number",
+        "description": "Calculated numerical risk score"
+      },
+      "risk_percentage": {
+        "type": "number",
+        "description": "Risk as percentage probability"
+      },
+      "risk_category": {
+        "type": "string",
+        "description": "Qualitative risk level (low, intermediate, high, very-high)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Treatment_Option_Generator",
+    "tool_description": "Generates evidence-based treatment alternatives for a given condition considering patient-specific factors and clinical guidelines.",
+    "parameters": {
+      "primary_diagnosis": {
+        "type": "string",
+        "required": true,
+        "description": "Primary medical diagnosis with ICD code"
+      },
+      "patient_age": {
+        "type": "integer",
+        "required": true,
+        "description": "Patient age in years"
+      },
+      "comorbidities": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Patient comorbid conditions",
+        "default": "None"
+      },
+      "treatment_goals": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Treatment objectives (cure, palliation, symptom-control, prevention)",
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "patient_preferences": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Patient treatment preferences and limitations",
+        "default": "None"
+      },
+      "care_setting": {
+        "type": "string",
+        "required": true,
+        "description": "Treatment setting (outpatient, inpatient, home, long-term-care)"
+      },
+      "resource_constraints": {
+        "type": "array",
+        "required": false,
+        "items": {"type": "string"},
+        "description": "Available resources and limitations",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid diagnosis code: Provide a valid medical diagnosis with ICD code.",
+      "Invalid age: Patient age must be a positive integer.",
+      "Invalid treatment goals: Use recognized treatment objectives (cure, palliation, symptom-control, prevention).",
+      "Invalid care setting: Use 'outpatient', 'inpatient', 'home', or 'long-term-care'.",
+      "Insufficient treatment goals: At least one treatment goal must be specified.",
+      "Incompatible preferences: Some patient preferences conflict with medical recommendations."
+    ],
+    "usage": "Provide primary_diagnosis, patient_age, treatment_goals, and care_setting. Include comorbidities, patient_preferences, and resource_constraints for personalized treatment options.",
+    "output_details": {
+      "treatment_options": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of treatment alternatives with descriptions"
+      },
+      "first_line_therapy": {
+        "type": "string",
+        "description": "Recommended first-line treatment"
+      },
+      "alternative_therapies": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Alternative treatment options"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Clinical_Score_Calculator",
+    "tool_description": "Calculates standardized clinical scores and indices used for diagnosis, prognosis, and treatment decisions across various medical specialties.",
+    "parameters": {
+      "score_type": {
+        "type": "string",
+        "required": true,
+        "description": "Clinical score to calculate (APACHE, SOFA, Glasgow, NIHSS, MELD, etc.)"
+      },
+      "clinical_parameters": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Clinical data points in format 'parameter:value:unit'",
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "measurement_time": {
+        "type": "string",
+        "required": false,
+        "format": "date-time",
+        "description": "When measurements were taken",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid score type: Specified clinical score is not supported or recognized.",
+      "Insufficient parameters: Required clinical parameters are missing for score calculation.",
+      "Parameter format error: Clinical parameters must be in 'parameter:value:unit' format.",
+      "Invalid parameter values: Some clinical values are outside acceptable ranges.",
+      "Incompatible parameters: Provided parameters don't match requirements for selected score."
+    ],
+    "usage": "Specify score_type and provide clinical_parameters array with required measurements. Optionally include measurement_time for temporal context.",
+    "output_details": {
+      "calculated_score": {
+        "type": "number",
+        "description": "Numerical score result"
+      },
+      "score_interpretation": {
+        "type": "string",
+        "description": "Clinical interpretation of the score"
+      },
+      "percentile_rank": {
+        "type": "number",
+        "description": "Percentile ranking if applicable"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Guideline_Compliance_Checker",
+    "tool_description": "Evaluates proposed treatments against established clinical practice guidelines to assess compliance and identify deviations.",
+    "parameters": {
+      "proposed_treatment": {
+        "type": "string",
+        "required": true,
+        "description": "Treatment plan or intervention being evaluated"
+      },
+      "condition_code": {
+        "type": "string",
+        "required": true,
+        "description": "Medical condition ICD code"
+      },
+      "guideline_source": {
+        "type": "string",
+        "required": false,
+        "description": "Specific guideline authority (WHO, AHA, ESC, NICE, etc.)",
+        "default": "None"
+      },
+      "patient_category": {
+        "type": "string",
+        "required": false,
+        "description": "Patient population (pediatric, adult, geriatric, pregnant)",
+        "default": "adult"
+      },
+      "compliance_threshold": {
+        "type": "string",
+        "required": false,
+        "description": "Compliance level required (strict, standard, flexible)",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Invalid treatment description: Proposed treatment must be clearly specified.",

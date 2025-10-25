@@ -1,0 +1,832 @@
+field_name: ecommerce_and_retail
+subfield: Customer Account Management
+task: Loyalty program enrollment and rewards point management
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task involves medium complexity due to multiple interconnected workflows (enrollment, point tracking, redemption, tier management), data validation requirements, and the need for consistent state management across customer accounts and reward systems.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium difficulty, I'll target 12 tools to cover enrollment processes, point calculations, reward management, tier systems, and reporting functionalities.
+
+  **STEP 3 — List all tool names and dependencies**
+  Tools and their dependencies:
+  1. Customer Eligibility Validator → consumes customer data, produces eligibility status
+  2. Loyalty Program Enrollor → consumes customer info + program details, produces enrollment confirmation
+  3. Points Accumulator → consumes transaction data, produces point calculations
+  4. Points Balance Tracker → consumes customer ID, produces current balance
+  5. Reward Catalog Manager → consumes product data, produces reward listings
+  6. Points Redemption Processor → consumes redemption requests, produces transaction records
+  7. Tier Status Evaluator → consumes customer activity, produces tier assignments
+  8. Expiration Date Calculator → consumes point records, produces expiration schedules
+  9. Bonus Points Allocator → consumes promotional rules, produces bonus point awards
+  10. Transaction History Retriever → consumes customer ID + filters, produces transaction logs
+  11. Loyalty Analytics Generator → consumes program data, produces performance metrics
+  12. Program Rule Validator → consumes rule configurations, produces validation results
+
+  **STEP 4 — Multi-tool plans**
+
+  Simple Plans:
+  - Basic enrollment: Customer Eligibility Validator → Loyalty Program Enrollor
+  - Point balance check: Points Balance Tracker → Transaction History Retriever
+
+  Medium Plans:
+  - Purchase reward flow: Points Accumulator → Points Balance Tracker → Reward Catalog Manager → Points Redemption Processor
+  - Tier evaluation: Points Balance Tracker → Transaction History Retriever → Tier Status Evaluator
+
+  Complex Plans:
+  - Complete program setup: Program Rule Validator → Customer Eligibility Validator → Loyalty Program Enrollor → Bonus Points Allocator → Expiration Date Calculator → Tier Status Evaluator
+  - Full analytics review: Points Balance Tracker → Transaction History Retriever → Tier Status Evaluator → Loyalty Analytics Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Customer Eligibility Validator",
+    "tool_description": "Validates customer eligibility for loyalty program enrollment based on account status, purchase history, and geographic restrictions.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer account"
+      },
+      "program_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier for the specific loyalty program"
+      },
+      "minimum_purchase_amount": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum historical purchase amount required for eligibility",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist in the system. Verify the customer ID is correct.",
+      "Program not found: The provided program_id does not exist. Check available loyalty programs.",
+      "Invalid purchase amount: minimum_purchase_amount must be a non-negative number."
+    ],
+    "usage": "Provide customer_id and program_id to check basic eligibility. Optionally set minimum_purchase_amount to apply purchase history requirements.",
+    "output_details": {
+      "is_eligible": {
+        "type": "boolean",
+        "description": "Whether the customer meets eligibility criteria"
+      },
+      "eligibility_reasons": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of reasons supporting or preventing eligibility"
+      },
+      "account_status": {
+        "type": "string",
+        "description": "Current status of the customer account"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Loyalty Program Enrollor",
+    "tool_description": "Enrolls eligible customers into loyalty programs with customizable enrollment parameters and welcome bonus allocation.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the customer to enroll"
+      },
+      "program_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier for the loyalty program"
+      },
+      "enrollment_source": {
+        "type": "string",
+        "required": true,
+        "description": "Source of enrollment: online, in-store, mobile-app, phone, email"
+      },
+      "welcome_bonus_points": {
+        "type": "integer",
+        "required": false,
+        "description": "Bonus points to award upon enrollment",
+        "default": 0
+      },
+      "opt_in_marketing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether customer opts into marketing communications",
+        "default": false
+      },
+      "preferred_communication": {
+        "type": "string",
+        "required": false,
+        "description": "Preferred communication method: email, sms, mail, none",
+        "default": "email"
+      }
+    },
+    "error_messages": [
+      "Customer already enrolled: This customer is already a member of the specified loyalty program.",
+      "Invalid enrollment source: Use one of [online, in-store, mobile-app, phone, email].",
+      "Invalid communication preference: Use one of [email, sms, mail, none].",
+      "Welcome bonus exceeds limit: welcome_bonus_points cannot exceed program maximum.",
+      "Customer ineligible: Complete eligibility validation before enrollment."
+    ],
+    "usage": "Provide customer_id, program_id, and enrollment_source. Optionally configure welcome_bonus_points, opt_in_marketing, and preferred_communication.",
+    "output_details": {
+      "enrollment_successful": {
+        "type": "boolean",
+        "description": "Whether enrollment was completed successfully"
+      },
+      "member_number": {
+        "type": "string",
+        "description": "Unique loyalty program member number assigned"
+      },
+      "enrollment_date": {
+        "type": "string",
+        "description": "Date and time of enrollment completion"
+      },
+      "welcome_points_awarded": {
+        "type": "integer",
+        "description": "Number of welcome bonus points credited"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Points Accumulator",
+    "tool_description": "Calculates and awards loyalty points based on transaction data, applying program rules, multipliers, and category bonuses.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for point credit"
+      },
+      "transaction_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Total transaction amount in base currency"
+      },
+      "transaction_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the transaction"
+      },
+      "product_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "Categories of purchased products for bonus calculation"
+      },
+      "store_location": {
+        "type": "string",
+        "required": false,
+        "description": "Store identifier for location-based bonuses",
+        "default": "online"
+      },
+      "base_points_rate": {
+        "type": "number",
+        "required": false,
+        "description": "Base points per dollar spent",
+        "default": 1.0
+      },
+      "bonus_multiplier": {
+        "type": "number",
+        "required": false,
+        "description": "Multiplier for promotional periods",
+        "default": 1.0
+      },
+      "transaction_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date and time of the transaction",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid transaction amount: Amount must be positive and not exceed reasonable limits.",
+      "Customer not enrolled: Customer must be enrolled in loyalty program before earning points.",
+      "Duplicate transaction: This transaction_id has already been processed for points.",
+      "Invalid points rate: base_points_rate must be between 0.1 and 10.0.",
+      "Invalid bonus multiplier: bonus_multiplier must be between 0.1 and 20.0.",
+      "Invalid transaction date: Date must be in valid ISO 8601 format and not in the future."
+    ],
+    "usage": "Provide customer_id, transaction_amount, transaction_id, product_categories, and transaction_date. Optionally set store_location, base_points_rate, and bonus_multiplier for customized point calculations.",
+    "output_details": {
+      "points_earned": {
+        "type": "integer",
+        "description": "Total points awarded for this transaction"
+      },
+      "base_points": {
+        "type": "integer",
+        "description": "Points from base earning rate"
+      },
+      "bonus_points": {
+        "type": "integer",
+        "description": "Additional points from bonuses and multipliers"
+      },
+      "category_bonuses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of category bonuses applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Points Balance Tracker",
+    "tool_description": "Retrieves current and historical point balances for loyalty program members with breakdown by point types and expiration status.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier to query balance"
+      },
+      "include_pending": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include pending points not yet available",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist in the loyalty program.",
+      "Balance unavailable: Unable to retrieve balance information due to system error."
+    ],
+    "usage": "Provide customer_id to get current point balance. Set include_pending to true to see points awaiting confirmation.",
+    "output_details": {
+      "total_balance": {
+        "type": "integer",
+        "description": "Total available loyalty points"
+      },
+      "available_balance": {
+        "type": "integer",
+        "description": "Points available for immediate redemption"
+      },
+      "pending_balance": {
+        "type": "integer",
+        "description": "Points pending confirmation or qualification"
+      },
+      "expiring_soon": {
+        "type": "integer",
+        "description": "Points expiring within next 30 days"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last balance update"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reward Catalog Manager",
+    "tool_description": "Manages and retrieves available rewards from the loyalty program catalog with filtering, availability checks, and point requirement validation.",
+    "parameters": {
+      "program_id": {
+        "type": "string",
+        "required": true,
+        "description": "Loyalty program identifier"
+      },
+      "category_filter": {
+        "type": "string",
+        "required": false,
+        "description": "Filter by reward category: merchandise, gift-cards, discounts, experiences, travel",
+        "default": null
+      },
+      "max_points": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum point cost filter",
+        "default": null
+      },
+      "min_points": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum point cost filter",
+        "default": null
+      },
+      "available_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Show only currently available rewards",
+        "default": true
+      },
+      "customer_tier": {
+        "type": "string",
+        "required": false,
+        "description": "Customer tier for tier-specific rewards",
+        "default": "standard"
+      }
+    },
+    "error_messages": [
+      "Program not found: The specified program_id does not exist.",
+      "Invalid category filter: Use one of [merchandise, gift-cards, discounts, experiences, travel].",
+      "Invalid point range: min_points must be less than max_points, both must be positive.",
+      "Invalid tier: Customer tier must be valid program tier level."
+    ],
+    "usage": "Provide program_id to get all rewards. Use category_filter, max_points, min_points, available_only, and customer_tier to refine results.",
+    "output_details": {
+      "total_rewards": {
+        "type": "integer",
+        "description": "Number of rewards matching criteria"
+      },
+      "reward_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of reward identifiers"
+      },
+      "reward_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of reward names"
+      },
+      "point_costs": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Point costs for each reward"
+      },
+      "availability_status": {
+        "type": "array",
+        "items": {
+          "type": "boolean"
+        },
+        "description": "Availability status for each reward"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Points Redemption Processor",
+    "tool_description": "Processes point redemptions for rewards, validates balances, applies deductions, and generates confirmation records with fraud detection.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer making the redemption"
+      },
+      "reward_id": {
+        "type": "string",
+        "required": true,
+        "description": "Identifier of reward being redeemed"
+      },
+      "redemption_quantity": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of rewards to redeem",
+        "default": 1
+      },
+      "delivery_method": {
+        "type": "string",
+        "required": true,
+        "description": "How reward will be delivered: email, mail, pickup, digital"
+      },
+      "delivery_address": {
+        "type": "string",
+        "required": false,
+        "description": "Delivery address if applicable",
+        "default": null
+      },
+      "notes": {
+        "type": "string",
+        "required": false,
+        "description": "Special instructions or notes",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Insufficient points: Customer does not have enough points for this redemption.",
+      "Reward unavailable: The selected reward is currently out of stock or discontinued.",
+      "Invalid delivery method: Use one of [email, mail, pickup, digital].",
+      "Missing delivery address: Address required for mail delivery method.",
+      "Quantity exceeds limit: redemption_quantity exceeds maximum allowed per customer.",
+      "Account restriction: Customer account has redemption restrictions."
+    ],
+    "usage": "Provide customer_id, reward_id, and delivery_method. Optionally specify redemption_quantity, delivery_address, and notes.",
+    "output_details": {
+      "redemption_successful": {
+        "type": "boolean",
+        "description": "Whether redemption was processed successfully"
+      },
+      "confirmation_number": {
+        "type": "string",
+        "description": "Unique confirmation number for the redemption"
+      },
+      "points_deducted": {
+        "type": "integer",
+        "description": "Total points deducted from account"
+      },
+      "remaining_balance": {
+        "type": "integer",
+        "description": "Customer's remaining point balance"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery or availability date"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tier Status Evaluator",
+    "tool_description": "Evaluates and updates customer tier status based on spending, points earned, and program-specific qualification criteria.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for tier evaluation"
+      },
+      "evaluation_period_months": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of months to look back for qualification",
+        "default": 12
+      },
+      "force_recalculation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Force recalculation even if recently updated",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist in the loyalty program.",
+      "Invalid evaluation period: evaluation_period_months must be between 1 and 36.",
+      "Calculation error: Unable to complete tier evaluation due to missing transaction data."
+    ],
+    "usage": "Provide customer_id to evaluate tier status. Optionally adjust evaluation_period_months or set force_recalculation to true for immediate recalculation.",
+    "output_details": {
+      "current_tier": {
+        "type": "string",
+        "description": "Customer's current tier level"
+      },
+      "qualified_tier": {
+        "type": "string",
+        "description": "Tier level customer qualifies for based on recent activity"
+      },
+      "tier_changed": {
+        "type": "boolean",
+        "description": "Whether tier status was updated"
+      },
+      "points_to_next_tier": {
+        "type": "integer",
+        "description": "Points needed to reach next tier level"
+      },
+      "tier_benefits": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of benefits available at current tier"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Expiration Date Calculator",
+    "tool_description": "Calculates expiration dates for loyalty points based on program rules, handles extensions, and provides expiration warnings.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for expiration calculation"
+      },
+      "point_batch_id": {
+        "type": "string",
+        "required": false,
+        "description": "Specific point batch to calculate expiration for",
+        "default": null
+      },
+      "expiration_policy": {
+        "type": "string",
+        "required": false,
+        "description": "Expiration policy: rolling, anniversary, activity-based, never",
+        "default": "rolling"
+      },
+      "expiration_months": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of months until expiration",
+        "default": 24
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist.",
+      "Invalid point batch: The specified point_batch_id is not valid.",
+      "Invalid expiration policy: Use one of [rolling, anniversary, activity-based, never].",
+      "Invalid expiration period: expiration_months must be between 1 and 120."
+    ],
+    "usage": "Provide customer_id to calculate expiration for all points. Optionally specify point_batch_id, expiration_policy, and expiration_months.",
+    "output_details": {
+      "total_expiring_points": {
+        "type": "integer",
+        "description": "Total points with expiration dates"
+      },
+      "expiring_in_30_days": {
+        "type": "integer",
+        "description": "Points expiring within 30 days"
+      },
+      "expiring_in_90_days": {
+        "type": "integer",
+        "description": "Points expiring within 90 days"
+      },
+      "next_expiration_date": {
+        "type": "string",
+        "description": "Date of next point expiration"
+      },
+      "expiration_schedule": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of upcoming expiration dates"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Bonus Points Allocator",
+    "tool_description": "Allocates bonus points based on promotional campaigns, special events, and targeted customer incentives with campaign tracking.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer to receive bonus points"
+      },
+      "campaign_id": {
+        "type": "string",
+        "required": true,
+        "description": "Promotional campaign identifier"
+      },
+      "bonus_amount": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of bonus points to allocate"
+      },
+      "campaign_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of campaign: birthday, anniversary, referral, survey, social-media, purchase-milestone"
+      },
+      "expiration_override": {
+        "type": "string",
+        "required": false,
+        "description": "Custom expiration date for bonus points",
+        "format": "date-time",
+        "default": null
+      },
+      "reference_transaction": {
+        "type": "string",
+        "required": false,
+        "description": "Reference transaction ID if applicable",
+        "default": null
+      },
+      "notes": {
+        "type": "string",
+        "required": false,
+        "description": "Additional notes about the bonus allocation",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Customer not eligible: Customer does not meet criteria for this bonus campaign.",
+      "Campaign inactive: The specified campaign is not currently active.",
+      "Invalid campaign type: Use one of [birthday, anniversary, referral, survey, social-media, purchase-milestone].",
+      "Bonus limit exceeded: bonus_amount exceeds maximum allowed for this campaign type.",
+      "Duplicate allocation: Customer has already received bonus for this campaign.",
+      "Invalid expiration date: expiration_override must be a future date in ISO 8601 format."
+    ],
+    "usage": "Provide customer_id, campaign_id, bonus_amount, and campaign_type. Optionally set expiration_override, reference_transaction, and notes.",
+    "output_details": {
+      "allocation_successful": {
+        "type": "boolean",
+        "description": "Whether bonus points were successfully allocated"
+      },
+      "points_credited": {
+        "type": "integer",
+        "description": "Number of bonus points credited to account"
+      },
+      "new_total_balance": {
+        "type": "integer",
+        "description": "Customer's updated total point balance"
+      },
+      "bonus_expiration_date": {
+        "type": "string",
+        "description": "When the bonus points will expire"
+      },
+      "allocation_id": {
+        "type": "string",
+        "description": "Unique identifier for this bonus allocation"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Transaction History Retriever",
+    "tool_description": "Retrieves detailed transaction history for loyalty program members with flexible filtering and sorting options.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier for history retrieval"
+      },
+      "start_date": {
+        "type": "string",
+        "required": false,
+        "description": "Start date for history range",
+        "format": "date-time",
+        "default": null
+      },
+      "end_date": {
+        "type": "string",
+        "required": false,
+        "description": "End date for history range",
+        "format": "date-time",
+        "default": null
+      },
+      "transaction_type": {
+        "type": "string",
+        "required": false,
+        "description": "Filter by type: all, earn, redeem, bonus, adjustment, expiration",
+        "default": "all"
+      },
+      "minimum_points": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum point value filter",
+        "default": null
+      },
+      "maximum_points": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum point value filter",
+        "default": null
+      },
+      "sort_order": {
+        "type": "string",
+        "required": false,
+        "description": "Sort order: newest-first, oldest-first, highest-points, lowest-points",
+        "default": "newest-first"
+      },
+      "limit": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of transactions to return",
+        "default": 100
+      }
+    },
+    "error_messages": [
+      "Customer not found: The provided customer_id does not exist.",
+      "Invalid date range: start_date must be before end_date, both in ISO 8601 format.",
+      "Invalid transaction type: Use one of [all, earn, redeem, bonus, adjustment, expiration].",
+      "Invalid point range: minimum_points must be less than maximum_points.",
+      "Invalid sort order: Use one of [newest-first, oldest-first, highest-points, lowest-points].",
+      "Invalid limit: limit must be between 1 and 1000."
+    ],
+    "usage": "Provide customer_id to get transaction history. Use start_date, end_date, transaction_type, minimum_points, maximum_points, sort_order, and limit to filter results.",
+    "output_details": {
+      "total_transactions": {
+        "type": "integer",
+        "description": "Total number of transactions matching criteria"
+      },
+      "transaction_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of transaction identifiers"
+      },
+      "transaction_dates": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of transaction dates"
+      },
+      "point_amounts": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Point amounts for each transaction"
+      },
+      "transaction_types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Transaction types for each entry"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Loyalty Analytics Generator",
+    "tool_description": "Generates comprehensive analytics and reports for loyalty program performance, member engagement, and redemption patterns.",
+    "parameters": {
+      "program_id": {
+        "type": "string",
+        "required": true,
+        "description": "Loyalty program identifier for analytics"
+      },
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: member-summary, redemption-analysis, tier-distribution, campaign-performance, expiration-forecast"
+      },
+      "date_range_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period",
+        "format": "date-time"
+      },
+      "date_range_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period",
+        "format": "date-time"
+      },
+      "segment_filter": {
+        "type": "string",
+        "required": false,
+        "description": "Customer segment filter: all, high-value, new-members, at-risk, inactive",
+        "default": "all"
+      },
+      "include_comparisons": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include period-over-period comparisons",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Program not found: The specified program_id does not exist.",
+      "Invalid report type: Use one of [member-summary, redemption-analysis, tier-distribution, campaign-performance, expiration-forecast].",
+      "Invalid date range: Start date must be before end date, both in ISO 8601 format.",
+      "Invalid segment filter: Use one of [all, high-value, new-members, at-risk, inactive].",
+      "Insufficient data: Not enough data available for the specified date range and filters."
+    ],
+    "usage": "Provide program_id, report_type, date_range_start, and date_range_end. Optionally set segment_filter and include_comparisons for detailed analysis.",
+    "output_details": {
+      "report_summary": {
+        "type": "string",
+        "description": "Executive summary of key findings"
+      },
+      "total_members": {
+        "type": "integer",
+        "description": "Total active members in analysis period"
+      },
+      "points_issued": {
+        "type": "integer",
+        "description": "Total points issued during period"
+      },
+      "points_redeemed": {
+        "type": "integer",
+        "description": "Total points redeemed during period"
+      },
+      "redemption_rate": {
+        "type": "number",
+        "description": "Percentage of issued points that were redeemed"
+      },
+      "top_rewards": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Most popular rewards during analysis period"
+      },
+      "engagement_score": {
+        "type": "number",
+        "description": "Overall program engagement score"
+      }
+    }
+  }
+  ```

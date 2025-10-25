@@ -1,0 +1,806 @@
+field_name: student_services_and_campus_life
+subfield: student_registration_and_enrollment
+task: Student application processing and admissions workflow
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves complex, multi-stage workflows with high coordination requirements between different stakeholders (admissions officers, academic departments, financial aid), strict regulatory compliance needs, and significant impact of errors on student outcomes. The scope includes document verification, eligibility assessment, decision workflows, and integration with multiple systems. **Difficulty: Hard**
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting 17 tools within the 15-20 range to handle the comprehensive admissions workflow with adequate granularity and composability.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Application Data Validator** - Consumes: raw application data; Produces: validated application records
+  2. **Document Verification Tool** - Consumes: document metadata; Produces: verification status
+  3. **Academic Transcript Analyzer** - Consumes: transcript data; Produces: GPA calculations, course validations
+  4. **Standardized Test Processor** - Consumes: test scores; Produces: normalized score data
+  5. **Eligibility Requirements Checker** - Consumes: academic data, program requirements; Produces: eligibility status
+  6. **Application Fee Validator** - Consumes: payment information; Produces: payment verification
+  7. **Reference Letter Processor** - Consumes: reference data; Produces: reference validation status
+  8. **Application Completeness Checker** - Consumes: all application components; Produces: completeness status
+  9. **Merit Score Calculator** - Consumes: validated academic data; Produces: merit scores
+  10. **Financial Aid Assessor** - Consumes: financial documents; Produces: aid eligibility
+  11. **Program Capacity Checker** - Consumes: program data, enrollment numbers; Produces: availability status
+  12. **Admission Decision Engine** - Consumes: merit scores, eligibility data; Produces: admission recommendations
+  13. **Waitlist Manager** - Consumes: application data, capacity info; Produces: waitlist positions
+  14. **Enrollment Confirmation Processor** - Consumes: student responses; Produces: enrollment status
+  15. **Deadline Monitor** - Consumes: application dates, deadlines; Produces: deadline compliance status
+  16. **Communication Template Generator** - Consumes: decision data, student info; Produces: personalized messages
+  17. **Enrollment Statistics Reporter** - Consumes: all enrollment data; Produces: statistical reports
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Document verification workflow: Document Verification Tool → Application Data Validator → Application Completeness Checker
+  2. Basic eligibility check: Academic Transcript Analyzer → Eligibility Requirements Checker → Deadline Monitor
+
+  **Medium Plans:**
+  1. Complete application assessment: Application Data Validator → Academic Transcript Analyzer → Standardized Test Processor → Eligibility Requirements Checker → Merit Score Calculator → Application Completeness Checker
+  2. Financial aid processing: Application Fee Validator → Financial Aid Assessor → Merit Score Calculator → Communication Template Generator
+
+  **Complex Plans:**
+  1. Full admissions workflow: Application Data Validator → Document Verification Tool → Academic Transcript Analyzer → Standardized Test Processor → Reference Letter Processor → Application Completeness Checker → Merit Score Calculator → Program Capacity Checker → Admission Decision Engine → Communication Template Generator
+  2. Enrollment management cycle: Admission Decision Engine → Waitlist Manager → Enrollment Confirmation Processor → Program Capacity Checker → Enrollment Statistics Reporter → Communication Template Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Application Data Validator",
+    "tool_description": "Validates and sanitizes incoming student application data, checking for required fields, data types, and format compliance across all application components.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student application"
+      },
+      "personal_info": {
+        "type": "array",
+        "required": true,
+        "description": "Array containing personal information fields [first_name, last_name, email, phone, address, date_of_birth]",
+        "items": {"type": "string"},
+        "minItems": 6,
+        "maxItems": 10
+      },
+      "program_code": {
+        "type": "string",
+        "required": true,
+        "description": "Academic program code student is applying to"
+      },
+      "application_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of application: undergraduate, graduate, transfer, international"
+      },
+      "submission_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when application was submitted",
+        "format": "date-time"
+      }
+    },
+    "error_messages": [
+      "Invalid application_id: Must be a non-empty string with valid format.",
+      "Missing personal information: personal_info array must contain at least 6 required fields.",
+      "Invalid program_code: Program code must exist in the institutional catalog.",
+      "Invalid application_type: Must be one of [undergraduate, graduate, transfer, international].",
+      "Invalid submission_date: Must be a valid ISO 8601 date-time string."
+    ],
+    "usage": "Provide application_id, personal_info array, program_code, application_type, and submission_date. The tool validates all data and returns validation status with any identified issues.",
+    "output_details": {
+      "validation_status": {
+        "type": "string",
+        "description": "Overall validation result: valid, invalid, or partial"
+      },
+      "validated_fields": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of successfully validated field names"
+      },
+      "validation_errors": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of validation error messages for failed fields"
+      },
+      "sanitized_data": {
+        "type": "string",
+        "description": "JSON string of cleaned and formatted application data"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document Verification Tool",
+    "tool_description": "Verifies the authenticity and completeness of submitted application documents including transcripts, certificates, and identification documents.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student application"
+      },
+      "document_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of document to verify: transcript, diploma, certificate, id_document, test_score"
+      },
+      "document_source": {
+        "type": "string",
+        "required": true,
+        "description": "Source institution or organization that issued the document"
+      },
+      "verify_authenticity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform authenticity verification",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid document_type: Must be one of [transcript, diploma, certificate, id_document, test_score].",
+      "Document source not recognized: The specified source institution is not in our verification database.",
+      "Document verification failed: Unable to verify document authenticity with the issuing institution.",
+      "Missing application_id: A valid application ID is required for document verification."
+    ],
+    "usage": "Provide application_id, document_type, and document_source. Optionally set verify_authenticity to false for preliminary checks. Returns verification status and details.",
+    "output_details": {
+      "verification_status": {
+        "type": "string",
+        "description": "Verification result: verified, pending, failed, or not_required"
+      },
+      "authenticity_confirmed": {
+        "type": "boolean",
+        "description": "Whether document authenticity was confirmed"
+      },
+      "verification_date": {
+        "type": "string",
+        "description": "Date and time when verification was completed"
+      },
+      "notes": {
+        "type": "string",
+        "description": "Additional verification notes or requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Academic Transcript Analyzer",
+    "tool_description": "Analyzes academic transcripts to calculate GPA, validate course requirements, and extract academic performance metrics for admissions evaluation.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student application"
+      },
+      "transcript_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of course records with format [course_code, course_name, credits, grade, semester]",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 200
+      },
+      "grading_system": {
+        "type": "string",
+        "required": true,
+        "description": "Grading system used: 4.0_scale, percentage, letter_grades, international"
+      },
+      "degree_level": {
+        "type": "string",
+        "required": true,
+        "description": "Academic level: high_school, undergraduate, graduate"
+      },
+      "institution_country": {
+        "type": "string",
+        "required": true,
+        "description": "Country where the institution is located"
+      },
+      "calculate_prerequisites": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check prerequisite course requirements",
+        "default": true
+      },
+      "minimum_gpa_required": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum GPA requirement for the program",
+        "default": 2.0
+      }
+    },
+    "error_messages": [
+      "Invalid transcript_data format: Each course record must contain exactly 5 elements [course_code, course_name, credits, grade, semester].",
+      "Unsupported grading_system: Must be one of [4.0_scale, percentage, letter_grades, international].",
+      "Invalid degree_level: Must be one of [high_school, undergraduate, graduate].",
+      "Grade conversion error: Unable to convert grades to standardized scale for the specified grading system.",
+      "Insufficient academic data: Transcript must contain at least one valid course record.",
+      "Invalid minimum_gpa_required: Must be a number between 0.0 and 4.0."
+    ],
+    "usage": "Provide application_id, transcript_data array, grading_system, degree_level, and institution_country. Optionally specify calculate_prerequisites and minimum_gpa_required. Returns comprehensive academic analysis.",
+    "output_details": {
+      "calculated_gpa": {
+        "type": "number",
+        "description": "Calculated GPA on 4.0 scale"
+      },
+      "total_credits": {
+        "type": "number",
+        "description": "Total credit hours completed"
+      },
+      "gpa_meets_requirement": {
+        "type": "boolean",
+        "description": "Whether calculated GPA meets minimum requirement"
+      },
+      "prerequisite_status": {
+        "type": "string",
+        "description": "Status of prerequisite requirements: met, partially_met, not_met, not_checked"
+      },
+      "academic_standing": {
+        "type": "string",
+        "description": "Overall academic performance assessment"
+      },
+      "course_analysis": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed analysis of course performance and requirements"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Standardized Test Processor",
+    "tool_description": "Processes and validates standardized test scores (SAT, ACT, GRE, GMAT, TOEFL, IELTS) for admissions evaluation and requirement verification.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student application"
+      },
+      "test_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of standardized test: SAT, ACT, GRE, GMAT, TOEFL, IELTS"
+      },
+      "test_scores": {
+        "type": "array",
+        "required": true,
+        "description": "Array of test section scores",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "test_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when test was taken",
+        "format": "date-time"
+      },
+      "score_validity_years": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of years scores remain valid",
+        "default": 5
+      }
+    },
+    "error_messages": [
+      "Invalid test_type: Must be one of [SAT, ACT, GRE, GMAT, TOEFL, IELTS].",
+      "Invalid test_scores: Scores must be within valid range for the specified test type.",
+      "Test scores expired: Test date exceeds validity period for the test type.",
+      "Insufficient score data: At least one valid test score is required.",
+      "Invalid test_date: Test date must be a valid date in the past.",
+      "Invalid score_validity_years: Must be a positive integer between 1 and 10."
+    ],
+    "usage": "Provide application_id, test_type, test_scores array, and test_date. Optionally specify score_validity_years. Returns processed scores and validity assessment.",
+    "output_details": {
+      "composite_score": {
+        "type": "number",
+        "description": "Overall composite or total test score"
+      },
+      "section_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Individual section scores"
+      },
+      "percentile_ranking": {
+        "type": "number",
+        "description": "Percentile ranking compared to test-taking population"
+      },
+      "scores_valid": {
+        "type": "boolean",
+        "description": "Whether scores are still within validity period"
+      },
+      "score_interpretation": {
+        "type": "string",
+        "description": "Interpretation of score performance level"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Eligibility Requirements Checker",
+    "tool_description": "Evaluates student applications against specific program admission requirements including academic prerequisites, test scores, and program-specific criteria.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student application"
+      },
+      "program_code": {
+        "type": "string",
+        "required": true,
+        "description": "Academic program code to check requirements against"
+      },
+      "student_gpa": {
+        "type": "number",
+        "required": true,
+        "description": "Student's calculated GPA"
+      },
+      "test_scores": {
+        "type": "array",
+        "required": false,
+        "description": "Array of standardized test scores",
+        "items": {"type": "number"},
+        "default": null
+      },
+      "prerequisite_courses": {
+        "type": "array",
+        "required": false,
+        "description": "Array of completed prerequisite course codes",
+        "items": {"type": "string"},
+        "default": null
+      },
+      "application_deadline": {
+        "type": "string",
+        "required": true,
+        "description": "Application deadline for the program",
+        "format": "date-time"
+      },
+      "submission_date": {
+        "type": "string",
+        "required": true,
+        "description": "Date when application was submitted",
+        "format": "date-time"
+      },
+      "international_student": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether student is international",
+        "default": false
+      },
+      "english_proficiency_score": {
+        "type": "number",
+        "required": false,
+        "description": "English proficiency test score (TOEFL/IELTS)",
+        "default": null
+      },
+      "work_experience_years": {
+        "type": "number",
+        "required": false,
+        "description": "Years of relevant work experience",
+        "default": 0
+      }
+    },
+    "error_messages": [
+      "Invalid program_code: Program code not found in institutional catalog.",
+      "Invalid GPA range: student_gpa must be between 0.0 and 4.0.",
+      "Invalid date format: application_deadline and submission_date must be valid ISO 8601 date-time strings.",
+      "Application submitted after deadline: submission_date cannot be after application_deadline.",
+      "Invalid test scores: Test scores must be within valid ranges for their respective tests.",
+      "Invalid english_proficiency_score: Must be within valid range for TOEFL (0-120) or IELTS (0-9).",
+      "Invalid work_experience_years: Must be a non-negative number less than 50."
+    ],
+    "usage": "Provide application_id, program_code, student_gpa, application_deadline, and submission_date. Include optional parameters for comprehensive eligibility check. Returns detailed eligibility assessment.",
+    "output_details": {
+      "overall_eligibility": {
+        "type": "string",
+        "description": "Overall eligibility status: eligible, conditionally_eligible, not_eligible"
+      },
+      "gpa_requirement_met": {
+        "type": "boolean",
+        "description": "Whether GPA meets program minimum requirement"
+      },
+      "test_score_requirement_met": {
+        "type": "boolean",
+        "description": "Whether standardized test scores meet requirements"
+      },
+      "prerequisite_requirement_met": {
+        "type": "boolean",
+        "description": "Whether prerequisite courses are satisfied"
+      },
+      "deadline_compliance": {
+        "type": "boolean",
+        "description": "Whether application was submitted before deadline"
+      },
+      "english_proficiency_met": {
+        "type": "boolean",
+        "description": "Whether English proficiency requirements are met"
+      },
+      "missing_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of requirements not yet satisfied"
+      },
+      "eligibility_notes": {
+        "type": "string",
+        "description": "Additional notes about eligibility status"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Application Fee Validator",
+    "tool_description": "Validates application fee payments and processes fee waivers for student applications, ensuring payment requirements are met before processing.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student application"
+      },
+      "payment_amount": {
+        "type": "number",
+        "required": true,
+        "description": "Amount paid for application fee"
+      },
+      "payment_method": {
+        "type": "string",
+        "required": true,
+        "description": "Payment method used: credit_card, bank_transfer, check, waiver"
+      },
+      "transaction_id": {
+        "type": "string",
+        "required": false,
+        "description": "Payment transaction identifier",
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid payment_amount: Amount must be a positive number matching the required application fee.",
+      "Invalid payment_method: Must be one of [credit_card, bank_transfer, check, waiver].",
+      "Missing transaction_id: Transaction ID is required for electronic payments.",
+      "Payment verification failed: Unable to verify payment with payment processor.",
+      "Insufficient payment amount: Payment amount is less than required application fee."
+    ],
+    "usage": "Provide application_id, payment_amount, and payment_method. Include transaction_id for electronic payments. Returns payment validation status and details.",
+    "output_details": {
+      "payment_status": {
+        "type": "string",
+        "description": "Payment verification result: verified, pending, failed, waived"
+      },
+      "amount_due": {
+        "type": "number",
+        "description": "Remaining amount due if any"
+      },
+      "payment_date": {
+        "type": "string",
+        "description": "Date when payment was processed"
+      },
+      "fee_waiver_approved": {
+        "type": "boolean",
+        "description": "Whether fee waiver was approved"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reference Letter Processor",
+    "tool_description": "Processes and validates reference letters and recommendations, tracking submission status and evaluating completeness of recommendation requirements.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student application"
+      },
+      "reference_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of reference: academic, professional, personal, character"
+      },
+      "recommender_email": {
+        "type": "string",
+        "required": true,
+        "description": "Email address of the person providing the reference"
+      },
+      "submission_status": {
+        "type": "string",
+        "required": true,
+        "description": "Current status: submitted, pending, requested, overdue"
+      }
+    },
+    "error_messages": [
+      "Invalid reference_type: Must be one of [academic, professional, personal, character].",
+      "Invalid email format: recommender_email must be a valid email address.",
+      "Invalid submission_status: Must be one of [submitted, pending, requested, overdue].",
+      "Missing application_id: A valid application ID is required."
+    ],
+    "usage": "Provide application_id, reference_type, recommender_email, and submission_status. Returns processing results and recommendation tracking information.",
+    "output_details": {
+      "processing_status": {
+        "type": "string",
+        "description": "Processing result: processed, incomplete, invalid, pending_review"
+      },
+      "requirements_met": {
+        "type": "boolean",
+        "description": "Whether minimum reference requirements are satisfied"
+      },
+      "submission_date": {
+        "type": "string",
+        "description": "Date when reference was submitted"
+      },
+      "follow_up_needed": {
+        "type": "boolean",
+        "description": "Whether follow-up with recommender is needed"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Application Completeness Checker",
+    "tool_description": "Evaluates the completeness of student applications by checking all required components and documents, providing a comprehensive status report.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student application"
+      },
+      "required_components": {
+        "type": "array",
+        "required": true,
+        "description": "Array of required application components to check",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "personal_info_complete": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether personal information section is complete"
+      },
+      "academic_records_submitted": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether academic transcripts are submitted"
+      },
+      "test_scores_submitted": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether required test scores are submitted"
+      },
+      "references_submitted": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether required references are submitted"
+      },
+      "application_fee_paid": {
+        "type": "boolean",
+        "required": true,
+        "description": "Whether application fee has been paid"
+      },
+      "essays_submitted": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether required essays are submitted",
+        "default": true
+      },
+      "additional_documents": {
+        "type": "array",
+        "required": false,
+        "description": "Array of additional document statuses",
+        "items": {"type": "boolean"},
+        "default": null
+      },
+      "program_specific_requirements": {
+        "type": "array",
+        "required": false,
+        "description": "Array of program-specific requirement statuses",
+        "items": {"type": "boolean"},
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid required_components: Must contain at least one component to check.",
+      "Missing application_id: A valid application ID is required.",
+      "Invalid component status: All boolean parameters must be true or false.",
+      "Required components mismatch: The number of components doesn't match the provided status information."
+    ],
+    "usage": "Provide application_id, required_components array, and status of all required components. Optionally include essays_submitted, additional_documents, and program_specific_requirements. Returns comprehensive completeness assessment.",
+    "output_details": {
+      "overall_completeness": {
+        "type": "string",
+        "description": "Overall completeness status: complete, incomplete, pending_review"
+      },
+      "completion_percentage": {
+        "type": "number",
+        "description": "Percentage of requirements completed (0-100)"
+      },
+      "missing_components": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of missing or incomplete components"
+      },
+      "ready_for_review": {
+        "type": "boolean",
+        "description": "Whether application is ready for admissions review"
+      },
+      "estimated_completion_date": {
+        "type": "string",
+        "description": "Estimated date when application might be complete"
+      },
+      "priority_actions": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Priority actions needed to complete the application"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Merit Score Calculator",
+    "tool_description": "Calculates comprehensive merit scores for student applications using weighted academic performance, test scores, and other evaluation criteria.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student application"
+      },
+      "gpa": {
+        "type": "number",
+        "required": true,
+        "description": "Student's calculated GPA (0.0-4.0 scale)"
+      },
+      "standardized_test_scores": {
+        "type": "array",
+        "required": true,
+        "description": "Array of standardized test scores",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 5
+      },
+      "extracurricular_score": {
+        "type": "number",
+        "required": false,
+        "description": "Extracurricular activities score (0-100)",
+        "default": 50
+      },
+      "essay_score": {
+        "type": "number",
+        "required": false,
+        "description": "Personal statement/essay score (0-100)",
+        "default": 50
+      },
+      "work_experience_score": {
+        "type": "number",
+        "required": false,
+        "description": "Work experience score (0-100)",
+        "default": 0
+      },
+      "leadership_score": {
+        "type": "number",
+        "required": false,
+        "description": "Leadership experience score (0-100)",
+        "default": 50
+      },
+      "community_service_score": {
+        "type": "number",
+        "required": false,
+        "description": "Community service score (0-100)",
+        "default": 50
+      },
+      "academic_rigor_bonus": {
+        "type": "number",
+        "required": false,
+        "description": "Bonus points for academic rigor (0-20)",
+        "default": 0
+      },
+      "diversity_factor": {
+        "type": "number",
+        "required": false,
+        "description": "Diversity contribution factor (0-10)",
+        "default": 0
+      },
+      "program_fit_score": {
+        "type": "number",
+        "required": false,
+        "description": "Program fit assessment score (0-100)",
+        "default": 50
+      },
+      "reference_strength_score": {
+        "type": "number",
+        "required": false,
+        "description": "Strength of reference letters score (0-100)",
+        "default": 50
+      },
+      "special_circumstances": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether special circumstances apply",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid GPA: Must be between 0.0 and 4.0.",
+      "Invalid test scores: All scores must be positive numbers within valid ranges.",
+      "Invalid score parameters: All score parameters must be within their specified ranges (0-100 or as noted).",
+      "Missing required data: application_id, gpa, and standardized_test_scores are required.",
+      "Invalid academic_rigor_bonus: Must be between 0 and 20.",
+      "Invalid diversity_factor: Must be between 0 and 10."
+    ],
+    "usage": "Provide application_id, gpa, and standardized_test_scores. Optionally include other scoring components for comprehensive evaluation. Returns detailed merit score calculation and breakdown.",
+    "output_details": {
+      "total_merit_score": {
+        "type": "number",
+        "description": "Overall calculated merit score (0-1000)"
+      },
+      "academic_component_score": {
+        "type": "number",
+        "description": "Score from academic performance components"
+      },
+      "holistic_component_score": {
+        "type": "number",
+        "description": "Score from non-academic evaluation components"
+      },
+      "percentile_ranking": {
+        "type": "number",
+        "description": "Percentile ranking compared to applicant pool"
+      },
+      "score_breakdown": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed breakdown of score components"
+      },
+      "competitiveness_level": {
+        "type": "string",
+        "description": "Competitiveness assessment: highly_competitive, competitive, moderate, below_average"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "Preliminary admission recommendation based on merit score"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Financial Aid Assessor",
+    "tool_description": "Evaluates student financial aid eligibility and calculates potential aid packages based on financial need assessment and institutional aid policies.",
+    "parameters": {
+      "application_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the student application"
+      },
+      "family_income": {
+        "type": "number",
+        "required": true,
+        "description": "Annual family income in USD"
+      },
+      "family_size": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of people in family household"
+      },
+      "number_in_college": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of family members currently in college"
+      },
+      "expected_family_contribution": {
+        "type": "number",
+        "required": false,
+        "description": "FAFSA

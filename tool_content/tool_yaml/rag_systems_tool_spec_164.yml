@@ -1,0 +1,850 @@
+field_name: rag_systems
+subfield: document_ingestion_and_preprocessing
+task: Document format detection and conversion
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task involves handling diverse document formats with varying structures, encodings, and potential corruption issues. The complexity lies in accurately detecting formats, preserving content fidelity during conversion, handling edge cases, and managing dependencies between detection and conversion processes. This is a **medium** difficulty task due to the breadth of format support required and the coordination between detection and conversion workflows.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the medium complexity, I'll target **12 tools** to cover format detection, conversion, validation, and preprocessing workflows while maintaining composability and avoiding overlap.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Format Detector** - Consumes: raw file paths/content → Produces: format identification
+  2. **PDF Text Extractor** - Consumes: PDF files → Produces: extracted text content
+  3. **OCR Text Extractor** - Consumes: image/scanned documents → Produces: OCR-extracted text
+  4. **Office Document Converter** - Consumes: Word/Excel/PowerPoint files → Produces: structured text
+  5. **HTML Content Parser** - Consumes: HTML/XML files → Produces: clean text content
+  6. **Plain Text Normalizer** - Consumes: raw text → Produces: normalized text
+  7. **Document Structure Analyzer** - Consumes: extracted content → Produces: structural metadata
+  8. **Content Quality Validator** - Consumes: processed content → Produces: quality scores/flags
+  9. **Batch Format Converter** - Consumes: multiple files → Produces: batch conversion results
+  10. **Metadata Extractor** - Consumes: source documents → Produces: document metadata
+  11. **Encoding Detector** - Consumes: text files → Produces: character encoding identification
+  12. **Content Merger** - Consumes: multiple text chunks → Produces: merged document content
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Single document conversion: Format Detector → PDF Text Extractor → Plain Text Normalizer
+  2. Text file processing: Encoding Detector → Plain Text Normalizer → Content Quality Validator
+
+  **Medium Plans:**
+  1. Office document processing: Format Detector → Office Document Converter → Document Structure Analyzer → Content Quality Validator
+  2. Web content extraction: Format Detector → HTML Content Parser → Plain Text Normalizer → Metadata Extractor
+
+  **Complex Plans:**
+  1. Full document pipeline: Format Detector → (PDF Text Extractor OR OCR Text Extractor OR Office Document Converter) → Plain Text Normalizer → Document Structure Analyzer → Content Quality Validator → Metadata Extractor
+  2. Batch processing workflow: Batch Format Converter → Content Quality Validator → Content Merger → Document Structure Analyzer
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Format Detector",
+    "tool_description": "Analyzes file headers, extensions, and content patterns to identify document formats with confidence scores.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the file to be analyzed for format detection"
+      },
+      "check_content": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to analyze file content in addition to extension",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "File not found: The specified file path does not exist or is not accessible.",
+      "Permission denied: Insufficient permissions to read the file.",
+      "Corrupted file: The file appears to be corrupted or unreadable."
+    ],
+    "usage": "Provide a valid file_path and optionally set check_content to false for faster extension-only detection. Returns detected format with confidence score.",
+    "output_details": {
+      "detected_format": {
+        "type": "string",
+        "description": "The identified document format (pdf, docx, html, txt, etc.)"
+      },
+      "confidence_score": {
+        "type": "number",
+        "description": "Confidence level of format detection (0.0 to 1.0)"
+      },
+      "file_extension": {
+        "type": "string",
+        "description": "Original file extension"
+      },
+      "mime_type": {
+        "type": "string",
+        "description": "Detected MIME type of the file"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "PDF Text Extractor",
+    "tool_description": "Extracts text content from PDF files with options for page selection and layout preservation.",
+    "parameters": {
+      "pdf_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the PDF file to extract text from"
+      },
+      "start_page": {
+        "type": "integer",
+        "required": false,
+        "description": "Starting page number (1-based indexing)",
+        "default": 1
+      },
+      "end_page": {
+        "type": "integer",
+        "required": false,
+        "description": "Ending page number (inclusive, -1 for last page)",
+        "default": -1
+      },
+      "preserve_layout": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to maintain original text layout and formatting",
+        "default": false
+      },
+      "extract_tables": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to attempt table extraction",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid PDF file: The file is not a valid PDF or is corrupted.",
+      "Password protected: PDF requires password for access.",
+      "Invalid page range: start_page must be less than or equal to end_page.",
+      "Page out of bounds: Specified page numbers exceed document length.",
+      "Extraction failed: Unable to extract text content from the PDF."
+    ],
+    "usage": "Provide pdf_path and optionally specify page range and formatting options. The tool extracts text while preserving structure based on settings.",
+    "output_details": {
+      "extracted_text": {
+        "type": "string",
+        "description": "The extracted text content from the PDF"
+      },
+      "page_count": {
+        "type": "integer",
+        "description": "Total number of pages in the PDF"
+      },
+      "pages_processed": {
+        "type": "integer",
+        "description": "Number of pages actually processed"
+      },
+      "tables_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of extracted table data (if extract_tables enabled)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "OCR Text Extractor",
+    "tool_description": "Performs optical character recognition on image-based documents to extract text content with language and quality options.",
+    "parameters": {
+      "image_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the image file or scanned document"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "OCR language code (e.g., 'eng', 'fra', 'deu')",
+        "default": "eng"
+      },
+      "dpi": {
+        "type": "integer",
+        "required": false,
+        "description": "DPI setting for OCR processing (72-600)",
+        "default": 300
+      },
+      "preprocessing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to apply image preprocessing for better OCR results",
+        "default": true
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence threshold for character recognition (0.0-1.0)",
+        "default": 0.6
+      }
+    },
+    "error_messages": [
+      "Invalid image file: The file is not a supported image format or is corrupted.",
+      "Unsupported language: The specified language code is not available.",
+      "Invalid DPI value: DPI must be between 72 and 600.",
+      "OCR processing failed: Unable to process the image for text extraction.",
+      "Low quality image: Image quality too poor for reliable text extraction."
+    ],
+    "usage": "Provide image_path and optionally configure language, DPI, and quality settings. Returns extracted text with confidence metrics.",
+    "output_details": {
+      "extracted_text": {
+        "type": "string",
+        "description": "The OCR-extracted text content"
+      },
+      "average_confidence": {
+        "type": "number",
+        "description": "Average confidence score for the extracted text"
+      },
+      "word_count": {
+        "type": "integer",
+        "description": "Number of words successfully extracted"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Time taken for OCR processing in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Office Document Converter",
+    "tool_description": "Converts Microsoft Office documents (Word, Excel, PowerPoint) to structured text format while preserving formatting and metadata.",
+    "parameters": {
+      "document_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the Office document file"
+      },
+      "extract_images": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract embedded images",
+        "default": false
+      },
+      "preserve_formatting": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to maintain text formatting information",
+        "default": true
+      },
+      "extract_comments": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include document comments and annotations",
+        "default": false
+      },
+      "sheet_names": {
+        "type": "array",
+        "required": false,
+        "description": "Specific Excel sheet names to process (empty for all sheets)",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "output_format": {
+        "type": "string",
+        "required": false,
+        "description": "Output format: 'plain', 'markdown', or 'html'",
+        "default": "plain"
+      }
+    },
+    "error_messages": [
+      "Unsupported file format: The file is not a supported Office document format.",
+      "Document is password protected: Cannot access password-protected documents.",
+      "Corrupted document: The document appears to be corrupted or unreadable.",
+      "Invalid sheet name: One or more specified sheet names do not exist in the Excel file.",
+      "Invalid output format: Use 'plain', 'markdown', or 'html' for output_format.",
+      "Conversion failed: Unable to convert the document content."
+    ],
+    "usage": "Provide document_path and configure extraction options. The tool converts Office documents to text while preserving structure based on settings.",
+    "output_details": {
+      "converted_text": {
+        "type": "string",
+        "description": "The converted text content"
+      },
+      "document_type": {
+        "type": "string",
+        "description": "Type of Office document processed"
+      },
+      "sheets_processed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Names of Excel sheets processed (if applicable)"
+      },
+      "images_extracted": {
+        "type": "integer",
+        "description": "Number of images extracted from the document"
+      },
+      "metadata_found": {
+        "type": "boolean",
+        "description": "Whether document metadata was successfully extracted"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "HTML Content Parser",
+    "tool_description": "Parses HTML and XML documents to extract clean text content while removing tags, scripts, and unwanted elements.",
+    "parameters": {
+      "html_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the HTML or XML file to parse"
+      },
+      "remove_scripts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to remove script and style elements",
+        "default": true
+      },
+      "preserve_links": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to preserve link URLs in the output",
+        "default": false
+      },
+      "target_elements": {
+        "type": "array",
+        "required": false,
+        "description": "Specific HTML elements to extract (e.g., 'p', 'div', 'article')",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "exclude_elements": {
+        "type": "array",
+        "required": false,
+        "description": "HTML elements to exclude from extraction",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Invalid HTML file: The file is not valid HTML/XML or cannot be parsed.",
+      "File encoding error: Unable to read file with current encoding detection.",
+      "Malformed HTML: The HTML structure is too corrupted to parse reliably.",
+      "Invalid element names: One or more specified element names are not valid HTML tags."
+    ],
+    "usage": "Provide html_path and configure parsing options for element selection and link preservation. Returns clean text content extracted from HTML structure.",
+    "output_details": {
+      "parsed_text": {
+        "type": "string",
+        "description": "The extracted clean text content"
+      },
+      "links_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of URLs found in the document (if preserve_links enabled)"
+      },
+      "elements_processed": {
+        "type": "integer",
+        "description": "Number of HTML elements processed"
+      },
+      "document_title": {
+        "type": "string",
+        "description": "Document title extracted from HTML head"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Plain Text Normalizer",
+    "tool_description": "Normalizes and cleans raw text content by handling encoding, whitespace, special characters, and formatting inconsistencies.",
+    "parameters": {
+      "input_text": {
+        "type": "string",
+        "required": true,
+        "description": "Raw text content to be normalized"
+      },
+      "normalize_whitespace": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to normalize whitespace and line breaks",
+        "default": true
+      },
+      "remove_special_chars": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to remove or replace special characters",
+        "default": false
+      },
+      "target_encoding": {
+        "type": "string",
+        "required": false,
+        "description": "Target character encoding (e.g., 'utf-8', 'ascii')",
+        "default": "utf-8"
+      }
+    },
+    "error_messages": [
+      "Empty input text: The input_text parameter cannot be empty.",
+      "Encoding conversion failed: Unable to convert text to target encoding.",
+      "Invalid encoding: The specified target_encoding is not supported."
+    ],
+    "usage": "Provide input_text and configure normalization options. The tool cleans and standardizes text content for consistent processing.",
+    "output_details": {
+      "normalized_text": {
+        "type": "string",
+        "description": "The cleaned and normalized text content"
+      },
+      "original_length": {
+        "type": "integer",
+        "description": "Character count of the original text"
+      },
+      "normalized_length": {
+        "type": "integer",
+        "description": "Character count after normalization"
+      },
+      "encoding_used": {
+        "type": "string",
+        "description": "Final character encoding applied"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Document Structure Analyzer",
+    "tool_description": "Analyzes document structure to identify sections, headers, paragraphs, and hierarchical organization for better content understanding.",
+    "parameters": {
+      "document_text": {
+        "type": "string",
+        "required": true,
+        "description": "Full text content of the document to analyze"
+      },
+      "detect_headers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to identify section headers and titles",
+        "default": true
+      },
+      "detect_lists": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to identify bulleted and numbered lists",
+        "default": true
+      },
+      "detect_tables": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to identify table-like structures",
+        "default": false
+      },
+      "min_section_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum character count for section identification",
+        "default": 50
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Document language for better structural analysis",
+        "default": "en"
+      }
+    },
+    "error_messages": [
+      "Empty document: The document_text parameter cannot be empty.",
+      "Document too short: Document must contain at least 10 characters for analysis.",
+      "Unsupported language: The specified language is not supported for structural analysis.",
+      "Invalid section length: min_section_length must be between 10 and 1000 characters."
+    ],
+    "usage": "Provide document_text and configure structure detection options. Returns hierarchical structure information and content organization.",
+    "output_details": {
+      "section_count": {
+        "type": "integer",
+        "description": "Number of sections identified in the document"
+      },
+      "header_levels": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Array of header levels found (1-6)"
+      },
+      "paragraph_count": {
+        "type": "integer",
+        "description": "Number of paragraphs identified"
+      },
+      "list_count": {
+        "type": "integer",
+        "description": "Number of lists found in the document"
+      },
+      "table_count": {
+        "type": "integer",
+        "description": "Number of table structures identified"
+      },
+      "structure_summary": {
+        "type": "string",
+        "description": "Brief summary of document structure and organization"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Content Quality Validator",
+    "tool_description": "Validates processed document content for quality issues, completeness, readability, and potential extraction errors.",
+    "parameters": {
+      "content_text": {
+        "type": "string",
+        "required": true,
+        "description": "Text content to validate for quality metrics"
+      },
+      "min_length": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum acceptable content length in characters",
+        "default": 100
+      },
+      "check_encoding": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to check for encoding-related issues",
+        "default": true
+      },
+      "check_completeness": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to assess content completeness",
+        "default": true
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Expected content language for validation",
+        "default": "en"
+      }
+    },
+    "error_messages": [
+      "Empty content: The content_text parameter cannot be empty.",
+      "Invalid length threshold: min_length must be a positive integer.",
+      "Unsupported language: The specified language is not supported for quality validation."
+    ],
+    "usage": "Provide content_text and configure validation criteria. Returns quality scores and identifies potential issues with the processed content.",
+    "output_details": {
+      "quality_score": {
+        "type": "number",
+        "description": "Overall quality score from 0.0 to 1.0"
+      },
+      "length_adequate": {
+        "type": "boolean",
+        "description": "Whether content meets minimum length requirements"
+      },
+      "encoding_issues": {
+        "type": "boolean",
+        "description": "Whether encoding problems were detected"
+      },
+      "completeness_score": {
+        "type": "number",
+        "description": "Content completeness score from 0.0 to 1.0"
+      },
+      "readability_score": {
+        "type": "number",
+        "description": "Text readability score"
+      },
+      "issues_found": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of specific quality issues identified"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Batch Format Converter",
+    "tool_description": "Processes multiple documents simultaneously, detecting formats and converting them to a unified text format with progress tracking.",
+    "parameters": {
+      "input_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory path containing documents to process"
+      },
+      "output_directory": {
+        "type": "string",
+        "required": true,
+        "description": "Directory path for storing converted documents"
+      },
+      "file_patterns": {
+        "type": "array",
+        "required": false,
+        "description": "File patterns to include (e.g., '*.pdf', '*.docx')",
+        "items": {
+          "type": "string"
+        },
+        "default": null
+      },
+      "recursive": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to process subdirectories recursively",
+        "default": false
+      },
+      "max_files": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of files to process (0 for unlimited)",
+        "default": 0
+      },
+      "skip_existing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to skip files that already exist in output directory",
+        "default": true
+      },
+      "parallel_processing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to enable parallel processing for faster conversion",
+        "default": false
+      },
+      "error_handling": {
+        "type": "string",
+        "required": false,
+        "description": "Error handling strategy: 'skip', 'stop', or 'log'",
+        "default": "skip"
+      }
+    },
+    "error_messages": [
+      "Invalid directory: Input or output directory does not exist or is not accessible.",
+      "Permission denied: Insufficient permissions to read input or write to output directory.",
+      "Invalid file pattern: One or more file patterns contain invalid syntax.",
+      "Invalid error handling: Use 'skip', 'stop', or 'log' for error_handling parameter.",
+      "Processing failed: Batch conversion encountered critical errors."
+    ],
+    "usage": "Provide input_directory and output_directory, then configure processing options. The tool processes multiple files and provides comprehensive conversion results.",
+    "output_details": {
+      "files_processed": {
+        "type": "integer",
+        "description": "Total number of files successfully processed"
+      },
+      "files_failed": {
+        "type": "integer",
+        "description": "Number of files that failed processing"
+      },
+      "processing_time": {
+        "type": "number",
+        "description": "Total processing time in seconds"
+      },
+      "success_rate": {
+        "type": "number",
+        "description": "Success rate as percentage (0.0 to 100.0)"
+      },
+      "failed_files": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of filenames that failed processing"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Summary of batch processing results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Metadata Extractor",
+    "tool_description": "Extracts comprehensive metadata from documents including creation dates, authors, file properties, and content statistics.",
+    "parameters": {
+      "document_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the document file for metadata extraction"
+      },
+      "extract_system_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract file system metadata (size, dates, permissions)",
+        "default": true
+      },
+      "extract_content_metadata": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract content-based metadata (word count, language)",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "File not found: The specified document path does not exist.",
+      "Permission denied: Insufficient permissions to access the file.",
+      "Unsupported file type: Metadata extraction not supported for this file format.",
+      "Corrupted file: Unable to read metadata from corrupted or damaged file."
+    ],
+    "usage": "Provide document_path and configure metadata extraction options. Returns comprehensive metadata information about the document.",
+    "output_details": {
+      "file_size": {
+        "type": "integer",
+        "description": "File size in bytes"
+      },
+      "creation_date": {
+        "type": "string",
+        "description": "File creation timestamp"
+      },
+      "modification_date": {
+        "type": "string",
+        "description": "Last modification timestamp"
+      },
+      "author": {
+        "type": "string",
+        "description": "Document author if available"
+      },
+      "title": {
+        "type": "string",
+        "description": "Document title if available"
+      },
+      "word_count": {
+        "type": "integer",
+        "description": "Estimated word count in the document"
+      },
+      "language": {
+        "type": "string",
+        "description": "Detected document language"
+      },
+      "format": {
+        "type": "string",
+        "description": "Document format type"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Encoding Detector",
+    "tool_description": "Detects and validates character encoding of text files to ensure proper text processing and prevent encoding-related errors.",
+    "parameters": {
+      "file_path": {
+        "type": "string",
+        "required": true,
+        "description": "Path to the text file for encoding detection"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence level for encoding detection (0.0 to 1.0)",
+        "default": 0.8
+      }
+    },
+    "error_messages": [
+      "File not found: The specified file path does not exist or is not accessible.",
+      "Binary file detected: The file appears to be binary, not a text file.",
+      "Encoding detection failed: Unable to determine file encoding with sufficient confidence.",
+      "Invalid confidence threshold: Value must be between 0.0 and 1.0."
+    ],
+    "usage": "Provide file_path and optionally set confidence_threshold for encoding detection accuracy. Returns detected encoding information with confidence metrics.",
+    "output_details": {
+      "detected_encoding": {
+        "type": "string",
+        "description": "The detected character encoding (e.g., 'utf-8', 'iso-8859-1')"
+      },
+      "confidence": {
+        "type": "number",
+        "description": "Confidence level of encoding detection (0.0 to 1.0)"
+      },
+      "alternative_encodings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Alternative possible encodings in order of likelihood"
+      },
+      "is_ascii": {
+        "type": "boolean",
+        "description": "Whether the file contains only ASCII characters"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Content Merger",
+    "tool_description": "Merges multiple text documents or content chunks into a single unified document while preserving structure and handling formatting.",
+    "parameters": {
+      "content_chunks": {
+        "type": "array",
+        "required": true,
+        "description": "Array of text content to merge together",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 100
+      },
+      "separator": {
+        "type": "string",
+        "required": false,
+        "description": "Separator string to insert between merged content chunks",
+        "default": "\n\n"
+      },
+      "add_headers": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to add section headers for each merged chunk",
+        "default": false
+      },
+      "remove_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to remove duplicate content sections",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Insufficient content: At least 2 content chunks are required for merging.",
+      "Empty content chunks: One or more content chunks are empty or contain only whitespace.",
+      "Too many chunks: Maximum of 100 content chunks can be processed at once."
+    ],
+    "usage": "Provide an array of content_chunks and configure merging options. The tool combines multiple text contents into a unified document.",
+    "output_details": {
+      "merged_content": {
+        "type": "string",
+        "description": "The combined text content from all input chunks"
+      },
+      "total_chunks": {
+        "type": "integer",
+        "description": "Number of content chunks that were merged"
+      },
+      "final_length": {
+        "type": "integer",
+        "description": "Character count of the merged content"
+      },
+      "duplicates_removed": {
+        "type": "integer",
+        "description": "Number of duplicate sections removed (if enabled)"
+      }
+    }
+  }
+  ```

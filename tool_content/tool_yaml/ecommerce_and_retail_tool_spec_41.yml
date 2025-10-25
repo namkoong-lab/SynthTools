@@ -1,0 +1,869 @@
+field_name: ecommerce_and_retail
+subfield: Order Processing and Fulfillment
+task: Package tracking and delivery monitoring
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task has medium difficulty. It involves coordinating multiple systems (inventory, shipping carriers, customer communications), handling real-time tracking data from various sources, managing exception scenarios, and ensuring accurate delivery status updates. The complexity comes from integrating with external carrier APIs, handling data inconsistencies, and maintaining reliable monitoring workflows.
+
+  **STEP 2 — Set a tool budget**
+  Given the medium difficulty, I'll target 12 tools to cover the various aspects of package tracking and delivery monitoring, including data retrieval, status analysis, notifications, reporting, and exception handling.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Package Info Retriever** - Consumes: tracking numbers, order IDs | Produces: package metadata
+  2. **Carrier API Connector** - Consumes: tracking numbers, carrier info | Produces: raw tracking data
+  3. **Tracking Status Parser** - Consumes: raw tracking data | Produces: standardized status updates
+  4. **Delivery Timeline Analyzer** - Consumes: tracking events, shipping dates | Produces: timeline analysis
+  5. **Location Validator** - Consumes: addresses, GPS coordinates | Produces: location verification
+  6. **Delivery Exception Detector** - Consumes: tracking status, delivery attempts | Produces: exception alerts
+  7. **Customer Notification Generator** - Consumes: status updates, customer preferences | Produces: notification messages
+  8. **Delivery Performance Analyzer** - Consumes: delivery data, SLA targets | Produces: performance metrics
+  9. **Route Optimizer** - Consumes: delivery addresses, vehicle capacity | Produces: optimized routes
+  10. **Signature Verification Tool** - Consumes: delivery confirmations, signatures | Produces: verification results
+  11. **Delivery Report Generator** - Consumes: tracking data, time periods | Produces: comprehensive reports
+  12. **Real-time Dashboard Updater** - Consumes: various status data | Produces: dashboard updates
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. **Basic Package Lookup**: Package Info Retriever → Carrier API Connector → Tracking Status Parser (Track single package status)
+  2. **Customer Update**: Tracking Status Parser → Customer Notification Generator (Send status updates to customers)
+
+  **Medium Plans:**
+  1. **Exception Management**: Carrier API Connector → Tracking Status Parser → Delivery Exception Detector → Customer Notification Generator (Handle delivery issues)
+  2. **Performance Analysis**: Package Info Retriever → Delivery Timeline Analyzer → Delivery Performance Analyzer (Analyze delivery performance)
+
+  **Complex Plans:**
+  1. **Full Delivery Monitoring**: Package Info Retriever → Carrier API Connector → Tracking Status Parser → Delivery Exception Detector → Customer Notification Generator → Real-time Dashboard Updater (Complete monitoring workflow)
+  2. **Comprehensive Reporting**: Multiple retrieval tools → Delivery Performance Analyzer → Delivery Report Generator → Real-time Dashboard Updater (Generate detailed delivery reports)
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Package Info Retriever",
+    "tool_description": "Retrieves comprehensive package information including tracking numbers, customer details, shipping addresses, and package specifications from the order management system.",
+    "parameters": {
+      "order_id": {
+        "type": "string",
+        "required": false,
+        "description": "Order identifier to retrieve associated packages",
+        "default": "None"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": false,
+        "description": "Specific tracking number for direct package lookup",
+        "default": "None"
+      },
+      "customer_id": {
+        "type": "string",
+        "required": false,
+        "description": "Customer identifier to retrieve all their packages",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "No search criteria provided: At least one of order_id, tracking_number, or customer_id must be specified.",
+      "Invalid order ID format: Order ID must be alphanumeric and 6-20 characters long.",
+      "Tracking number not found: The provided tracking number does not exist in the system.",
+      "Customer ID not found: The provided customer ID does not exist in the system."
+    ],
+    "usage": "Provide at least one search parameter (order_id, tracking_number, or customer_id) to retrieve package information. Multiple parameters can be used for more specific searches.",
+    "output_details": {
+      "packages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of package identifiers found"
+      },
+      "tracking_numbers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of associated tracking numbers"
+      },
+      "carrier_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of shipping carrier names"
+      },
+      "shipping_addresses": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of destination addresses"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Carrier API Connector",
+    "tool_description": "Connects to various shipping carrier APIs to retrieve real-time tracking information, delivery status, and shipment details.",
+    "parameters": {
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Tracking number to query"
+      },
+      "carrier_code": {
+        "type": "string",
+        "required": true,
+        "description": "Carrier code (UPS, FEDEX, USPS, DHL, etc.)"
+      },
+      "api_key": {
+        "type": "string",
+        "required": true,
+        "description": "API authentication key for the carrier"
+      },
+      "include_history": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include full tracking history",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid carrier code: Supported carriers are UPS, FEDEX, USPS, DHL, and others. Check carrier documentation.",
+      "API authentication failed: Verify the API key is valid and has proper permissions.",
+      "Tracking number format invalid: Ensure tracking number matches the carrier's format requirements.",
+      "Carrier API unavailable: The carrier's API service is temporarily unavailable. Try again later.",
+      "Rate limit exceeded: Too many API requests. Wait before making additional requests."
+    ],
+    "usage": "Provide tracking_number, carrier_code, and api_key to retrieve tracking data. Set include_history to false for current status only.",
+    "output_details": {
+      "raw_tracking_data": {
+        "type": "string",
+        "description": "Raw JSON response from carrier API"
+      },
+      "api_status": {
+        "type": "string",
+        "description": "API call status (success, error, partial)"
+      },
+      "last_updated": {
+        "type": "string",
+        "description": "Timestamp of last tracking update"
+      },
+      "carrier_response_time": {
+        "type": "number",
+        "description": "API response time in milliseconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Tracking Status Parser",
+    "tool_description": "Parses and standardizes raw tracking data from different carriers into a unified format, extracting key status information and delivery events.",
+    "parameters": {
+      "raw_tracking_data": {
+        "type": "string",
+        "required": true,
+        "description": "Raw tracking data from carrier API"
+      },
+      "carrier_code": {
+        "type": "string",
+        "required": true,
+        "description": "Carrier code for parsing rules"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Associated tracking number"
+      }
+    },
+    "error_messages": [
+      "Invalid JSON format: Raw tracking data is not valid JSON format.",
+      "Unsupported carrier format: Parser does not support the specified carrier's data format.",
+      "Missing required fields: Tracking data is missing essential fields like status or location.",
+      "Data parsing error: Unable to extract meaningful information from the provided data."
+    ],
+    "usage": "Provide raw_tracking_data from carrier APIs along with carrier_code and tracking_number to get standardized tracking information.",
+    "output_details": {
+      "current_status": {
+        "type": "string",
+        "description": "Standardized current delivery status"
+      },
+      "location": {
+        "type": "string",
+        "description": "Current package location"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery date and time"
+      },
+      "tracking_events": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of tracking event descriptions"
+      },
+      "delivery_attempts": {
+        "type": "integer",
+        "description": "Number of delivery attempts made"
+      },
+      "is_delivered": {
+        "type": "boolean",
+        "description": "Whether package has been delivered"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Timeline Analyzer",
+    "tool_description": "Analyzes delivery timelines by comparing actual tracking events against expected delivery schedules and service level agreements.",
+    "parameters": {
+      "tracking_events": {
+        "type": "array",
+        "required": true,
+        "description": "Array of tracking event descriptions with timestamps",
+        "items": {
+          "type": "string"
+        }
+      },
+      "ship_date": {
+        "type": "string",
+        "required": true,
+        "description": "Package ship date",
+        "format": "date-time"
+      },
+      "expected_delivery": {
+        "type": "string",
+        "required": true,
+        "description": "Expected delivery date",
+        "format": "date-time"
+      },
+      "service_level": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping service level (standard, express, overnight, etc.)"
+      },
+      "destination_zone": {
+        "type": "string",
+        "required": false,
+        "description": "Delivery destination zone for transit time calculation",
+        "default": "domestic"
+      }
+    },
+    "error_messages": [
+      "Invalid date format: Dates must be in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).",
+      "Ship date after expected delivery: Ship date cannot be later than expected delivery date.",
+      "Empty tracking events: At least one tracking event must be provided.",
+      "Invalid service level: Service level must be one of: standard, express, overnight, same-day.",
+      "Timeline inconsistency: Tracking events contain timestamp inconsistencies."
+    ],
+    "usage": "Provide tracking_events, ship_date, expected_delivery, and service_level to analyze delivery performance against expectations.",
+    "output_details": {
+      "timeline_status": {
+        "type": "string",
+        "description": "Overall timeline status (on-time, delayed, early)"
+      },
+      "days_in_transit": {
+        "type": "integer",
+        "description": "Total days package has been in transit"
+      },
+      "delay_hours": {
+        "type": "number",
+        "description": "Hours delayed from expected delivery (negative if early)"
+      },
+      "milestone_analysis": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Analysis of key delivery milestones"
+      },
+      "performance_grade": {
+        "type": "string",
+        "description": "Performance grade (A, B, C, D, F) based on timeline adherence"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Location Validator",
+    "tool_description": "Validates delivery locations by checking address accuracy, GPS coordinates, and identifying potential delivery issues based on location data.",
+    "parameters": {
+      "address": {
+        "type": "string",
+        "required": true,
+        "description": "Full delivery address to validate"
+      },
+      "gps_coordinates": {
+        "type": "string",
+        "required": false,
+        "description": "GPS coordinates in 'latitude,longitude' format",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid address format: Address must include street, city, state, and postal code.",
+      "GPS coordinates format error: Coordinates must be in 'latitude,longitude' format (e.g., '40.7128,-74.0060').",
+      "Address not found: The provided address cannot be validated against postal databases.",
+      "Coordinates out of range: Latitude must be between -90 and 90, longitude between -180 and 180.",
+      "Address-coordinates mismatch: GPS coordinates do not match the provided address location."
+    ],
+    "usage": "Provide a complete delivery address and optionally GPS coordinates to validate location accuracy and identify potential delivery challenges.",
+    "output_details": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "Whether the address is valid and deliverable"
+      },
+      "validated_address": {
+        "type": "string",
+        "description": "Standardized and corrected address"
+      },
+      "delivery_risk_level": {
+        "type": "string",
+        "description": "Risk level for delivery (low, medium, high)"
+      },
+      "location_type": {
+        "type": "string",
+        "description": "Type of location (residential, commercial, PO Box, etc.)"
+      },
+      "access_notes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Special access requirements or delivery notes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Exception Detector",
+    "tool_description": "Detects and categorizes delivery exceptions such as failed attempts, weather delays, address issues, and other delivery problems that require attention.",
+    "parameters": {
+      "current_status": {
+        "type": "string",
+        "required": true,
+        "description": "Current package status"
+      },
+      "tracking_events": {
+        "type": "array",
+        "required": true,
+        "description": "Recent tracking events",
+        "items": {
+          "type": "string"
+        }
+      },
+      "delivery_attempts": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of delivery attempts made"
+      },
+      "expected_delivery": {
+        "type": "string",
+        "required": true,
+        "description": "Expected delivery date",
+        "format": "date-time"
+      },
+      "carrier_code": {
+        "type": "string",
+        "required": true,
+        "description": "Shipping carrier code"
+      },
+      "max_attempts": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum allowed delivery attempts",
+        "default": 3
+      }
+    },
+    "error_messages": [
+      "Invalid status format: Current status must be a non-empty string.",
+      "No tracking events: At least one tracking event must be provided.",
+      "Invalid delivery attempts: Delivery attempts must be a non-negative integer.",
+      "Invalid expected delivery date: Date must be in ISO 8601 format.",
+      "Unsupported carrier: Carrier code must be supported (UPS, FEDEX, USPS, DHL, etc.).",
+      "Invalid max attempts: Maximum attempts must be between 1 and 10."
+    ],
+    "usage": "Provide current package status, tracking events, delivery attempts, expected delivery date, and carrier code to detect potential delivery exceptions.",
+    "output_details": {
+      "has_exception": {
+        "type": "boolean",
+        "description": "Whether a delivery exception was detected"
+      },
+      "exception_type": {
+        "type": "string",
+        "description": "Type of exception detected (failed_delivery, weather_delay, address_issue, etc.)"
+      },
+      "severity_level": {
+        "type": "string",
+        "description": "Exception severity (low, medium, high, critical)"
+      },
+      "recommended_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommended actions to resolve the exception"
+      },
+      "customer_impact": {
+        "type": "string",
+        "description": "Assessment of impact on customer experience"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer Notification Generator",
+    "tool_description": "Generates personalized customer notifications for package tracking updates, delivery exceptions, and status changes across multiple communication channels.",
+    "parameters": {
+      "customer_id": {
+        "type": "string",
+        "required": true,
+        "description": "Customer identifier"
+      },
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Package tracking number"
+      },
+      "notification_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of notification (shipped, in_transit, out_for_delivery, delivered, exception)"
+      },
+      "current_status": {
+        "type": "string",
+        "required": true,
+        "description": "Current package status"
+      },
+      "customer_preferences": {
+        "type": "array",
+        "required": true,
+        "description": "Customer communication preferences",
+        "items": {
+          "type": "string"
+        }
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "required": false,
+        "description": "Estimated delivery date",
+        "format": "date-time",
+        "default": "None"
+      },
+      "exception_details": {
+        "type": "string",
+        "required": false,
+        "description": "Exception details if applicable",
+        "default": "None"
+      },
+      "delivery_location": {
+        "type": "string",
+        "required": false,
+        "description": "Current or final delivery location",
+        "default": "None"
+      },
+      "include_tracking_link": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include tracking link in notification",
+        "default": true
+      },
+      "urgency_level": {
+        "type": "string",
+        "required": false,
+        "description": "Notification urgency level (low, normal, high)",
+        "default": "normal"
+      },
+      "personalization_data": {
+        "type": "array",
+        "required": false,
+        "description": "Additional personalization data",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid customer ID: Customer ID must be alphanumeric and 6-20 characters.",
+      "Invalid tracking number: Tracking number format is not recognized.",
+      "Unknown notification type: Must be one of: shipped, in_transit, out_for_delivery, delivered, exception.",
+      "Empty customer preferences: At least one communication preference must be specified.",
+      "Invalid delivery date format: Date must be in ISO 8601 format.",
+      "Invalid urgency level: Must be one of: low, normal, high.",
+      "Missing exception details: Exception details required for exception notification type."
+    ],
+    "usage": "Provide customer_id, tracking_number, notification_type, current_status, and customer_preferences to generate appropriate notifications. Include optional parameters for more detailed and personalized messages.",
+    "output_details": {
+      "notification_messages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Generated notification messages for different channels"
+      },
+      "delivery_channels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Communication channels to use (email, sms, push, etc.)"
+      },
+      "message_priority": {
+        "type": "string",
+        "description": "Message priority level for delivery system"
+      },
+      "tracking_links": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Tracking links for customer access"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Performance Analyzer",
+    "tool_description": "Analyzes delivery performance metrics including on-time delivery rates, average transit times, exception rates, and service level compliance.",
+    "parameters": {
+      "analysis_period_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analysis period",
+        "format": "date-time"
+      },
+      "analysis_period_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analysis period",
+        "format": "date-time"
+      },
+      "carrier_codes": {
+        "type": "array",
+        "required": true,
+        "description": "Array of carrier codes to analyze",
+        "items": {
+          "type": "string"
+        }
+      },
+      "service_levels": {
+        "type": "array",
+        "required": true,
+        "description": "Service levels to include in analysis",
+        "items": {
+          "type": "string"
+        }
+      },
+      "geographic_regions": {
+        "type": "array",
+        "required": false,
+        "description": "Geographic regions to filter analysis",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid date range: End date must be after start date, and both must be valid ISO 8601 dates.",
+      "Empty carrier codes: At least one carrier code must be specified.",
+      "Empty service levels: At least one service level must be specified.",
+      "Analysis period too long: Maximum analysis period is 365 days.",
+      "Insufficient data: Not enough delivery data available for the specified criteria."
+    ],
+    "usage": "Specify analysis period dates, carrier codes, and service levels to analyze delivery performance. Optionally filter by geographic regions for more targeted analysis.",
+    "output_details": {
+      "on_time_delivery_rate": {
+        "type": "number",
+        "description": "Percentage of deliveries made on time"
+      },
+      "average_transit_days": {
+        "type": "number",
+        "description": "Average number of days in transit"
+      },
+      "exception_rate": {
+        "type": "number",
+        "description": "Percentage of deliveries with exceptions"
+      },
+      "carrier_performance": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Performance breakdown by carrier"
+      },
+      "service_level_compliance": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Compliance rates for each service level"
+      },
+      "trend_analysis": {
+        "type": "string",
+        "description": "Performance trend analysis over the period"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Route Optimizer",
+    "tool_description": "Optimizes delivery routes for multiple packages to minimize travel time, fuel costs, and maximize delivery efficiency while considering vehicle constraints.",
+    "parameters": {
+      "delivery_addresses": {
+        "type": "array",
+        "required": true,
+        "description": "Array of delivery addresses to optimize",
+        "items": {
+          "type": "string"
+        }
+      },
+      "starting_location": {
+        "type": "string",
+        "required": true,
+        "description": "Starting warehouse or depot address"
+      },
+      "vehicle_capacity": {
+        "type": "number",
+        "required": true,
+        "description": "Maximum vehicle capacity in units"
+      },
+      "package_sizes": {
+        "type": "array",
+        "required": true,
+        "description": "Size/weight of each package in units",
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "error_messages": [
+      "Empty delivery addresses: At least one delivery address must be provided.",
+      "Invalid starting location: Starting location address is required and must be valid.",
+      "Invalid vehicle capacity: Vehicle capacity must be a positive number.",
+      "Mismatched array lengths: Package sizes array must have the same length as delivery addresses array.",
+      "Capacity exceeded: Total package sizes exceed vehicle capacity.",
+      "Too many addresses: Maximum of 50 addresses can be optimized in a single route."
+    ],
+    "usage": "Provide delivery addresses, starting location, vehicle capacity, and corresponding package sizes to generate an optimized delivery route.",
+    "output_details": {
+      "optimized_route": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Optimized sequence of delivery addresses"
+      },
+      "estimated_distance": {
+        "type": "number",
+        "description": "Total estimated distance in miles"
+      },
+      "estimated_time": {
+        "type": "number",
+        "description": "Total estimated time in hours"
+      },
+      "fuel_cost_estimate": {
+        "type": "number",
+        "description": "Estimated fuel cost for the route"
+      },
+      "capacity_utilization": {
+        "type": "number",
+        "description": "Percentage of vehicle capacity utilized"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Signature Verification Tool",
+    "tool_description": "Verifies delivery confirmations and digital signatures, ensuring proper proof of delivery and identifying potential delivery discrepancies.",
+    "parameters": {
+      "tracking_number": {
+        "type": "string",
+        "required": true,
+        "description": "Package tracking number"
+      },
+      "signature_data": {
+        "type": "string",
+        "required": true,
+        "description": "Digital signature data or signature image reference"
+      },
+      "delivery_timestamp": {
+        "type": "string",
+        "required": true,
+        "description": "Delivery confirmation timestamp",
+        "format": "date-time"
+      },
+      "recipient_name": {
+        "type": "string",
+        "required": false,
+        "description": "Expected recipient name",
+        "default": "None"
+      },
+      "delivery_address": {
+        "type": "string",
+        "required": false,
+        "description": "Delivery address for verification",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid tracking number: Tracking number format is not recognized.",
+      "Missing signature data: Signature data is required for verification.",
+      "Invalid timestamp format: Delivery timestamp must be in ISO 8601 format.",
+      "Signature verification failed: Digital signature could not be verified or is invalid.",
+      "Delivery discrepancy: Delivery details do not match expected recipient or address."
+    ],
+    "usage": "Provide tracking number, signature data, and delivery timestamp to verify proof of delivery. Include recipient name and address for enhanced verification.",
+    "output_details": {
+      "verification_status": {
+        "type": "string",
+        "description": "Verification result (verified, failed, partial, pending)"
+      },
+      "signature_validity": {
+        "type": "boolean",
+        "description": "Whether the signature is valid"
+      },
+      "delivery_confirmation": {
+        "type": "boolean",
+        "description": "Whether delivery is properly confirmed"
+      },
+      "discrepancy_notes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Any discrepancies found during verification"
+      },
+      "proof_of_delivery_score": {
+        "type": "number",
+        "description": "Confidence score for proof of delivery (0-100)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Report Generator",
+    "tool_description": "Generates comprehensive delivery reports including performance metrics, exception summaries, trend analysis, and operational insights for specified time periods and criteria.",
+    "parameters": {
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report to generate (performance, exceptions, trends, operational, customer_satisfaction)"
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Report period start date",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "Report period end date",
+        "format": "date-time"
+      },
+      "carriers": {
+        "type": "array",
+        "required": false,
+        "description": "Specific carriers to include in report",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "regions": {
+        "type": "array",
+        "required": false,
+        "description": "Geographic regions to include",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "service_levels": {
+        "type": "array",
+        "required": false,
+        "description": "Service levels to analyze",
+        "items": {
+          "type": "string"
+        },
+        "default": "None"
+      },
+      "include_charts": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include visual charts in report",
+        "default": true
+      },
+      "granularity": {
+        "type": "string",
+        "required": false,
+        "description": "Report granularity (daily, weekly, monthly)",
+        "default": "daily"
+      },
+      "format": {
+        "type": "string",
+        "required": false,
+        "description": "Report output format (pdf, excel, csv, json)",
+        "default": "pdf"
+      },
+      "comparison_period": {
+        "type": "boolean",
+        "required": false,
+        "description": "Include comparison with previous period",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid report type: Must be one of: performance, exceptions, trends, operational, customer_satisfaction.",
+      "Invalid date range: End date must be after start date, and both must be valid ISO 8601 dates.",
+      "Report period too long: Maximum report period is 365 days.",
+      "Invalid granularity: Must be one of: daily, weekly, monthly.",
+      "Invalid format: Must be one of: pdf, excel, csv, json.",
+      "Insufficient data: Not enough data available for the specified criteria and period."
+    ],
+    "usage": "Specify report type, date range, and optional filtering criteria to generate comprehensive delivery reports. Configure output format and granularity based on requirements.",
+    "output_details": {
+      "report_id": {
+        "type": "string",
+        "description": "Unique identifier for the generated report"
+      },
+      "report_summary": {
+        "type": "string",
+        "description": "Executive summary of key findings"
+      },
+      "key_metrics": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Key performance metrics and statistics"
+      },
+      "trend_insights": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Trend analysis and insights"

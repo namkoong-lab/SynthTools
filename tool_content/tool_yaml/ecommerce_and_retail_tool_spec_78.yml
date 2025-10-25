@@ -1,0 +1,840 @@
+field_name: ecommerce_and_retail
+subfield: Price Management and Dynamic Pricing
+task: Price elasticity analysis and demand forecasting for optimal pricing strategies
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is **hard** due to its broad scope encompassing statistical modeling, economic analysis, market research, and predictive analytics. It involves complex dependencies between price changes, demand patterns, competitor actions, and external factors, with high ambiguity in market behavior and significant business impact from pricing errors.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** to cover the comprehensive workflow from data collection through price optimization and monitoring.
+
+  **STEP 3 — Tool dependencies and affordances**
+
+  Tools consume: raw sales data, competitor prices, market conditions, customer segments → produce: cleaned datasets, elasticity coefficients, demand forecasts, price recommendations → enable: optimization models, sensitivity analysis, monitoring systems → output: actionable pricing strategies and performance metrics.
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple plans:**
+  - Basic elasticity: Historical_Sales_Data_Collector → Price_Elasticity_Calculator → Price_Recommendation_Generator
+  - Competitor monitoring: Competitor_Price_Scraper → Market_Positioning_Analyzer → Price_Gap_Analyzer
+
+  **Medium plans:**
+  - Demand forecasting: Historical_Sales_Data_Collector → Sales_Data_Preprocessor → Demand_Forecasting_Engine → Forecast_Accuracy_Evaluator → Price_Recommendation_Generator
+  - Market analysis: Customer_Segmentation_Tool → Competitor_Price_Scraper → Market_Positioning_Analyzer → Cross_Price_Elasticity_Calculator
+
+  **Complex plans:**
+  - Full optimization: Historical_Sales_Data_Collector → Sales_Data_Preprocessor → Customer_Segmentation_Tool → Price_Elasticity_Calculator → Cross_Price_Elasticity_Calculator → Demand_Forecasting_Engine → Revenue_Optimization_Engine → Price_Sensitivity_Analyzer → Price_Recommendation_Generator → A_B_Test_Designer → Performance_Monitor
+
+  **STEP 5 — Tools**
+
+  ```json
+  {
+    "tool_name": "Historical_Sales_Data_Collector",
+    "tool_description": "Retrieves and aggregates historical sales data for specified products across multiple time periods and channels to support price elasticity analysis.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of product identifiers to collect data for",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "start_date": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for data collection",
+        "format": "date-time"
+      },
+      "end_date": {
+        "type": "string",
+        "required": true,
+        "description": "End date for data collection",
+        "format": "date-time"
+      },
+      "channels": {
+        "type": "array",
+        "required": false,
+        "description": "Sales channels to include",
+        "items": {"type": "string"},
+        "default": ["online", "retail"]
+      }
+    },
+    "error_messages": [
+      "Invalid date range: end_date must be after start_date and both must be valid ISO 8601 dates",
+      "Product not found: One or more product_ids do not exist in the system",
+      "Data access denied: Insufficient permissions to access sales data for requested products",
+      "Date range too large: Maximum allowed range is 5 years to prevent performance issues"
+    ],
+    "usage": "Specify product_ids, date range, and optionally channels. Returns aggregated sales data with prices, quantities, and timestamps for elasticity analysis.",
+    "output_details": {
+      "total_records": {
+        "type": "integer",
+        "description": "Total number of sales records retrieved"
+      },
+      "products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of product IDs with data found"
+      },
+      "date_range": {
+        "type": "string",
+        "description": "Actual date range of retrieved data"
+      },
+      "data_summary": {
+        "type": "string",
+        "description": "Summary of data completeness and quality"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Sales_Data_Preprocessor",
+    "tool_description": "Cleans, transforms, and prepares raw sales data for price elasticity analysis by handling missing values, outliers, and data normalization.",
+    "parameters": {
+      "data_source": {
+        "type": "string",
+        "required": true,
+        "description": "Source identifier or path to raw sales data"
+      },
+      "outlier_method": {
+        "type": "string",
+        "required": false,
+        "description": "Method for outlier detection: iqr, zscore, isolation_forest",
+        "default": "iqr"
+      },
+      "missing_value_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Strategy for handling missing values: drop, interpolate, forward_fill",
+        "default": "interpolate"
+      },
+      "normalization": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to normalize price and quantity data",
+        "default": true
+      },
+      "aggregation_level": {
+        "type": "string",
+        "required": false,
+        "description": "Time aggregation level: daily, weekly, monthly",
+        "default": "weekly"
+      }
+    },
+    "error_messages": [
+      "Invalid data source: Cannot access or parse the specified data source",
+      "Insufficient data: Less than 30 data points remaining after preprocessing",
+      "Invalid method: outlier_method must be one of [iqr, zscore, isolation_forest]",
+      "Invalid strategy: missing_value_strategy must be one of [drop, interpolate, forward_fill]",
+      "Invalid aggregation: aggregation_level must be one of [daily, weekly, monthly]"
+    ],
+    "usage": "Provide data_source and optionally configure preprocessing parameters. Returns cleaned dataset ready for elasticity analysis.",
+    "output_details": {
+      "processed_records": {
+        "type": "integer",
+        "description": "Number of records after preprocessing"
+      },
+      "outliers_removed": {
+        "type": "integer",
+        "description": "Number of outliers detected and removed"
+      },
+      "missing_values_handled": {
+        "type": "integer",
+        "description": "Number of missing values processed"
+      },
+      "data_quality_score": {
+        "type": "number",
+        "description": "Overall data quality score from 0 to 1"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price_Elasticity_Calculator",
+    "tool_description": "Calculates price elasticity of demand using econometric methods to determine how quantity demanded responds to price changes for individual products.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for elasticity calculation"
+      },
+      "price_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of historical prices",
+        "items": {"type": "number"},
+        "minItems": 30
+      },
+      "quantity_data": {
+        "type": "array",
+        "required": true,
+        "description": "Array of corresponding quantities sold",
+        "items": {"type": "number"},
+        "minItems": 30
+      },
+      "method": {
+        "type": "string",
+        "required": false,
+        "description": "Calculation method: log_linear, linear, arc_elasticity",
+        "default": "log_linear"
+      },
+      "confidence_level": {
+        "type": "number",
+        "required": false,
+        "description": "Statistical confidence level (0.90-0.99)",
+        "default": 0.95
+      }
+    },
+    "error_messages": [
+      "Data length mismatch: price_data and quantity_data must have the same length",
+      "Insufficient data: Minimum 30 data points required for reliable elasticity calculation",
+      "Invalid method: method must be one of [log_linear, linear, arc_elasticity]",
+      "Invalid confidence level: confidence_level must be between 0.90 and 0.99",
+      "Calculation failed: Unable to compute elasticity due to insufficient price variation or data quality issues"
+    ],
+    "usage": "Provide product_id, price_data, and quantity_data arrays of equal length. Optionally specify method and confidence_level. Returns elasticity coefficient with statistical measures.",
+    "output_details": {
+      "elasticity_coefficient": {
+        "type": "number",
+        "description": "Price elasticity of demand coefficient"
+      },
+      "standard_error": {
+        "type": "number",
+        "description": "Standard error of the elasticity estimate"
+      },
+      "r_squared": {
+        "type": "number",
+        "description": "R-squared value indicating model fit quality"
+      },
+      "confidence_interval": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Lower and upper bounds of confidence interval"
+      },
+      "interpretation": {
+        "type": "string",
+        "description": "Business interpretation of elasticity value"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Cross_Price_Elasticity_Calculator",
+    "tool_description": "Calculates cross-price elasticity between product pairs to understand substitution and complementary relationships affecting pricing decisions.",
+    "parameters": {
+      "primary_product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Primary product identifier"
+      },
+      "secondary_product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Secondary product identifier for cross-elasticity analysis"
+      },
+      "primary_price_data": {
+        "type": "array",
+        "required": true,
+        "description": "Historical prices for primary product",
+        "items": {"type": "number"},
+        "minItems": 30
+      },
+      "primary_quantity_data": {
+        "type": "array",
+        "required": true,
+        "description": "Historical quantities for primary product",
+        "items": {"type": "number"},
+        "minItems": 30
+      },
+      "secondary_price_data": {
+        "type": "array",
+        "required": true,
+        "description": "Historical prices for secondary product",
+        "items": {"type": "number"},
+        "minItems": 30
+      }
+    },
+    "error_messages": [
+      "Data length mismatch: All data arrays must have the same length",
+      "Insufficient data: Minimum 30 data points required for each product",
+      "Product similarity error: Cannot calculate cross-elasticity for identical products",
+      "Calculation failed: Insufficient price variation in secondary product to calculate cross-elasticity"
+    ],
+    "usage": "Provide both product IDs and their corresponding price and quantity data arrays. Returns cross-elasticity coefficient indicating substitution or complementary relationships.",
+    "output_details": {
+      "cross_elasticity": {
+        "type": "number",
+        "description": "Cross-price elasticity coefficient"
+      },
+      "relationship_type": {
+        "type": "string",
+        "description": "Substitutes, complements, or independent classification"
+      },
+      "strength": {
+        "type": "string",
+        "description": "Relationship strength: weak, moderate, strong"
+      },
+      "statistical_significance": {
+        "type": "boolean",
+        "description": "Whether the relationship is statistically significant"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Demand_Forecasting_Engine",
+    "tool_description": "Generates demand forecasts using multiple forecasting methods incorporating price changes, seasonality, and external factors for accurate demand prediction.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for demand forecasting"
+      },
+      "historical_demand": {
+        "type": "array",
+        "required": true,
+        "description": "Historical demand data",
+        "items": {"type": "number"},
+        "minItems": 52
+      },
+      "historical_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Corresponding historical prices",
+        "items": {"type": "number"},
+        "minItems": 52
+      },
+      "forecast_horizon": {
+        "type": "integer",
+        "required": true,
+        "description": "Number of periods to forecast (1-52)"
+      },
+      "forecasting_method": {
+        "type": "string",
+        "required": false,
+        "description": "Forecasting method: arima, exponential_smoothing, linear_regression, ensemble",
+        "default": "ensemble"
+      },
+      "seasonal_periods": {
+        "type": "integer",
+        "required": false,
+        "description": "Number of periods in seasonal cycle (4-52)",
+        "default": 52
+      },
+      "external_factors": {
+        "type": "array",
+        "required": false,
+        "description": "External factor values for forecast period",
+        "items": {"type": "number"},
+        "default": null
+      }
+    },
+    "error_messages": [
+      "Data length mismatch: historical_demand and historical_prices must have equal length",
+      "Insufficient historical data: Minimum 52 data points required for reliable forecasting",
+      "Invalid forecast horizon: forecast_horizon must be between 1 and 52",
+      "Invalid method: forecasting_method must be one of [arima, exponential_smoothing, linear_regression, ensemble]",
+      "Invalid seasonal periods: seasonal_periods must be between 4 and 52"
+    ],
+    "usage": "Provide product_id, historical data arrays, and forecast_horizon. Optionally specify method, seasonal_periods, and external_factors. Returns demand forecast with confidence intervals.",
+    "output_details": {
+      "forecast_values": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Forecasted demand values for each period"
+      },
+      "lower_bound": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Lower confidence interval bounds"
+      },
+      "upper_bound": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Upper confidence interval bounds"
+      },
+      "forecast_accuracy": {
+        "type": "number",
+        "description": "Estimated forecast accuracy score"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Competitor_Price_Scraper",
+    "tool_description": "Collects competitor pricing data from multiple sources and channels to support competitive pricing analysis and market positioning decisions.",
+    "parameters": {
+      "target_products": {
+        "type": "array",
+        "required": true,
+        "description": "List of product identifiers or names to track",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "competitor_list": {
+        "type": "array",
+        "required": true,
+        "description": "List of competitor identifiers or names",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "data_sources": {
+        "type": "array",
+        "required": false,
+        "description": "Data sources to scrape from",
+        "items": {"type": "string"},
+        "default": ["website", "marketplace", "api"]
+      }
+    },
+    "error_messages": [
+      "Product not found: One or more target products could not be located across competitors",
+      "Competitor access denied: Unable to access pricing data from one or more competitors",
+      "Rate limit exceeded: Too many requests made to data sources, retry after specified delay",
+      "Invalid data source: Supported sources are [website, marketplace, api]"
+    ],
+    "usage": "Specify target_products and competitor_list to track. Optionally configure data_sources. Returns current competitor prices and pricing trends.",
+    "output_details": {
+      "price_matrix": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Formatted price comparison matrix"
+      },
+      "data_freshness": {
+        "type": "string",
+        "description": "Timestamp of most recent data collection",
+        "format": "date-time"
+      },
+      "coverage_rate": {
+        "type": "number",
+        "description": "Percentage of requested products found"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Market_Positioning_Analyzer",
+    "tool_description": "Analyzes market positioning by comparing product prices against competitor prices and market segments to identify pricing opportunities and gaps.",
+    "parameters": {
+      "product_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Current prices for analyzed products",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "competitor_prices": {
+        "type": "array",
+        "required": true,
+        "description": "Competitor prices for corresponding products",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "market_segment": {
+        "type": "string",
+        "required": true,
+        "description": "Market segment: premium, mid_market, budget, luxury"
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": false,
+        "description": "Analysis type: relative_position, gap_analysis, penetration_pricing",
+        "default": "relative_position"
+      }
+    },
+    "error_messages": [
+      "Price array mismatch: product_prices and competitor_prices must have the same length",
+      "Invalid market segment: market_segment must be one of [premium, mid_market, budget, luxury]",
+      "Invalid analysis type: analysis_type must be one of [relative_position, gap_analysis, penetration_pricing]",
+      "Insufficient data: Need at least one price comparison point"
+    ],
+    "usage": "Provide product_prices, competitor_prices arrays, and market_segment. Optionally specify analysis_type. Returns positioning insights and recommendations.",
+    "output_details": {
+      "position_score": {
+        "type": "number",
+        "description": "Market positioning score from 0 to 100"
+      },
+      "price_gaps": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Price gaps compared to competitors"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Strategic pricing recommendations"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Customer_Segmentation_Tool",
+    "tool_description": "Segments customers based on purchasing behavior, price sensitivity, and demographics to enable targeted pricing strategies for different customer groups.",
+    "parameters": {
+      "customer_data": {
+        "type": "array",
+        "required": true,
+        "description": "Customer transaction history data",
+        "items": {"type": "string"},
+        "minItems": 100,
+        "maxItems": 10000
+      },
+      "segmentation_method": {
+        "type": "string",
+        "required": false,
+        "description": "Segmentation approach: behavioral, demographic, value_based, hybrid",
+        "default": "behavioral"
+      },
+      "number_of_segments": {
+        "type": "integer",
+        "required": false,
+        "description": "Target number of customer segments (2-10)",
+        "default": 4
+      },
+      "include_price_sensitivity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include price sensitivity in segmentation",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Insufficient customer data: Minimum 100 customer records required for meaningful segmentation",
+      "Invalid segmentation method: method must be one of [behavioral, demographic, value_based, hybrid]",
+      "Invalid segment count: number_of_segments must be between 2 and 10",
+      "Data quality issues: Customer data contains too many missing or invalid values"
+    ],
+    "usage": "Provide customer_data array and optionally configure segmentation parameters. Returns customer segments with characteristics and pricing sensitivity profiles.",
+    "output_details": {
+      "segment_profiles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed profiles for each customer segment"
+      },
+      "segment_sizes": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Number of customers in each segment"
+      },
+      "price_sensitivity_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Price sensitivity scores for each segment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Revenue_Optimization_Engine",
+    "tool_description": "Optimizes pricing to maximize revenue using elasticity data, demand forecasts, and business constraints through mathematical optimization algorithms.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for revenue optimization"
+      },
+      "current_price": {
+        "type": "number",
+        "required": true,
+        "description": "Current product price"
+      },
+      "elasticity_coefficient": {
+        "type": "number",
+        "required": true,
+        "description": "Price elasticity of demand coefficient"
+      },
+      "demand_forecast": {
+        "type": "array",
+        "required": true,
+        "description": "Forecasted demand at current price",
+        "items": {"type": "number"},
+        "minItems": 1,
+        "maxItems": 52
+      },
+      "cost_per_unit": {
+        "type": "number",
+        "required": true,
+        "description": "Variable cost per unit"
+      },
+      "price_bounds": {
+        "type": "array",
+        "required": true,
+        "description": "Minimum and maximum allowable prices",
+        "items": {"type": "number"},
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "optimization_objective": {
+        "type": "string",
+        "required": false,
+        "description": "Optimization goal: revenue, profit, market_share",
+        "default": "revenue"
+      },
+      "demand_constraints": {
+        "type": "array",
+        "required": false,
+        "description": "Minimum and maximum demand constraints",
+        "items": {"type": "number"},
+        "default": null
+      },
+      "competitor_prices": {
+        "type": "array",
+        "required": false,
+        "description": "Competitor prices for competitive constraints",
+        "items": {"type": "number"},
+        "default": null
+      },
+      "time_horizon": {
+        "type": "integer",
+        "required": false,
+        "description": "Optimization time horizon in periods (1-52)",
+        "default": 12
+      },
+      "inventory_constraints": {
+        "type": "array",
+        "required": false,
+        "description": "Inventory capacity constraints per period",
+        "items": {"type": "integer"},
+        "default": null
+      },
+      "seasonal_factors": {
+        "type": "array",
+        "required": false,
+        "description": "Seasonal adjustment factors",
+        "items": {"type": "number"},
+        "default": null
+      },
+      "market_share_target": {
+        "type": "number",
+        "required": false,
+        "description": "Target market share percentage (0-100)",
+        "default": null
+      },
+      "price_change_frequency": {
+        "type": "string",
+        "required": false,
+        "description": "How often prices can change: daily, weekly, monthly",
+        "default": "weekly"
+      }
+    },
+    "error_messages": [
+      "Invalid price bounds: price_bounds must contain exactly 2 values with minimum < maximum",
+      "Infeasible optimization: No solution exists given the specified constraints",
+      "Invalid elasticity: elasticity_coefficient must be negative for normal goods",
+      "Cost exceeds price bounds: cost_per_unit is higher than maximum allowed price",
+      "Invalid optimization objective: objective must be one of [revenue, profit, market_share]",
+      "Time horizon mismatch: time_horizon must match demand_forecast length when both specified",
+      "Invalid market share target: market_share_target must be between 0 and 100",
+      "Invalid price change frequency: frequency must be one of [daily, weekly, monthly]"
+    ],
+    "usage": "Provide product_id, current_price, elasticity_coefficient, demand_forecast, cost_per_unit, and price_bounds. Configure optimization_objective and constraints as needed. Returns optimal pricing strategy.",
+    "output_details": {
+      "optimal_price": {
+        "type": "number",
+        "description": "Recommended optimal price"
+      },
+      "expected_revenue": {
+        "type": "number",
+        "description": "Expected revenue at optimal price"
+      },
+      "expected_demand": {
+        "type": "number",
+        "description": "Expected demand at optimal price"
+      },
+      "price_change_percentage": {
+        "type": "number",
+        "description": "Percentage change from current price"
+      },
+      "sensitivity_analysis": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Impact of key parameter changes"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price_Sensitivity_Analyzer",
+    "tool_description": "Analyzes how sensitive key business metrics are to price changes by running sensitivity analysis across different price points and scenarios.",
+    "parameters": {
+      "base_price": {
+        "type": "number",
+        "required": true,
+        "description": "Base price point for sensitivity analysis"
+      },
+      "price_range": {
+        "type": "array",
+        "required": true,
+        "description": "Price range for analysis [min, max]",
+        "items": {"type": "number"},
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "elasticity_coefficient": {
+        "type": "number",
+        "required": true,
+        "description": "Price elasticity coefficient"
+      },
+      "base_demand": {
+        "type": "number",
+        "required": true,
+        "description": "Demand at base price"
+      },
+      "variable_cost": {
+        "type": "number",
+        "required": true,
+        "description": "Variable cost per unit"
+      }
+    },
+    "error_messages": [
+      "Invalid price range: price_range must contain exactly 2 values with min < max",
+      "Base price out of range: base_price must be within the specified price_range",
+      "Invalid elasticity: elasticity_coefficient must be negative",
+      "Invalid demand: base_demand must be positive",
+      "Cost exceeds revenue: variable_cost is too high relative to price range"
+    ],
+    "usage": "Provide base_price, price_range, elasticity_coefficient, base_demand, and variable_cost. Returns sensitivity analysis showing impact of price changes on revenue, profit, and demand.",
+    "output_details": {
+      "price_points": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Array of price points analyzed"
+      },
+      "revenue_impact": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Revenue at each price point"
+      },
+      "profit_impact": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Profit at each price point"
+      },
+      "demand_impact": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Demand at each price point"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price_Recommendation_Generator",
+    "tool_description": "Generates actionable price recommendations by synthesizing elasticity analysis, demand forecasts, competitive data, and business objectives into specific pricing strategies.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for recommendations"
+      },
+      "current_price": {
+        "type": "number",
+        "required": true,
+        "description": "Current product price"
+      },
+      "elasticity_data": {
+        "type": "array",
+        "required": true,
+        "description": "Price elasticity coefficients",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "demand_forecast": {
+        "type": "array",
+        "required": true,
+        "description": "Demand forecast data",
+        "items": {"type": "number"},
+        "minItems": 1
+      },
+      "competitor_prices": {
+        "type": "array",
+        "required": false,
+        "description": "Current competitor prices",
+        "items": {"type": "number"},
+        "default": null
+      },
+      "business_objective": {
+        "type": "string",
+        "required": false,
+        "description": "Primary objective: maximize_revenue, maximize_profit, increase_market_share, maintain_position",
+        "default": "maximize_revenue"
+      }
+    },
+    "error_messages": [
+      "Invalid current price: current_price must be positive",
+      "Insufficient elasticity data: At least one elasticity coefficient required",
+      "Data length mismatch: elasticity_data and demand_forecast should have compatible dimensions",
+      "Invalid business objective: objective must be one of [maximize_revenue, maximize_profit, increase_market_share, maintain_position]"
+    ],
+    "usage": "Provide product_id, current_price, elasticity_data, and demand_forecast. Optionally include competitor_prices and business_objective. Returns specific pricing recommendations with rationale.",
+    "output_details": {
+      "recommended_price": {
+        "type": "number",
+        "description": "Primary price recommendation"
+      },
+      "alternative_prices": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Alternative price options"
+      },
+      "expected_impact": {
+        "type": "string",
+        "description": "Expected business impact of recommendation"
+      },
+      "implementation_timeline": {
+        "type": "string",
+        "description": "Recommended timeline for price change"
+      },
+      "risk_assessment": {
+        "type": "string",
+        "description": "Assessment of implementation risks"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "A_B_Test_Designer",
+    "tool_description": "Designs A/B tests for price changes to validate elasticity assumptions and measure actual market response before full implementation of pricing strategies.",
+    "parameters": {
+      "product_id": {
+        "type": "string",
+        "required": true,
+        "description": "Product identifier for A/B test"
+      },
+      "control_price": {
+        "type": "number",
+        "required": true,
+        "description": "Current price (control group)"
+      },
+      "test_price": {
+        "type": "number",
+        "required": true,
+        "description": "Proposed new price (test group)"

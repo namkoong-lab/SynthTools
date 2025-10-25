@@ -1,0 +1,820 @@
+field_name: ecommerce_and_retail
+subfield: Product Search and Discovery
+task: Product catalog search and filtering by multiple attributes (price, brand, category, ratings, availability)
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+  This task has medium difficulty. While the core search and filtering logic is well-understood, it involves multiple complex subproblems: query parsing and interpretation, multi-attribute filtering with various data types, relevance scoring, inventory management, and performance optimization. The coordination between search indexing, filtering, ranking, and result presentation creates moderate dependencies, and errors in search results directly impact customer experience and sales.
+
+  **STEP 2 — Set a tool budget**
+  Based on the medium difficulty assessment, I'm targeting 12 tools within the 10-15 range. This allows for comprehensive coverage of search query processing, attribute filtering, relevance scoring, inventory checking, and result formatting while maintaining tool composability.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Query Parser** - Consumes: raw search query → Produces: parsed query components
+  2. **Search Index Builder** - Consumes: product catalog data → Produces: search index
+  3. **Text Search Engine** - Consumes: parsed query, search index → Produces: text-matched products
+  4. **Price Filter** - Consumes: product list, price constraints → Produces: price-filtered products
+  5. **Category Filter** - Consumes: product list, category criteria → Produces: category-filtered products
+  6. **Brand Filter** - Consumes: product list, brand criteria → Produces: brand-filtered products
+  7. **Rating Filter** - Consumes: product list, rating criteria → Produces: rating-filtered products
+  8. **Availability Checker** - Consumes: product list, location data → Produces: availability-verified products
+  9. **Relevance Scorer** - Consumes: products, search query, user context → Produces: relevance scores
+  10. **Product Ranker** - Consumes: products with scores, sorting criteria → Produces: ranked product list
+  11. **Search Result Formatter** - Consumes: ranked products, display preferences → Produces: formatted search results
+  12. **Search Analytics Tracker** - Consumes: search query, results, user actions → Produces: analytics data
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - Basic text search: Query Parser → Text Search Engine → Search Result Formatter
+  - Price-only filtering: Query Parser → Price Filter → Product Ranker → Search Result Formatter
+
+  **Medium Plans:**
+  - Multi-attribute search: Query Parser → Text Search Engine → Price Filter → Brand Filter → Relevance Scorer → Product Ranker → Search Result Formatter
+  - Location-aware search: Query Parser → Text Search Engine → Category Filter → Availability Checker → Product Ranker → Search Result Formatter → Search Analytics Tracker
+
+  **Complex Plans:**
+  - Full-featured search: Query Parser → Search Index Builder → Text Search Engine → Price Filter → Category Filter → Brand Filter → Rating Filter → Availability Checker → Relevance Scorer → Product Ranker → Search Result Formatter → Search Analytics Tracker
+  - Personalized search with analytics: Query Parser → Text Search Engine → Price Filter → Category Filter → Rating Filter → Availability Checker → Relevance Scorer → Product Ranker → Search Result Formatter → Search Analytics Tracker
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Query Parser",
+    "tool_description": "Parses and extracts structured components from natural language search queries, identifying keywords, filters, and search intent.",
+    "parameters": {
+      "search_query": {
+        "type": "string",
+        "required": true,
+        "description": "The raw search query entered by the user"
+      },
+      "enable_spell_correction": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to apply spell correction to the query"
+      },
+      "max_keywords": {
+        "type": "integer",
+        "required": false,
+        "default": 10,
+        "description": "Maximum number of keywords to extract from the query"
+      }
+    },
+    "error_messages": [
+      "Empty search query: Provide a non-empty search query string",
+      "Query too long: Search query must be under 500 characters",
+      "Invalid max_keywords: Value must be between 1 and 20"
+    ],
+    "usage": "Provide a search_query string and optionally configure spell correction and keyword limits. The tool extracts keywords, identifies potential filters, and returns structured query components.",
+    "output_details": {
+      "keywords": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Extracted keywords from the search query"
+      },
+      "corrected_query": {
+        "type": "string",
+        "description": "Spell-corrected version of the original query"
+      },
+      "search_intent": {
+        "type": "string",
+        "description": "Identified search intent (product, category, brand, etc.)"
+      },
+      "implicit_filters": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Filter terms detected within the query"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Search Index Builder",
+    "tool_description": "Creates and optimizes search indexes from product catalog data to enable fast text-based product searches.",
+    "parameters": {
+      "catalog_data_path": {
+        "type": "string",
+        "required": true,
+        "description": "File path to the product catalog data"
+      },
+      "index_fields": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Product fields to include in the search index"
+      },
+      "index_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of search index to build (inverted_index, elasticsearch, solr)"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "default": "english",
+        "description": "Language for text processing and stemming"
+      },
+      "enable_synonyms": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include synonym expansion in the index"
+      }
+    },
+    "error_messages": [
+      "Invalid catalog path: The specified catalog data file does not exist or is not accessible",
+      "Empty index fields: At least one field must be specified for indexing",
+      "Unsupported index type: Use one of [inverted_index, elasticsearch, solr]",
+      "Invalid language: Specify a supported language for text processing",
+      "Catalog format error: Product catalog must be in valid JSON or CSV format"
+    ],
+    "usage": "Provide the path to product catalog data, specify which fields to index, and choose an index type. The tool builds an optimized search index for fast product retrieval.",
+    "output_details": {
+      "index_id": {
+        "type": "string",
+        "description": "Unique identifier for the created search index"
+      },
+      "indexed_products_count": {
+        "type": "integer",
+        "description": "Number of products successfully indexed"
+      },
+      "index_size_mb": {
+        "type": "number",
+        "description": "Size of the created index in megabytes"
+      },
+      "build_duration_seconds": {
+        "type": "number",
+        "description": "Time taken to build the index"
+      },
+      "index_status": {
+        "type": "string",
+        "description": "Status of the index build process"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Text Search Engine",
+    "tool_description": "Performs text-based product searches using keywords and returns matching products with relevance scores.",
+    "parameters": {
+      "keywords": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Keywords to search for in product data"
+      },
+      "search_index_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the search index to query against"
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "default": 100,
+        "description": "Maximum number of products to return"
+      },
+      "fuzzy_matching": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Enable fuzzy matching for approximate text matches"
+      }
+    },
+    "error_messages": [
+      "Empty keywords: At least one keyword must be provided for search",
+      "Invalid search index: The specified search index ID does not exist",
+      "Invalid max_results: Value must be between 1 and 1000",
+      "Search index unavailable: The search index is currently being rebuilt or is corrupted"
+    ],
+    "usage": "Provide keywords and a search index ID to find matching products. Optionally configure result limits and fuzzy matching. Returns products with relevance scores based on text matching.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of matching product IDs"
+      },
+      "match_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Text matching scores for each product"
+      },
+      "total_matches": {
+        "type": "integer",
+        "description": "Total number of products that matched the search"
+      },
+      "search_duration_ms": {
+        "type": "number",
+        "description": "Time taken to execute the search in milliseconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Price Filter",
+    "tool_description": "Filters a list of products based on price range constraints and pricing conditions.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "List of product IDs to filter"
+      },
+      "min_price": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Minimum price threshold (inclusive)"
+      },
+      "max_price": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Maximum price threshold (inclusive)"
+      },
+      "currency": {
+        "type": "string",
+        "required": false,
+        "default": "USD",
+        "description": "Currency code for price filtering"
+      },
+      "include_sale_prices": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to consider sale/discounted prices"
+      }
+    },
+    "error_messages": [
+      "Empty product list: At least one product ID must be provided",
+      "Invalid price range: min_price must be less than or equal to max_price",
+      "Negative price values: Price values must be non-negative",
+      "Invalid currency code: Provide a valid 3-letter ISO currency code",
+      "Price data unavailable: Some products are missing price information"
+    ],
+    "usage": "Provide a list of product IDs and specify price constraints. The tool filters products that fall within the specified price range, considering sale prices if enabled.",
+    "output_details": {
+      "filtered_product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that match the price criteria"
+      },
+      "filtered_count": {
+        "type": "integer",
+        "description": "Number of products remaining after price filtering"
+      },
+      "price_range_found": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Actual price range of filtered products [min, max]"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Category Filter",
+    "tool_description": "Filters products by category hierarchy, supporting both exact matches and category tree navigation.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "List of product IDs to filter"
+      },
+      "target_categories": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "List of category names or IDs to filter by"
+      },
+      "include_subcategories": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include products from subcategories"
+      },
+      "category_match_mode": {
+        "type": "string",
+        "required": false,
+        "default": "any",
+        "description": "Match mode: 'any' for OR logic, 'all' for AND logic"
+      },
+      "category_hierarchy_path": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Full category path for hierarchical filtering (e.g., 'Electronics/Phones/Smartphones')"
+      }
+    },
+    "error_messages": [
+      "Empty product list: At least one product ID must be provided",
+      "Invalid target categories: At least one category must be specified",
+      "Invalid category match mode: Use either 'any' or 'all'",
+      "Category not found: One or more specified categories do not exist in the catalog",
+      "Invalid hierarchy path: Category hierarchy path format is incorrect"
+    ],
+    "usage": "Provide product IDs and target categories for filtering. Configure whether to include subcategories and how to match multiple categories. Optionally specify a full hierarchy path for precise filtering.",
+    "output_details": {
+      "filtered_product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that match the category criteria"
+      },
+      "filtered_count": {
+        "type": "integer",
+        "description": "Number of products remaining after category filtering"
+      },
+      "matched_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Categories that were successfully matched"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Brand Filter",
+    "tool_description": "Filters products by brand names with support for exact matching, partial matching, and brand exclusion.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "List of product IDs to filter"
+      },
+      "include_brands": {
+        "type": "array",
+        "required": false,
+        "default": null,
+        "items": {"type": "string"},
+        "description": "Brand names to include in results"
+      },
+      "exclude_brands": {
+        "type": "array",
+        "required": false,
+        "default": null,
+        "items": {"type": "string"},
+        "description": "Brand names to exclude from results"
+      },
+      "exact_match": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to use exact brand name matching"
+      }
+    },
+    "error_messages": [
+      "Empty product list: At least one product ID must be provided",
+      "No filter criteria: Specify either include_brands or exclude_brands",
+      "Conflicting filters: A brand cannot be both included and excluded",
+      "Brand not found: One or more specified brands do not exist in the catalog",
+      "Invalid brand names: Brand names cannot be empty strings"
+    ],
+    "usage": "Provide product IDs and specify brands to include or exclude. Configure exact matching behavior. The tool filters products based on brand criteria and returns matching results.",
+    "output_details": {
+      "filtered_product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that match the brand criteria"
+      },
+      "filtered_count": {
+        "type": "integer",
+        "description": "Number of products remaining after brand filtering"
+      },
+      "matched_brands": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Brand names that were found in the filtered results"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Rating Filter",
+    "tool_description": "Filters products based on customer rating thresholds and review count requirements.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "List of product IDs to filter"
+      },
+      "min_rating": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Minimum average rating (0-5 scale)"
+      },
+      "max_rating": {
+        "type": "number",
+        "required": false,
+        "default": null,
+        "description": "Maximum average rating (0-5 scale)"
+      },
+      "min_review_count": {
+        "type": "integer",
+        "required": false,
+        "default": null,
+        "description": "Minimum number of reviews required"
+      },
+      "rating_system": {
+        "type": "string",
+        "required": false,
+        "default": "five_star",
+        "description": "Rating system type (five_star, ten_point, percentage)"
+      },
+      "exclude_unrated": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to exclude products with no ratings"
+      }
+    },
+    "error_messages": [
+      "Empty product list: At least one product ID must be provided",
+      "Invalid rating range: min_rating must be less than or equal to max_rating",
+      "Rating out of bounds: Ratings must be within the valid range for the specified rating system",
+      "Invalid review count: min_review_count must be a non-negative integer",
+      "Unsupported rating system: Use one of [five_star, ten_point, percentage]",
+      "Rating data unavailable: Some products are missing rating information"
+    ],
+    "usage": "Provide product IDs and specify rating criteria such as minimum/maximum ratings and review count thresholds. Configure the rating system and whether to exclude unrated products.",
+    "output_details": {
+      "filtered_product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that meet the rating criteria"
+      },
+      "filtered_count": {
+        "type": "integer",
+        "description": "Number of products remaining after rating filtering"
+      },
+      "average_rating": {
+        "type": "number",
+        "description": "Average rating of the filtered products"
+      },
+      "rating_distribution": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Count of products in each rating tier"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Availability Checker",
+    "tool_description": "Checks product availability across multiple locations, warehouses, and sales channels with real-time inventory validation.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "List of product IDs to check availability for"
+      },
+      "location": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Geographic location for availability checking (city, zip code, or coordinates)"
+      },
+      "sales_channel": {
+        "type": "string",
+        "required": false,
+        "default": "online",
+        "description": "Sales channel to check (online, in_store, marketplace, all)"
+      },
+      "include_backorder": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include products available for backorder"
+      },
+      "include_preorder": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to include products available for preorder"
+      },
+      "max_delivery_days": {
+        "type": "integer",
+        "required": false,
+        "default": null,
+        "description": "Maximum acceptable delivery time in days"
+      },
+      "minimum_stock_level": {
+        "type": "integer",
+        "required": false,
+        "default": 1,
+        "description": "Minimum stock level required to consider item available"
+      },
+      "warehouse_ids": {
+        "type": "array",
+        "required": false,
+        "default": null,
+        "items": {"type": "string"},
+        "description": "Specific warehouse IDs to check inventory from"
+      },
+      "check_variants": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to check availability of product variants (sizes, colors, etc.)"
+      },
+      "priority_shipping": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to prioritize products with express shipping options"
+      }
+    },
+    "error_messages": [
+      "Empty product list: At least one product ID must be provided",
+      "Invalid location: Provide a valid city name, zip code, or coordinates",
+      "Invalid sales channel: Use one of [online, in_store, marketplace, all]",
+      "Invalid delivery days: max_delivery_days must be a positive integer",
+      "Invalid stock level: minimum_stock_level must be a non-negative integer",
+      "Warehouse not found: One or more specified warehouse IDs do not exist",
+      "Inventory service unavailable: Cannot connect to inventory management system",
+      "Location service error: Cannot resolve the provided location information"
+    ],
+    "usage": "Provide product IDs and optionally specify location, sales channel, and inventory requirements. The tool checks real-time availability across the specified parameters and returns available products with stock information.",
+    "output_details": {
+      "available_product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs that are currently available"
+      },
+      "availability_count": {
+        "type": "integer",
+        "description": "Number of products that are available"
+      },
+      "stock_levels": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Stock levels for available products"
+      },
+      "estimated_delivery_days": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Estimated delivery days for each available product"
+      },
+      "available_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Sales channels where products are available"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Relevance Scorer",
+    "tool_description": "Calculates relevance scores for products based on search query, user context, and multiple ranking factors.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "List of product IDs to score"
+      },
+      "search_keywords": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Keywords from the original search query"
+      },
+      "user_id": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "User identifier for personalized scoring"
+      },
+      "scoring_weights": {
+        "type": "array",
+        "required": false,
+        "default": [0.3, 0.2, 0.2, 0.15, 0.15],
+        "items": {"type": "number"},
+        "description": "Weights for [text_match, popularity, rating, price_competitiveness, freshness]"
+      },
+      "boost_categories": {
+        "type": "array",
+        "required": false,
+        "default": null,
+        "items": {"type": "string"},
+        "description": "Categories to boost in relevance scoring"
+      }
+    },
+    "error_messages": [
+      "Empty product list: At least one product ID must be provided",
+      "Empty keywords: At least one search keyword must be provided",
+      "Invalid scoring weights: Weights must sum to 1.0 and contain exactly 5 values",
+      "Invalid weight values: All weight values must be between 0 and 1",
+      "User data unavailable: Cannot retrieve user profile for personalized scoring",
+      "Product data missing: Some products are missing required data for scoring"
+    ],
+    "usage": "Provide product IDs and search keywords for relevance scoring. Optionally specify user ID for personalization and adjust scoring weights. The tool calculates comprehensive relevance scores.",
+    "output_details": {
+      "product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs in the same order as input"
+      },
+      "relevance_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Calculated relevance scores (0-1 scale)"
+      },
+      "score_components": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Breakdown of score components for each product"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Product Ranker",
+    "tool_description": "Ranks and sorts products based on relevance scores, user preferences, and business rules.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "List of product IDs to rank"
+      },
+      "relevance_scores": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "number"},
+        "description": "Relevance scores corresponding to each product"
+      },
+      "sort_by": {
+        "type": "string",
+        "required": false,
+        "default": "relevance",
+        "description": "Primary sorting criteria (relevance, price_low_to_high, price_high_to_low, rating, newest, popularity)"
+      },
+      "secondary_sort": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Secondary sorting criteria for ties"
+      },
+      "promote_products": {
+        "type": "array",
+        "required": false,
+        "default": null,
+        "items": {"type": "string"},
+        "description": "Product IDs to promote in rankings"
+      }
+    },
+    "error_messages": [
+      "Mismatched arrays: product_ids and relevance_scores must have the same length",
+      "Empty product list: At least one product must be provided for ranking",
+      "Invalid sort criteria: Use one of [relevance, price_low_to_high, price_high_to_low, rating, newest, popularity]",
+      "Invalid relevance scores: Scores must be numeric values between 0 and 1",
+      "Promoted products not found: Some promoted product IDs are not in the input list"
+    ],
+    "usage": "Provide product IDs with corresponding relevance scores and specify sorting preferences. Optionally promote specific products. The tool returns products in ranked order.",
+    "output_details": {
+      "ranked_product_ids": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Product IDs sorted in ranking order"
+      },
+      "final_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Final ranking scores for each product"
+      },
+      "ranking_positions": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Ranking position for each product (1-based)"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Search Result Formatter",
+    "tool_description": "Formats ranked product search results into structured output with customizable display fields and pagination.",
+    "parameters": {
+      "product_ids": {
+        "type": "array",
+        "required": true,
+        "items": {"type": "string"},
+        "description": "Ranked list of product IDs to format"
+      },
+      "display_fields": {
+        "type": "array",
+        "required": false,
+        "default": ["name", "price", "rating", "image_url"],
+        "items": {"type": "string"},
+        "description": "Product fields to include in formatted results"
+      },
+      "page_size": {
+        "type": "integer",
+        "required": false,
+        "default": 20,
+        "description": "Number of products per page"
+      },
+      "page_number": {
+        "type": "integer",
+        "required": false,
+        "default": 1,
+        "description": "Page number to return (1-based)"
+      },
+      "include_facets": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Whether to include facet counts for filtering"
+      }
+    },
+    "error_messages": [
+      "Empty product list: At least one product ID must be provided",
+      "Invalid page size: Page size must be between 1 and 100",
+      "Invalid page number: Page number must be a positive integer",
+      "Invalid display fields: At least one display field must be specified",
+      "Page out of range: Requested page number exceeds available results",
+      "Product data unavailable: Cannot retrieve product information for formatting"
+    ],
+    "usage": "Provide ranked product IDs and configure display preferences, pagination, and faceting options. The tool returns formatted search results ready for presentation.",
+    "output_details": {
+      "products": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Formatted product data for the requested page"
+      },
+      "total_results": {
+        "type": "integer",
+        "description": "Total number of products in the result set"
+      },
+      "current_page": {
+        "type": "integer",
+        "description": "Current page number"
+      },
+      "total_pages": {
+        "type": "integer",
+        "description": "Total number of pages available"
+      },
+      "facets": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Available facets with counts for filtering"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Search Analytics Tracker",
+    "tool_description": "Tracks and records search analytics data including user interactions, query performance, and result effectiveness metrics.",
+    "parameters": {
+      "search_query": {
+        "type": "string",
+        "required": true,
+        "description": "Original search query from the user"
+      },
+      "user_id": {
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "User identifier for tracking purposes"
+      },
+      "session_id": {
+        "type": "string",
+        "required": true,
+        "description": "Session identifier for this search interaction"
+      },
+      "results_count": {
+        "type": "integer",
+        "required": true,
+        "description": "Total number of search results returned"
+      },
+      "response_time_ms": {
+        "type": "number",
+        "required": true,
+        "description": "Total response time for

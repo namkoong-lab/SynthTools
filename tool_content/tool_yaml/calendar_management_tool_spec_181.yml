@@ -1,0 +1,822 @@
+field_name: calendar_management
+subfield: appointment_scheduling
+task: Send automated appointment confirmations and reminders to participants
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  This task is of medium difficulty. It involves coordinating multiple communication channels, managing timing constraints, handling participant preferences, and ensuring reliable delivery of time-sensitive information. The scope includes template management, scheduling logic, delivery tracking, and error handling across various communication methods.
+
+  **STEP 2 — Set a tool budget**
+
+  Based on the medium difficulty assessment, I'll target 12 tools to cover the various aspects of automated appointment confirmations and reminders, including template management, participant handling, scheduling, delivery, and monitoring.
+
+  **STEP 3 — List all tool names and dependencies**
+
+  1. **Appointment Data Validator** - Consumes: appointment details → Produces: validated appointment structure
+  2. **Participant Contact Manager** - Consumes: participant IDs/info → Produces: contact details and preferences
+  3. **Message Template Engine** - Consumes: template type, appointment data → Produces: formatted messages
+  4. **Reminder Schedule Calculator** - Consumes: appointment time, reminder rules → Produces: scheduled reminder times
+  5. **Email Notification Sender** - Consumes: recipient details, message content → Produces: delivery status
+  6. **SMS Notification Sender** - Consumes: phone numbers, message content → Produces: delivery status
+  7. **Push Notification Dispatcher** - Consumes: device tokens, message content → Produces: delivery status
+  8. **Delivery Status Tracker** - Consumes: notification IDs → Produces: delivery confirmations and failures
+  9. **Retry Logic Manager** - Consumes: failed deliveries → Produces: retry schedules
+  10. **Confirmation Response Handler** - Consumes: participant responses → Produces: updated appointment status
+  11. **Reminder Batch Processor** - Consumes: scheduled reminders → Produces: processed notification batches
+  12. **Delivery Analytics Reporter** - Consumes: delivery data → Produces: success rates and insights
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  - **Basic Confirmation**: Appointment Data Validator → Message Template Engine → Email Notification Sender → Delivery Status Tracker
+  - **SMS Reminder**: Reminder Schedule Calculator → Message Template Engine → SMS Notification Sender
+
+  **Medium Plans:**
+  - **Multi-channel Reminder**: Participant Contact Manager → Reminder Schedule Calculator → Message Template Engine → [Email/SMS/Push Senders] → Delivery Status Tracker → Retry Logic Manager
+  - **Response Processing**: Confirmation Response Handler → Appointment Data Validator → Message Template Engine → Email Notification Sender
+
+  **Complex Plans:**
+  - **Full Automated Campaign**: Appointment Data Validator → Participant Contact Manager → Reminder Schedule Calculator → Reminder Batch Processor → Message Template Engine → [Multiple Senders] → Delivery Status Tracker → Retry Logic Manager → Confirmation Response Handler → Delivery Analytics Reporter
+  - **Failed Delivery Recovery**: Delivery Status Tracker → Retry Logic Manager → Participant Contact Manager → Message Template Engine → [Alternative Senders] → Delivery Status Tracker → Delivery Analytics Reporter
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Appointment Data Validator",
+    "tool_description": "Validates and structures appointment data to ensure all required fields are present and properly formatted for confirmation and reminder processing.",
+    "parameters": {
+      "appointment_id": {
+        "type": "string",
+        "required": true,
+        "description": "Unique identifier for the appointment"
+      },
+      "appointment_title": {
+        "type": "string",
+        "required": true,
+        "description": "Title or subject of the appointment"
+      },
+      "start_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "Appointment start time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "end_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "Appointment end time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "location": {
+        "type": "string",
+        "required": false,
+        "description": "Physical or virtual location of the appointment",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Invalid appointment ID: Provide a non-empty string identifier.",
+      "Missing appointment title: Appointment title is required and cannot be empty.",
+      "Invalid datetime format: Use ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ) for start_datetime and end_datetime.",
+      "Invalid time range: End datetime must be after start datetime.",
+      "Appointment in past: Start datetime cannot be in the past."
+    ],
+    "usage": "Provide appointment_id, appointment_title, start_datetime, and end_datetime. Optionally include location. The tool validates the data structure and returns a standardized appointment object.",
+    "output_details": {
+      "validation_status": {
+        "type": "boolean",
+        "description": "Whether the appointment data passed validation"
+      },
+      "appointment_id": {
+        "type": "string",
+        "description": "Validated appointment identifier"
+      },
+      "duration_minutes": {
+        "type": "integer",
+        "description": "Calculated appointment duration in minutes"
+      },
+      "timezone": {
+        "type": "string",
+        "description": "Detected or default timezone for the appointment"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Participant Contact Manager",
+    "tool_description": "Retrieves and manages contact information and communication preferences for appointment participants.",
+    "parameters": {
+      "participant_ids": {
+        "type": "array",
+        "required": true,
+        "description": "List of participant identifiers",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "include_preferences": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include communication preferences",
+        "default": true
+      },
+      "contact_types": {
+        "type": "array",
+        "required": false,
+        "description": "Types of contact info to retrieve: email, phone, push",
+        "items": {"type": "string"},
+        "default": ["email", "phone"]
+      }
+    },
+    "error_messages": [
+      "Empty participant list: At least one participant ID must be provided.",
+      "Invalid participant ID: One or more participant IDs not found in system.",
+      "Insufficient contact data: Some participants lack required contact information.",
+      "Invalid contact type: Use only email, phone, or push in contact_types array."
+    ],
+    "usage": "Provide participant_ids array and optionally specify include_preferences and contact_types. Returns contact details and communication preferences for each participant.",
+    "output_details": {
+      "participant_count": {
+        "type": "integer",
+        "description": "Number of participants processed"
+      },
+      "contact_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Formatted contact information for each participant"
+      },
+      "missing_contacts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of participant IDs with incomplete contact info"
+      },
+      "preferred_channels": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Primary communication channel for each participant"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Message Template Engine",
+    "tool_description": "Generates personalized confirmation and reminder messages using predefined templates and appointment data.",
+    "parameters": {
+      "template_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of message: confirmation, reminder_24h, reminder_1h, cancellation, reschedule"
+      },
+      "appointment_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing appointment details"
+      },
+      "participant_name": {
+        "type": "string",
+        "required": true,
+        "description": "Name of the message recipient"
+      },
+      "language": {
+        "type": "string",
+        "required": false,
+        "description": "Message language code (en, es, fr, de)",
+        "default": "en"
+      },
+      "include_calendar_link": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include calendar integration link",
+        "default": true
+      },
+      "custom_fields": {
+        "type": "array",
+        "required": false,
+        "description": "Additional custom field values for template",
+        "items": {"type": "string"},
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Unknown template type: Use confirmation, reminder_24h, reminder_1h, cancellation, or reschedule.",
+      "Invalid appointment data: Provide valid JSON string with required appointment fields.",
+      "Missing participant name: Participant name cannot be empty.",
+      "Unsupported language: Use supported language codes (en, es, fr, de).",
+      "Template processing error: Check appointment_data format and custom_fields values."
+    ],
+    "usage": "Specify template_type, appointment_data (as JSON string), and participant_name. Optionally set language, include_calendar_link, and custom_fields. Returns formatted message content.",
+    "output_details": {
+      "message_subject": {
+        "type": "string",
+        "description": "Generated message subject line"
+      },
+      "message_body": {
+        "type": "string",
+        "description": "Complete formatted message content"
+      },
+      "calendar_link": {
+        "type": "string",
+        "description": "Generated calendar integration URL if requested"
+      },
+      "character_count": {
+        "type": "integer",
+        "description": "Total character count of the message"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reminder Schedule Calculator",
+    "tool_description": "Calculates optimal reminder delivery times based on appointment timing and participant preferences.",
+    "parameters": {
+      "appointment_datetime": {
+        "type": "string",
+        "required": true,
+        "description": "Appointment start time in ISO 8601 format",
+        "format": "date-time"
+      },
+      "reminder_intervals": {
+        "type": "array",
+        "required": true,
+        "description": "Time intervals before appointment (in minutes)",
+        "items": {"type": "integer"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "participant_timezone": {
+        "type": "string",
+        "required": true,
+        "description": "Participant's timezone (e.g., America/New_York)"
+      },
+      "business_hours_only": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to restrict reminders to business hours",
+        "default": false
+      },
+      "minimum_advance_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum time before appointment for reminders",
+        "default": 15
+      }
+    },
+    "error_messages": [
+      "Invalid appointment datetime: Use ISO 8601 format for appointment_datetime.",
+      "Invalid reminder intervals: Provide positive integers in minutes for reminder_intervals.",
+      "Unknown timezone: Participant timezone not recognized.",
+      "Insufficient advance time: Some reminders would be scheduled too close to appointment time.",
+      "Past appointment: Cannot schedule reminders for appointments in the past."
+    ],
+    "usage": "Provide appointment_datetime, reminder_intervals array, and participant_timezone. Optionally set business_hours_only and minimum_advance_minutes. Returns calculated reminder send times.",
+    "output_details": {
+      "scheduled_reminders": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of calculated reminder send times in ISO 8601 format"
+      },
+      "skipped_reminders": {
+        "type": "array",
+        "items": {"type": "integer"},
+        "description": "Reminder intervals that were skipped due to constraints"
+      },
+      "total_reminders": {
+        "type": "integer",
+        "description": "Number of reminders that will be sent"
+      },
+      "next_reminder": {
+        "type": "string",
+        "description": "Next scheduled reminder time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Email Notification Sender",
+    "tool_description": "Sends email notifications for appointment confirmations and reminders with delivery tracking.",
+    "parameters": {
+      "recipient_email": {
+        "type": "string",
+        "required": true,
+        "description": "Recipient's email address"
+      },
+      "subject": {
+        "type": "string",
+        "required": true,
+        "description": "Email subject line"
+      },
+      "message_body": {
+        "type": "string",
+        "required": true,
+        "description": "Email body content (HTML or plain text)"
+      },
+      "sender_name": {
+        "type": "string",
+        "required": false,
+        "description": "Display name for sender",
+        "default": "Calendar System"
+      },
+      "priority": {
+        "type": "string",
+        "required": false,
+        "description": "Email priority: low, normal, high",
+        "default": "normal"
+      },
+      "include_ical": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to attach calendar file",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid email address: Provide a valid email address format for recipient_email.",
+      "Empty subject or body: Both subject and message_body are required and cannot be empty.",
+      "Invalid priority level: Use low, normal, or high for priority parameter.",
+      "Email delivery failed: Unable to send email due to server or network issues.",
+      "Recipient blocked: Email address is on blocked list or bounced previously."
+    ],
+    "usage": "Provide recipient_email, subject, and message_body. Optionally set sender_name, priority, and include_ical. Returns delivery status and tracking information.",
+    "output_details": {
+      "delivery_status": {
+        "type": "string",
+        "description": "Email delivery status: sent, failed, queued"
+      },
+      "message_id": {
+        "type": "string",
+        "description": "Unique identifier for tracking the sent email"
+      },
+      "sent_timestamp": {
+        "type": "string",
+        "description": "Timestamp when email was sent"
+      },
+      "estimated_delivery": {
+        "type": "string",
+        "description": "Estimated delivery time"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "SMS Notification Sender",
+    "tool_description": "Sends SMS text messages for appointment reminders with character optimization and delivery tracking.",
+    "parameters": {
+      "phone_number": {
+        "type": "string",
+        "required": true,
+        "description": "Recipient's phone number in international format"
+      },
+      "message_text": {
+        "type": "string",
+        "required": true,
+        "description": "SMS message content (max 160 characters recommended)"
+      }
+    },
+    "error_messages": [
+      "Invalid phone number: Provide phone number in international format (+1234567890).",
+      "Empty message: Message text cannot be empty.",
+      "Message too long: SMS message exceeds maximum length limit.",
+      "SMS delivery failed: Unable to send SMS due to carrier or network issues.",
+      "Invalid phone number format: Phone number format not recognized or supported."
+    ],
+    "usage": "Provide phone_number in international format and message_text. The tool sends SMS and returns delivery status with tracking information.",
+    "output_details": {
+      "delivery_status": {
+        "type": "string",
+        "description": "SMS delivery status: sent, failed, queued"
+      },
+      "message_id": {
+        "type": "string",
+        "description": "Unique identifier for tracking the sent SMS"
+      },
+      "character_count": {
+        "type": "integer",
+        "description": "Number of characters in the sent message"
+      },
+      "estimated_cost": {
+        "type": "number",
+        "description": "Estimated cost for sending the SMS"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Push Notification Dispatcher",
+    "tool_description": "Sends push notifications to mobile devices for appointment alerts with platform-specific formatting.",
+    "parameters": {
+      "device_tokens": {
+        "type": "array",
+        "required": true,
+        "description": "Array of device registration tokens",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "notification_title": {
+        "type": "string",
+        "required": true,
+        "description": "Push notification title"
+      },
+      "notification_body": {
+        "type": "string",
+        "required": true,
+        "description": "Push notification message body"
+      },
+      "platform": {
+        "type": "string",
+        "required": true,
+        "description": "Target platform: ios, android, web"
+      },
+      "badge_count": {
+        "type": "integer",
+        "required": false,
+        "description": "Badge number for iOS notifications",
+        "default": 1
+      },
+      "sound": {
+        "type": "string",
+        "required": false,
+        "description": "Notification sound name",
+        "default": "default"
+      },
+      "action_url": {
+        "type": "string",
+        "required": false,
+        "description": "URL to open when notification is tapped",
+        "default": "None"
+      }
+    },
+    "error_messages": [
+      "Empty device tokens: At least one device token must be provided.",
+      "Invalid device tokens: One or more device tokens are malformed or expired.",
+      "Missing notification content: Both notification_title and notification_body are required.",
+      "Unsupported platform: Use ios, android, or web for platform parameter.",
+      "Push service unavailable: Unable to connect to push notification service.",
+      "Invalid badge count: Badge count must be a positive integer.",
+      "Malformed action URL: Provided action_url is not a valid URL format."
+    ],
+    "usage": "Provide device_tokens array, notification_title, notification_body, and platform. Optionally set badge_count, sound, and action_url. Returns delivery results for each device.",
+    "output_details": {
+      "total_sent": {
+        "type": "integer",
+        "description": "Number of notifications successfully sent"
+      },
+      "total_failed": {
+        "type": "integer",
+        "description": "Number of notifications that failed to send"
+      },
+      "success_tokens": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Device tokens that received notifications successfully"
+      },
+      "failed_tokens": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Device tokens that failed to receive notifications"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Status Tracker",
+    "tool_description": "Tracks and monitors the delivery status of sent notifications across all communication channels.",
+    "parameters": {
+      "message_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of message IDs to track",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "check_detailed_status": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform detailed delivery status check",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Empty message IDs: At least one message ID must be provided for tracking.",
+      "Invalid message ID format: One or more message IDs are not in valid format.",
+      "Message ID not found: Some message IDs do not exist in tracking system.",
+      "Tracking service unavailable: Unable to connect to delivery tracking service."
+    ],
+    "usage": "Provide message_ids array of notifications to track. Optionally enable check_detailed_status for comprehensive delivery information. Returns current delivery status for each message.",
+    "output_details": {
+      "tracking_summary": {
+        "type": "string",
+        "description": "Overall summary of tracking results"
+      },
+      "delivered_count": {
+        "type": "integer",
+        "description": "Number of successfully delivered messages"
+      },
+      "pending_count": {
+        "type": "integer",
+        "description": "Number of messages still pending delivery"
+      },
+      "failed_count": {
+        "type": "integer",
+        "description": "Number of messages that failed delivery"
+      },
+      "status_details": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detailed status information for each tracked message"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Retry Logic Manager",
+    "tool_description": "Manages retry attempts for failed notification deliveries with intelligent backoff strategies.",
+    "parameters": {
+      "failed_message_ids": {
+        "type": "array",
+        "required": true,
+        "description": "Array of message IDs that failed delivery",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "retry_strategy": {
+        "type": "string",
+        "required": false,
+        "description": "Retry strategy: immediate, exponential_backoff, linear_backoff",
+        "default": "exponential_backoff"
+      },
+      "max_retry_attempts": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of retry attempts per message",
+        "default": 3
+      },
+      "initial_delay_minutes": {
+        "type": "integer",
+        "required": false,
+        "description": "Initial delay before first retry in minutes",
+        "default": 5
+      },
+      "alternative_channels": {
+        "type": "array",
+        "required": false,
+        "description": "Alternative communication channels to try: email, sms, push",
+        "items": {"type": "string"},
+        "default": []
+      }
+    },
+    "error_messages": [
+      "Empty failed message list: At least one failed message ID must be provided.",
+      "Invalid retry strategy: Use immediate, exponential_backoff, or linear_backoff.",
+      "Invalid retry parameters: max_retry_attempts must be 1-10, initial_delay_minutes must be positive.",
+      "Unknown message IDs: Some message IDs are not found in the system.",
+      "Invalid alternative channels: Use only email, sms, or push in alternative_channels array."
+    ],
+    "usage": "Provide failed_message_ids array and optionally configure retry_strategy, max_retry_attempts, initial_delay_minutes, and alternative_channels. Returns retry schedule and status.",
+    "output_details": {
+      "retry_schedule": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Scheduled retry times for each failed message"
+      },
+      "total_retries_scheduled": {
+        "type": "integer",
+        "description": "Total number of retry attempts scheduled"
+      },
+      "alternative_channel_count": {
+        "type": "integer",
+        "description": "Number of messages scheduled for alternative channels"
+      },
+      "next_retry_time": {
+        "type": "string",
+        "description": "Timestamp of the next scheduled retry attempt"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Confirmation Response Handler",
+    "tool_description": "Processes participant responses to appointment confirmations and updates appointment status accordingly.",
+    "parameters": {
+      "response_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing response information"
+      },
+      "appointment_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the appointment being responded to"
+      },
+      "participant_id": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the participant providing the response"
+      },
+      "response_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of response: confirm, decline, reschedule, maybe"
+      },
+      "update_calendar": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to update calendar system with response",
+        "default": true
+      },
+      "notify_organizer": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to notify appointment organizer of response",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid response data: Provide valid JSON string for response_data parameter.",
+      "Unknown appointment: Appointment ID not found in system.",
+      "Unknown participant: Participant ID not associated with this appointment.",
+      "Invalid response type: Use confirm, decline, reschedule, or maybe for response_type.",
+      "Response already processed: This participant has already responded to this appointment.",
+      "Appointment expired: Cannot process responses for past appointments."
+    ],
+    "usage": "Provide response_data (as JSON), appointment_id, participant_id, and response_type. Optionally set update_calendar and notify_organizer flags. Returns processed response status and any required follow-up actions.",
+    "output_details": {
+      "processing_status": {
+        "type": "string",
+        "description": "Status of response processing: processed, failed, duplicate"
+      },
+      "appointment_status": {
+        "type": "string",
+        "description": "Updated appointment status after processing response"
+      },
+      "follow_up_required": {
+        "type": "boolean",
+        "description": "Whether follow-up actions are needed"
+      },
+      "notification_sent": {
+        "type": "boolean",
+        "description": "Whether organizer notification was sent successfully"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Reminder Batch Processor",
+    "tool_description": "Processes large batches of scheduled reminders efficiently with queue management and rate limiting.",
+    "parameters": {
+      "reminder_batch_data": {
+        "type": "string",
+        "required": true,
+        "description": "JSON string containing batch of reminder data"
+      },
+      "processing_priority": {
+        "type": "string",
+        "required": false,
+        "description": "Processing priority: low, normal, high, urgent",
+        "default": "normal"
+      },
+      "rate_limit_per_minute": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of reminders to process per minute",
+        "default": 100
+      },
+      "enable_parallel_processing": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to enable parallel processing for faster execution",
+        "default": true
+      },
+      "error_threshold_percentage": {
+        "type": "number",
+        "required": false,
+        "description": "Percentage of errors before stopping batch processing",
+        "default": 10
+      },
+      "channel_distribution": {
+        "type": "array",
+        "required": false,
+        "description": "Preferred channel distribution: email, sms, push",
+        "items": {"type": "string"},
+        "default": ["email", "sms"]
+      }
+    },
+    "error_messages": [
+      "Invalid batch data: Provide valid JSON string for reminder_batch_data parameter.",
+      "Empty reminder batch: Batch must contain at least one reminder to process.",
+      "Invalid processing priority: Use low, normal, high, or urgent for processing_priority.",
+      "Invalid rate limit: rate_limit_per_minute must be between 1 and 1000.",
+      "Invalid error threshold: error_threshold_percentage must be between 0 and 50.",
+      "Batch processing failed: Critical error occurred during batch processing.",
+      "Invalid channel distribution: Use only email, sms, or push in channel_distribution array."
+    ],
+    "usage": "Provide reminder_batch_data as JSON string. Optionally configure processing_priority, rate_limit_per_minute, enable_parallel_processing, error_threshold_percentage, and channel_distribution. Returns batch processing results and statistics.",
+    "output_details": {
+      "batch_id": {
+        "type": "string",
+        "description": "Unique identifier for the processed batch"
+      },
+      "total_processed": {
+        "type": "integer",
+        "description": "Total number of reminders processed"
+      },
+      "successful_deliveries": {
+        "type": "integer",
+        "description": "Number of successfully delivered reminders"
+      },
+      "failed_deliveries": {
+        "type": "integer",
+        "description": "Number of failed reminder deliveries"
+      },
+      "processing_time_seconds": {
+        "type": "number",
+        "description": "Total time taken to process the batch"
+      },
+      "error_rate_percentage": {
+        "type": "number",
+        "description": "Percentage of reminders that failed delivery"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Delivery Analytics Reporter",
+    "tool_description": "Generates comprehensive analytics and reports on notification delivery performance and participant engagement.",
+    "parameters": {
+      "report_period_start": {
+        "type": "string",
+        "required": true,
+        "description": "Start date for analytics period in ISO 8601 format",
+        "format": "date-time"
+      },
+      "report_period_end": {
+        "type": "string",
+        "required": true,
+        "description": "End date for analytics period in ISO 8601 format",
+        "format": "date-time"
+      },
+      "report_type": {
+        "type": "string",
+        "required": true,
+        "description": "Type of report: delivery_summary, channel_performance, engagement_metrics, failure_analysis"
+      },
+      "include_participant_segments": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include participant segmentation analysis",
+        "default": false
+      },
+      "channel_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Filter by communication channels: email, sms, push",
+        "items": {"type": "string"},
+        "default": ["email", "sms", "push"]
+      },
+      "minimum_sample_size": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of notifications required for statistical significance",
+        "default": 10
+      }
+    },
+    "error_messages": [
+      "Invalid date range: Ensure report_period_start is before report_period_end and both use ISO 8601 format.",
+      "Unknown report type: Use delivery_summary, channel_performance, engagement_metrics, or failure_analysis.",
+      "Insufficient data: Not enough notifications in the specified period for meaningful analysis.",
+      "Invalid channel filter: Use only email, sms, or push in channel_filter array.",
+      "Invalid sample size: minimum_sample_size must be between 1 and 1000."
+    ],
+    "usage": "Provide report_period_start, report_period_end, and report_type. Optionally configure include_participant_segments, channel_filter, and minimum_sample_size. Returns comprehensive analytics report with performance metrics.",
+    "output_details": {
+      "report_summary": {
+        "type": "string",
+        "description": "Executive summary of the analytics report"
+      },
+      "overall_delivery_rate": {
+        "type": "number",

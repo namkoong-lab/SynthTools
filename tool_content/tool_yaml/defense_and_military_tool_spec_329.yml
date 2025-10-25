@@ -1,0 +1,775 @@
+field_name: defense_and_military
+subfield: Cybersecurity and Information Warfare
+task: Network Security Monitoring and Intrusion Detection
+tool_description: |-
+  **STEP 1 — Rate task difficulty**
+
+  Network Security Monitoring and Intrusion Detection is a **hard** task due to its broad scope covering multiple attack vectors, high ambiguity in distinguishing legitimate traffic from threats, complex dependencies between network layers and security tools, critical impact where errors can lead to breaches or false positives, and substantial data processing requirements for real-time monitoring.
+
+  **STEP 2 — Set a tool budget**
+
+  Given the hard difficulty rating, I'm targeting **17 tools** to cover the comprehensive workflow from data collection and preprocessing to threat detection, analysis, and response coordination.
+
+  **STEP 3 — List all tool names with dependencies and affordances**
+
+  1. **Network Traffic Collector** - Consumes: network interfaces, time ranges → Produces: raw packet data
+  2. **Packet Parser** - Consumes: raw packet data → Produces: structured network events
+  3. **Log Aggregator** - Consumes: multiple log sources → Produces: unified log streams
+  4. **Traffic Pattern Analyzer** - Consumes: structured network events → Produces: baseline patterns
+  5. **Anomaly Detector** - Consumes: current traffic, baseline patterns → Produces: anomaly alerts
+  6. **Signature Matcher** - Consumes: network events, signature database → Produces: signature matches
+  7. **Threat Intelligence Enricher** - Consumes: IP addresses, domains → Produces: threat context
+  8. **Behavioral Analyzer** - Consumes: user/system activities → Produces: behavior profiles
+  9. **Port Scan Detector** - Consumes: connection attempts → Produces: scan alerts
+  10. **DDoS Detector** - Consumes: traffic volume metrics → Produces: DDoS alerts
+  11. **Malware Detector** - Consumes: payload data → Produces: malware indicators
+  12. **Alert Correlator** - Consumes: multiple alerts → Produces: correlated incidents
+  13. **Risk Scorer** - Consumes: incidents, context → Produces: risk assessments
+  14. **Incident Tracker** - Consumes: incidents → Produces: tracking records
+  15. **Response Orchestrator** - Consumes: high-risk incidents → Produces: response actions
+  16. **Forensic Analyzer** - Consumes: incident data → Produces: forensic evidence
+  17. **Security Report Generator** - Consumes: incidents, metrics → Produces: security reports
+
+  **STEP 4 — Multi-tool plans**
+
+  **Simple Plans:**
+  1. Basic monitoring: Network Traffic Collector → Packet Parser → Signature Matcher → Alert Correlator
+  2. Log analysis: Log Aggregator → Anomaly Detector → Risk Scorer → Incident Tracker
+
+  **Medium Plans:**
+  1. Threat detection: Network Traffic Collector → Packet Parser → Behavioral Analyzer → Anomaly Detector → Threat Intelligence Enricher → Alert Correlator → Risk Scorer
+  2. Attack analysis: Port Scan Detector → DDoS Detector → Malware Detector → Alert Correlator → Incident Tracker → Response Orchestrator
+
+  **Complex Plans:**
+  1. Full monitoring pipeline: Network Traffic Collector → Packet Parser → Traffic Pattern Analyzer → Anomaly Detector → Signature Matcher → Behavioral Analyzer → Alert Correlator → Risk Scorer → Incident Tracker → Response Orchestrator → Security Report Generator
+  2. Comprehensive incident response: Log Aggregator → Multiple detectors → Threat Intelligence Enricher → Alert Correlator → Risk Scorer → Incident Tracker → Forensic Analyzer → Response Orchestrator → Security Report Generator
+
+  **STEP 5 — Produce tools**
+
+  ```json
+  {
+    "tool_name": "Network Traffic Collector",
+    "tool_description": "Captures network packets from specified interfaces within a time range and filters by protocols, ports, or IP ranges for security monitoring.",
+    "parameters": {
+      "interface_names": {
+        "type": "array",
+        "required": true,
+        "description": "Network interfaces to monitor (e.g., eth0, wlan0).",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "start_time": {
+        "type": "string",
+        "required": true,
+        "description": "Start time for packet collection (ISO 8601 format).",
+        "format": "date-time"
+      },
+      "end_time": {
+        "type": "string",
+        "required": true,
+        "description": "End time for packet collection (ISO 8601 format).",
+        "format": "date-time"
+      },
+      "protocols": {
+        "type": "array",
+        "required": false,
+        "description": "Network protocols to capture (TCP, UDP, ICMP, ARP).",
+        "items": {"type": "string"},
+        "default": ["TCP", "UDP", "ICMP"]
+      },
+      "port_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Specific ports to monitor (1-65535).",
+        "items": {"type": "integer"},
+        "default": "None"
+      },
+      "ip_range": {
+        "type": "string",
+        "required": false,
+        "description": "IP address range in CIDR notation (e.g., 192.168.1.0/24).",
+        "default": "None"
+      },
+      "max_packets": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of packets to collect (100-1000000).",
+        "default": 10000
+      }
+    },
+    "error_messages": [
+      "Invalid time range: start_time must be before end_time and both must be valid ISO 8601 timestamps.",
+      "Interface not found: One or more specified network interfaces do not exist or are not accessible.",
+      "Invalid protocol: Supported protocols are TCP, UDP, ICMP, and ARP only.",
+      "Port out of range: Port numbers must be between 1 and 65535.",
+      "Invalid CIDR notation: IP range must be in valid CIDR format (e.g., 192.168.1.0/24).",
+      "Insufficient permissions: Root privileges required for packet capture on specified interfaces.",
+      "Collection limit exceeded: max_packets must be between 100 and 1000000."
+    ],
+    "usage": "Specify network interfaces and time range for monitoring. Optionally filter by protocols, ports, or IP ranges. Returns raw packet data for further analysis.",
+    "output_details": {
+      "total_packets": {
+        "type": "integer",
+        "description": "Total number of packets captured"
+      },
+      "capture_duration": {
+        "type": "number",
+        "description": "Actual capture duration in seconds"
+      },
+      "packet_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Array of base64-encoded packet data"
+      },
+      "interface_stats": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Statistics per interface in format 'interface:packet_count'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Packet Parser",
+    "tool_description": "Parses raw network packet data into structured events with protocol headers, payload information, and metadata for security analysis.",
+    "parameters": {
+      "packet_data": {
+        "type": "array",
+        "required": true,
+        "description": "Base64-encoded raw packet data to parse.",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50000
+      },
+      "parse_depth": {
+        "type": "string",
+        "required": false,
+        "description": "Parsing depth: header_only, payload_summary, or full_payload.",
+        "default": "payload_summary"
+      },
+      "extract_strings": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to extract readable strings from payload.",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid packet data: One or more packets contain malformed or corrupted data that cannot be parsed.",
+      "Unsupported parse depth: Use header_only, payload_summary, or full_payload.",
+      "Memory limit exceeded: Packet data size exceeds maximum processing capacity.",
+      "Decoding error: Base64 decoding failed for one or more packet entries."
+    ],
+    "usage": "Provide base64-encoded packet data and specify parsing depth. Returns structured network events with timestamps, addresses, ports, and protocol information.",
+    "output_details": {
+      "parsed_events": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Structured network events in JSON format"
+      },
+      "parse_errors": {
+        "type": "integer",
+        "description": "Number of packets that failed to parse"
+      },
+      "protocol_distribution": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Protocol counts in format 'protocol:count'"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Log Aggregator",
+    "tool_description": "Collects and normalizes security logs from multiple sources including firewalls, IDS systems, authentication servers, and application logs.",
+    "parameters": {
+      "log_sources": {
+        "type": "array",
+        "required": true,
+        "description": "Log source identifiers or file paths to aggregate.",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 20
+      },
+      "log_types": {
+        "type": "array",
+        "required": true,
+        "description": "Types of logs to collect (firewall, ids, auth, application, system).",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10
+      },
+      "time_window": {
+        "type": "integer",
+        "required": true,
+        "description": "Time window in minutes to look back for logs (1-1440)."
+      },
+      "severity_filter": {
+        "type": "array",
+        "required": false,
+        "description": "Minimum severity levels to include (low, medium, high, critical).",
+        "items": {"type": "string"},
+        "default": ["medium", "high", "critical"]
+      },
+      "normalize_format": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to normalize log formats to common schema.",
+        "default": true
+      },
+      "deduplication": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to remove duplicate log entries.",
+        "default": true
+      },
+      "max_entries": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of log entries to return (100-100000).",
+        "default": 10000
+      },
+      "include_raw": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include original raw log data.",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid log source: One or more log sources are inaccessible or do not exist.",
+      "Unsupported log type: Supported types are firewall, ids, auth, application, and system.",
+      "Invalid time window: Time window must be between 1 and 1440 minutes.",
+      "Invalid severity level: Use low, medium, high, or critical only.",
+      "Connection timeout: Unable to connect to remote log sources within timeout period.",
+      "Parsing failed: Unable to parse log format from one or more sources.",
+      "Entry limit exceeded: max_entries must be between 100 and 100000."
+    ],
+    "usage": "Specify log sources, types, and time window. Optionally filter by severity and configure normalization. Returns aggregated and normalized log entries with metadata.",
+    "output_details": {
+      "total_entries": {
+        "type": "integer",
+        "description": "Total number of log entries collected"
+      },
+      "source_counts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Entry counts per source in format 'source:count'"
+      },
+      "log_entries": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Normalized log entries in JSON format"
+      },
+      "aggregation_time": {
+        "type": "number",
+        "description": "Time taken for log aggregation in seconds"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Traffic Pattern Analyzer",
+    "tool_description": "Analyzes historical network traffic to establish baseline patterns for normal behavior detection and anomaly identification.",
+    "parameters": {
+      "network_events": {
+        "type": "array",
+        "required": true,
+        "description": "Structured network events from packet parsing.",
+        "items": {"type": "string"},
+        "minItems": 100,
+        "maxItems": 100000
+      },
+      "analysis_window": {
+        "type": "integer",
+        "required": true,
+        "description": "Time window in hours for pattern analysis (1-168)."
+      },
+      "pattern_types": {
+        "type": "array",
+        "required": false,
+        "description": "Pattern types to analyze (volume, protocol, port, geographic, temporal).",
+        "items": {"type": "string"},
+        "default": ["volume", "protocol", "port", "temporal"]
+      }
+    },
+    "error_messages": [
+      "Insufficient data: Need at least 100 network events for meaningful pattern analysis.",
+      "Invalid analysis window: Window must be between 1 and 168 hours.",
+      "Unknown pattern type: Supported types are volume, protocol, port, geographic, and temporal.",
+      "Data format error: Network events must be in valid JSON format with required fields."
+    ],
+    "usage": "Provide structured network events and specify analysis window. Choose pattern types to analyze. Returns baseline patterns for normal traffic behavior.",
+    "output_details": {
+      "baseline_patterns": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Baseline pattern definitions in JSON format"
+      },
+      "confidence_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Confidence scores for each pattern (0.0-1.0)"
+      },
+      "analysis_summary": {
+        "type": "string",
+        "description": "Summary of traffic patterns discovered"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Anomaly Detector",
+    "tool_description": "Detects anomalous network behavior by comparing current traffic patterns against established baselines using statistical and machine learning methods.",
+    "parameters": {
+      "current_events": {
+        "type": "array",
+        "required": true,
+        "description": "Current network events to analyze for anomalies.",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10000
+      },
+      "baseline_patterns": {
+        "type": "array",
+        "required": true,
+        "description": "Baseline patterns from traffic analysis.",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100
+      },
+      "sensitivity": {
+        "type": "string",
+        "required": false,
+        "description": "Detection sensitivity: low, medium, or high.",
+        "default": "medium"
+      },
+      "anomaly_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Anomaly score threshold (0.1-0.9).",
+        "default": 0.7
+      }
+    },
+    "error_messages": [
+      "Invalid baseline: Baseline patterns are malformed or incompatible with current events.",
+      "Unsupported sensitivity: Use low, medium, or high sensitivity levels.",
+      "Invalid threshold: Anomaly threshold must be between 0.1 and 0.9.",
+      "Analysis failed: Unable to compute anomaly scores due to insufficient or corrupted data."
+    ],
+    "usage": "Provide current network events and baseline patterns. Set sensitivity level and threshold. Returns anomaly alerts with confidence scores and explanations.",
+    "output_details": {
+      "anomaly_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detected anomalies with details and timestamps"
+      },
+      "anomaly_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Anomaly confidence scores (0.0-1.0)"
+      },
+      "total_anomalies": {
+        "type": "integer",
+        "description": "Total number of anomalies detected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Signature Matcher",
+    "tool_description": "Matches network events and packet payloads against known attack signatures and malicious patterns from threat intelligence databases.",
+    "parameters": {
+      "network_events": {
+        "type": "array",
+        "required": true,
+        "description": "Network events to match against signatures.",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 50000
+      },
+      "signature_database": {
+        "type": "string",
+        "required": true,
+        "description": "Path or identifier for signature database to use."
+      },
+      "match_mode": {
+        "type": "string",
+        "required": false,
+        "description": "Matching mode: exact, fuzzy, or regex.",
+        "default": "exact"
+      }
+    },
+    "error_messages": [
+      "Database not found: Specified signature database is inaccessible or does not exist.",
+      "Invalid match mode: Use exact, fuzzy, or regex matching modes.",
+      "Database corruption: Signature database is corrupted or in unsupported format.",
+      "Pattern compilation error: One or more regex patterns failed to compile."
+    ],
+    "usage": "Provide network events and specify signature database. Choose matching mode for signature comparison. Returns matches with threat classifications.",
+    "output_details": {
+      "signature_matches": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Matched signatures with event details and classifications"
+      },
+      "match_count": {
+        "type": "integer",
+        "description": "Total number of signature matches found"
+      },
+      "threat_categories": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Categories of threats detected"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Threat Intelligence Enricher",
+    "tool_description": "Enriches IP addresses, domains, and file hashes with threat intelligence data including reputation scores, geolocation, and known associations.",
+    "parameters": {
+      "ip_addresses": {
+        "type": "array",
+        "required": false,
+        "description": "IP addresses to enrich with threat intelligence.",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "domains": {
+        "type": "array",
+        "required": false,
+        "description": "Domain names to lookup in threat intelligence.",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "file_hashes": {
+        "type": "array",
+        "required": false,
+        "description": "File hashes (MD5, SHA1, SHA256) to check against threat databases.",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "intelligence_sources": {
+        "type": "array",
+        "required": false,
+        "description": "Threat intelligence sources to query (virustotal, malwarebytes, alienvault).",
+        "items": {"type": "string"},
+        "default": ["virustotal", "alienvault"]
+      },
+      "include_geolocation": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to include geolocation data for IP addresses.",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "No indicators provided: At least one of ip_addresses, domains, or file_hashes must be specified.",
+      "Invalid IP format: One or more IP addresses are not in valid IPv4 or IPv6 format.",
+      "Invalid domain format: One or more domains contain invalid characters or formatting.",
+      "Unsupported hash format: File hashes must be valid MD5, SHA1, or SHA256 format.",
+      "Intelligence source unavailable: One or more specified threat intelligence sources are unreachable.",
+      "API quota exceeded: Threat intelligence API rate limits have been exceeded."
+    ],
+    "usage": "Provide IP addresses, domains, or file hashes to enrich. Specify intelligence sources and enable geolocation if needed. Returns enriched data with threat scores.",
+    "output_details": {
+      "enriched_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Indicators with enrichment data in JSON format"
+      },
+      "reputation_scores": {
+        "type": "array",
+        "items": {"type": "number"},
+        "description": "Reputation scores for each indicator (0.0-1.0, higher is more malicious)"
+      },
+      "geolocation_data": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Geolocation information for IP addresses"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Behavioral Analyzer",
+    "tool_description": "Analyzes user and system behavior patterns to detect insider threats, compromised accounts, and unusual activity patterns.",
+    "parameters": {
+      "activity_logs": {
+        "type": "array",
+        "required": true,
+        "description": "User and system activity logs for behavioral analysis.",
+        "items": {"type": "string"},
+        "minItems": 10,
+        "maxItems": 50000
+      },
+      "user_profiles": {
+        "type": "array",
+        "required": false,
+        "description": "Existing user behavior profiles for comparison.",
+        "items": {"type": "string"},
+        "default": "None"
+      },
+      "analysis_type": {
+        "type": "string",
+        "required": false,
+        "description": "Type of behavioral analysis: user_centric, time_based, or resource_access.",
+        "default": "user_centric"
+      },
+      "learning_period": {
+        "type": "integer",
+        "required": false,
+        "description": "Learning period in days for establishing normal behavior (1-90).",
+        "default": 30
+      }
+    },
+    "error_messages": [
+      "Insufficient activity data: Need at least 10 activity log entries for behavioral analysis.",
+      "Invalid analysis type: Use user_centric, time_based, or resource_access.",
+      "Invalid learning period: Learning period must be between 1 and 90 days.",
+      "Profile format error: User profiles must be in valid JSON format with required behavioral metrics."
+    ],
+    "usage": "Provide activity logs and optionally existing user profiles. Specify analysis type and learning period. Returns behavioral anomalies and updated profiles.",
+    "output_details": {
+      "behavioral_anomalies": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Detected behavioral anomalies with user and activity details"
+      },
+      "updated_profiles": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Updated user behavior profiles in JSON format"
+      },
+      "risk_indicators": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Risk indicators for users showing anomalous behavior"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Port Scan Detector",
+    "tool_description": "Detects port scanning activities by analyzing connection patterns, timing, and target distributions in network traffic.",
+    "parameters": {
+      "connection_logs": {
+        "type": "array",
+        "required": true,
+        "description": "Network connection logs to analyze for port scanning.",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 100000
+      },
+      "time_window": {
+        "type": "integer",
+        "required": true,
+        "description": "Time window in seconds to analyze for scanning patterns (60-3600)."
+      },
+      "scan_threshold": {
+        "type": "integer",
+        "required": false,
+        "description": "Minimum number of ports accessed to trigger scan detection (5-1000).",
+        "default": 20
+      }
+    },
+    "error_messages": [
+      "Invalid time window: Time window must be between 60 and 3600 seconds.",
+      "Invalid scan threshold: Threshold must be between 5 and 1000 ports.",
+      "Insufficient connection data: Need connection logs with source, destination, port, and timestamp information.",
+      "Log format error: Connection logs must include required fields for scan detection analysis."
+    ],
+    "usage": "Provide network connection logs and specify time window for analysis. Set scan threshold for detection sensitivity. Returns detected port scans with source details.",
+    "output_details": {
+      "scan_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Port scan alerts with source IP, target details, and scan characteristics"
+      },
+      "scan_count": {
+        "type": "integer",
+        "description": "Total number of port scans detected"
+      },
+      "scanner_ips": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "IP addresses identified as conducting port scans"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "DDoS Detector",
+    "tool_description": "Detects distributed denial of service attacks by analyzing traffic volume, request patterns, and source distributions.",
+    "parameters": {
+      "traffic_metrics": {
+        "type": "array",
+        "required": true,
+        "description": "Traffic volume and connection metrics for DDoS detection.",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 10000
+      },
+      "baseline_traffic": {
+        "type": "number",
+        "required": true,
+        "description": "Baseline traffic volume in requests per second."
+      },
+      "attack_multiplier": {
+        "type": "number",
+        "required": false,
+        "description": "Traffic multiplier to trigger DDoS alert (2.0-100.0).",
+        "default": 5.0
+      },
+      "source_diversity": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to analyze source IP diversity for distributed attack detection.",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Invalid baseline traffic: Baseline traffic must be a positive number.",
+      "Invalid attack multiplier: Multiplier must be between 2.0 and 100.0.",
+      "Insufficient metrics: Traffic metrics must include volume, timestamp, and source information.",
+      "Analysis failed: Unable to calculate traffic patterns from provided metrics."
+    ],
+    "usage": "Provide traffic metrics and baseline traffic volume. Set attack multiplier threshold and enable source diversity analysis. Returns DDoS alerts with attack characteristics.",
+    "output_details": {
+      "ddos_alerts": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "DDoS attack alerts with volume, duration, and source analysis"
+      },
+      "attack_intensity": {
+        "type": "number",
+        "description": "Current traffic intensity compared to baseline"
+      },
+      "source_analysis": {
+        "type": "string",
+        "description": "Analysis of attack source distribution and characteristics"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Malware Detector",
+    "tool_description": "Scans network payloads and file transfers for malware signatures, behavioral patterns, and suspicious executables.",
+    "parameters": {
+      "payload_data": {
+        "type": "array",
+        "required": true,
+        "description": "Network payload data or file contents to scan for malware.",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1000
+      },
+      "scan_engines": {
+        "type": "array",
+        "required": false,
+        "description": "Malware scanning engines to use (signature, heuristic, behavioral).",
+        "items": {"type": "string"},
+        "default": ["signature", "heuristic"]
+      },
+      "deep_scan": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to perform deep content analysis and unpacking.",
+        "default": false
+      }
+    },
+    "error_messages": [
+      "Invalid payload format: Payload data must be in base64 or hexadecimal format.",
+      "Unsupported scan engine: Use signature, heuristic, or behavioral scanning engines.",
+      "Scan timeout: Deep scan exceeded maximum processing time limits.",
+      "Engine unavailable: One or more specified scanning engines are not available."
+    ],
+    "usage": "Provide payload data from network traffic or file transfers. Select scanning engines and enable deep scan if needed. Returns malware detection results.",
+    "output_details": {
+      "malware_detections": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Malware detections with threat names and classifications"
+      },
+      "threat_severity": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Severity levels for detected threats (low, medium, high, critical)"
+      },
+      "scan_summary": {
+        "type": "string",
+        "description": "Summary of scanning results and threat analysis"
+      }
+    }
+  }
+  ```
+
+  ```json
+  {
+    "tool_name": "Alert Correlator",
+    "tool_description": "Correlates multiple security alerts to identify coordinated attacks, reduce false positives, and prioritize incident response.",
+    "parameters": {
+      "security_alerts": {
+        "type": "array",
+        "required": true,
+        "description": "Security alerts from various detection systems to correlate.",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 10000
+      },
+      "correlation_window": {
+        "type": "integer",
+        "required": true,
+        "description": "Time window in minutes for alert correlation (1-1440)."
+      },
+      "correlation_rules": {
+        "type": "array",
+        "required": false,
+        "description": "Correlation rules to apply (temporal, source_based, target_based, signature_chain).",
+        "items": {"type": "string"},
+        "default": ["temporal", "source_based"]
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "required": false,
+        "description": "Minimum confidence score for correlation (0.1-1.0).",
+        "default": 0.6
+      },
+      "max_correlations": {
+        "type": "integer",
+        "required": false,
+        "description": "Maximum number of correlated incidents to return (10-1000).",
+        "default": 100
+      },
+      "suppress_duplicates": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to suppress duplicate or similar alerts.",
+        "default": true
+      }
+    },
+    "error_messages": [
+      "Insufficient alerts: Need at least 2 alerts for correlation analysis.",
+      "Invalid correlation window: Window must be between 1 and 1440
