@@ -27,11 +27,14 @@ Run `bash setup.sh` to setup venv with uv.
 
 Run `source .venv/bin/activate` to activate the environment.
 
-## Configs
-
 Add your api keys to `/configs/api_keys.json`
 
-## Start
+## Tool Dataset
 
-Run `python simulate_tool.py`
+
+## Tool Generation Pipeline
+### 1. Generate Tools 
+Run `python main_create_tools.py --config configs/generate_tool_config.yml`
+### 2. Run tool deduplication 
+Run `python main_dedup.py --config configs/deduplicate_tools_config.yml`
 
