@@ -25,11 +25,9 @@ DEFAULT_CONFIG = {
 class ChatLogger:
     def __init__(self, log_config=None, log_config_file=None, **kwargs):
         self.log_config = log_config
-        self.log_config_file = (
-            log_config_file
-            if log_config_file
-            else Path(__file__).resolve().parent / "configs" / "log_configs.json"
-        )
+        self.log_config_file = None  # Disabled logging
+        if log_config_file:
+            self.log_config_file = log_config_file
         self.project_name = kwargs.get("project_name", "ToolSimulator")
         self.chat_configs = kwargs.get("chat_configs", {})
 
@@ -37,13 +35,18 @@ class ChatLogger:
             with open(self.log_config_file) as f:
                 self.log_config = json.load(f)
 
-        self._update_relative_paths()
-        self._validate_log_config()
+        if self.log_config:
+            self._update_relative_paths()
+            self._validate_log_config()
 
         self.index_format = "{:08d}_{}.json"
 
-        print(f"Index logging folders: {list(self.index_logging_folders)}")
-        print(f"ID logging folders: {list(self.id_logging_folders)}")
+        if self.log_config:
+            print(f"Index logging folders: {list(self.index_logging_folders)}")
+            print(f"ID logging folders: {list(self.id_logging_folders)}")
+        else:
+            self.index_logging_folders = {}
+            self.id_logging_folders = {}
 
     def update_chat_configs(self, new_chat_configs):
         self.chat_configs.update(new_chat_configs)
@@ -200,15 +203,15 @@ class ToolClient(ModelClient):
 
         self.combined_prompt_template_file = kwargs.get(
             "combined_prompt_template_file",
-            f"{script_dir}/prompt_templates/tool_simulator_template.yml",
+            script_dir.parent / "prompt_templates" / "tool_simulator" / "tool_simulator_template.yml",
         )
         self.parameter_check_prompt_template_file = kwargs.get(
             "parameter_check_prompt_template_file",
-            f"{script_dir}/prompt_templates/parameter_check.yml",
+            script_dir.parent / "prompt_templates" / "generate_tools" / "parameter_check.yml",
         )
         self.return_message_gen_prompt_template_file = kwargs.get(
             "return_message_gen_prompt_template_file",
-            f"{script_dir}/prompt_templates/return_message_gen.yml",
+            script_dir.parent / "prompt_templates" / "judge_simulator" / "return_message_gen.yml",
         )
         self.load_combined_prompt_template()
         self.load_parameter_check_prompt_template()
@@ -337,7 +340,7 @@ class AnthropicToolClient(ToolClient):
 
     def get_api_keys(self, key: str):
         """Get API keys from the config file."""
-        script_dir = Path(__file__).resolve().parent
+        script_dir = Path(__file__).resolve().parent.parent
         config_path = script_dir / "configs" / "api_keys.json"
         with open(config_path) as f:
             api_keys = json.load(f)

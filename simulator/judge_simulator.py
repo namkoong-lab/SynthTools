@@ -113,7 +113,7 @@ class JudgeSimulatorClient:
     
     def get_api_keys(self, key: str):
         """Get API keys from config file (borrowed from AnthropicToolClient)"""
-        script_dir = Path(__file__).resolve().parent
+        script_dir = Path(__file__).resolve().parent.parent
         config_path = script_dir / "configs" / "api_keys.json"
         with open(config_path) as f:
             api_keys = json.load(f)
