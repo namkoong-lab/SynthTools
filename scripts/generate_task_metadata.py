@@ -35,6 +35,9 @@ from pathlib import Path
 from utils.client_utils import AnthropicClient, OpenAIClient
 
 
+PROJ_ROOT = Path(__file__).parent.parent
+
+
 def read_text(path: Path) -> str:
     with path.open("r", encoding="utf-8") as f:
         return f.read()
@@ -61,7 +64,7 @@ def fill_template_with_data(template: str, data_block: str) -> str:
 
 
 def load_api_keys_from_path_copy_if_needed(api_keys_path_arg: Path) -> None:
-    expected_path = (init_path.PROJ_ROOT / "configs" / "api_keys.json").resolve()
+    expected_path = (PROJ_ROOT / "configs" / "api_keys.json").resolve()
     if not api_keys_path_arg:
         return
     try:
@@ -135,7 +138,7 @@ def expand_input_to_files(input_arg: str) -> list[Path]:
     if not candidates:
         candidates = [s]
 
-    proj_root = init_path.PROJ_ROOT.resolve()
+    proj_root = PROJ_ROOT.resolve()
     files: list[Path] = []
     for cand in candidates:
         p = Path(cand)
@@ -181,12 +184,12 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature")
     ap.add_argument(
         "--api-keys",
-        default=str((init_path.PROJ_ROOT / "configs" / "api_keys.json").resolve()),
+        default=str((PROJ_ROOT / "configs" / "api_keys.json").resolve()),
         help="Path to API keys JSON (will be copied to scaling_tools/configs/api_keys.json for clients)",
     )
     ap.add_argument(
         "--template",
-        default=str((init_path.PROJ_ROOT / "prompt_templates" / "generate_environment_tasks_meta_data" / "generate_environment_tasks_metadata_alternate_template.yml").resolve()),
+        default=str((PROJ_ROOT / "prompt_templates" / "generate_environment_tasks_meta_data" / "generate_environment_tasks_metadata_alternate_template.yml").resolve()),
         help="Path to the generation template YAML",
     )
     return ap.parse_args()
@@ -197,7 +200,7 @@ def main() -> None:
 
     tpl_path = Path(args.template)
     if not tpl_path.is_absolute():
-        tpl_path = (init_path.PROJ_ROOT / tpl_path).resolve()
+        tpl_path = (PROJ_ROOT / tpl_path).resolve()
 
     load_api_keys_from_path_copy_if_needed(Path(args.api_keys))
 
@@ -217,7 +220,7 @@ def main() -> None:
     if args.out_dir:
         out_dir = Path(args.out_dir)
         if not out_dir.is_absolute():
-            out_dir = (init_path.PROJ_ROOT / out_dir).resolve()
+            out_dir = (PROJ_ROOT / out_dir).resolve()
         out_dir.mkdir(parents=True, exist_ok=True)
 
     for input_yaml_path in input_files:
