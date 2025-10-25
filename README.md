@@ -1,6 +1,7 @@
 # Scaling Tools and Tasks and Show Values in Training on Them
 
-## Shema
+## Schema
+```
 SynthTools/
 |-- configs/                      # API keys and simulation parameters
 |-- evaluation/                   # Evaluation scripts
@@ -8,15 +9,16 @@ SynthTools/
 |-- scripts/                      # Scripts for running the whole pipeline
 |-- simulator/                    # Core simulation for tools and judge
 |-- tool_content/                 # Main curated dataset
-|-- utils/                       
+|-- utils/                        # Shared utility functions
 |
-|-- .gitignore                    
-|-- README.md                     
+|-- .gitignore                    # Ignore patterns
+|-- README.md                     # Project documentation
 |-- main_create_tools.py          # Main script to generate synthetic tools
-|-- main_dedup.py                 # Main script to generate for deduplicating
+|-- main_dedup.py                 # Main script for deduplicating
 |-- pyproject.toml                # Project metadata and build configuration
-|-- requirements.txt              
-|-- setup.sh                      
+|-- requirements.txt              # Python dependencies
+|-- setup.sh                      # Environment setup script
+```              
 
 ## Setup
 
