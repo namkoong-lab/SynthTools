@@ -1,6 +1,25 @@
 # Scaling Tools and Tasks and Show Values in Training on Them
 
+SynthTools is a scalable and efficient framework for generating synthetic tools and tasks for agent development. It was introduced in the paper "SynthTools: A Framework for Scaling Synthetic Tools for Agent Development."
+
+The framework addresses the limitations of using real world APIs, which are constrained by access keys, rate limits, and instability, by creating synthetic tool ecosystems that are controllable, reproducible, and scalable. SynthTools consists of six main components:
+
+**1. Tool Generation**: Automatically creates a diverse set of synthetic tools with varied interfaces and functionalities across many domains. This component leverages the generative capacity of large language models to produce rich, realistic, and nontrivial tool behaviors, achieving more than double the diversity and scale of existing benchmarks.
+
+**2. Tool Simulation**: Emulates realistic tool behaviors and interactions, ensuring generated tools respond consistently and flexibly to varied input and output structures. This supports broad experimental setups and allows researchers to generate diverse task environments.
+
+**3. Tool Audit**: Ensures consistency, accuracy, and reliability of generated tools by auditing their responses. The LLM-based judge module achieved 99 percent accuracy and zero false positives when diagnosing simulator performance, confirming the robustness of the audit process.
+
+**4. Task Generation**: Constructs complex, multi-turn tasks from the generated tools. Tasks are designed through LLM prompting and require structured decision making and the coordinated use of multiple composable tools. Metadata generated in parallel ensures consistency between task requirements and tool outputs.
+
+**5. Task Simulation**: Uses the generated metadata to produce grounded and coherent tool responses during task execution, allowing for reproducible simulation of agent performance in synthetic environments.
+
+**6. Curated Dataset**: SynthTools generates approximately 6000 reliable synthetic tools spanning diverse domains. These tools form the basis for constructing realistic and challenging tasks. Human inspection confirms that the tasks are reasonable and solvable, while state of the art models still struggle to complete them successfully. This demonstrates that the synthetic tasks are valuable for advancing agent reasoning and tool use capabilities.
+
 ## Schema
+
+The repo is organized as follows:
+
 ```
 SynthTools/
 |-- configs/                # API keys and simulation parameters
@@ -18,8 +37,10 @@ SynthTools/
 |-- pyproject.toml          # Project metadata and build configuration
 |-- requirements.txt
 |-- setup.sh
+|-- main_create_tasks.py    # Main script to generate synthetic tasks
+|-- main_dedup_tools.py     # Main script for deduplicating tools
+|-- main_multi_turn.py      # Main script for multi turn simulations
 ```
-       
 
 ## Setup
 
@@ -29,7 +50,30 @@ Run `source .venv/bin/activate` to activate the environment.
 
 Add your api keys to `/configs/api_keys.json`
 
+## Tool Generation Pipeline
+
+### 1. Generate Tools 
+Run `python main_create_tools.py --config configs/generate_tool_config.yml`
+
+### 2. Tool deduplication 
+
+Run `python main_dedup_tools.py --config configs/deduplicate_tools_config.yml`
+
+### 3. Tool evaluation
+
+Currently being updated!
+
+### 4. Task evaluation
+
+Run `python main_create_tasks.py --config configs/generate_tasks.yaml`
+
+### 5. Task simulation
+
+Run `python main_multi_turn.py --config configs/multi_turn_config.yml`
+
 ## Tool Dataset
+SynthTools generates approximately 6000 reliable synthetic tools spanning diverse domains.
+
 ```
 tool_content/
 |-- task_curated/        # Manually curated tasks
@@ -42,12 +86,4 @@ tool_content/
 |-- tool_yaml/           # Tool definitions or configurations in YAML format
 |-- fields.txt           # Lists or descriptions of key data fields used across the dataset
 ```
-
-## Tool Generation Pipeline
-### 1. Generate Tools 
-Run `python main_create_tools.py --config configs/generate_tool_config.yml`
-### 2. Run tool deduplication 
-Run `python main_dedup.py --config configs/deduplicate_tools_config.yml`
-
-More to come!
-
+ 
