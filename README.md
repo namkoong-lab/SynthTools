@@ -1,4 +1,4 @@
-# Scaling Tools and Tasks and Show Values in Training on Them
+# SynthTools: A Framework for Scaling Synthetic Tools for Agent Development
 
 SynthTools is a scalable and efficient framework for generating synthetic tools and tasks for agent development. It was introduced in the paper "SynthTools: A Framework for Scaling Synthetic Tools for Agent Development."
 
@@ -72,7 +72,7 @@ Run `python main_create_tasks.py --config configs/generate_tasks.yaml`
 Run `python main_multi_turn.py --config configs/multi_turn_config.yml`
 
 ## Tool Dataset
-SynthTools generates approximately 6000 reliable synthetic tools spanning diverse domains.
+SynthTools curated dataset approximately contains 6000 reliable synthetic tools spanning diverse domains.
 
 ```
 tool_content/
