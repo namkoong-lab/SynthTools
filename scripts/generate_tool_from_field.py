@@ -202,7 +202,7 @@ def main():
             sort_keys=False,
             width=4096,
         )
-        pattern = rf"^(?P<indent>\s*)(?P<key>{key_alt}):\s*\|\n"
+        pattern = rf"^(?P<indent>\s*)(?P<key>[^\s:]+):\s*\|\n"
         text = re.sub(
             pattern,
             lambda m: f"{m.group('indent')}{m.group('key')}: |-\n",
