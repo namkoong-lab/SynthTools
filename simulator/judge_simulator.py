@@ -23,8 +23,9 @@ import yaml
 from anthropic import Anthropic
 import re
 
+# Configuration constants
 DEFAULT_JUDGE_CONFIG = {
-    "max_tokens": 2048,
+    "max_tokens": 2048,  # Higher for detailed reasoning
     "temperature": 0.02,
     "max_retries": 3,
     "base_delay": 2.0,
@@ -35,6 +36,7 @@ DEFAULT_JUDGE_CONFIG = {
     "log_file_pattern": "Tool_call_*.json"
 }
 
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -77,6 +79,7 @@ class JudgeSimulatorClient:
     """Client for judging simulator quality - borrows patterns from simulate_tool.py"""
     
     def __init__(self, **kwargs):
+        # Set up basic config using DEFAULT_JUDGE_CONFIG
         self.max_tokens = kwargs.get("max_tokens", DEFAULT_JUDGE_CONFIG["max_tokens"])
         self.temperature = kwargs.get("temperature", DEFAULT_JUDGE_CONFIG["temperature"])
         self.max_retries = kwargs.get("max_retries", DEFAULT_JUDGE_CONFIG["max_retries"])
@@ -84,6 +87,7 @@ class JudgeSimulatorClient:
         self.backoff_factor = kwargs.get("backoff_factor", DEFAULT_JUDGE_CONFIG["backoff_factor"])
         self.chat_log = kwargs.get("chat_log", {})
 
+        # Set up template (borrowed from ToolClient)
         script_dir = Path(__file__).resolve().parent
         self.prompt_template_file = kwargs.get(
             "prompt_template_file",
@@ -91,6 +95,7 @@ class JudgeSimulatorClient:
         )
         self.load_prompt_template()
 
+        # Set up Anthropic client (borrowed from AnthropicToolClient)
         self.model = kwargs.get("model", DEFAULT_JUDGE_CONFIG["model"])
         self.client = self.get_anthropic_client()
 
@@ -113,7 +118,7 @@ class JudgeSimulatorClient:
     
     def get_api_keys(self, key: str):
         """Get API keys from config file (borrowed from AnthropicToolClient)"""
-        script_dir = Path(__file__).resolve().parent.parent
+        script_dir = Path(__file__).resolve().parent
         config_path = script_dir / "configs" / "api_keys.json"
         with open(config_path) as f:
             api_keys = json.load(f)
@@ -176,16 +181,23 @@ class JudgeSimulatorClient:
             tool_details = str(tool_config)
         message = chat_log.get('message', '')
         response = chat_log.get('response', '')
+        meta_data = "Example Tool Call: " + str(chat_log.get('Tool parameters', {})) + "\n\nExample Return Data: " + str(chat_log.get('Ground truth return data', {}))
         
+        # Prepare data for template
         evaluation_data = {
             'tool_details': tool_details,
             'message': message,
-            'response': response
+            'response': response,
+            'meta_data': meta_data
         }
         
+        # Format the prompt using the template
         formatted_prompt = self.prompt_template.format(**evaluation_data)
+
+        print(f"Formatted prompt:\n{formatted_prompt}")
         
         try:
+            # Send the formatted prompt directly
             response = self.message(formatted_prompt)
             return self._parse_judgment_response(response)
         except Exception as e:
@@ -195,23 +207,28 @@ class JudgeSimulatorClient:
     def _parse_judgment_response(self, response: str) -> Tuple[JudgmentResult, float, str]:
         """Parse the LLM judgment response into structured data"""
         try:
+            # Try to extract JSON from the response
             import re
 
+            # First try to extract from markdown code blocks
             json_match = re.search(r'```(?:json)?\s*({.*?})\s*```', response, re.DOTALL)
             if json_match:
                 try:
                     result = json.loads(json_match.group(1))
                 except json.JSONDecodeError:
+                    # Fall through to other methods
                     pass
                 else:
                     return self._extract_judgment_data(result)
 
+            # Try to find JSON in the response
             start = response.find('{')
             end = response.rfind('}') + 1
             if start >= 0 and end > start:
                 json_str = response[start:end]
                 result = json.loads(json_str)
             else:
+                # Fallback parsing - try the whole response
                 result = json.loads(response)
 
             return self._extract_judgment_data(result)
@@ -231,6 +248,7 @@ class JudgeSimulatorClient:
         confidence = float(result.get("confidence", 0.0))
         reasoning = result.get("reasoning", "No reasoning provided")
 
+        # Map judgment string to enum
         judgment_map = {
             "correct": JudgmentResult.CORRECT,
             "should_success_got_error": JudgmentResult.SHOULD_SUCCESS_GOT_ERROR,
@@ -251,13 +269,14 @@ def judge_single_file(chat_log_file):
     print(f"Confidence: {confidence}")
     print(f"Reasoning: {reasoning}")
     
+    # Log into a file with the same name as the chat log file, but with the extension .judge.json
     judge_log_file = chat_log_file.with_suffix(".judge.json")
     with open(judge_log_file, "w") as f:
         json.dump({"judgment": judgment.value, "confidence": confidence, "reasoning": reasoning}, f, indent=2)
     
     return judgment, confidence, reasoning
 
-def process_log_directory(log_dir, file_pattern=None):
+def process_log_directory(log_dir, file_pattern=None, meta_data=False):
     """Process all JSON files in a specific log directory."""
     if file_pattern is None:
         file_pattern = DEFAULT_JUDGE_CONFIG["log_file_pattern"]
@@ -269,9 +288,16 @@ def process_log_directory(log_dir, file_pattern=None):
 
     results = {}
     for chat_log_file in log_dir.glob(file_pattern):
-        if not re.match(r"Tool_call_\d+\.json", chat_log_file.name):
-            continue
+        if meta_data:
+            # # Process the ones that has the pattern meta_data_tool_call.json
+            if not chat_log_file.name == "meta_data_tool_call_fixed.json":
+                continue
+        else:
+            # # Process the ones that has the pattern Tool_call_(number).json
+            if not re.match(r"Tool_call_\d+\.json", chat_log_file.name):
+                continue
         try:
+            print(f"Reached here, processing {chat_log_file}")
             judgment, confidence, reasoning = judge_single_file(chat_log_file)
             results[chat_log_file.name] = {
                 "judgment": judgment.value,
@@ -288,7 +314,7 @@ def process_log_directory(log_dir, file_pattern=None):
 
     return results
 
-def process_parent_directory(parent_dir):
+def process_parent_directory(parent_dir, meta_data=False):
     """Process all subdirectories containing that ends with _logs files."""
     parent_dir = Path(parent_dir)
     if not parent_dir.exists():
@@ -299,17 +325,33 @@ def process_parent_directory(parent_dir):
     for subdir in parent_dir.iterdir():
         if subdir.is_dir() and subdir.name.endswith("_logs"):
             logger.info(f"Processing directory: {subdir}")
-            results = process_log_directory(subdir)
+            if meta_data:
+                file_pattern = "meta_data_tool_call_fixed.json"
+            else:
+                file_pattern = "Tool_call_*.json"
+            results = process_log_directory(subdir, file_pattern=file_pattern, meta_data=meta_data)
             if results:
                 all_results[subdir.name] = results
     
     return all_results
 
 def main():
+    # parser = argparse.ArgumentParser(description="Judge tool simulator response quality")
+    # parser.add_argument("--log_dir", type=Path, default="./logs", help="Directory containing interaction logs")
+    # parser.add_argument("--output_file", type=Path, default="judge_results.json", help="Output evaluation JSON file")
+    # parser.add_argument("--model", default="claude-sonnet-4-20250514", help="Model to use for judging")
+    # parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
+    # parser.add_argument("--tool_config", type=Path, default="./tool_config.json", help="Tool config file")
+    # parser.add_argument("--chat_log", type=Path, default="./chat_log.json", help="Chat log file")
+    # args = parser.parse_args()
     
-    mode = input("Choose mode (1 for Simulated tools, 2 for Acebench tools): ")
+    # if args.verbose:
+    #     logging.getLogger().setLevel(logging.DEBUG)
+    # Input whether we want acebench or simulated tools
+    mode = input("Choose mode (1 for Simulated tools, 2 for Acebench tools, 3 for Simulated tools with meta data): ")
 
     base_path = Path(__file__).resolve().parent
+    meta_data = False
     if mode == "1":
         tool_final = DEFAULT_JUDGE_CONFIG["tool_final"]
         if tool_final:
@@ -319,16 +361,24 @@ def main():
             chat_log_dir = base_path / "tool_content" / "full_tool_specs" / f"tool_collection_json_{tool_collection_version}"
     elif mode == "2":
         chat_log_dir = base_path / "evaluation" / "acebench" / "data_en"
+    elif mode == "3":
+        chat_log_dir = base_path / "tool_content" / "tool_final" / "tool_json"
+        meta_data = True
     else:
-        print("Invalid mode selected. Please choose 1 or 2.")
+        print("Invalid mode selected. Please choose 1, 2, or 3.")
         return
 
     if not chat_log_dir.exists():
         logger.error(f"Directory does not exist: {chat_log_dir}")
         return
 
-    process_parent_directory(chat_log_dir)
+    process_parent_directory(chat_log_dir, meta_data=meta_data)
     
+    # To process a parent directory with multiple log directories:
+    # parent_dir = Path(__file__).resolve().parent / "evaluation" / "acebench" / "data_en"
+    # all_results = process_parent_directory(parent_dir)
+    # with open("all_judgments.json", "w") as f:
+    #     json.dump(all_results, f, indent=2)
 
 
 if __name__ == "__main__":
