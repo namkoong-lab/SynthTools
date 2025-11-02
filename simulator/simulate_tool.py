@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import time
@@ -9,6 +10,7 @@ import yaml
 from anthropic import Anthropic
 from openai import OpenAI
 
+# Configuration constants
 DEFAULT_CONFIG = {
     "max_tokens": 10000,
     "model": "claude-sonnet-4-20250514",
@@ -107,7 +109,7 @@ class ChatLogger:
 
     def _update_relative_paths(self):
         "Change ./ prefix to start from script root"
-        script_root = Path(__file__).resolve().parent
+        script_root = Path(__file__).resolve().parent.parent  # SynthTools root directory
 
         for folder_set in ["index_logging_folders", "id_logging_folders"]:
             new_folder_sets = {}
@@ -125,6 +127,7 @@ class ChatLogger:
             if field not in self.log_config:
                 raise ValueError(f"Missing required log config field: {field}")
 
+        # Delete invalid index logging folders
         for folder_set in ["index_logging_folders", "id_logging_folders"]:
             idc = []
             for folder, config in self.log_config.get(folder_set, {}).items():
@@ -183,14 +186,18 @@ class ToolClient(ModelClient):
         super().__init__(**kwargs)
 
         script_dir = Path(__file__).resolve().parent
+        proj_root = script_dir.parent  # SynthTools root directory
+        self.is_task_simulation = kwargs.get("is_task_simulation", False)
+        
         self.tool_config_file = kwargs.get(
-            "tool_config_file", f"{script_dir}/tool_configs/example_wifi_tool.json"
+            "tool_config_file", f"{proj_root}/tool_configs/example_wifi_tool.json"
         )
-        self.metadata_tool_file = kwargs.get("metadata_tool_file", None)
+        # Support both naming conventions
+        self.mega_data_tool_file = kwargs.get("mega_data_tool_file", None) or kwargs.get("metadata_tool_file", None)
         self.using_states = kwargs.get("using_states", False)
         self.load_tool_config()
-        if self.metadata_tool_file:
-            self.load_metadata_tool_config()
+        if self.mega_data_tool_file:
+            self.load_mega_data_tool_config()
 
         if self.using_states:
             if "states" in kwargs:
@@ -201,18 +208,33 @@ class ToolClient(ModelClient):
             else:
                 print(f"Using default tool states: {self.tool_config['states']}")
 
-        self.combined_prompt_template_file = kwargs.get(
-            "combined_prompt_template_file",
-            script_dir.parent / "prompt_templates" / "tool_simulator" / "tool_simulator_template.yml",
-        )
-        self.parameter_check_prompt_template_file = kwargs.get(
-            "parameter_check_prompt_template_file",
-            script_dir.parent / "prompt_templates" / "generate_tools" / "parameter_check.yml",
-        )
-        self.return_message_gen_prompt_template_file = kwargs.get(
-            "return_message_gen_prompt_template_file",
-            script_dir.parent / "prompt_templates" / "judge_simulator" / "return_message_gen.yml",
-        )
+        # Different template paths for task simulation vs tool evaluation
+        if self.is_task_simulation:
+            self.combined_prompt_template_file = kwargs.get(
+                "combined_prompt_template_file",
+                proj_root / "prompt_templates" / "tool_simulator" / "tool_simulator_template_metadata.yml",
+            )
+            self.parameter_check_prompt_template_file = kwargs.get(
+                "parameter_check_prompt_template_file",
+                proj_root / "prompt_templates" / "generate_tools" / "parameter_check.yml",
+            )
+            self.return_message_gen_prompt_template_file = kwargs.get(
+                "return_message_gen_prompt_template_file",
+                proj_root / "prompt_templates" / "judge_simulator" / "return_message_gen.yml",
+            )
+        else:
+            self.combined_prompt_template_file = kwargs.get(
+                "combined_prompt_template_file",
+                proj_root / "prompt_templates" / "tool_simulator" / "tool_simulator_template.yml",
+            )
+            self.parameter_check_prompt_template_file = kwargs.get(
+                "parameter_check_prompt_template_file",
+                proj_root / "prompt_templates" / "generate_tools" / "parameter_check.yml",
+            )
+            self.return_message_gen_prompt_template_file = kwargs.get(
+                "return_message_gen_prompt_template_file",
+                proj_root / "prompt_templates" / "judge_simulator" / "return_message_gen.yml",
+            )
         self.load_combined_prompt_template()
         self.load_parameter_check_prompt_template()
         self.load_return_message_gen_prompt_template()
@@ -220,19 +242,20 @@ class ToolClient(ModelClient):
 
         prompt_data = self.tool_config.copy()
         prompt_data["tool_details"]= str(self.tool_config)
-        if hasattr(self, 'metadata_tool_config'):
-            if 'Tool Call' in self.metadata_tool_config:
-                prompt_data['tool_call'] = self.metadata_tool_config['Tool Call']
-            if 'Return Data' in self.metadata_tool_config:
-                prompt_data['return_data'] = self.metadata_tool_config['Return Data']
+        
+        if hasattr(self, 'mega_data_tool_config') and self.mega_data_tool_config:
+            if 'Tool Call' in self.mega_data_tool_config:
+                prompt_data['tool_call'] = self.mega_data_tool_config['Tool Call']
+            if 'Return Data' in self.mega_data_tool_config:
+                prompt_data['return_data'] = self.mega_data_tool_config['Return Data']
             
             excluded_keys = {'Tool Call', 'Return Data'}
-            context_metadata = {k: v for k, v in self.metadata_tool_config.items() 
+            context_metadata = {k: v for k, v in self.mega_data_tool_config.items() 
                               if k not in excluded_keys}
             prompt_data['metadata'] = context_metadata
             prompt_data['meta_data'] = context_metadata
             
-            for key, value in self.metadata_tool_config.items():
+            for key, value in self.mega_data_tool_config.items():
                 if key not in prompt_data and key not in excluded_keys:
                     prompt_data[key] = value
         
@@ -267,9 +290,9 @@ class ToolClient(ModelClient):
         with open(self.tool_config_file) as f:
             self.tool_config = json.load(f)
 
-    def load_metadata_tool_config(self):
-        with open(self.metadata_tool_file) as f:
-            self.metadata_tool_config = json.load(f)
+    def load_mega_data_tool_config(self):
+        with open(self.mega_data_tool_file) as f:
+            self.mega_data_tool_config = json.load(f)
 
     def load_combined_prompt_template(self):
         with open(self.combined_prompt_template_file) as f:
@@ -312,7 +335,7 @@ class ToolClient(ModelClient):
         required_fields = self.combined_prompt_schema.get("required", [])
 
         for field in required_fields:
-            if field not in self.tool_config and not (hasattr(self, 'metadata_tool_config') and field in self.metadata_tool_config):
+            if field not in self.tool_config and not (hasattr(self, 'mega_data_tool_config') and field in self.mega_data_tool_config):
                 raise ValueError(f"Missing required field: {field}")
 
 
@@ -340,8 +363,9 @@ class AnthropicToolClient(ToolClient):
 
     def get_api_keys(self, key: str):
         """Get API keys from the config file."""
-        script_dir = Path(__file__).resolve().parent.parent
-        config_path = script_dir / "configs" / "api_keys.json"
+        script_dir = Path(__file__).resolve().parent
+        proj_root = script_dir.parent  # SynthTools root directory
+        config_path = proj_root / "configs" / "api_keys.json"
         with open(config_path) as f:
             api_keys = json.load(f)
 
@@ -377,9 +401,9 @@ class AnthropicToolClient(ToolClient):
             msg_content = self.combined_prompt + "\n" + content
         elif prompt_type == "parameter_check":
             msg_content = self.parameter_check_prompt + "\n" + content
-            print(f"Parameter check prompt:\n{msg_content}")
         elif prompt_type == "return_message_gen":
             msg_content = self.return_message_gen_prompt + "\n" + content
+            print(f"Return message gen prompt:\n{msg_content}")
         else:
             raise ValueError(f"Invalid prompt type: {prompt_type}")
         if DEFAULT_CONFIG["model_provider"] == "anthropic":
@@ -409,10 +433,12 @@ class AnthropicToolClient(ToolClient):
             max_tokens = DEFAULT_CONFIG["max_tokens"]
         if model_provider is None:
             model_provider = DEFAULT_CONFIG["model_provider"]
+        script_dir = Path(__file__).resolve().parent
+        proj_root = script_dir.parent  # SynthTools root directory
         if is_simulated:
-            template_file = Path(__file__).resolve().parent / "prompt_templates" / "generate_testing_functions_tool_simulator" / "generate_testing_tool_calls.yml"
+            template_file = proj_root / "prompt_templates" / "generate_testing_functions_tool_simulator" / "generate_testing_tool_calls.yml"
         else:
-            template_file = Path(__file__).resolve().parent / "prompt_templates" / "generate_acebench_tool_calls" / "generate_successful_tool_calls.yml"
+            template_file = proj_root / "prompt_templates" / "generate_acebench_tool_calls" / "generate_successful_tool_calls.yml"
         with open(template_file) as f:
             template = yaml.safe_load(f)
         template = template["template"]
@@ -422,7 +448,6 @@ class AnthropicToolClient(ToolClient):
 
         tool_config_new = {}
         tool_config_new["tool_details"] = str(tool_config)
-
         message = template.format(**tool_config_new)
 
         print(f"Message to the llm:\n{message}")
@@ -475,41 +500,45 @@ class AnthropicToolClient(ToolClient):
         return tool_calls_dir
 
 def run_simulated_tools(tool_final = None,tool_collection_version=None):
+    script_dir = Path(__file__).resolve().parent
+    proj_root = script_dir.parent  # SynthTools root directory
     if tool_final is None:
         tool_final = DEFAULT_CONFIG["tool_final"]
     if tool_final:
-        base_path = Path(__file__).resolve().parent / "tool_content" / "tool_final"
+        base_path = proj_root / "tool_content" / "tool_final"
         tool_call_files = base_path / "tool_json"
-        metadata_tool_files = base_path / "tool_meta"
+        mega_tool_files = base_path / "tool_meta"
     else:
         if tool_collection_version is None:
             tool_collection_version = DEFAULT_CONFIG["tool_collection_version"]
-        base_path = Path(__file__).resolve().parent / "tool_content" / "full_tool_specs"
+        base_path = proj_root / "tool_content" / "full_tool_specs"
         tool_call_files = base_path / f"tool_collection_json_{tool_collection_version}"
-        metadata_tool_files = base_path / f"tool_collection_meta_data_{tool_collection_version}"
+        mega_tool_files = base_path / f"tool_collection_meta_data_{tool_collection_version}"
     print("Running Simulated Tools mode...")
 
     if not tool_call_files.exists():
         print(f"Tool collection directory not found: {tool_call_files}")
         return
-    if not metadata_tool_files.exists():
-        print(f"Meta data directory not found: {metadata_tool_files}")
+    if not mega_tool_files.exists():
+        print(f"Meta data directory not found: {mega_tool_files}")
         return
 
-    process_tool_files(tool_call_files, metadata_tool_files, is_simulated=True)
+    process_tool_files(tool_call_files, mega_tool_files, is_simulated=True)
 
 def run_acebench_tools():
     print("Running Acebench Tools mode...")
     
-    tool_call_files = Path(__file__).resolve().parent / "evaluation" / "acebench" / "data_en" 
-    metadata_tool_files = Path(__file__).resolve().parent / "evaluation" / "acebench" / "data_en"
+    script_dir = Path(__file__).resolve().parent
+    proj_root = script_dir.parent  # SynthTools root directory
+    tool_call_files = proj_root / "evaluation" / "acebench" / "data_en" 
+    mega_tool_files = proj_root / "evaluation" / "acebench" / "data_en"
     
-    process_tool_files(tool_call_files, metadata_tool_files, is_simulated=False)
+    process_tool_files(tool_call_files, mega_tool_files, is_simulated=False)
 
-def process_tool_files(tool_call_files, metadata_tool_files, is_simulated=True):
+def process_tool_files(tool_call_files, mega_tool_files, is_simulated=True):
     separator = "*" * 42
     number_problems = 0
-    
+    count = 0
     for tool_file in tool_call_files.glob("*.json"):
         try:
             tool_file_name = tool_file.stem
@@ -518,20 +547,21 @@ def process_tool_files(tool_call_files, metadata_tool_files, is_simulated=True):
             print(f"\nTool file name: {tool_file_name}")
             
             if is_simulated:
-                metadata_tool_file = metadata_tool_files / f"{tool_file_name}__output.json"
+                mega_tool_file = mega_tool_files / f"{tool_file_name}__output.json"
             else:
-                metadata_tool_file = tool_file
+                mega_tool_file = tool_file
 
-            log_folder = tool_file.parent / f"{tool_file.stem}_logs"
+            log_folder = tool_file.parent.parent / "tool_eval_logs" / tool_file.stem
             log_folder.mkdir(parents=True, exist_ok=True)
             print(f"Made log folder: {log_folder}")
 
             existing_tool_calls = list(log_folder.glob("Tool_call_*.json"))
             if len(existing_tool_calls) > 5:
                 print(f"Tool calls already generated for {tool_file_name}")
+                count += 1
                 continue
                 
-            tool_client = AnthropicToolClient(tool_config_file=tool_file, metadata_tool_file=metadata_tool_file, using_states=False)
+            tool_client = AnthropicToolClient(tool_config_file=tool_file, mega_data_tool_file=mega_tool_file, using_states=False)
 
             print(f"Initialized tool client")
             
@@ -556,8 +586,232 @@ def process_tool_files(tool_call_files, metadata_tool_files, is_simulated=True):
                     safe_filename = tool_call.replace(' ', '_').replace('/', '_').replace('\\', '_')
                     with open(log_folder / f"{safe_filename}.json", "w") as f:
                         json.dump(log_json, f, indent=4)
-                else: 
+                else:
                     log_json = tool_client.chat_logger.compile_logs(message=tool_calls[tool_call]["Tool call message"], response=response)
+                    log_json["conversation_id"] = tool_call
+                    log_json["failure_mode"] = tool_calls[tool_call]["Failure mode"]
+                    log_json["tool_parameters"] = tool_calls[tool_call]["Tool parameters"]
+                    safe_filename = tool_call.replace(' ', '_').replace('/', '_').replace('\\', '_')
+                    with open(log_folder / f"{safe_filename}.json", "w") as f:
+                        json.dump(log_json, f, indent=4)
+
+        except (ValueError, json.JSONDecodeError, FileNotFoundError) as e:
+            print(f"Error: {e} in {tool_file_name}")
+            number_problems += 1
+            continue
+        except Exception as e:
+            print(f"Unexpected error: {e} in {tool_file_name}")
+            number_problems += 1
+            continue
+        
+        print(f"\n{separator * 2}\n")
+    print(f"Number of tool files processed: {count}")
+    print(f"Number of problems: {number_problems}")
+
+
+
+def process_tool_files_with_meta_data(tool_call_files, mega_tool_files, output_dir=None, is_simulated=True):
+    separator = "*" * 42
+    number_problems = 0
+    count = 0
+    for tool_file in tool_call_files.glob("*.json"):
+        try:
+            tool_file_name = tool_file.stem
+
+            print(f"\n{separator * 2}\n")
+            print(f"\nTool file name: {tool_file_name}")
+            
+            mega_tool_file = mega_tool_files / f"{tool_file_name}__output.json"
+            # Use provided output_dir or default to tool_content/tool_eval_logs
+            if output_dir:
+                log_folder = Path(output_dir) / tool_file.stem
+            else:
+                script_dir = Path(__file__).resolve().parent
+                proj_root = script_dir.parent  # SynthTools root directory
+                log_folder = proj_root / "tool_content" / "tool_eval_logs" / tool_file.stem
+            log_folder.mkdir(parents=True, exist_ok=True)
+            print(f"Made log folder: {log_folder}")
+
+            tool_client = AnthropicToolClient(tool_config_file=tool_file, mega_data_tool_file=mega_tool_file, using_states=False)
+            print(f"Initialized tool client")
+            
+            meta_data_tool_calls_dir = log_folder / "meta_data_tool_call.json"
+
+
+            import re
+            tool_name_match = re.search(r"_tool_spec_(\d+)__", tool_file_name)
+            if tool_name_match:
+                tool_name = tool_file_name.split(tool_name_match.group(0))[1]
+            else:
+                raise ValueError(f"Tool name not found in {tool_file_name}")
+            print(f"Tool name: {tool_name}")
+
+            with open(mega_tool_file, "r") as f:
+                meta_data= json.load(f)
+                meta_data_tool_call = meta_data.get("Tool Call", {})
+                meta_data_tool_call_message = f"{tool_name}[{', '.join([f'{param} = {value}' if not isinstance(value, str) else f'{param} = {repr(value)}'for param, value in meta_data_tool_call.items()])}]"
+                with open(meta_data_tool_calls_dir, "w") as f:
+                    meta_data_tool_call_json = {
+                        "Tool call message": meta_data_tool_call_message,
+                        "Tool parameters": meta_data_tool_call,
+                        "Ground truth return data": meta_data.get("Return Data", {})
+                    }
+                    json.dump(meta_data_tool_call_json, f, indent=4)
+
+            response = tool_client.message(content=meta_data_tool_call_message, prompt_type="parameter_check", log=False)
+            response = mscu.LiteralString(response)
+
+            if "Status: PASS" in response:
+                response_passed = tool_client.message(content=meta_data_tool_call_message, log=False, prompt_type="return_message_gen")
+                response_passed = mscu.LiteralString(response_passed)
+                full_response = response + "\nTool call response:" + response_passed
+                log_json = tool_client.chat_logger.compile_logs(message=meta_data_tool_call_message, response=full_response)
+                with open(meta_data_tool_calls_dir, "r") as f:
+                    existing_data = json.load(f)
+                existing_data.update(log_json)
+                with open(meta_data_tool_calls_dir, "w") as f:
+                    json.dump(existing_data, f, indent=4)
+            else:
+                log_json = tool_client.chat_logger.compile_logs(message=meta_data_tool_call_message, response=response)
+                with open(meta_data_tool_calls_dir, "a") as f:
+                    json.dump(log_json, f, indent=4)
+
+        except (ValueError, json.JSONDecodeError, FileNotFoundError) as e:
+            print(f"Error: {e} in {tool_file_name}")
+            number_problems += 1
+            continue
+        except Exception as e:
+            print(f"Unexpected error: {e} in {tool_file_name}")
+            number_problems += 1
+            continue
+        
+        print(f"\n{separator * 2}\n")
+    print(f"Number of tool files processed: {count}")
+    print(f"Number of problems: {number_problems}")
+
+def run_simulated_tools_with_meta_data(tool_json_dir=None, tool_meta_dir=None, output_dir=None):
+    print("Running Simulated Tools with Meta Data mode...")
+    
+    script_dir = Path(__file__).resolve().parent
+    proj_root = script_dir.parent  # SynthTools root directory
+    
+    # Use provided paths or default to tool_content paths
+    if tool_json_dir is None:
+        tool_call_files = proj_root / "tool_content" / "tool_json"
+    else:
+        tool_call_files = Path(tool_json_dir)
+    
+    if tool_meta_dir is None:
+        mega_tool_files = proj_root / "tool_content" / "tool_meta"
+    else:
+        mega_tool_files = Path(tool_meta_dir)
+    
+    process_tool_files_with_meta_data(tool_call_files, mega_tool_files, output_dir=output_dir, is_simulated=True)
+
+def run_task_simulation(tool_final=None, tool_collection_version=None):
+    """Run task simulation mode - logs in same directory as tool files"""
+    print("Running Task Simulation mode...")
+    
+    script_dir = Path(__file__).resolve().parent
+    proj_root = script_dir.parent  # SynthTools root directory
+    if tool_final is None:
+        tool_final = DEFAULT_CONFIG["tool_final"]
+    if tool_final:
+        base_path = proj_root / "tool_content" / "tool_final"
+        tool_call_files = base_path / "tool_json"
+        metadata_tool_files = base_path / "tool_meta"
+    else:
+        if tool_collection_version is None:
+            tool_collection_version = DEFAULT_CONFIG["tool_collection_version"]
+        base_path = proj_root / "tool_content" / "full_tool_specs"
+        tool_call_files = base_path / f"tool_collection_json_{tool_collection_version}"
+        metadata_tool_files = base_path / f"tool_collection_meta_data_{tool_collection_version}"
+    
+    if not tool_call_files.exists():
+        print(f"Tool collection directory not found: {tool_call_files}")
+        return
+    if not metadata_tool_files.exists():
+        print(f"Meta data directory not found: {metadata_tool_files}")
+        return
+
+    process_tool_files_for_tasks(tool_call_files, metadata_tool_files, is_simulated=True)
+
+def process_tool_files_for_tasks(tool_call_files, metadata_tool_files, is_simulated=True):
+    """Process tool files for task simulation - logs in same directory as tool files"""
+    separator = "*" * 42
+    number_problems = 0
+    
+    for tool_file in tool_call_files.glob("*.json"):
+        try:
+            tool_file_name = tool_file.stem
+
+            print(f"\n{separator * 2}\n")
+            print(f"\nTool file name: {tool_file_name}")
+            
+            if is_simulated:
+                metadata_tool_file = metadata_tool_files / f"{tool_file_name}__output.json"
+            else:
+                metadata_tool_file = tool_file
+
+            log_folder = tool_file.parent / f"{tool_file.stem}_logs"
+            log_folder.mkdir(parents=True, exist_ok=True)
+            print(f"Made log folder: {log_folder}")
+
+            existing_tool_calls = list(log_folder.glob("Tool_call_*.json"))
+            if len(existing_tool_calls) > 5:
+                print(f"Tool calls already generated for {tool_file_name}")
+                continue
+                
+            tool_client = AnthropicToolClient(
+                tool_config_file=tool_file, 
+                metadata_tool_file=metadata_tool_file, 
+                using_states=False,
+                is_task_simulation=True
+            )
+
+            print(f"Initialized tool client")
+            
+            tool_calls_dir = tool_client.generate_test_tool_calls(
+                tool_file, log_folder, 
+                model_provider=DEFAULT_CONFIG["model_provider"], 
+                is_simulated=is_simulated
+            )
+            tool_calls_dir = log_folder / "tool_calls.json"
+            with open(tool_calls_dir, "r") as f:
+                tool_calls = json.load(f)
+
+            for tool_call in tool_calls:
+                print(f"Tool call: {tool_calls[tool_call]}")
+                response = tool_client.message(
+                    content=tool_calls[tool_call]["Tool call message"], 
+                    prompt_type="parameter_check", 
+                    log=False
+                )
+                response = mscu.LiteralString(response)
+
+                if "Status: PASS" in response:
+                    response_passed = tool_client.message(
+                        content=tool_calls[tool_call]["Tool call message"], 
+                        log=False, 
+                        prompt_type="return_message_gen"
+                    )
+                    response_passed = mscu.LiteralString(response_passed)
+                    full_response = response + "\nTool call response:" + response_passed
+                    log_json = tool_client.chat_logger.compile_logs(
+                        message=tool_calls[tool_call]["Tool call message"], 
+                        response=full_response
+                    )
+                    log_json["conversation_id"] = tool_call
+                    log_json["failure_mode"] = tool_calls[tool_call]["Failure mode"]
+                    log_json["tool_parameters"] = tool_calls[tool_call]["Tool parameters"]
+                    safe_filename = tool_call.replace(' ', '_').replace('/', '_').replace('\\', '_')
+                    with open(log_folder / f"{safe_filename}.json", "w") as f:
+                        json.dump(log_json, f, indent=4)
+                else: 
+                    log_json = tool_client.chat_logger.compile_logs(
+                        message=tool_calls[tool_call]["Tool call message"], 
+                        response=response
+                    )
                     log_json["conversation_id"] = tool_call
                     log_json["failure_mode"] = tool_calls[tool_call]["Failure mode"]
                     log_json["tool_parameters"] = tool_calls[tool_call]["Tool parameters"]
@@ -577,16 +831,37 @@ def process_tool_files(tool_call_files, metadata_tool_files, is_simulated=True):
         print(f"\n{separator * 2}\n")
     print(f"Number of problems: {number_problems}")
 
-
 def main():    
-    mode = input("Choose mode (1 for Simulated tools, 2 for Acebench tools): ")
+    parser = argparse.ArgumentParser(description="Simulate tool calls and responses")
+    parser.add_argument("--mode", type=str, choices=["1", "2", "3", "4"], 
+                        help="Simulation mode: 1=Simulated tools, 2=Acebench tools, 3=Simulated tools with meta data, 4=Task simulation")
+    parser.add_argument("--tool_json_dir", type=str, default=None,
+                        help="Directory containing tool JSON files (for mode 3)")
+    parser.add_argument("--tool_meta_dir", type=str, default=None,
+                        help="Directory containing tool metadata files (for mode 3)")
+    parser.add_argument("--output_dir", type=str, default=None,
+                        help="Directory for output logs (for mode 3)")
+    args = parser.parse_args()
+    
+    if args.mode:
+        mode = args.mode
+    else:
+        mode = input("Choose mode (1 for Simulated tools, 2 for Acebench tools, 3 for Simulated tools with meta data, 4 for Task simulation): ")
     
     if mode == "1":
         run_simulated_tools()
     elif mode == "2":
         run_acebench_tools()
+    elif mode == "3":
+        run_simulated_tools_with_meta_data(
+            tool_json_dir=args.tool_json_dir,
+            tool_meta_dir=args.tool_meta_dir,
+            output_dir=args.output_dir
+        )
+    elif mode == "4":
+        run_task_simulation()
     else:
-        print("Invalid mode selected. Please choose 1 or 2.")
+        print("Invalid mode selected. Please choose 1, 2, 3, or 4.") 
 
 if __name__ == "__main__":
     main()

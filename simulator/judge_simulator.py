@@ -89,9 +89,10 @@ class JudgeSimulatorClient:
 
         # Set up template (borrowed from ToolClient)
         script_dir = Path(__file__).resolve().parent
+        proj_root = script_dir.parent  # SynthTools root directory
         self.prompt_template_file = kwargs.get(
             "prompt_template_file",
-            f"{script_dir}/prompt_templates/judge_template.yml"
+            proj_root / "prompt_templates" / "judge_simulator" / "judge_template.yml"
         )
         self.load_prompt_template()
 
@@ -119,7 +120,8 @@ class JudgeSimulatorClient:
     def get_api_keys(self, key: str):
         """Get API keys from config file (borrowed from AnthropicToolClient)"""
         script_dir = Path(__file__).resolve().parent
-        config_path = script_dir / "configs" / "api_keys.json"
+        proj_root = script_dir.parent  # SynthTools root directory
+        config_path = proj_root / "configs" / "api_keys.json"
         with open(config_path) as f:
             api_keys = json.load(f)
         return api_keys.get(key)
@@ -290,7 +292,7 @@ def process_log_directory(log_dir, file_pattern=None, meta_data=False):
     for chat_log_file in log_dir.glob(file_pattern):
         if meta_data:
             # # Process the ones that has the pattern meta_data_tool_call.json
-            if not chat_log_file.name == "meta_data_tool_call_fixed.json":
+            if not chat_log_file.name == "meta_data_tool_call.json":
                 continue
         else:
             # # Process the ones that has the pattern Tool_call_(number).json
@@ -323,10 +325,10 @@ def process_parent_directory(parent_dir, meta_data=False):
     
     all_results = {}
     for subdir in parent_dir.iterdir():
-        if subdir.is_dir() and subdir.name.endswith("_logs"):
+        if subdir.is_dir():
             logger.info(f"Processing directory: {subdir}")
             if meta_data:
-                file_pattern = "meta_data_tool_call_fixed.json"
+                file_pattern = "meta_data_tool_call.json"
             else:
                 file_pattern = "Tool_call_*.json"
             results = process_log_directory(subdir, file_pattern=file_pattern, meta_data=meta_data)
@@ -336,41 +338,49 @@ def process_parent_directory(parent_dir, meta_data=False):
     return all_results
 
 def main():
-    # parser = argparse.ArgumentParser(description="Judge tool simulator response quality")
-    # parser.add_argument("--log_dir", type=Path, default="./logs", help="Directory containing interaction logs")
-    # parser.add_argument("--output_file", type=Path, default="judge_results.json", help="Output evaluation JSON file")
-    # parser.add_argument("--model", default="claude-sonnet-4-20250514", help="Model to use for judging")
-    # parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
-    # parser.add_argument("--tool_config", type=Path, default="./tool_config.json", help="Tool config file")
-    # parser.add_argument("--chat_log", type=Path, default="./chat_log.json", help="Chat log file")
-    # args = parser.parse_args()
+    parser = argparse.ArgumentParser(description="Judge tool simulator response quality")
+    parser.add_argument("--mode", type=str, choices=["1", "2", "3"], 
+                        help="Judging mode: 1=Simulated tools, 2=Acebench tools, 3=Simulated tools with meta data")
+    parser.add_argument("--log_dir", type=Path, required=False, help="Directory containing log files (REQUIRED for mode 3)")
+    parser.add_argument("--output_file", type=Path, default="judge_results.json", help="Output evaluation JSON file")
+    parser.add_argument("--model", default="claude-sonnet-4-20250514", help="Model to use for judging")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
+    args = parser.parse_args()
     
-    # if args.verbose:
-    #     logging.getLogger().setLevel(logging.DEBUG)
-    # Input whether we want acebench or simulated tools
-    mode = input("Choose mode (1 for Simulated tools, 2 for Acebench tools, 3 for Simulated tools with meta data): ")
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    
+    # Get mode from command line or prompt user
+    if args.mode:
+        mode = args.mode
+    else:
+        mode = input("Choose mode (1 for Simulated tools, 2 for Acebench tools, 3 for Simulated tools with meta data): ")
 
-    base_path = Path(__file__).resolve().parent
+    script_dir = Path(__file__).resolve().parent
+    proj_root = script_dir.parent  # SynthTools root directory
     meta_data = False
     if mode == "1":
         tool_final = DEFAULT_JUDGE_CONFIG["tool_final"]
         if tool_final:
-            chat_log_dir = base_path / "tool_content" / "tool_final" / "tool_json"
+            chat_log_dir = proj_root / "tool_content" / "tool_final" / "tool_eval_logs"
         else:
             tool_collection_version = DEFAULT_JUDGE_CONFIG["tool_collection_version"]
-            chat_log_dir = base_path / "tool_content" / "full_tool_specs" / f"tool_collection_json_{tool_collection_version}"
+            chat_log_dir = proj_root / "tool_content" / "full_tool_specs" / f"tool_collection_json_{tool_collection_version}" / "tool_eval_logs"
     elif mode == "2":
-        chat_log_dir = base_path / "evaluation" / "acebench" / "data_en"
+        chat_log_dir = proj_root / "evaluation" / "acebench" / "data_en"
     elif mode == "3":
-        chat_log_dir = base_path / "tool_content" / "tool_final" / "tool_json"
+        if not args.log_dir:
+            logger.error("--log_dir is required for mode 3. Please provide the log directory path.")
+            return
+        chat_log_dir = Path(args.log_dir)
         meta_data = True
     else:
         print("Invalid mode selected. Please choose 1, 2, or 3.")
         return
 
     if not chat_log_dir.exists():
-        logger.error(f"Directory does not exist: {chat_log_dir}")
-        return
+        logger.info(f"Directory does not exist: {chat_log_dir}. Creating it...")
+        chat_log_dir.mkdir(parents=True, exist_ok=True)
 
     process_parent_directory(chat_log_dir, meta_data=meta_data)
     
