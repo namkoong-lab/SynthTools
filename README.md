@@ -57,11 +57,11 @@ Run `python main_create_tools.py --config configs/generate_tool_config.yml`
 
 ### 2. Tool deduplication 
 
-Run `python main_dedup_tools.py --config configs/deduplicate_tools_config.yml`
+Run `main_evaluate_tools.py --config configs/evaluate_tools_config.yml`
 
 ### 3. Tool evaluation
 
-Currently being updated!
+Run `python main_create_tasks.py --config configs/generate_tasks.yaml`
 
 ### 4. Task evaluation
 
@@ -84,6 +84,8 @@ tool_content/
 |-- tool_json/           # Tool specifications in JSON format
 |-- tool_meta/           # Metadata for generated tools
 |-- tool_yaml/           # Tool definitions or configurations in YAML format
+|-- tool_eval_logs/      # Tool evaluation calls 
 |-- fields.txt           # Lists or descriptions of key data fields used across the dataset
+|-- tool_list.json       # Jsonl list with all tool database information including deduplication and evaluation results
 ```
  
