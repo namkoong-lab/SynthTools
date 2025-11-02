@@ -87,6 +87,6 @@ tool_content/
 |-- tool_yaml/           # Tool definitions or configurations in YAML format
 |-- tool_eval_logs/      # Tool evaluation calls 
 |-- fields.txt           # Lists or descriptions of key data fields used across the dataset
-|-- tool_list.json       # Jsonl list with all tool database information including deduplication and evaluation results
+|-- tool_list.json       # Jsonl list with all tool database information 
 ```
  
