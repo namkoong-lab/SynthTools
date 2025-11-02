@@ -40,6 +40,7 @@ SynthTools/
 |-- main_create_tasks.py    # Main script to generate synthetic tasks
 |-- main_dedup_tools.py     # Main script for deduplicating tools
 |-- main_multi_turn.py      # Main script for multi turn simulations
+|-- main_evaluate_tools.py  # Main script for tool evaluation
 ```
 
 ## Setup
@@ -57,7 +58,7 @@ Run `python main_create_tools.py --config configs/generate_tool_config.yml`
 
 ### 2. Tool deduplication 
 
-Run `main_evaluate_tools.py --config configs/evaluate_tools_config.yml`
+Run `python main_evaluate_tools.py --config configs/evaluate_tools_config.yml`
 
 ### 3. Tool evaluation
 
