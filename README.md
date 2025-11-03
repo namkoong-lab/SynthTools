@@ -14,7 +14,7 @@ The framework addresses the limitations of using real world APIs, which are cons
 
 **5. Task Simulation**: Uses the generated metadata to produce grounded and coherent tool responses during task execution, allowing for reproducible simulation of agent performance in synthetic environments.
 
-**6. Curated Dataset**: SynthTools generates approximately 6000 reliable synthetic tools spanning diverse domains. These tools form the basis for constructing realistic and challenging tasks. Human inspection confirms that the tasks are reasonable and solvable, while state of the art models still struggle to complete them successfully. This demonstrates that the synthetic tasks are valuable for advancing agent reasoning and tool use capabilities.
+**6. Curated Dataset**: SynthTools readty-to-use datasete contains approximately 6000 reliable synthetic tools spanning diverse domains. These tools form the basis for constructing realistic and challenging tasks. Human inspection confirms that the tasks are reasonable and solvable, while state of the art models still struggle to complete them successfully. This demonstrates that the synthetic tasks are valuable for advancing agent reasoning and tool use capabilities.
 
 ## Schema
 
