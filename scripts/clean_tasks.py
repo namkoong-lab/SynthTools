@@ -1,4 +1,4 @@
-"""Clean synthtools trajectories: keep only judge-approved turns, rebuild solver_chat.
+"""Clean synthtools tasks: keep only judge-approved turns, rebuild solver_chat.
 
 Per-turn filter (fresh runs only):
     judge.task_solved AND judge.tool_call_equality AND judge.arguments_grounded
@@ -30,22 +30,22 @@ def is_clean_turn(turn: Dict[str, Any]) -> bool:
     )
 
 
-def is_legacy_import(traj: Dict[str, Any]) -> bool:
+def is_legacy_import(task: Dict[str, Any]) -> bool:
     """Legacy imports have no judge data on any turn."""
-    if traj.get("imported_from"):
+    if task.get("imported_from"):
         return True
-    turns = traj.get("turns") or []
+    turns = task.get("turns") or []
     if not turns:
         return False
     return all(t.get("judge") is None for t in turns)
 
 
-def clean_trajectory(traj: Dict[str, Any]) -> Dict[str, Any]:
+def clean_trajectory(task: Dict[str, Any]) -> Dict[str, Any]:
     """Filter `turns`, rebuild solver_chat, retighten tool_ids/tools.
 
     Returns a NEW dict; original is not mutated.
     """
-    turns: List[Dict[str, Any]] = traj.get("turns") or []
+    turns: List[Dict[str, Any]] = task.get("turns") or []
 
     # Per tool_idx, keep the LAST clean turn (highest attempt index).
     by_idx: Dict[int, Dict[str, Any]] = {}
@@ -71,13 +71,13 @@ def clean_trajectory(traj: Dict[str, Any]) -> Dict[str, Any]:
                 rebuilt_chat.append(m)
 
     # Map original tools by tool_id, then take only the kept ones in order.
-    orig_tool_ids: List[str] = traj.get("tool_ids") or []
-    orig_tools: List[Any] = traj.get("tools") or []
+    orig_tool_ids: List[str] = task.get("tool_ids") or []
+    orig_tools: List[Any] = task.get("tools") or []
     tools_by_id: Dict[str, Any] = dict(zip(orig_tool_ids, orig_tools))
     kept_tool_ids = [t.get("tool_id") for t in kept if t.get("tool_id") is not None]
     kept_tools = [tools_by_id.get(tid) for tid in kept_tool_ids]
 
-    cleaned = dict(traj)  # shallow copy
+    cleaned = dict(task)  # shallow copy
     cleaned["tool_ids"] = kept_tool_ids
     cleaned["tools"] = kept_tools
     cleaned["turns"] = kept
@@ -93,15 +93,15 @@ def clean_trajectory(traj: Dict[str, Any]) -> Dict[str, Any]:
     return cleaned
 
 
-def passthrough_legacy(traj: Dict[str, Any]) -> Dict[str, Any]:
+def passthrough_legacy(task: Dict[str, Any]) -> Dict[str, Any]:
     """Legacy imports are already clean; just annotate provenance."""
-    out = dict(traj)
+    out = dict(task)
     out["clean_meta"] = {
         "filter": "passthrough_legacy_import",
-        "original_turns": len(traj.get("turns") or []),
-        "kept_turns": len(traj.get("turns") or []),
-        "original_tools": len(traj.get("tool_ids") or []),
-        "kept_tools": len(traj.get("tool_ids") or []),
+        "original_turns": len(task.get("turns") or []),
+        "kept_turns": len(task.get("turns") or []),
+        "original_tools": len(task.get("tool_ids") or []),
+        "kept_tools": len(task.get("tool_ids") or []),
         "dropped_legacy": False,
     }
     return out
@@ -137,26 +137,26 @@ def atomic_write_json(path: Path, payload: Any) -> None:
 def process_one(in_path: Path, out_dir: Path, dry_run: bool = False) -> Dict[str, Any]:
     """Read, clean, write. Returns a small summary dict."""
     with in_path.open() as f:
-        traj = json.load(f)
+        task = json.load(f)
 
-    if is_legacy_import(traj):
-        cleaned = passthrough_legacy(traj)
+    if is_legacy_import(task):
+        cleaned = passthrough_legacy(task)
         action = "passthrough_legacy"
     else:
-        cleaned = clean_trajectory(traj)
+        cleaned = clean_trajectory(task)
         action = "filtered_fresh"
 
-    n_in = len(traj.get("turns") or [])
+    n_in = len(task.get("turns") or [])
     n_out = len(cleaned.get("turns") or [])
-    has_summary = bool(traj.get("summary"))
+    has_summary = bool(task.get("summary"))
     drop = (action == "filtered_fresh" and n_out == 0)
 
     summary = {
-        "task_id": traj.get("task_id") or in_path.stem,
+        "task_id": task.get("task_id") or in_path.stem,
         "action": action if not drop else "dropped_no_clean_turns",
         "n_turns_in": n_in,
         "n_turns_out": n_out,
-        "n_tools_in": len(traj.get("tool_ids") or []),
+        "n_tools_in": len(task.get("tool_ids") or []),
         "n_tools_out": len(cleaned.get("tool_ids") or []),
         "has_summary": has_summary,
     }
@@ -165,7 +165,7 @@ def process_one(in_path: Path, out_dir: Path, dry_run: bool = False) -> Dict[str
         return summary
 
     if drop:
-        return summary  # don't write empty trajectories
+        return summary  # don't write empty tasks
 
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / in_path.name
@@ -176,8 +176,8 @@ def process_one(in_path: Path, out_dir: Path, dry_run: bool = False) -> Dict[str
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--in-dir",  type=Path, required=True, help="trajectories source dir")
-    p.add_argument("--out-dir", type=Path, required=True, help="cleaned trajectories dest dir")
+    p.add_argument("--in-dir",  type=Path, required=True, help="tasks source dir")
+    p.add_argument("--out-dir", type=Path, required=True, help="cleaned tasks dest dir")
     p.add_argument("--limit",   type=int, default=None, help="cap number of files (for testing)")
     p.add_argument("--ids",     nargs="*", help="explicit task_ids to process (without .json)")
     p.add_argument("--dry-run", action="store_true", help="don't write outputs")
@@ -238,13 +238,13 @@ def main():
     n_with_summary  = sum(1 for s in summaries if s["has_summary"])
 
     print()
-    print(f"=== summary over {n} trajectories ===")
+    print(f"=== summary over {n} tasks ===")
     print(f"  legacy passthrough (kept as-is)  : {n_legacy}")
     print(f"  fresh, filtered                  : {n_fresh}")
     print(f"  fresh, dropped (0 clean turns)   : {n_drop_no_clean}")
     print(f"  inputs that had a `summary` field: {n_with_summary}")
 
-    # Per-trajectory printout
+    # Per-task printout
     print()
     print(f"{'task_id':<55}{'action':<22}{'turns':>10}{'tools':>10}{'summary':>9}")
     print("-" * 110)
