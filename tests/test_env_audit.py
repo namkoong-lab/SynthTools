@@ -8,7 +8,7 @@ Covers the 7-phase pipeline:
 - per-mode reliability aggregation
 - param_check FAIL skips simulation
 
-See /global/homes/t/tcaste/.claude/plans/noble-discovering-flamingo.md for the plan.
+See /path/to/data for the plan.
 """
 
 import json

@@ -1,26 +1,26 @@
-"""CLI entry point for trajectory generation.
+"""CLI entry point for task generation.
 
 Three mutually-exclusive input modes:
 
     Mode A — explicit list of tools (legacy):
-        python -m traj_generation.run \
+        python -m task_generation.run \
             --dataset tool_content/tools_dataset.jsonl \
-            --output-dir tool_content/trajectories \
+            --output-dir tool_content/tasks \
             --model GPT-OSS-120B \
             --tool-ids "id1" "id2" "id3"
 
     Mode B — every sequence in one env_spec:
-        python -m traj_generation.run \
+        python -m task_generation.run \
             --dataset tool_content/tools_dataset.jsonl \
-            --output-dir tool_content/trajectories \
+            --output-dir tool_content/tasks \
             --model GPT-OSS-120B \
             --env-spec tool_content/env_specs/aerospace_and_defense_spec_000.json \
-            [--max-trajectories 5]
+            [--max-tasks 5]
 
     Mode C — every sequence of every spec in a field:
-        python -m traj_generation.run \
+        python -m task_generation.run \
             --dataset tool_content/tools_dataset.jsonl \
-            --output-dir tool_content/trajectories \
+            --output-dir tool_content/tasks \
             --model GPT-OSS-120B \
             --env-specs-dir tool_content/env_specs \
             --field "Aerospace and Defense"
@@ -34,8 +34,8 @@ For parallel generation against a `vllm serve` process, add:
 Each worker is its own OS process with its own HTTP client; all workers
 share the single vLLM server.
 
-`traj_generation.run` does not generate sequences. Run
-`traj_generation.build_sequences` first to populate the `sequences` block on
+`task_generation.run` does not generate sequences. Run
+`task_generation.build_sequences` first to populate the `sequences` block on
 each env_spec.
 """
 
@@ -49,7 +49,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from llm import LLM, MODEL_REGISTRY
-from traj_generation.generate import (
+from task_generation.generate import (
     WorkItem,
     generate_trajectory,
     generate_trajectories_for_spec,
@@ -59,21 +59,21 @@ from traj_generation.generate import (
 )
 from utils import get_logger, redirect_synthtools_logger_to_file
 
-logger = get_logger("traj_generation.run")
+logger = get_logger("task_generation.run")
 
 
 # ---------------------------------------------------------------------------
 # Worker (top-level so it pickles cleanly across ProcessPoolExecutor)
 # ---------------------------------------------------------------------------
 
-def _worker(item: WorkItem, llm_kwargs: Dict[str, Any], traj_kwargs: Dict[str, Any],
+def _worker(item: WorkItem, llm_kwargs: Dict[str, Any], task_kwargs: Dict[str, Any],
             tools_dataset_path: str, output_dir: str) -> Dict[str, Any]:
-    """Generate one trajectory in a child process.
+    """Generate one task in a child process.
 
     First thing the worker does: redirect the `synthtools` logger to a
     per-task file at `<output_dir>/_logs/<task_id>.log` so detailed logs
     don't interleave on the parent's stderr. The parent's orchestration
-    logger (`traj_generation.run`) continues to write to stderr.
+    logger (`task_generation.run`) continues to write to stderr.
 
     Each worker constructs its own LLM (cheap when `server_url` is set —
     just an HTTP client), then calls `generate_trajectory`.
@@ -82,36 +82,36 @@ def _worker(item: WorkItem, llm_kwargs: Dict[str, Any], traj_kwargs: Dict[str, A
     redirect_synthtools_logger_to_file(log_path)
 
     llm = LLM(**llm_kwargs)
-    traj = generate_trajectory(
+    task = generate_trajectory(
         tool_ids=item.tool_ids,
         tools_dataset_path=Path(tools_dataset_path),
         output_dir=Path(output_dir),
         llm=llm,
         task_id=item.task_id,
-        **traj_kwargs,
+        **task_kwargs,
     )
     return {
         "task_id": item.task_id,
         "log_path": str(log_path),
-        "usage": traj.get("usage"),
-        "generation_time_s": traj.get("generation_time_s"),
+        "usage": task.get("usage"),
+        "generation_time_s": task.get("generation_time_s"),
     }
 
 
-def _run_parallel(items: List[WorkItem], llm_kwargs: Dict[str, Any], traj_kwargs: Dict[str, Any],
+def _run_parallel(items: List[WorkItem], llm_kwargs: Dict[str, Any], task_kwargs: Dict[str, Any],
                   tools_dataset_path: Path, output_dir: Path, concurrency: int) -> List[Dict[str, Any]]:
     """Submit all WorkItems to a ProcessPoolExecutor; drain results as they complete."""
     if not items:
-        logger.info("No pending work — all trajectories already exist.")
+        logger.info("No pending work — all tasks already exist.")
         return []
     log_dir = Path(output_dir) / "_logs"
     log_dir.mkdir(parents=True, exist_ok=True)
-    logger.info(f"Submitting {len(items)} trajectories to a pool of {concurrency} workers.")
+    logger.info(f"Submitting {len(items)} tasks to a pool of {concurrency} workers.")
     logger.info(f"Per-worker logs: {log_dir}/<task_id>.log  (tail -f any to follow)")
     results: List[Dict[str, Any]] = []
     with ProcessPoolExecutor(max_workers=concurrency) as ex:
         futures = {
-            ex.submit(_worker, item, llm_kwargs, traj_kwargs,
+            ex.submit(_worker, item, llm_kwargs, task_kwargs,
                       str(tools_dataset_path), str(output_dir)): item
             for item in items
         }
@@ -135,7 +135,7 @@ def _run_parallel(items: List[WorkItem], llm_kwargs: Dict[str, Any], traj_kwargs
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate trajectories from tool sequences.")
+    parser = argparse.ArgumentParser(description="Generate tasks from tool sequences.")
     parser.add_argument("--dataset", type=Path, required=True, help="Path to tools_dataset.jsonl")
     parser.add_argument("--output-dir", type=Path, required=True, help="Output directory")
     parser.add_argument("--model", default="Qwen3-32B", choices=list(MODEL_REGISTRY))
@@ -147,7 +147,7 @@ def main():
                         help="OpenAI-compatible base URL (e.g. http://localhost:8765/v1). "
                              "When set, all LLM calls go over HTTP instead of loading vLLM in-process.")
     parser.add_argument("--concurrency", type=int, default=1,
-                        help="Number of trajectories to generate in parallel. Requires --server-url "
+                        help="Number of tasks to generate in parallel. Requires --server-url "
                              "when > 1 (multiple in-process vLLM engines would OOM the GPUs).")
 
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -157,8 +157,8 @@ def main():
 
     parser.add_argument("--env-specs-dir", type=Path,
                         help="Directory containing env_spec JSONs (required with --field)")
-    parser.add_argument("--max-trajectories", type=int, default=None,
-                        help="(Mode B/C) Cap the number of trajectories per spec")
+    parser.add_argument("--max-tasks", type=int, default=None,
+                        help="(Mode B/C) Cap the number of tasks per spec")
 
     args = parser.parse_args()
 
@@ -169,9 +169,9 @@ def main():
     if args.concurrency > 1 and not args.server_url:
         parser.error("--concurrency > 1 requires --server-url (in-process vLLM cannot be forked).")
     if args.concurrency > 1 and args.tool_ids:
-        parser.error("--concurrency > 1 is not supported with --tool-ids (single trajectory).")
+        parser.error("--concurrency > 1 is not supported with --tool-ids (single task).")
 
-    traj_kwargs = dict(
+    task_kwargs = dict(
         max_solver_turns=args.max_solver_turns,
         max_retries=args.max_retries,
         verifiable=args.verifiable,
@@ -192,7 +192,7 @@ def main():
                 tools_dataset_path=args.dataset,
                 output_dir=args.output_dir,
                 llm=llm,
-                **traj_kwargs,
+                **task_kwargs,
             )
         elif args.env_spec:
             generate_trajectories_for_spec(
@@ -200,8 +200,8 @@ def main():
                 tools_dataset_path=args.dataset,
                 output_dir=args.output_dir,
                 llm=llm,
-                max_trajectories=args.max_trajectories,
-                **traj_kwargs,
+                max_tasks=args.max_tasks,
+                **task_kwargs,
             )
         else:
             generate_trajectories_for_field(
@@ -210,8 +210,8 @@ def main():
                 tools_dataset_path=args.dataset,
                 output_dir=args.output_dir,
                 llm=llm,
-                max_trajectories_per_spec=args.max_trajectories,
-                **traj_kwargs,
+                max_tasks_per_spec=args.max_tasks,
+                **task_kwargs,
             )
         return
 
@@ -221,19 +221,19 @@ def main():
         items = list_pending_work_for_spec(
             env_spec_path=args.env_spec,
             output_dir=args.output_dir,
-            max_trajectories=args.max_trajectories,
+            max_tasks=args.max_tasks,
         )
     else:
         items = list_pending_work_for_field(
             env_specs_dir=args.env_specs_dir,
             field=args.field,
             output_dir=args.output_dir,
-            max_trajectories_per_spec=args.max_trajectories,
+            max_tasks_per_spec=args.max_tasks,
         )
     _run_parallel(
         items=items,
         llm_kwargs=llm_kwargs,
-        traj_kwargs=traj_kwargs,
+        task_kwargs=task_kwargs,
         tools_dataset_path=args.dataset,
         output_dir=args.output_dir,
         concurrency=args.concurrency,

@@ -1,4 +1,4 @@
-"""Regression tests for traj_generation after the utils refactor.
+"""Regression tests for task_generation after the utils refactor.
 
 Ensures:
 - Public symbols still importable.
@@ -16,7 +16,7 @@ import pytest
 # --- Public symbols --------------------------------------------------------
 
 def test_public_symbols_importable():
-    from traj_generation import generate
+    from task_generation import generate
     assert hasattr(generate, "generate_trajectory")
     assert hasattr(generate, "make_task_id")
     assert hasattr(generate, "load_tools_dataset")
@@ -25,7 +25,7 @@ def test_public_symbols_importable():
 # --- make_task_id numbering via the shared next_artifact_index --------------
 
 def test_make_task_id_numbering(tmp_path: Path):
-    from traj_generation.generate import make_task_id
+    from task_generation.generate import make_task_id
     spec = "aerospace_and_defense_tool_spec_1"
     ids = [f"{spec}.Tool"]
 
@@ -73,7 +73,7 @@ _TOOL_SPEC = {
 
 
 def _canned_traj_responses():
-    """Canned responses for a 1-tool trajectory, in call order:
+    """Canned responses for a 1-tool task, in call order:
        evolver.t0 -> solver.turn_0 -> sim.parameter_check -> sim.simulate -> env_sim.update
     """
     evolver = json.dumps({
@@ -118,7 +118,7 @@ def test_solver_user_message_filters_to_openai_subset():
 
 def test_solver_user_message_renders_multi_tool_list():
     """When passed a list of tools, the user message lists all of them with
-    'Tools available for this trajectory (select one):' header and numbered
+    'Tools available for this task (select one):' header and numbered
     blocks. Each tool's OpenAI-subset is preserved; simulator-only fields are
     stripped from every tool."""
     from roles.task_solver import TaskSolver
@@ -144,7 +144,7 @@ def test_solver_user_message_renders_multi_tool_list():
         },
     ]
     msg = TaskSolver.build_user_message("pick one", tools)
-    assert "Tools available for this trajectory (select one):" in msg
+    assert "Tools available for this task (select one):" in msg
     assert "[1] " in msg and "[2] " in msg and "[3] " in msg
     for name in ("Foo", "Bar", "Baz"):
         assert name in msg
@@ -159,12 +159,12 @@ def test_solver_user_message_renders_multi_tool_list():
 
 def test_non_2xx_simulator_response_is_not_success(fake_llm, tmp_output):
     """A simulator 4xx response must NOT mark task_solved; the attempt should be retried."""
-    from traj_generation.generate import generate_trajectory
+    from task_generation.generate import generate_trajectory
 
     dataset_path = tmp_output / "tools_dataset.jsonl"
     with open(dataset_path, "w") as f:
         f.write(json.dumps(_TOOL_SPEC) + "\n")
-    out_dir = tmp_output / "traj_out"
+    out_dir = tmp_output / "task_out"
     out_dir.mkdir()
 
     evolver = json.dumps({
@@ -185,7 +185,7 @@ def test_non_2xx_simulator_response_is_not_success(fake_llm, tmp_output):
               evolver, solver, param_check, sim_200, env_update]:
         fake_llm.queue(r)
 
-    traj = generate_trajectory(
+    task = generate_trajectory(
         tool_ids=["mock_spec_1.MockTool"],
         tools_dataset_path=dataset_path,
         output_dir=out_dir,
@@ -197,8 +197,8 @@ def test_non_2xx_simulator_response_is_not_success(fake_llm, tmp_output):
     )
 
     # Two turns recorded for tool_idx=0 (attempt 0 and attempt 1)
-    assert len(traj["turns"]) == 2
-    t0, t1 = traj["turns"]
+    assert len(task["turns"]) == 2
+    t0, t1 = task["turns"]
     assert t0["tool_idx"] == 0 and t0["attempt"] == 0
     assert t0["env_update"] is None, "4xx should NOT populate env_update"
     assert t1["tool_idx"] == 0 and t1["attempt"] == 1
@@ -206,22 +206,22 @@ def test_non_2xx_simulator_response_is_not_success(fake_llm, tmp_output):
 
 
 def test_end_to_end_with_fake_llm(fake_llm, tmp_output):
-    """Write a mock tools_dataset.jsonl, run one trajectory, verify shape."""
-    from traj_generation.generate import generate_trajectory
+    """Write a mock tools_dataset.jsonl, run one task, verify shape."""
+    from task_generation.generate import generate_trajectory
 
     # Prepare tools_dataset.jsonl
     dataset_path = tmp_output / "tools_dataset.jsonl"
     with open(dataset_path, "w") as f:
         f.write(json.dumps(_TOOL_SPEC) + "\n")
 
-    out_dir = tmp_output / "traj_out"
+    out_dir = tmp_output / "task_out"
     out_dir.mkdir()
 
     # Queue every call the orchestrator makes (in order, single calls)
     for r in _canned_traj_responses():
         fake_llm.queue(r)
 
-    traj = generate_trajectory(
+    task = generate_trajectory(
         tool_ids=["mock_spec_1.MockTool"],
         tools_dataset_path=dataset_path,
         output_dir=out_dir,
@@ -237,14 +237,14 @@ def test_end_to_end_with_fake_llm(fake_llm, tmp_output):
     assert files == ["mock_spec_1_000.debug.json", "mock_spec_1_000.json"]
 
     # Top-level shape (use keys, not values, to dodge timing flakiness)
-    assert set(traj.keys()) == {
+    assert set(task.keys()) == {
         "task_id", "model", "config", "tool_ids", "tools", "turns",
         "solver_chat", "usage", "generation_time_s",
     }
-    assert traj["task_id"] == "mock_spec_1_000"
-    assert traj["model"] == "fake-model"
-    assert len(traj["turns"]) == 1
-    turn = traj["turns"][0]
+    assert task["task_id"] == "mock_spec_1_000"
+    assert task["model"] == "fake-model"
+    assert len(task["turns"]) == 1
+    turn = task["turns"][0]
     assert set(turn.keys()) == {
         "tool_idx", "attempt", "tool_id", "env_state_before",
         "task", "env_state_after_task", "chat", "judge",
@@ -254,14 +254,14 @@ def test_end_to_end_with_fake_llm(fake_llm, tmp_output):
     assert turn["attempt"] == 0
 
     # solver_chat: exactly [user, assistant, tool] (one successful tool call)
-    assert [m["role"] for m in traj["solver_chat"]] == ["user", "assistant", "tool"]
+    assert [m["role"] for m in task["solver_chat"]] == ["user", "assistant", "tool"]
 
     # usage aggregated (FakeLLM gives 10/20 per single call; 5 calls → 50/100 total)
     # NOTE: the param_check response and simulate are recorded as separate events
     # but share usage tracking on the ToolSimulator side, so we just assert positive sum.
-    assert traj["usage"]["total_tokens"] > 0
-    assert traj["usage"]["prompt_tokens"] > 0
-    assert traj["usage"]["completion_tokens"] > 0
+    assert task["usage"]["total_tokens"] > 0
+    assert task["usage"]["prompt_tokens"] > 0
+    assert task["usage"]["completion_tokens"] > 0
 
     # Debug file round-trip
     with open(out_dir / "mock_spec_1_000.debug.json") as f:
@@ -277,12 +277,12 @@ def test_evolver_rerolls_on_arguments_grounded_false(fake_llm, tmp_output):
     """Judge says arguments_grounded=False on attempt 0 → outer loop must
     re-roll the evolver. Judge feedback must reach the next evolver call via
     `unsuccessful_tasks_list[*].judge_explanation`."""
-    from traj_generation.generate import generate_trajectory
+    from task_generation.generate import generate_trajectory
 
     dataset_path = tmp_output / "tools_dataset.jsonl"
     with open(dataset_path, "w") as f:
         f.write(json.dumps(_TOOL_SPEC) + "\n")
-    out_dir = tmp_output / "traj_out"
+    out_dir = tmp_output / "task_out"
     out_dir.mkdir()
 
     evolver_attempt0 = json.dumps({
@@ -328,7 +328,7 @@ def test_evolver_rerolls_on_arguments_grounded_false(fake_llm, tmp_output):
     ]:
         fake_llm.queue(r)
 
-    traj = generate_trajectory(
+    task = generate_trajectory(
         tool_ids=["mock_spec_1.MockTool"],
         tools_dataset_path=dataset_path,
         output_dir=out_dir,
@@ -341,8 +341,8 @@ def test_evolver_rerolls_on_arguments_grounded_false(fake_llm, tmp_output):
     )
 
     # Two turns recorded: attempt 0 (re-rolled) + attempt 1 (solved)
-    assert len(traj["turns"]) == 2
-    t0, t1 = traj["turns"]
+    assert len(task["turns"]) == 2
+    t0, t1 = task["turns"]
     assert t0["attempt"] == 0 and t0["env_update"] is None
     assert t1["attempt"] == 1 and t1["env_update"] is not None
 
@@ -362,12 +362,12 @@ def test_solver_retries_in_place_when_grounded_but_not_solved(fake_llm, tmp_outp
     """Judge says arguments_grounded=True AND task_solved=False on attempt 0 →
     solver retries in place WITHOUT re-rolling the evolver. Same task, same
     expected_tool_call, fresh solver attempt."""
-    from traj_generation.generate import generate_trajectory
+    from task_generation.generate import generate_trajectory
 
     dataset_path = tmp_output / "tools_dataset.jsonl"
     with open(dataset_path, "w") as f:
         f.write(json.dumps(_TOOL_SPEC) + "\n")
-    out_dir = tmp_output / "traj_out"
+    out_dir = tmp_output / "task_out"
     out_dir.mkdir()
 
     evolver = json.dumps({
@@ -409,7 +409,7 @@ def test_solver_retries_in_place_when_grounded_but_not_solved(fake_llm, tmp_outp
     ]:
         fake_llm.queue(r)
 
-    traj = generate_trajectory(
+    task = generate_trajectory(
         tool_ids=["mock_spec_1.MockTool"],
         tools_dataset_path=dataset_path,
         output_dir=out_dir,
@@ -422,8 +422,8 @@ def test_solver_retries_in_place_when_grounded_but_not_solved(fake_llm, tmp_outp
     )
 
     # ONE turn recorded — same evolver attempt, but solver retried internally.
-    assert len(traj["turns"]) == 1
-    t = traj["turns"][0]
+    assert len(task["turns"]) == 1
+    t = task["turns"][0]
     assert t["attempt"] == 0
     assert t["env_update"] is not None
     # Final judge verdict must be the SOLVED one.
@@ -469,8 +469,8 @@ def _mock_env_spec(spec_id: str, field: str, tool_names, sequences):
 
 
 def test_mode_b_iterates_sequences_and_skips_existing(fake_llm, tmp_output):
-    """Mode B: run one trajectory per sequence, skip any {spec_id}_{seq_key}.json that exists."""
-    from traj_generation.generate import generate_trajectories_for_spec
+    """Mode B: run one task per sequence, skip any {spec_id}_{seq_key}.json that exists."""
+    from task_generation.generate import generate_trajectories_for_spec
 
     spec_id = "mock_spec_1"
     dataset_path = tmp_output / "tools_dataset.jsonl"
@@ -485,17 +485,17 @@ def test_mode_b_iterates_sequences_and_skips_existing(fake_llm, tmp_output):
     env_spec_path = env_specs_dir / f"{spec_id}.json"
     env_spec_path.write_text(json.dumps(env_spec))
 
-    out_dir = tmp_output / "traj_out"
+    out_dir = tmp_output / "task_out"
     out_dir.mkdir()
 
     # Pre-create seq1's file so it gets skipped
     (out_dir / f"{spec_id}_seq1.json").write_text('{"pre-existing": true}')
 
-    # Queue responses for seq2 only (one trajectory)
+    # Queue responses for seq2 only (one task)
     for r in _canned_traj_responses():
         fake_llm.queue(r)
 
-    trajs = generate_trajectories_for_spec(
+    tasks = generate_trajectories_for_spec(
         env_spec_path=env_spec_path,
         tools_dataset_path=dataset_path,
         output_dir=out_dir,
@@ -504,20 +504,20 @@ def test_mode_b_iterates_sequences_and_skips_existing(fake_llm, tmp_output):
         debug=False,
     )
 
-    assert len(trajs) == 1
-    assert trajs[0]["task_id"] == f"{spec_id}_seq2"
+    assert len(tasks) == 1
+    assert tasks[0]["task_id"] == f"{spec_id}_seq2"
 
     # seq1 file preserved as pre-existing sentinel
     pre = json.loads((out_dir / f"{spec_id}_seq1.json").read_text())
     assert pre == {"pre-existing": True}
 
-    # seq2 trajectory written with the expected name
+    # seq2 task written with the expected name
     assert (out_dir / f"{spec_id}_seq2.json").exists()
 
 
 def test_mode_b_no_llm_calls_when_all_skipped(fake_llm, tmp_output):
     """If every {spec_id}_{seq_key}.json already exists, no LLM call is made."""
-    from traj_generation.generate import generate_trajectories_for_spec
+    from task_generation.generate import generate_trajectories_for_spec
 
     spec_id = "mock_spec_1"
     dataset_path = tmp_output / "tools_dataset.jsonl"
@@ -532,11 +532,11 @@ def test_mode_b_no_llm_calls_when_all_skipped(fake_llm, tmp_output):
     env_spec_path = env_specs_dir / f"{spec_id}.json"
     env_spec_path.write_text(json.dumps(env_spec))
 
-    out_dir = tmp_output / "traj_out"
+    out_dir = tmp_output / "task_out"
     out_dir.mkdir()
     (out_dir / f"{spec_id}_seq1.json").write_text("{}")
 
-    trajs = generate_trajectories_for_spec(
+    tasks = generate_trajectories_for_spec(
         env_spec_path=env_spec_path,
         tools_dataset_path=dataset_path,
         output_dir=out_dir,
@@ -544,13 +544,13 @@ def test_mode_b_no_llm_calls_when_all_skipped(fake_llm, tmp_output):
         verifiable=False,
         debug=False,
     )
-    assert trajs == []
+    assert tasks == []
     assert fake_llm.calls == []
 
 
 def test_mode_b_warns_when_sequences_empty(fake_llm, tmp_output):
     """Empty sequences block → nothing to do, no LLM calls."""
-    from traj_generation.generate import generate_trajectories_for_spec
+    from task_generation.generate import generate_trajectories_for_spec
 
     spec_id = "mock_spec_1"
     dataset_path = tmp_output / "tools_dataset.jsonl"
@@ -562,10 +562,10 @@ def test_mode_b_warns_when_sequences_empty(fake_llm, tmp_output):
     env_spec_path = env_specs_dir / f"{spec_id}.json"
     env_spec_path.write_text(json.dumps(env_spec))
 
-    out_dir = tmp_output / "traj_out"
+    out_dir = tmp_output / "task_out"
     out_dir.mkdir()
 
-    trajs = generate_trajectories_for_spec(
+    tasks = generate_trajectories_for_spec(
         env_spec_path=env_spec_path,
         tools_dataset_path=dataset_path,
         output_dir=out_dir,
@@ -573,7 +573,7 @@ def test_mode_b_warns_when_sequences_empty(fake_llm, tmp_output):
         verifiable=False,
         debug=False,
     )
-    assert trajs == []
+    assert tasks == []
     assert fake_llm.calls == []
 
 
@@ -581,7 +581,7 @@ def test_mode_b_warns_when_sequences_empty(fake_llm, tmp_output):
 
 def test_mode_c_iterates_all_specs_in_field(fake_llm, tmp_output):
     """Mode C picks every `*_spec_*.json` whose `field` matches, skipping others."""
-    from traj_generation.generate import generate_trajectories_for_field
+    from task_generation.generate import generate_trajectories_for_field
 
     dataset_path = tmp_output / "tools_dataset.jsonl"
     _write_dataset(dataset_path, [
@@ -600,15 +600,15 @@ def test_mode_c_iterates_all_specs_in_field(fake_llm, tmp_output):
         env_spec = _mock_env_spec(spec_id, field, ["MockTool"], {"seq1": ["MockTool"]})
         (env_specs_dir / f"{spec_id}.json").write_text(json.dumps(env_spec))
 
-    out_dir = tmp_output / "traj_out"
+    out_dir = tmp_output / "task_out"
     out_dir.mkdir()
 
-    # Queue responses for 2 trajectories (mock_spec_1 + mock_spec_2)
+    # Queue responses for 2 tasks (mock_spec_1 + mock_spec_2)
     for _ in range(2):
         for r in _canned_traj_responses():
             fake_llm.queue(r)
 
-    trajs = generate_trajectories_for_field(
+    tasks = generate_trajectories_for_field(
         env_specs_dir=env_specs_dir,
         field="Mock",
         tools_dataset_path=dataset_path,
@@ -618,8 +618,8 @@ def test_mode_c_iterates_all_specs_in_field(fake_llm, tmp_output):
         debug=False,
     )
 
-    assert len(trajs) == 2
-    assert {t["task_id"] for t in trajs} == {"mock_spec_1_seq1", "mock_spec_2_seq1"}
+    assert len(tasks) == 2
+    assert {t["task_id"] for t in tasks} == {"mock_spec_1_seq1", "mock_spec_2_seq1"}
     assert (out_dir / "mock_spec_1_seq1.json").exists()
     assert (out_dir / "mock_spec_2_seq1.json").exists()
     # OtherField spec not touched

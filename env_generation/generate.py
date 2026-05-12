@@ -19,7 +19,7 @@ Pipeline (per field):
     3. (subfield, task) -> tools        (N*M calls, batched)
 
 Sequences (formerly phase 4) are NOT generated here anymore — they are produced
-post-audit by `traj_generation.build_sequences`, which can filter the tool pool
+post-audit by `task_generation.build_sequences`, which can filter the tool pool
 by reliability before asking the LLM to chain tools. The scenario JSON we save
 includes `sequences: {}` as a placeholder; build_sequences fills it in later.
 
@@ -131,7 +131,7 @@ def generate_environments(
 
     role = EnvironmentGenerator(_default_template_files(), llm)
 
-    # Warm up the engine once (matches traj_generation behaviour).
+    # Warm up the engine once (matches task_generation behaviour).
     if hasattr(llm, "_ensure_engine"):
         llm._ensure_engine()
     logger.info(f"Model: {llm.model}")
@@ -225,7 +225,7 @@ def _generate_for_field(
 
     # Save one JSON per scenario. Parse-failure policy: skip writing a scenario
     # whose tools came back empty. Sequences are populated later by
-    # `traj_generation.build_sequences`; env_generation just emits `sequences: {}`.
+    # `task_generation.build_sequences`; env_generation just emits `sequences: {}`.
     saved: List[Dict] = []
     for sc in scenarios:
         if not sc["tools"]:

@@ -1,4 +1,4 @@
-"""Unit tests for traj_generation.build_sequences.
+"""Unit tests for task_generation.build_sequences.
 
 Covers:
 - Skip logic: specs with non-empty `sequences` are left alone (no LLM call).
@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from traj_generation.build_sequences import build_sequences
+from task_generation.build_sequences import build_sequences
 
 
 def _sequences_response(seqs: dict) -> str:

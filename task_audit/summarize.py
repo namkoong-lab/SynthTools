@@ -1,34 +1,34 @@
-"""Trajectory summarization — merges a trajectory's successful subtasks into one
+"""Task summarization — merges a task's successful subtasks into one
 cohesive task description.
 
 Why a separate stage:
-    traj_generation writes per-turn detail (evolver → solver → simulator → judge
-    → env update). Downstream training needs ONE task description per trajectory
+    task_generation writes per-turn detail (evolver → solver → simulator → judge
+    → env update). Downstream training needs ONE task description per task
     that is provably solvable from the merged text + tool outputs alone. The
     existing `TaskSummarizer` role already does this; we wrap it here with:
-        - batched LLM calls across N trajectories
+        - batched LLM calls across N tasks
         - skip-if-present idempotency
-        - atomic writeback to both the main trajectory JSON and its .debug.json
+        - atomic writeback to both the main task JSON and its .debug.json
 
 Pipeline position:
-    env_generation → env_audit → build_sequences → traj_generation.run → **this**
+    env_generation → env_audit → build_sequences → task_generation.run → **this**
 
 Targeting modes (mutually exclusive; if none, processes every *_spec_*_*.json
-under `trajectories_dir`):
-    - trajectory_path: one specific trajectory file
+under `tasks_dir`):
+    - task_path: one specific task file
     - field + env_specs_dir: walks env_specs, collects matching spec_ids, then
-      picks every trajectory whose filename starts with one of those spec_ids
+      picks every task whose filename starts with one of those spec_ids
 
-Idempotency / resume: a trajectory is skipped if `trajectory["summary"]` is
+Idempotency / resume: a task is skipped if `task["summary"]` is
 truthy. Clear that key to force re-summarization.
 
 Usage:
     from llm import LLM
-    from traj_audit.summarize import summarize_trajectories
+    from task_audit.summarize import summarize_trajectories
 
     llm = LLM("GPT-OSS-120B")
     summarize_trajectories(
-        trajectories_dir=Path("tool_content/trajectories"),
+        tasks_dir=Path("tool_content/tasks"),
         llm=llm,
         field="Aerospace and Defense",
         env_specs_dir=Path("tool_content/env_specs"),
@@ -93,15 +93,15 @@ def _last_tool_call_from_chat(chat: List[Dict[str, Any]]) -> Optional[str]:
     return None
 
 
-def _extract_successful_turns(trajectory: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _extract_successful_turns(task: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Per tool_idx, keep the LAST turn whose `env_update is not None`.
 
     `env_update` is populated only on successful tool calls (by
-    `traj_generation.generate`), so this filter is correct for both
+    `task_generation.generate`), so this filter is correct for both
     verifiable=True and verifiable=False runs.
     """
     successful_by_idx: Dict[int, Dict[str, Any]] = {}
-    for turn in trajectory.get("turns") or []:
+    for turn in task.get("turns") or []:
         if turn.get("env_update") is None:
             continue
         idx = turn.get("tool_idx")
@@ -137,13 +137,13 @@ def _triples_for_summarizer(successful: List[Dict[str, Any]]) -> Dict[str, List[
 # ---------------------------------------------------------------------------
 
 def _iter_trajectory_paths(
-    trajectories_dir: Path,
+    tasks_dir: Path,
     field: Optional[str],
     env_specs_dir: Optional[Path],
 ) -> List[Path]:
-    """Return every `{spec_id}_*.json` trajectory whose spec_id matches the field."""
+    """Return every `{spec_id}_*.json` task whose spec_id matches the field."""
     all_paths = sorted(
-        p for p in trajectories_dir.glob("*.json")
+        p for p in tasks_dir.glob("*.json")
         if not p.name.endswith(".debug.json") and not p.name.endswith(".tmp")
     )
     if field is None:
@@ -198,74 +198,74 @@ def _append_debug_event(debug_path: Path, event: Dict[str, Any]) -> bool:
 # ---------------------------------------------------------------------------
 
 def summarize_trajectories(
-    trajectories_dir: Path,
+    tasks_dir: Path,
     llm,
-    trajectory_path: Optional[Path] = None,
+    task_path: Optional[Path] = None,
     field: Optional[str] = None,
     env_specs_dir: Optional[Path] = None,
     write_debug: bool = True,
 ) -> List[Dict[str, Any]]:
-    """Populate `summary` on trajectory JSONs that don't already have one.
+    """Populate `summary` on task JSONs that don't already have one.
 
     Args:
-        trajectories_dir: Directory containing trajectory JSONs. Used as the base
+        tasks_dir: Directory containing task JSONs. Used as the base
             for walking files and for resolving `.debug.json` siblings.
         llm: LLM instance.
-        trajectory_path: Optional path to a single trajectory file. Mutually
+        task_path: Optional path to a single task file. Mutually
             exclusive with `field`.
         field: Optional field name. Requires `env_specs_dir`. Walks env_specs to
-            collect matching spec_ids, then picks every trajectory whose filename
+            collect matching spec_ids, then picks every task whose filename
             starts with one of those spec_ids.
         env_specs_dir: Directory with env_spec JSONs — needed for `field` lookup.
         write_debug: If True (default), append a summarize event to each sibling
             `.debug.json` (when present). Set False to leave debug logs untouched.
 
     Returns:
-        The list of trajectories that were (or would be — for skipped ones) in
+        The list of tasks that were (or would be — for skipped ones) in
         scope, with their `summary` field populated where applicable.
     """
-    if trajectory_path is not None and field is not None:
-        raise ValueError("trajectory_path and field are mutually exclusive")
+    if task_path is not None and field is not None:
+        raise ValueError("task_path and field are mutually exclusive")
 
-    trajectories_dir = Path(trajectories_dir)
+    tasks_dir = Path(tasks_dir)
 
     role = TaskSummarizer(llm)
     if hasattr(llm, "_ensure_engine"):
         llm._ensure_engine()
 
-    if trajectory_path is not None:
-        target_paths = [Path(trajectory_path)]
+    if task_path is not None:
+        target_paths = [Path(task_path)]
     else:
         target_paths = _iter_trajectory_paths(
-            trajectories_dir,
+            tasks_dir,
             field,
             Path(env_specs_dir) if env_specs_dir is not None else None,
         )
-        scope_label = f"field '{field}'" if field else "all trajectories"
-        logger.info(f"{scope_label}: found {len(target_paths)} trajectory file(s)")
+        scope_label = f"field '{field}'" if field else "all tasks"
+        logger.info(f"{scope_label}: found {len(target_paths)} task file(s)")
 
     start = time.time()
     updated: List[Dict[str, Any]] = []
     to_process: List[Dict[str, Any]] = []
 
-    # Phase 1: load each trajectory, filter, build prompt (no LLM).
+    # Phase 1: load each task, filter, build prompt (no LLM).
     for path in target_paths:
         try:
-            traj = json.loads(path.read_text())
+            task = json.loads(path.read_text())
         except (OSError, json.JSONDecodeError) as exc:
             logger.warning(f"  {path.name}: unreadable ({exc}) — skipping")
             continue
-        task_id = traj.get("task_id") or path.stem
+        task_id = task.get("task_id") or path.stem
 
-        if traj.get("summary"):
+        if task.get("summary"):
             logger.info(f"  {task_id}: summary already present — skipping")
-            updated.append(traj)
+            updated.append(task)
             continue
 
-        successful = _extract_successful_turns(traj)
+        successful = _extract_successful_turns(task)
         if not successful:
             logger.warning(f"  {task_id}: 0 successful turns — skipping")
-            updated.append(traj)
+            updated.append(task)
             continue
 
         triples = _triples_for_summarizer(successful)
@@ -278,19 +278,19 @@ def summarize_trajectories(
         to_process.append({
             "path": path,
             "task_id": task_id,
-            "traj": traj,
+            "task": task,
             "prompt": prompt,
             "n_subtasks": len(successful),
         })
 
-    # Phase 2: one batched LLM call across every trajectory that needs it.
+    # Phase 2: one batched LLM call across every task that needs it.
     if to_process:
         prompts = [item["prompt"] for item in to_process]
-        logger.info(f"summarize: batched LLM call for {len(prompts)} trajectory/ies")
+        logger.info(f"summarize: batched LLM call for {len(prompts)} task/ies")
         results = batch_call(llm, prompts)
 
         for item, r in zip(to_process, results):
-            traj = item["traj"]
+            task = item["task"]
             path: Path = item["path"]
             task_id = item["task_id"]
             response = r["response"]
@@ -311,8 +311,8 @@ def summarize_trajectories(
                 "parsed": parsed,
                 "usage": usage_dict,
             }
-            traj["summary"] = summary_block
-            _atomic_write_json(path, traj)
+            task["summary"] = summary_block
+            _atomic_write_json(path, task)
             logger.info(
                 f"  {task_id}: summarized {item['n_subtasks']} subtasks "
                 f"(usage: {usage_dict})"
@@ -334,10 +334,10 @@ def summarize_trajectories(
                 if not appended:
                     logger.debug(f"  {task_id}: no debug log at {debug_path.name}")
 
-            updated.append(traj)
+            updated.append(task)
 
     logger.info(
-        f"summarize_trajectories: processed {len(updated)} trajectory/ies "
+        f"summarize_trajectories: processed {len(updated)} task/ies "
         f"in {time.time() - start:.1f}s"
     )
     return updated
@@ -349,15 +349,15 @@ def summarize_trajectories(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Summarize trajectories produced by traj_generation.run."
+        description="Summarize tasks produced by task_generation.run."
     )
-    parser.add_argument("--trajectories-dir", type=Path, required=True,
-                        help="Directory containing trajectory JSONs")
+    parser.add_argument("--tasks-dir", type=Path, required=True,
+                        help="Directory containing task JSONs")
     parser.add_argument("--model", default="GPT-OSS-120B", choices=list(MODEL_REGISTRY))
 
     target = parser.add_mutually_exclusive_group()
-    target.add_argument("--trajectory", type=Path,
-                        help="Path to a single trajectory JSON")
+    target.add_argument("--task", type=Path,
+                        help="Path to a single task JSON")
     target.add_argument("--field", type=str,
                         help="Field name; requires --env-specs-dir")
 
@@ -374,9 +374,9 @@ def main():
 
     llm = LLM(args.model)
     summarize_trajectories(
-        trajectories_dir=args.trajectories_dir,
+        tasks_dir=args.tasks_dir,
         llm=llm,
-        trajectory_path=args.trajectory,
+        task_path=args.task,
         field=args.field,
         env_specs_dir=args.env_specs_dir,
         write_debug=args.write_debug,

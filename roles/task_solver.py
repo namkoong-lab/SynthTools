@@ -15,6 +15,7 @@ from utils import extract_json_objects
 PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompt_templates" / "task_solver"
 TASK_SOLVER_TEMPLATE_FILE = PROMPT_DIR / "task_solver_gen_template.yml"
 TASK_SOLVER_EVAL_TEMPLATE_FILE = PROMPT_DIR / "task_solver_eval_template.yml"
+TASK_SOLVER_TRAJECTORY_TEMPLATE_FILE = PROMPT_DIR / "task_solver_trajectory_template.yml"
 
 # Fields the solver is allowed to see — the OpenAI function-calling subset.
 # Simulator-only extras (`error_messages`, `usage`, `output_details`) are filtered
@@ -23,14 +24,24 @@ _OPENAI_TOOL_FIELDS = ("tool_name", "tool_description", "parameters")
 
 
 class TaskSolver(Role):
-    def __init__(self, runner: Callable[[str], str]):
+    def __init__(self, runner: Callable[[str], str], mode: str = "gen"):
+        """`mode` selects which system prompt to use:
+          - "gen"        : one-tool-per-step generator (default; legacy behaviour)
+          - "trajectory" : multi-step solver that calls tools turn by turn
+                            until it emits ``<STOP>`` (used by the
+                            `trajectory_generation` package).
+        """
+        if mode not in ("gen", "trajectory"):
+            raise ValueError(f"Unknown mode {mode!r}; expected 'gen' or 'trajectory'.")
+        self.mode = mode
         prompts = self._load_prompts()
         super().__init__(prompts)
         self.runner = runner
 
     def system_prompt(self) -> str:
         """Return the static solver system prompt (no per-call placeholders)."""
-        return self.get_prompt("task_solver_gen")
+        key = "task_solver_trajectory" if self.mode == "trajectory" else "task_solver_gen"
+        return self.get_prompt(key)
 
     @staticmethod
     def _filter_tool(tool: Any) -> Any:
@@ -45,7 +56,7 @@ class TaskSolver(Role):
         `tool_schemas` may be:
           - a single tool dict / schema string  → renders as "Tool to use:" (legacy)
           - a list of tool dicts                → renders as "Tools available
-            for this trajectory (select one):" with each tool numbered.
+            for this task (select one):" with each tool numbered.
         """
         if isinstance(tool_schemas, list):
             blocks = []
@@ -55,7 +66,7 @@ class TaskSolver(Role):
             joined = "\n".join(blocks)
             return (
                 f"Task: {task_description}\n\n"
-                f"Tools available for this trajectory (select one):\n{joined}"
+                f"Tools available for this task (select one):\n{joined}"
             )
 
         if isinstance(tool_schemas, str):
@@ -121,4 +132,5 @@ class TaskSolver(Role):
         return {
             "task_solver_gen": load_template(TASK_SOLVER_TEMPLATE_FILE),
             "task_solver_eval": load_template(TASK_SOLVER_EVAL_TEMPLATE_FILE),
+            "task_solver_trajectory": load_template(TASK_SOLVER_TRAJECTORY_TEMPLATE_FILE),
         }

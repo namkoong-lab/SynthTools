@@ -1,0 +1,93 @@
+schema:
+  type: object
+  properties:
+    task_summary:
+      type: string
+      description: The natural-language user request the agent was asked to solve.
+    gt_tool_calls:
+      type: string
+      description: |
+        JSON list of ground-truth tool-call strings, in execution order. These
+        are the calls a correct rollout would emit.
+    agent_tool_calls:
+      type: string
+      description: |
+        JSON list of {"tool_call": "...", "tool_output": ...} entries — the
+        agent's actually-executed calls and the simulator responses. Listed
+        in chronological order.
+    initial_state:
+      type: string
+      description: JSON dict of the environment state at t=0.
+    final_state_gt:
+      type: string
+      description: JSON dict of the ground-truth environment state after the gt solution.
+template: |
+  You are a strict trajectory judge. Given a verifiable task and an agent's
+  attempted rollout, decide whether the agent's calls would have solved the
+  task — that is, whether they cover the same operations as the ground-truth
+  call sequence with semantically equivalent arguments, and whether the
+  resulting environment would match the ground-truth final state.
+
+  Inputs:
+  - task_summary: {task_summary}
+  - gt_tool_calls (ordered list of correct calls):
+    {gt_tool_calls}
+  - agent_tool_calls (ordered list of [tool_call, tool_output] pairs):
+    {agent_tool_calls}
+  - initial_state: {initial_state}
+  - final_state_gt (ground truth after the gt solution): {final_state_gt}
+
+  In order, you must:
+
+  1) PER-CALL ALIGNMENT.
+     For each call in gt_tool_calls, find the agent call that addresses the
+     same sub-goal — the same tool name OR a different tool that produces an
+     equivalent effect. Independent reorderings (e.g., swapping two reads
+     that both happen before a write) are acceptable; do not punish them.
+     For each gt call, emit one entry in `per_call`:
+       - gt: the gt call string
+       - agent: the matching agent call string, or null if missing
+       - tool_name_match: true iff names match (modulo the equivalence rule above)
+       - argument_match: true iff every required argument has a semantically
+         equivalent value in the agent's call (literal value, paraphrase, or
+         a value computed from a prior tool output is fine)
+       - notes: one short sentence explaining mismatches; empty string if clean
+
+  2) COVERAGE.
+     - missing_calls: gt calls that have NO agent counterpart.
+     - extra_calls: agent calls that are not aligned to any gt call.
+     - tool_call_match_rate: fraction of gt_tool_calls that have both
+       tool_name_match=true AND argument_match=true.
+
+  3) FINAL STATE.
+     Reason from initial_state plus the agent's executed calls about what the
+     observed final state would be. Compare it to final_state_gt and emit:
+       - final_state_match: true iff every key/value in final_state_gt is
+         consistent with the agent's executed calls. Values that differ
+         only in formatting (e.g., timestamps, ordering of array elements)
+         count as matching.
+       - final_state_diff: one sentence describing the divergence, or empty.
+
+  4) FINAL VERDICT.
+     trajectory_solved = true iff
+       - missing_calls is empty (or the missing calls are no-ops with respect
+         to the final state) AND
+       - tool_call_match_rate is 1.0 AND
+       - final_state_match is true.
+     Otherwise trajectory_solved = false.
+     confidence: your subjective confidence in (0, 1].
+
+  Output exactly one JSON object (no code fences, no prose outside the JSON):
+  {{
+    "per_call": [
+      {{"gt": "...", "agent": "...", "tool_name_match": true, "argument_match": true, "notes": ""}}
+    ],
+    "tool_call_match_rate": 1.0,
+    "missing_calls": [],
+    "extra_calls": [],
+    "final_state_match": true,
+    "final_state_diff": "",
+    "trajectory_solved": true,
+    "confidence": 0.95,
+    "reasoning": "<one paragraph summarising the verdict>"
+  }}

@@ -1,8 +1,8 @@
-"""Trajectory generation orchestrator.
+"""Task generation orchestrator.
 
 Usage:
     from llm import LLM
-    from traj_generation.generate import generate_trajectory
+    from task_generation.generate import generate_trajectory
 
     llm = LLM("GPT-OSS-120B")
     generate_trajectory(
@@ -106,7 +106,7 @@ def generate_trajectory(
     debug: bool = True,
     task_id: Optional[str] = None,
 ) -> Dict:
-    """Generate a trajectory for a sequence of tools.
+    """Generate a task for a sequence of tools.
 
     Args:
         tool_ids: Ordered list of tool IDs from tools_dataset.
@@ -126,7 +126,7 @@ def generate_trajectory(
             to produce `{spec_id}_{seq_key}.json` filenames for skip detection.
 
     Returns:
-        The trajectory dict.
+        The task dict.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -139,12 +139,12 @@ def generate_trajectory(
         tools.append(tools_index[tid])
 
     seen_names = set()
-    traj_tool_set: List[Dict[str, Any]] = []
+    task_tool_set: List[Dict[str, Any]] = []
     for row in tools:
         name = (row.get("tool") or {}).get("tool_name")
         if name and name not in seen_names:
             seen_names.add(name)
-            traj_tool_set.append(row["tool"])
+            task_tool_set.append(row["tool"])
 
     if task_id is None:
         task_id = make_task_id(tool_ids, output_dir)
@@ -158,7 +158,7 @@ def generate_trajectory(
     # Trigger model load before starting so engine init doesn't interleave with run logs.
     llm._ensure_engine()
     logger.info(f"Model: {llm.model}")
-    logger.info(f"Starting trajectory: {task_id}")
+    logger.info(f"Starting task: {task_id}")
     logger.info(f"Tools: {[t['tool_name'] for t in tools]}")
     logger.info(f"Config: max_solver_turns={max_solver_turns}, max_retries={max_retries}, verifiable={verifiable}")
 
@@ -277,7 +277,7 @@ def generate_trajectory(
             for solver_attempt in range(in_place_budget):
                 user_msg = {
                     "role": "user",
-                    "content": task_solver.build_user_message(task_description or "", traj_tool_set),
+                    "content": task_solver.build_user_message(task_description or "", task_tool_set),
                 }
                 messages = solver_messages + [user_msg]
                 attempt_chat = [user_msg]
@@ -454,7 +454,7 @@ def generate_trajectory(
 
     elapsed = time.time() - start_time
 
-    trajectory = {
+    task = {
         "task_id": task_id,
         "model": llm.model,
         "config": {
@@ -471,8 +471,8 @@ def generate_trajectory(
     }
 
     output_path = output_dir / f"{task_id}.json"
-    write_json_atomic(trajectory, output_path)
-    logger.info(f"Trajectory saved: {output_path}")
+    write_json_atomic(task, output_path)
+    logger.info(f"Task saved: {output_path}")
 
     if event_log:
         debug_path = event_log.save(output_dir)
@@ -481,7 +481,7 @@ def generate_trajectory(
     totals = usage_tracker.total
     logger.info(f"Total usage: prompt={totals['prompt_tokens']}, completion={totals['completion_tokens']}, total={totals['total_tokens']}")
     logger.info(f"Generation time: {elapsed:.1f}s")
-    return trajectory
+    return task
 
 
 # ---------------------------------------------------------------------------
@@ -490,7 +490,7 @@ def generate_trajectory(
 
 @dataclass
 class WorkItem:
-    """One trajectory-to-generate, fully resolved.
+    """One task-to-generate, fully resolved.
 
     Produced by `list_pending_work_for_spec` / `list_pending_work_for_field`
     after pre-filtering already-finished outputs and skipping invalid
@@ -506,7 +506,7 @@ class WorkItem:
 def list_pending_work_for_spec(
     env_spec_path: Path,
     output_dir: Path,
-    max_trajectories: Optional[int] = None,
+    max_tasks: Optional[int] = None,
 ) -> List[WorkItem]:
     """Return WorkItems for every sequence in the spec that still needs to run.
 
@@ -514,8 +514,8 @@ def list_pending_work_for_spec(
       - sequences whose `{spec_id}_{seq_key}.json` already exists in output_dir
       - non-list / empty sequence values
 
-    `max_trajectories` is a TOTAL cap (existing on disk + new) — once the spec
-    has that many trajectories committed, no new work is yielded. Idempotent
+    `max_tasks` is a TOTAL cap (existing on disk + new) — once the spec
+    has that many tasks committed, no new work is yielded. Idempotent
     across re-runs.
     """
     env_spec_path = Path(env_spec_path)
@@ -532,7 +532,7 @@ def list_pending_work_for_spec(
     existing = sum(
         1 for k in sequences if (output_dir / f"{spec_id}_{k}.json").exists()
     )
-    budget = (max_trajectories - existing) if max_trajectories is not None else None
+    budget = (max_tasks - existing) if max_tasks is not None else None
     if budget is not None and budget <= 0:
         return []
 
@@ -563,7 +563,7 @@ def list_pending_work_for_field(
     env_specs_dir: Path,
     field: str,
     output_dir: Path,
-    max_trajectories_per_spec: Optional[int] = None,
+    max_tasks_per_spec: Optional[int] = None,
 ) -> List[WorkItem]:
     """Walk env_specs_dir, gather pending WorkItems for every spec matching `field`."""
     env_specs_dir = Path(env_specs_dir)
@@ -586,7 +586,7 @@ def list_pending_work_for_field(
         list_pending_work_for_spec(
             env_spec_path=p,
             output_dir=output_dir,
-            max_trajectories=max_trajectories_per_spec,
+            max_tasks=max_tasks_per_spec,
         )
         for p in matched
     ]
@@ -606,10 +606,10 @@ def generate_trajectories_for_spec(
     tools_dataset_path: Path,
     output_dir: Path,
     llm,
-    max_trajectories: Optional[int] = None,
-    **traj_kwargs,
+    max_tasks: Optional[int] = None,
+    **task_kwargs,
 ) -> List[Dict]:
-    """Run one trajectory per sequence in the env_spec.
+    """Run one task per sequence in the env_spec.
 
     Files are named `{spec_id}_{seq_key}.json`. If that file already exists in
     output_dir, the (spec_id, seq_key) pair is skipped — supports resuming
@@ -619,25 +619,25 @@ def generate_trajectories_for_spec(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    items = list_pending_work_for_spec(env_spec_path, output_dir, max_trajectories)
+    items = list_pending_work_for_spec(env_spec_path, output_dir, max_tasks)
     if not items:
         return []
     spec_id = items[0].spec_id
     logger.info(f"{spec_id}: {len(items)} sequence(s) to process")
 
-    trajectories: List[Dict] = []
+    tasks: List[Dict] = []
     for item in items:
         logger.info(f"  {item.task_id}: {len(item.tool_ids)} tools")
-        traj = generate_trajectory(
+        task = generate_trajectory(
             tool_ids=item.tool_ids,
             tools_dataset_path=tools_dataset_path,
             output_dir=output_dir,
             llm=llm,
             task_id=item.task_id,
-            **traj_kwargs,
+            **task_kwargs,
         )
-        trajectories.append(traj)
-    return trajectories
+        tasks.append(task)
+    return tasks
 
 
 # ---------------------------------------------------------------------------
@@ -650,8 +650,8 @@ def generate_trajectories_for_field(
     tools_dataset_path: Path,
     output_dir: Path,
     llm,
-    max_trajectories_per_spec: Optional[int] = None,
-    **traj_kwargs,
+    max_tasks_per_spec: Optional[int] = None,
+    **task_kwargs,
 ) -> List[Dict]:
     """Walk env_specs_dir, dispatch `generate_trajectories_for_spec` per matching spec."""
     env_specs_dir = Path(env_specs_dir)
@@ -670,14 +670,14 @@ def generate_trajectories_for_field(
             matched.append(p)
 
     logger.info(f"Field '{field}': {len(matched)} spec(s) match")
-    trajectories: List[Dict] = []
+    tasks: List[Dict] = []
     for p in matched:
-        trajectories.extend(generate_trajectories_for_spec(
+        tasks.extend(generate_trajectories_for_spec(
             env_spec_path=p,
             tools_dataset_path=tools_dataset_path,
             output_dir=output_dir,
             llm=llm,
-            max_trajectories=max_trajectories_per_spec,
-            **traj_kwargs,
+            max_tasks=max_tasks_per_spec,
+            **task_kwargs,
         ))
-    return trajectories
+    return tasks

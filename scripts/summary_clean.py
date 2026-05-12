@@ -1,6 +1,6 @@
 """Summarize *cleaned* trajectories using the agent's actual successful calls.
 
-Differences from `traj_audit.summarize`:
+Differences from `task_audit.summarize`:
   1. Trajectories in the input folder are already filtered to judge-approved
      turns (by `scripts/clean_trajectories.py`), so every turn is summarized —
      no per-turn filter here.
@@ -51,7 +51,7 @@ logger = get_logger("synthtools")
 
 
 # ---------------------------------------------------------------------------
-# Per-turn extractors (the only thing that differs from traj_audit.summarize)
+# Per-turn extractors (the only thing that differs from task_audit.summarize)
 # ---------------------------------------------------------------------------
 
 def _parse_tool_msg(content: str):

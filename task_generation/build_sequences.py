@@ -28,7 +28,7 @@ Behaviour:
 
 Usage:
     from llm import LLM
-    from traj_generation.build_sequences import build_sequences
+    from task_generation.build_sequences import build_sequences
 
     llm = LLM("GPT-OSS-120B")
     build_sequences(

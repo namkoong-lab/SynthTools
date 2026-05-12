@@ -8,7 +8,7 @@ Covers:
 - spec_id auto-numbering advances across scenarios.
 - Token totals match sum of per-phase token counts.
 - Scenarios save `sequences: {}` as a placeholder (sequences are populated later
-  by `traj_generation.build_sequences`).
+  by `task_generation.build_sequences`).
 """
 
 import json
@@ -92,7 +92,7 @@ def test_full_pipeline_one_field_two_subfields_two_tasks(fake_llm, tmp_output):
     assert scenario["subfield"] in subfields
     assert scenario["task"] in tasks_A + tasks_B
     assert {t["tool_name"] for t in scenario["tools"]} == {"Alpha", "Beta"}
-    # Sequences placeholder — populated later by traj_generation.build_sequences
+    # Sequences placeholder — populated later by task_generation.build_sequences
     assert scenario["sequences"] == {}
 
     # generation_log has exactly 3 phase entries

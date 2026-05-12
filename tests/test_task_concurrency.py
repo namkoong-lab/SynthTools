@@ -1,10 +1,10 @@
-"""Tests for parallel trajectory generation orchestration.
+"""Tests for parallel task generation orchestration.
 
 Strategy: test the orchestration logic (work-queue building, CLI argument
 validation, the serial-path fast-track) without actually spawning child
 processes. Real ProcessPoolExecutor + FakeLLM doesn't pickle cleanly, and
-the trajectory-generation behavior itself is already covered by
-test_traj_regression.py — what's new here is the controller logic.
+the task-generation behavior itself is already covered by
+test_task_regression.py — what's new here is the controller logic.
 """
 
 import json
@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 import pytest
 
-from traj_generation.generate import (
+from task_generation.generate import (
     list_pending_work_for_spec,
     list_pending_work_for_field,
 )
@@ -86,7 +86,7 @@ def test_list_pending_work_for_spec_skips_invalid_sequences(tmp_path: Path):
     assert items[0].task_id == "ab_spec_000_seq3"
 
 
-def test_list_pending_work_for_spec_respects_max_trajectories(tmp_path: Path):
+def test_list_pending_work_for_spec_respects_max_tasks(tmp_path: Path):
     spec_path = tmp_path / "spec.json"
     output_dir = tmp_path / "out"
     output_dir.mkdir()
@@ -94,7 +94,7 @@ def test_list_pending_work_for_spec_respects_max_trajectories(tmp_path: Path):
         f"seq{i}": ["ToolA"] for i in range(1, 6)  # 5 sequences
     })
 
-    items = list_pending_work_for_spec(spec_path, output_dir, max_trajectories=2)
+    items = list_pending_work_for_spec(spec_path, output_dir, max_tasks=2)
 
     assert len(items) == 2
 
@@ -177,9 +177,9 @@ def test_list_pending_work_for_field_excludes_other_fields(tmp_path: Path):
 
 def _run_cli(argv):
     """Invoke run.main() with the given argv; return SystemExit code."""
-    from traj_generation import run as run_module
+    from task_generation import run as run_module
     saved = sys.argv
-    sys.argv = ["traj_generation.run"] + argv
+    sys.argv = ["task_generation.run"] + argv
     try:
         run_module.main()
     finally:
@@ -247,9 +247,9 @@ def test_concurrency_one_uses_serial_path(tmp_path: Path):
     dataset.write_text("")
     out_dir = tmp_path / "out"
 
-    with patch("traj_generation.run.ProcessPoolExecutor") as mock_pool, \
-         patch("traj_generation.run.LLM") as mock_llm, \
-         patch("traj_generation.run.generate_trajectories_for_spec") as mock_gen:
+    with patch("task_generation.run.ProcessPoolExecutor") as mock_pool, \
+         patch("task_generation.run.LLM") as mock_llm, \
+         patch("task_generation.run.generate_trajectories_for_spec") as mock_gen:
         mock_gen.return_value = []
         _run_cli([
             "--dataset", str(dataset),
@@ -283,11 +283,11 @@ def test_redirect_synthtools_logger_to_file_writes_to_path(tmp_path: Path):
 
 
 def test_redirect_synthtools_logger_does_not_affect_run_logger(tmp_path: Path):
-    """The traj_generation.run logger keeps its own stderr handler — parent stays clean."""
+    """The task_generation.run logger keeps its own stderr handler — parent stays clean."""
     import logging
     from utils import redirect_synthtools_logger_to_file, get_logger
 
-    parent_logger = get_logger("traj_generation.run")
+    parent_logger = get_logger("task_generation.run")
     parent_handlers_before = list(parent_logger.handlers)
 
     redirect_synthtools_logger_to_file(tmp_path / "task.log")
@@ -305,8 +305,8 @@ def test_concurrency_greater_than_one_uses_parallel_path(tmp_path: Path):
     dataset.write_text("")
     out_dir = tmp_path / "out"
 
-    with patch("traj_generation.run._run_parallel") as mock_parallel, \
-         patch("traj_generation.run.generate_trajectories_for_spec") as mock_serial:
+    with patch("task_generation.run._run_parallel") as mock_parallel, \
+         patch("task_generation.run.generate_trajectories_for_spec") as mock_serial:
         mock_parallel.return_value = []
         _run_cli([
             "--dataset", str(dataset),

@@ -214,11 +214,11 @@ def get_logger(name: str = "synthtools") -> logging.Logger:
 def redirect_synthtools_logger_to_file(log_path: Path) -> Path:
     """Swap the `synthtools` logger's handlers for a single FileHandler.
 
-    Used by parallel-trajectory workers so each process writes its detailed
+    Used by parallel-task workers so each process writes its detailed
     logs to its own file instead of interleaving on the parent's stderr.
     Idempotent: if the log file already has a FileHandler open, replaces it.
 
-    The `traj_generation.run` logger is intentionally left alone so the
+    The `task_generation.run` logger is intentionally left alone so the
     controller (parent) can still print orchestration messages to stderr.
     """
     log_path = Path(log_path)
@@ -333,7 +333,7 @@ def to_llm_messages(messages: List[Dict]) -> List[Dict]:
     GPT-OSS (and others) reject a role: tool message unless the preceding assistant
     message has a structured tool_calls field. Our solver puts the tool call as plain
     JSON in content, so we rewrite tool messages to user with a "Tool response: " prefix
-    only when handing to the LLM. Saved trajectories keep role: tool for training clarity.
+    only when handing to the LLM. Saved tasks keep role: tool for training clarity.
     """
     out = []
     for m in messages:

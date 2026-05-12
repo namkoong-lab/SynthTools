@@ -1,13 +1,13 @@
-"""Unit tests for traj_audit.summarize against a FakeLLM.
+"""Unit tests for task_audit.summarize against a FakeLLM.
 
 Covers:
 - Skip-if-present idempotency
-- Single-trajectory and batched-across-directory paths
+- Single-task and batched-across-directory paths
 - Debug-log append (when present) and graceful no-op when absent
 - Field-mode filtering via env_specs lookup
 - Extraction: last-attempt-per-tool-idx dedup, verifiable=False handling,
   `explanation` stripping from tool responses
-- Empty-trajectory skip (no successful turns)
+- Empty-task skip (no successful turns)
 """
 
 import json
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from traj_audit.summarize import summarize_trajectories
+from task_audit.summarize import summarize_trajectories
 
 
 # ---------------------------------------------------------------------------
@@ -79,9 +79,9 @@ def _make_trajectory(task_id: str = "mock_spec_1_seq1", turns=None):
     }
 
 
-def _write_trajectory(dir_: Path, traj: dict) -> Path:
-    p = dir_ / f"{traj['task_id']}.json"
-    p.write_text(json.dumps(traj, indent=2))
+def _write_trajectory(dir_: Path, task: dict) -> Path:
+    p = dir_ / f"{task['task_id']}.json"
+    p.write_text(json.dumps(task, indent=2))
     return p
 
 
@@ -109,14 +109,14 @@ def _read(path: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 def test_summarize_skips_if_present(fake_llm, tmp_output):
-    traj = _make_trajectory()
-    traj["summary"] = {"parsed": {"task_summarized": "already done"}}
-    path = _write_trajectory(tmp_output, traj)
+    task = _make_trajectory()
+    task["summary"] = {"parsed": {"task_summarized": "already done"}}
+    path = _write_trajectory(tmp_output, task)
 
     summarize_trajectories(
-        trajectories_dir=tmp_output,
+        tasks_dir=tmp_output,
         llm=fake_llm,
-        trajectory_path=path,
+        task_path=path,
     )
 
     assert fake_llm.calls == []
@@ -124,19 +124,19 @@ def test_summarize_skips_if_present(fake_llm, tmp_output):
 
 
 # ---------------------------------------------------------------------------
-# 2 — Single trajectory, full summary block
+# 2 — Single task, full summary block
 # ---------------------------------------------------------------------------
 
 def test_summarize_single_trajectory(fake_llm, tmp_output):
-    traj = _make_trajectory()
-    path = _write_trajectory(tmp_output, traj)
+    task = _make_trajectory()
+    path = _write_trajectory(tmp_output, task)
 
     fake_llm.queue(_summary_response("Merged desc: do A then B."))
 
     summarize_trajectories(
-        trajectories_dir=tmp_output,
+        tasks_dir=tmp_output,
         llm=fake_llm,
-        trajectory_path=path,
+        task_path=path,
     )
 
     saved = _read(path)
@@ -161,7 +161,7 @@ def test_summarize_batched_across_directory(fake_llm, tmp_output):
     fake_llm.queue_batch([_summary_response(f"Summary {i}") for i in range(3)])
 
     summarize_trajectories(
-        trajectories_dir=tmp_output,
+        tasks_dir=tmp_output,
         llm=fake_llm,
     )
 
@@ -178,7 +178,7 @@ def test_summarize_batched_across_directory(fake_llm, tmp_output):
 
 
 # ---------------------------------------------------------------------------
-# 4 — Empty trajectory (all turns failed)
+# 4 — Empty task (all turns failed)
 # ---------------------------------------------------------------------------
 
 def test_summarize_skips_trajectories_with_no_successful_turns(fake_llm, tmp_output):
@@ -186,9 +186,9 @@ def test_summarize_skips_trajectories_with_no_successful_turns(fake_llm, tmp_out
     path = _write_trajectory(tmp_output, _make_trajectory(turns=turns))
 
     summarize_trajectories(
-        trajectories_dir=tmp_output,
+        tasks_dir=tmp_output,
         llm=fake_llm,
-        trajectory_path=path,
+        task_path=path,
     )
 
     # No LLM call, no summary field added
@@ -201,16 +201,16 @@ def test_summarize_skips_trajectories_with_no_successful_turns(fake_llm, tmp_out
 # ---------------------------------------------------------------------------
 
 def test_summarize_writes_debug_log_append(fake_llm, tmp_output):
-    traj = _make_trajectory()
-    path = _write_trajectory(tmp_output, traj)
-    debug_path = _write_debug_log(tmp_output, traj["task_id"], n_events=3)
+    task = _make_trajectory()
+    path = _write_trajectory(tmp_output, task)
+    debug_path = _write_debug_log(tmp_output, task["task_id"], n_events=3)
 
     fake_llm.queue(_summary_response())
 
     summarize_trajectories(
-        trajectories_dir=tmp_output,
+        tasks_dir=tmp_output,
         llm=fake_llm,
-        trajectory_path=path,
+        task_path=path,
     )
 
     debug = _read(debug_path)
@@ -228,21 +228,21 @@ def test_summarize_writes_debug_log_append(fake_llm, tmp_output):
 # ---------------------------------------------------------------------------
 
 def test_summarize_no_debug_log_ok(fake_llm, tmp_output):
-    traj = _make_trajectory()
-    path = _write_trajectory(tmp_output, traj)
+    task = _make_trajectory()
+    path = _write_trajectory(tmp_output, task)
     # No debug file created
 
     fake_llm.queue(_summary_response())
 
     summarize_trajectories(
-        trajectories_dir=tmp_output,
+        tasks_dir=tmp_output,
         llm=fake_llm,
-        trajectory_path=path,
+        task_path=path,
     )
 
-    # Main trajectory still got its summary — no crash
+    # Main task still got its summary — no crash
     assert "summary" in _read(path)
-    assert not (tmp_output / f"{traj['task_id']}.debug.json").exists()
+    assert not (tmp_output / f"{task['task_id']}.debug.json").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -251,9 +251,9 @@ def test_summarize_no_debug_log_ok(fake_llm, tmp_output):
 
 def test_summarize_field_mode_filters_via_env_specs(fake_llm, tmp_output):
     env_specs_dir = tmp_output / "env_specs"
-    trajectories_dir = tmp_output / "trajectories"
+    tasks_dir = tmp_output / "tasks"
     env_specs_dir.mkdir()
-    trajectories_dir.mkdir()
+    tasks_dir.mkdir()
 
     # env_specs: two fields
     for spec_id, field in [
@@ -265,25 +265,25 @@ def test_summarize_field_mode_filters_via_env_specs(fake_llm, tmp_output):
             "spec_id": spec_id, "field": field,
         }))
 
-    # Trajectories: four files, two per field
+    # Tasks: four files, two per field
     for spec_id in ["aerospace_spec_000", "aerospace_spec_001",
                     "healthcare_spec_000"]:
-        _write_trajectory(trajectories_dir,
+        _write_trajectory(tasks_dir,
                           _make_trajectory(task_id=f"{spec_id}_seq1"))
 
-    # Only the two Aerospace trajectories should be processed
+    # Only the two Aerospace tasks should be processed
     fake_llm.queue_batch([_summary_response(), _summary_response()])
 
     summarize_trajectories(
-        trajectories_dir=trajectories_dir,
+        tasks_dir=tasks_dir,
         llm=fake_llm,
         field="Aerospace",
         env_specs_dir=env_specs_dir,
     )
 
-    assert "summary" in _read(trajectories_dir / "aerospace_spec_000_seq1.json")
-    assert "summary" in _read(trajectories_dir / "aerospace_spec_001_seq1.json")
-    assert "summary" not in _read(trajectories_dir / "healthcare_spec_000_seq1.json")
+    assert "summary" in _read(tasks_dir / "aerospace_spec_000_seq1.json")
+    assert "summary" in _read(tasks_dir / "aerospace_spec_001_seq1.json")
+    assert "summary" not in _read(tasks_dir / "healthcare_spec_000_seq1.json")
 
 
 # ---------------------------------------------------------------------------
@@ -303,7 +303,7 @@ def test_summarize_extracts_only_last_successful_attempt_per_tool_idx(fake_llm, 
     path = _write_trajectory(tmp_output, _make_trajectory(turns=turns))
 
     fake_llm.queue(_summary_response())
-    summarize_trajectories(trajectories_dir=tmp_output, llm=fake_llm, trajectory_path=path)
+    summarize_trajectories(tasks_dir=tmp_output, llm=fake_llm, task_path=path)
 
     saved = _read(path)
     # n_subtasks reflects 2 successful tool_idx entries, not 3 raw turns
@@ -317,7 +317,7 @@ def test_summarize_extracts_only_last_successful_attempt_per_tool_idx(fake_llm, 
 
 
 # ---------------------------------------------------------------------------
-# 9 — verifiable=False trajectories still work
+# 9 — verifiable=False tasks still work
 # ---------------------------------------------------------------------------
 
 def test_summarize_skips_verifiable_false_non_env_update_turns(fake_llm, tmp_output):
@@ -326,12 +326,12 @@ def test_summarize_skips_verifiable_false_non_env_update_turns(fake_llm, tmp_out
         _turn(0, env_update=True, task_description="Solved turn"),
         _turn(1, env_update=False, task_description="Failed tool call — no env update"),
     ]
-    traj = _make_trajectory(turns=turns)
-    traj["config"]["verifiable"] = False
-    path = _write_trajectory(tmp_output, traj)
+    task = _make_trajectory(turns=turns)
+    task["config"]["verifiable"] = False
+    path = _write_trajectory(tmp_output, task)
 
     fake_llm.queue(_summary_response())
-    summarize_trajectories(trajectories_dir=tmp_output, llm=fake_llm, trajectory_path=path)
+    summarize_trajectories(tasks_dir=tmp_output, llm=fake_llm, task_path=path)
 
     saved = _read(path)
     assert saved["summary"]["n_subtasks"] == 1
@@ -351,7 +351,7 @@ def test_summarize_strips_explanation_from_tool_response(fake_llm, tmp_output):
     path = _write_trajectory(tmp_output, _make_trajectory(turns=turns))
 
     fake_llm.queue(_summary_response())
-    summarize_trajectories(trajectories_dir=tmp_output, llm=fake_llm, trajectory_path=path)
+    summarize_trajectories(tasks_dir=tmp_output, llm=fake_llm, task_path=path)
 
     prompt = fake_llm.calls[0]["messages"]
     prompt_text = prompt[0]["content"] if isinstance(prompt, list) and isinstance(prompt[0], dict) else prompt
