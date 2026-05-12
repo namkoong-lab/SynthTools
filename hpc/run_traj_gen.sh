@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run trajectory generation against a freshly-launched vLLM server.
+# Run task generation against a freshly-launched vLLM server.
 #
 # Usage:
 #   bash hpc/run_traj_gen.sh --field "Investment Banking" --concurrency 5
@@ -10,7 +10,7 @@
 #
 # Run this *inside an active allocation* (salloc'd compute node with the
 # requested GPUs). It launches vllm serve in the background, waits for it
-# to become ready, runs the trajectory generation pipeline, then cleans
+# to become ready, runs the task generation pipeline, then cleans
 # the server up on exit.
 
 set -uo pipefail
@@ -33,7 +33,7 @@ MODEL=${MODEL:-GPT-OSS-120B}
 FIELD=""
 ENV_SPEC=""
 CONCURRENCY=${CONCURRENCY:-5}
-MAX_TRAJECTORIES=""
+MAX_TASKS=""
 MAX_SOLVER_TURNS=${MAX_SOLVER_TURNS:-5}
 MAX_RETRIES=${MAX_RETRIES:-5}
 VERIFIABLE=${VERIFIABLE:-1}
@@ -41,7 +41,7 @@ VERIFIABLE=${VERIFIABLE:-1}
 # Paths (Perlmutter defaults; override on other clusters)
 DATASET=${DATASET:-/pscratch/sd/t/tcaste/tool_content/tools_dataset.jsonl}
 ENV_SPECS_DIR=${ENV_SPECS_DIR:-/pscratch/sd/t/tcaste/tool_content/env_specs}
-OUTPUT_DIR=${OUTPUT_DIR:-/pscratch/sd/t/tcaste/tool_content/trajectories}
+OUTPUT_DIR=${OUTPUT_DIR:-/pscratch/sd/t/tcaste/tool_content/tasks}
 VENV=${VENV:-/pscratch/sd/t/tcaste/envs/burn-gpu/bin/activate}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -62,7 +62,7 @@ Required (one of):
 
 Optional (defaults shown in [...]):
   --concurrency N                Number of parallel workers     [$CONCURRENCY]
-  --max-trajectories N           Cap trajectories per spec      [unlimited]
+  --max-tasks N           Cap tasks per spec      [unlimited]
   --max-solver-turns N           Max turns per task             [$MAX_SOLVER_TURNS]
   --max-retries N                Max evolver re-rolls           [$MAX_RETRIES]
   --no-verifiable                Disable task judging
@@ -83,7 +83,7 @@ Pipeline model:
 Paths (cluster-specific):
   --dataset PATH                 tools_dataset.jsonl            [$DATASET]
   --env-specs-dir PATH           Directory of env_spec JSONs    [$ENV_SPECS_DIR]
-  --output-dir PATH              Trajectory output directory    [$OUTPUT_DIR]
+  --output-dir PATH              Task output directory    [$OUTPUT_DIR]
   --venv PATH                    Path to bin/activate           [$VENV]
   --log-dir PATH                 Where to put vllm log          [$LOG_DIR]
 
@@ -98,7 +98,7 @@ while [[ $# -gt 0 ]]; do
         --field)                  FIELD="$2"; shift 2;;
         --env-spec)               ENV_SPEC="$2"; shift 2;;
         --concurrency)            CONCURRENCY="$2"; shift 2;;
-        --max-trajectories)       MAX_TRAJECTORIES="$2"; shift 2;;
+        --max-tasks)       MAX_TASKS="$2"; shift 2;;
         --max-solver-turns)       MAX_SOLVER_TURNS="$2"; shift 2;;
         --max-retries)            MAX_RETRIES="$2"; shift 2;;
         --no-verifiable)          VERIFIABLE=0; shift;;
@@ -156,7 +156,7 @@ echo "pipeline model   : $MODEL"
 [[ -n "$FIELD" ]]    && echo "field            : $FIELD"
 [[ -n "$ENV_SPEC" ]] && echo "env-spec         : $ENV_SPEC"
 echo "concurrency      : $CONCURRENCY"
-[[ -n "$MAX_TRAJECTORIES" ]] && echo "max trajectories : $MAX_TRAJECTORIES"
+[[ -n "$MAX_TASKS" ]] && echo "max tasks : $MAX_TASKS"
 echo "verifiable       : $VERIFIABLE   debug : $((1-NO_DEBUG))"
 echo "------------------------------------------------------------"
 echo "dataset          : $DATASET"
@@ -219,7 +219,7 @@ if ! curl -fsS "$URL" > /dev/null 2>&1; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 3: run trajectory generation
+# Step 3: run task generation
 # ---------------------------------------------------------------------------
 
 cd "$PROJ_DIR"
@@ -238,8 +238,8 @@ if [[ -n "$FIELD" ]]; then
 else
     PIPELINE_ARGS+=(--env-spec "$ENV_SPEC")
 fi
-if [[ -n "$MAX_TRAJECTORIES" ]]; then
-    PIPELINE_ARGS+=(--max-trajectories "$MAX_TRAJECTORIES")
+if [[ -n "$MAX_TASKS" ]]; then
+    PIPELINE_ARGS+=(--max-tasks "$MAX_TASKS")
 fi
 if [[ "$VERIFIABLE" == "1" ]]; then
     PIPELINE_ARGS+=(--verifiable)
@@ -255,7 +255,7 @@ RC=$?
 echo "============================================================"
 echo "ended            : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "pipeline rc      : $RC"
-echo "trajectories     : $(ls "$OUTPUT_DIR"/*.json 2>/dev/null | grep -v debug | wc -l)"
+echo "tasks            : $(ls "$OUTPUT_DIR"/*.json 2>/dev/null | grep -v debug | wc -l)"
 echo "vllm log         : $VLLM_LOG"
 echo "============================================================"
 exit $RC

@@ -6,15 +6,15 @@
 # pipeline run via hpc/run_traj_gen.sh.
 #
 # Designed to be invoked from a PBS batch script. Output goes to the shared
-# trajectories directory ($OUTPUT_DIR); the pipeline self-skips already-done
-# trajectories so resume after preemption is automatic.
+# tasks directory ($OUTPUT_DIR); the pipeline self-skips already-done tasks
+# so resume after preemption is automatic.
 
 set -uo pipefail
 
 REPO=${REPO:-/home/tommicaste/projects/SynthTools}
 VENV=${VENV:-/lus/eagle/projects/CausalAlign/tommicaste/envs/synthtools/bin/activate}
 TOOL_CONTENT=${TOOL_CONTENT:-/lus/eagle/projects/CausalAlign/tommicaste/tool_content}
-OUTPUT_DIR=${OUTPUT_DIR:-$TOOL_CONTENT/trajectories}
+OUTPUT_DIR=${OUTPUT_DIR:-$TOOL_CONTENT/tasks}
 RUNLOG_BASE=${RUNLOG_BASE:-$TOOL_CONTENT/_runlogs}
 
 SERVE_MODEL=${SERVE_MODEL:-openai/gpt-oss-120b}
@@ -25,7 +25,7 @@ GPU_MEM_UTIL=${GPU_MEM_UTIL:-0.90}
 CONCURRENCY=${CONCURRENCY:-10}
 PORT=${PORT:-8765}
 VLLM_LOG_LEVEL=${VLLM_LOG_LEVEL:-INFO}
-MAX_TRAJ_PER_SPEC=${MAX_TRAJ_PER_SPEC:-10}
+MAX_TASKS_PER_SPEC=${MAX_TASKS_PER_SPEC:-10}
 
 ENV_FILE=${ENV_FILE:-/home/tommicaste/projects/SynthTools/.env}
 if [[ -f "$ENV_FILE" ]]; then
@@ -106,7 +106,7 @@ for ((i=0; i<N; i++)); do
      cd $REPO && bash hpc/run_traj_gen.sh \
        --field $field_q \
        --concurrency $CONCURRENCY \
-       --max-trajectories $MAX_TRAJ_PER_SPEC \
+       --max-tasks $MAX_TASKS_PER_SPEC \
        --dataset '$TOOL_CONTENT/tools_dataset.jsonl' \
        --env-specs-dir '$TOOL_CONTENT/env_specs' \
        --output-dir '$OUTPUT_DIR' \

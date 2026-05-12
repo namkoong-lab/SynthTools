@@ -1,16 +1,16 @@
-"""Summarize *cleaned* trajectories using the agent's actual successful calls.
+"""Summarize *cleaned* tasks using the agent's actual successful calls.
 
 Differences from `task_audit.summarize`:
-  1. Trajectories in the input folder are already filtered to judge-approved
-     turns (by `scripts/clean_trajectories.py`), so every turn is summarized —
-     no per-turn filter here.
+  1. Tasks in the input folder are already filtered to judge-approved turns
+     (by `scripts/clean_tasks.py`), so every turn is summarized — no per-turn
+     filter here.
   2. `tool_call` strings come from the AGENT's successful assistant message in
      the kept turn's chat (the last 2xx exchange), NOT from
      `turn.task.expected_tool_call`.
   3. Tool responses are the last 2xx tool message of each kept turn, with the
      simulator's `explanation` key stripped.
 
-Idempotent: trajectories whose `summary` field is already truthy are skipped.
+Idempotent: tasks whose `summary` field is already truthy are skipped.
 
 Run shape:
   - Sweep entire input folder, send to vLLM in chunks of `--batch-size`.
@@ -20,10 +20,10 @@ Run shape:
 
 Usage:
   python scripts/summary_clean.py \\
-      --trajectories-dir /pscratch/.../trajectories_clean \\
+      --tasks-dir /pscratch/.../tasks_clean \\
       --model GPT-OSS-120B \\
       --batch-size 64 \\
-      [--limit 5]               # process at most N trajectories
+      [--limit 5]               # process at most N tasks
       [--ids id1 id2 ...]       # explicit task_ids
       [--dry-run-prompt]        # build prompts, print first one, no LLM call
       [--server-url URL]        # use vLLM HTTP server instead of in-process
@@ -230,7 +230,7 @@ def _parse_shard(shard: str) -> tuple[int, int]:
 
 
 def summarize_clean(
-    trajectories_dir: Path,
+    tasks_dir: Path,
     llm,
     ids: Optional[List[str]] = None,
     limit: Optional[int] = None,
@@ -243,10 +243,10 @@ def summarize_clean(
         llm._ensure_engine()
 
     if ids:
-        paths = [trajectories_dir / f"{tid}.json" for tid in ids]
+        paths = [tasks_dir / f"{tid}.json" for tid in ids]
         paths = [p for p in paths if p.exists()]
     else:
-        paths = sorted(p for p in trajectories_dir.iterdir()
+        paths = sorted(p for p in tasks_dir.iterdir()
                        if p.suffix == ".json" and not p.name.endswith(".debug.json"))
         if shard:
             k, n = _parse_shard(shard)
@@ -305,8 +305,8 @@ def summarize_clean(
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--trajectories-dir", type=Path, required=True,
-                   help="Directory of CLEANED trajectories (output of clean_trajectories.py)")
+    p.add_argument("--tasks-dir", type=Path, required=True,
+                   help="Directory of CLEANED tasks (output of clean_tasks.py)")
     p.add_argument("--model", default="GPT-OSS-120B", choices=list(MODEL_REGISTRY))
     p.add_argument("--batch-size", type=int, default=64,
                    help="Number of prompts per vLLM batch call (default 64)")
@@ -328,7 +328,7 @@ def main():
         llm = LLM(args.model, server_url=args.server_url) if args.server_url else LLM(args.model)
 
     summarize_clean(
-        trajectories_dir=args.trajectories_dir,
+        tasks_dir=args.tasks_dir,
         llm=llm,
         ids=args.ids,
         limit=args.limit,

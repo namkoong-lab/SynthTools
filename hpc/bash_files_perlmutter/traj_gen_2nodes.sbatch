@@ -19,7 +19,7 @@ module load cudatoolkit/12.9
 
 export DATASET=/pscratch/sd/t/tcaste/tool_content/tools_dataset.jsonl
 export ENV_SPECS=/pscratch/sd/t/tcaste/tool_content/env_specs
-export OUTPUT=/pscratch/sd/t/tcaste/tool_content/trajectories
+export OUTPUT=/pscratch/sd/t/tcaste/tool_content/tasks
 export MODEL=GPT-OSS-120B
 
 LOG_DIR=/global/homes/t/tcaste/projects/logs

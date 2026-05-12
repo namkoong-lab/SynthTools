@@ -4,7 +4,7 @@
 # Run this inside an active PBS allocation (interactive or batch).
 #
 # Defaults are tuned for a small smoke test: 1 env_spec per node,
-# --max-trajectories 2, --concurrency 2.
+# --max-tasks 2, --concurrency 2.
 #
 # Override via env vars (see "Tunables" below).
 
@@ -22,7 +22,7 @@ TP=${TP:-4}
 MAX_MODEL_LEN=${MAX_MODEL_LEN:-32768}
 GPU_MEM_UTIL=${GPU_MEM_UTIL:-0.90}
 CONCURRENCY=${CONCURRENCY:-2}
-MAX_TRAJECTORIES=${MAX_TRAJECTORIES:-2}
+MAX_TASKS=${MAX_TASKS:-2}
 
 # One env_spec per node. Add more entries if you allocate >2 nodes.
 SPECS_DEFAULT=(
@@ -75,7 +75,7 @@ echo "run dir     : $RUN_DIR"
 echo "model       : $SERVE_MODEL  (pipeline key: $PIPELINE_MODEL)"
 echo "tp / max_len: $TP / $MAX_MODEL_LEN"
 echo "concurrency : $CONCURRENCY  per node"
-echo "max trajs   : $MAX_TRAJECTORIES per spec"
+echo "max tasks  : $MAX_TASKS per spec"
 echo "============================================================"
 
 # ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ for i in "${!NODES[@]}"; do
     "export VLLM_LOGGING_LEVEL=DEBUG PYTHONUNBUFFERED=1 && \
      cd $REPO && bash hpc/run_traj_gen.sh \
       --env-spec '$spec' \
-      --max-trajectories $MAX_TRAJECTORIES \
+      --max-tasks $MAX_TASKS \
       --concurrency $CONCURRENCY \
       --dataset '$TOOL_CONTENT/tools_dataset.jsonl' \
       --env-specs-dir '$TOOL_CONTENT/env_specs' \
@@ -143,7 +143,7 @@ echo "=== Per-node trajectory counts ==="
 for i in "${!NODES[@]}"; do
   out="${OUTS[$i]}"
   count=$(ls "$out"/*.json 2>/dev/null | grep -v debug | wc -l)
-  echo "node${i} ${NODES[$i]}: $count trajectories  ($out)"
+  echo "node${i} ${NODES[$i]}: $count tasks  ($out)"
 done
 echo
 echo "ended       : $(date -u +%Y-%m-%dT%H:%M:%SZ)"

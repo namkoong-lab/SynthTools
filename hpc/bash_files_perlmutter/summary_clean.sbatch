@@ -28,7 +28,7 @@ cd /global/homes/t/tcaste/projects/SynthTools
 source /pscratch/sd/t/tcaste/envs/burn-gpu/bin/activate
 module load cudatoolkit/12.9
 
-INPUT=/pscratch/sd/t/tcaste/tool_content/trajectories_clean
+INPUT=/pscratch/sd/t/tcaste/tool_content/tasks_clean
 MODEL=GPT-OSS-120B
 BATCH_SIZE=128
 
@@ -44,7 +44,7 @@ echo "=========================================="
 t0=$(date +%s)
 
 python -m scripts.summary_clean \
-    --trajectories-dir "$INPUT" \
+    --tasks-dir "$INPUT" \
     --model            "$MODEL" \
     --batch-size       "$BATCH_SIZE" \
     --shard            "${SHARD_K}/${SHARD_N}"

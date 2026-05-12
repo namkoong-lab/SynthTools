@@ -1,6 +1,6 @@
-"""Build a parquet dataset from cleaned + summarised trajectories.
+"""Build a parquet dataset from cleaned + summarised tasks.
 
-One row per fresh trajectory (legacy imports are dropped). Columns:
+One row per fresh task (legacy imports are dropped). Columns:
   id              - task_id (e.g. "aerospace_and_defense_spec_007_seq11")
   field           - human-readable field (e.g. "Aerospace and Defense")
   summary         - task_summarized from summary_clean.v1
@@ -12,9 +12,9 @@ One row per fresh trajectory (legacy imports are dropped). Columns:
 
 Usage:
   python scripts/build_parquet.py \\
-      --trajectories-dir /pscratch/.../trajectories_clean \\
-      --env-specs-dir    /pscratch/.../env_specs \\
-      --output           /pscratch/.../tasks.parquet \\
+      --tasks-dir     /pscratch/.../tasks_clean \\
+      --env-specs-dir /pscratch/.../env_specs \\
+      --output        /pscratch/.../tasks.parquet \\
       [--limit N]    # for testing
       [--workers N]  # default 16
 """
@@ -135,18 +135,18 @@ def extract_row(args: Tuple[str, str]) -> Optional[Dict[str, Any]]:
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--trajectories-dir", type=Path, required=True)
+    p.add_argument("--tasks-dir", type=Path, required=True)
     p.add_argument("--env-specs-dir",    type=Path, required=True)
     p.add_argument("--output",           type=Path, required=True)
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--workers", type=int, default=16)
     args = p.parse_args()
 
-    files = sorted(p_ for p_ in args.trajectories_dir.iterdir()
+    files = sorted(p_ for p_ in args.tasks_dir.iterdir()
                    if p_.suffix == ".json" and not p_.name.endswith(".debug.json"))
     if args.limit:
         files = files[: args.limit]
-    print(f"scanning {len(files):,} trajectory files ...", flush=True)
+    print(f"scanning {len(files):,} task files ...", flush=True)
 
     rows: List[Dict[str, Any]] = []
     n_legacy = n_skipped = 0
