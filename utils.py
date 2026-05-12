@@ -378,22 +378,36 @@ class RunLog:
 # Batched LLM helper
 # ---------------------------------------------------------------------------
 
-def batch_call(llm, prompts: List[str]) -> List[Dict[str, Any]]:
+def batch_call(llm, prompts) -> List[Dict[str, Any]]:
     """Run a batched LLM call; return per-prompt `{response, usage}` dicts.
 
-    Uses `llm.last_usage_per_request` for accurate per-request token counts when
-    available; if the LLM only reports aggregate usage, falls back to splitting
-    the total evenly (lossy but never None). A single prompt goes through the
-    non-batched path for clarity.
+    Accepts either:
+      - `List[str]`: legacy path; each string is wrapped as a single user
+        message before sending.
+      - `List[List[Dict]]`: chat-format path; each inner list is a full
+        chat (system / user / assistant / tool / ...) for one request.
+
+    Uses `llm.last_usage_per_request` for accurate per-request token counts
+    when available; if the LLM only reports aggregate usage, falls back to
+    splitting the total evenly (lossy but never None). A single prompt goes
+    through the non-batched path for clarity.
     """
     if not prompts:
         return []
-    if len(prompts) == 1:
-        response = llm([{"role": "user", "content": prompts[0]}])
+
+    # Shape-dispatch: if the first prompt is a list, treat the whole batch
+    # as chat-format; otherwise wrap each string as a single user message.
+    is_chat = isinstance(prompts[0], list)
+    if is_chat:
+        messages_per_request = prompts
+    else:
+        messages_per_request = [[{"role": "user", "content": p}] for p in prompts]
+
+    if len(messages_per_request) == 1:
+        response = llm(messages_per_request[0])
         return [{"response": response, "usage": llm.last_usage}]
 
-    messages = [[{"role": "user", "content": p}] for p in prompts]
-    responses = llm(messages)
+    responses = llm(messages_per_request)
     per_request = getattr(llm, "last_usage_per_request", None)
     if per_request and len(per_request) == len(responses):
         return [{"response": r, "usage": u} for r, u in zip(responses, per_request)]

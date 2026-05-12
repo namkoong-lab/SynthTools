@@ -269,11 +269,10 @@ def summarize_trajectories(
             continue
 
         triples = _triples_for_summarizer(successful)
-        prompt = role.get_prompt(
-            "task_summarizer",
-            tasks=role._fmt(triples["tasks"]),
-            tool_calls=role._fmt(triples["tool_calls"]),
-            tool_responses=role._fmt(triples["tool_responses"]),
+        prompt = role.build_messages(
+            tasks=triples["tasks"],
+            tool_calls=triples["tool_calls"],
+            tool_responses=triples["tool_responses"],
         )
         to_process.append({
             "path": path,

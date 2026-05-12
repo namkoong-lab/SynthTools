@@ -204,3 +204,49 @@ def test_batch_call_many_prompts_batches_and_returns_per_request_usage(fake_llm)
     # Batched shape was used
     assert fake_llm.calls[-1]["batched"] is True
     assert len(fake_llm.calls[-1]["messages"]) == 3
+
+
+# --- batch_call chat-format path -------------------------------------------
+
+def _chat(text: str):
+    return [{"role": "user", "content": f"sys-{text}"},
+            {"role": "tool", "content": f"output for {text}"}]
+
+
+def test_batch_call_chat_format_single_prompt(fake_llm):
+    """A single chat (List[Dict]) goes through the non-batched path and
+    is forwarded to the LLM verbatim (NOT re-wrapped as one user msg)."""
+    from utils import batch_call
+    fake_llm.queue("solo chat response")
+    out = batch_call(fake_llm, [_chat("alpha")])
+    assert len(out) == 1
+    assert out[0]["response"] == "solo chat response"
+    assert fake_llm.calls[-1]["batched"] is False
+    sent = fake_llm.calls[-1]["messages"]
+    # Original chat preserved — both messages there, in order, untouched
+    assert sent == _chat("alpha")
+
+
+def test_batch_call_chat_format_multiple(fake_llm):
+    """Multiple chats batch via the LLM's batched path (List[List[Dict]])."""
+    from utils import batch_call
+    fake_llm.queue_batch(["r1", "r2"])
+    out = batch_call(fake_llm, [_chat("p1"), _chat("p2")])
+    assert [d["response"] for d in out] == ["r1", "r2"]
+    assert fake_llm.calls[-1]["batched"] is True
+    # The batched payload must be a list of two chats (each a list of dicts)
+    batched_payload = fake_llm.calls[-1]["messages"]
+    assert len(batched_payload) == 2
+    assert batched_payload[0] == _chat("p1")
+    assert batched_payload[1] == _chat("p2")
+
+
+def test_batch_call_chat_format_per_request_usage(fake_llm):
+    """Per-request usage tracking works the same on the chat-format path."""
+    from utils import batch_call
+    fake_llm.queue_batch(["r1", "r2", "r3"])
+    out = batch_call(fake_llm, [_chat("a"), _chat("b"), _chat("c")])
+    for d in out:
+        assert d["usage"] is not None
+        assert hasattr(d["usage"], "prompt_tokens")
+        assert hasattr(d["usage"], "completion_tokens")

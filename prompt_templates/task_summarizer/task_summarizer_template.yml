@@ -1,86 +1,100 @@
 schema:
   type: object
-  properties:
-    tasks:
-      type: array
-      items:
-        type: string
-    tool_calls:
-      type: array
-      items:
-        type: string
-    tool_responses:
-      type: array
-      items:
-        type: string
-template: |
+  properties: {}
+system_template: |
   You are a Task Summarizer.
 
-  You are given a synthetic multi-step task. Your job is to write a SINGLE
-  task description — a request that an end-user might realistically pose — such
-  that an agent given access to a suitable set of tools could fulfil it by
-  performing the same chain of operations as the task.
+  You will be shown the chat of a synthetic multi-step task. Each mini-task
+  appears as three messages, in execution order:
+    user      — the mini-task description (what the solver was asked to do)
+    assistant — the tool_call the solver produced
+    tool      — the JSON simulator response (status_code + response payload)
 
-  IMPORTANT framing: the agent will OBTAIN intermediate facts by calling tools
-  itself. So the description must give the agent everything it needs to START
-  the work, but must NOT pre-supply values that the agent is expected to
-  retrieve, compute, or synthesise via tool calls. The mini-tasks describe the
-  user's intent at each step; the tool responses are intermediate results that
-  the agent reproduces at execution time.
+  After the full chat, a FINAL user message asks you to produce ONE
+  user-facing request — a request a person might realistically pose — such
+  that an agent given the same tools (but NO chat history) could fulfil it
+  by performing the same chain of operations.
 
-  Inputs:
-  - Mini-tasks in chronological order (JSON list of strings): {tasks}
-  - Tool calls used to solve them in chronological order (JSON list of strings): {tool_calls}
-  - Tool responses returned in chronological order (JSON list of strings): {tool_responses}
-
-  Requirements:
-
-  1. Coverage of mini-task content (MANDATORY).
-     - Every concrete piece of information that appears in the mini-tasks MUST
-       appear in the merged task description. Do not drop any number, date,
-       ID, coordinate, name, file path, unit, enum value, threshold, list,
-       constraint, percentage, or note.
-     - Identifier-literals (IDs, filenames, enum tokens, ISO 8601 timestamps,
-       PascalCase domain names if the user themselves would say them) appear
-       VERBATIM — never paraphrased.
-     - Preserve units and formats exactly (mm, USD, ha, %, ISO 8601, etc.).
-
-  2. Exclusion of tool-response content (MANDATORY).
-     - Do NOT include any value that originates in a tool response and is not
-       independently stated in a mini-task. The agent will derive those values
-       by calling the tools itself; pre-supplying them would short-circuit the
-       work.
-     - Concretely: if value V first appears in a tool response and is then
-       threaded into a later mini-task or tool call, OMIT V from the
-       description. Refer to it indirectly ("based on the resulting forecast",
-       "using the retrieved schedule", "from the produced metadata").
-     - If a value appears BOTH in a mini-task and in a tool response, treat
-       it as user-supplied and KEEP it (the mini-task is authoritative).
-
-  3. Voice, shape, and unification.
-     - Write ONE flowing user-facing request in natural language. It must read
-       like a goal a person describes — not a checklist, not an enumeration of
-       steps, not an internal procedure.
-     - Use connective prose ("and then", "using", "based on", "for", commas,
-       semicolons). Do NOT number, bullet, or label the steps.
-     - Do NOT phrase as "First do X, then do Y, finally do Z". Describe the
-       OUTCOME the user wants and the inputs they supply; the choice of
-       intermediate operations is implicit.
-     - Aim for a tight paragraph (a few sentences for short tasks, up
-       to one dense paragraph for long ones).
-
-  4. No tool names anywhere in the description.
-     - No PascalCase tool identifiers (e.g. "WeatherDataRetriever",
-       "ScenarioComparator"), no snake_case parameter names, no equals-signs,
-       no fence-style "(arg=value)" formatting.
-     - Refer to operations by what they DO in plain English ("retrieve the
-       weather forecast", "compare the two scenarios"), never by tool name.
-     - If a tool name appears in the inputs as the value of a `tool_schema` /
-       `target` argument or inside a quoted note, preserve it ONLY when it is
-       genuinely a domain identifier the user themselves would specify;
-       otherwise omit it.
-
-  Output exactly one JSON object (no code fences, no extra text, no commentary):
+  Output exactly one JSON object (no code fences, no extra commentary):
   {{
     "task_summarized": ""
   }}
+
+  ---
+
+  THE LEAKAGE RULE (MANDATORY):
+
+  The agent that will receive your summary later has access to the same
+  tools but NONE of the chat above. So your summary must give the agent
+  everything it needs to START the work, but must NOT pre-supply anything
+  the agent should DERIVE by calling tools at execution time.
+
+  Concretely:
+    - Any value that appears in a `tool` message — or that is derivable
+      from one (a paraphrase, a label, a property inferred from
+      tool-returned numbers) — MUST NOT appear in your summary. Refer to
+      it indirectly. Examples of indirect references:
+          "based on the resulting forecast"
+          "using the retrieved schedule"
+          "from the produced metadata"
+          "the elongated wing" (paraphrase of tool-returned dimensions)
+          "the validation that failed" (reference to a tool-returned id
+                                         without naming the id)
+    - Only values introduced in a `user` message (a mini-task) are
+      user-supplied. Preserve those verbatim.
+    - When the same value appears in BOTH a `user` message and a `tool`
+      message, the `user` message is the source of truth: keep it.
+
+  Coverage of `user`-message content (MANDATORY):
+    - Every concrete piece of information that appears in a `user`
+      message MUST appear in the merged summary. Do not drop any number,
+      date, ID, coordinate, name, file path, unit, enum value,
+      threshold, list, constraint, percentage, or note.
+    - Preserve units and formats exactly (mm, USD, ha, %, ISO 8601, etc.).
+
+  Voice, shape, and unification:
+    - Write ONE flowing user-facing request in natural language. It
+      must read like a goal a person describes — not a checklist, not
+      an enumeration of steps, not an internal procedure.
+    - Use connective prose ("and then", "using", "based on", "for",
+      commas, semicolons). Do NOT number, bullet, or label the steps.
+    - Do NOT phrase as "First do X, then do Y, finally do Z". Describe
+      the OUTCOME the user wants and the inputs they supply; the choice
+      of intermediate operations is implicit.
+    - Aim for a tight paragraph (a few sentences for short tasks, up to
+      one dense paragraph for long ones).
+
+  No tool names anywhere in the description:
+    - No PascalCase tool identifiers (e.g. "WeatherDataRetriever",
+      "ScenarioComparator"), no snake_case parameter names, no equals
+      signs, no fence-style "(arg=value)" formatting.
+    - Refer to operations by what they DO in plain English ("retrieve
+      the weather forecast", "compare the two scenarios"), never by
+      tool name.
+    - If a tool name appears in the inputs as the value of a
+      `tool_schema` / `target` argument or inside a quoted note,
+      preserve it ONLY when it is genuinely a domain identifier the
+      user themselves would specify; otherwise omit it.
+
+  Identifier-literal exception:
+    - Any user-introduced identifier — IDs (e.g. `geom_001`,
+      `mesh_7f9c2a`), config keys / enum tokens (e.g. `config_standard`,
+      `unstructured`), file paths, ISO-8601 timestamps — that appears
+      in a `user` message MUST appear verbatim in the summary (in
+      single quotes or after an explicit label). Do NOT paraphrase
+      them.
+    - This applies ONLY to user-introduced identifiers. Tool-returned
+      identifiers (those whose first appearance is in a `tool` message)
+      fall under THE LEAKAGE RULE — refer to them indirectly.
+final_user_template: |
+  Read the chat above. Write a SINGLE user-facing request — a natural-
+  language goal a person might pose — that would lead an agent (using
+  the same tools, but starting with no chat history) to perform the
+  same chain of operations.
+
+  Apply THE LEAKAGE RULE: do not pre-supply any value that came from a
+  `tool` message or is derivable from one. Preserve every value that
+  came from a `user` message.
+
+  Output exactly one JSON object as specified by the system
+  instructions.

@@ -26,6 +26,18 @@ def _summary_response(text: str = "Merged task description.") -> str:
     return "```json\n" + json.dumps({"task_summarized": text}) + "\n```"
 
 
+def _all_content(prompt) -> str:
+    """Return concatenated content across all messages in a chat-format
+    prompt, or the prompt itself if it's a plain string (legacy shape)."""
+    if isinstance(prompt, list):
+        return "\n".join(
+            (m.get("content") or "")
+            for m in prompt
+            if isinstance(m, dict)
+        )
+    return prompt or ""
+
+
 def _turn(
     tool_idx: int,
     attempt: int = 0,
@@ -310,8 +322,7 @@ def test_summarize_extracts_only_last_successful_attempt_per_tool_idx(fake_llm, 
     assert saved["summary"]["n_subtasks"] == 2
 
     # The prompt passed to the LLM should include the success attempt, not the failed one
-    prompt = fake_llm.calls[0]["messages"]
-    prompt_text = prompt[0]["content"] if isinstance(prompt, list) and isinstance(prompt[0], dict) else prompt
+    prompt_text = _all_content(fake_llm.calls[0]["messages"])
     assert "SUCCESS ATTEMPT" in prompt_text
     assert "FAIL ATTEMPT" not in prompt_text
 
@@ -335,8 +346,7 @@ def test_summarize_skips_verifiable_false_non_env_update_turns(fake_llm, tmp_out
 
     saved = _read(path)
     assert saved["summary"]["n_subtasks"] == 1
-    prompt = fake_llm.calls[0]["messages"]
-    prompt_text = prompt[0]["content"] if isinstance(prompt, list) and isinstance(prompt[0], dict) else prompt
+    prompt_text = _all_content(fake_llm.calls[0]["messages"])
     assert "Solved turn" in prompt_text
     assert "Failed tool call" not in prompt_text
 
@@ -353,8 +363,7 @@ def test_summarize_strips_explanation_from_tool_response(fake_llm, tmp_output):
     fake_llm.queue(_summary_response())
     summarize_trajectories(tasks_dir=tmp_output, llm=fake_llm, task_path=path)
 
-    prompt = fake_llm.calls[0]["messages"]
-    prompt_text = prompt[0]["content"] if isinstance(prompt, list) and isinstance(prompt[0], dict) else prompt
+    prompt_text = _all_content(fake_llm.calls[0]["messages"])
     # The explanation string MUST NOT leak into the summarizer prompt
     assert "simulator internal notes" not in prompt_text
     # But the rest of the response should still be there
