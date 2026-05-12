@@ -347,14 +347,27 @@ def test_evolver_rerolls_on_arguments_grounded_false(fake_llm, tmp_output):
     assert t1["attempt"] == 1 and t1["env_update"] is not None
 
     # The evolver's second call must have received the judge feedback as the
-    # `judge_explanation` of the prior unsuccessful attempt. Inspect the
-    # serialized prompt that was sent.
-    evolver_calls = [c for c in fake_llm.calls
-                     if isinstance(c["messages"], str)
-                     and "Task Evolver" in c["messages"]]
+    # `judge_explanation` of the prior unsuccessful attempt. After the
+    # chat-format refactor t1 calls pass a list of messages, not a single
+    # string — so detect "this is an evolver call" by scanning content
+    # across whichever shape was used.
+    def _is_evolver_call(call):
+        msgs = call["messages"]
+        if isinstance(msgs, str):
+            return "Task Evolver" in msgs
+        if isinstance(msgs, list):
+            return any("Task Evolver" in (m.get("content", "") or "") for m in msgs)
+        return False
+
+    def _haystack(call):
+        msgs = call["messages"]
+        if isinstance(msgs, str):
+            return msgs
+        return "\n".join((m.get("content", "") or "") for m in msgs)
+
+    evolver_calls = [c for c in fake_llm.calls if _is_evolver_call(c)]
     assert len(evolver_calls) == 2, f"expected 2 evolver calls, got {len(evolver_calls)}"
-    second_evolver_prompt = evolver_calls[1]["messages"]
-    assert "UNGROUNDED-VALUE" in second_evolver_prompt, \
+    assert "UNGROUNDED-VALUE" in _haystack(evolver_calls[1]), \
         "judge feedback must reach the second evolver call"
 
 

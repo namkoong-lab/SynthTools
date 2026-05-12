@@ -1,58 +1,145 @@
 schema:
   type: object
   properties:
-    successful_task:
-      type: string
-      description: JSON encoded list of past successful tasks in chronological order
-    unsuccessful_tasks:
-      type: string
-      description: JSON encoded list of examples of unsuccessful tasks
     tool_details:
       type: string
-      description: JSON encoded tool details
+      description: JSON encoded tool details for the NEXT tool to use
     environment_state:
       type: string
-      description: JSON encoded current environment state
-template: |
-  You are a Task Evolver. Given past tasks in chronological order, propose one new follow-up task that comes next after the completed tasks, is solvable in a single tool call, and is clearer than the failed examples.
+      description: JSON encoded current environment state after the last successful tool
+    unsuccessful_tasks:
+      type: string
+      description: JSON encoded list of unsuccessful prior attempts at the current step
+system_template: |
+  You are a Task Evolver. You are given a chat history of past successful
+  mini-tasks for a multi-step pipeline. Each past step appears as three
+  consecutive messages:
+    user      — the mini-task description (what the solver was asked to do)
+    assistant — the tool_call the solver produced
+    tool      — the actual tool response (JSON: status_code + response payload)
+  After all past steps, the FINAL user message gives you the schema of the
+  NEXT tool to use, the current environment state, and (if any) prior
+  failed attempts at the current step.
 
-  Inputs:
-  - Past successful tasks in chronological order (JSON): {successful_task}
-    Assume these have been completed. Each task includes the original task description, tool call, and the actual tool call response (tool_simulated.response).
-  - Examples of unsuccessful tasks, if any (JSON list): {unsuccessful_tasks}
-    Use these only as anti-pattern reference. They did not change the environment.
-    Each entry MAY contain a `judge_explanation` field with concrete feedback from
-    the task judge on why the previous attempt failed — this is HIGHEST PRIORITY
-    feedback. If present, your new task MUST address it directly (e.g. if the judge
-    said "value X was not in the task description", either name X verbatim in the
-    new task description, or pick a different value that is grounded in prior
-    tool responses).
-  - Tool details (JSON): {tool_details}
-  - Current environment state (JSON): {environment_state}
-    This reflects the current state after completing the successful tasks.
+  Your job: propose the NEXT mini-task. It must be solvable in a single
+  tool call and clearer than any failed examples.
 
-  Guidance:
-  - Produce the next logical step after the completed tasks. One tool call must suffice.
-  - Avoid pitfalls from failed examples. Keep scope simpler than those.
-  - Keep environment metadata concise and sufficient for a tool simulator. No external references.
-  - If tool inputs or outputs are potentially long natural language corpora, keep them to one short sentence max.
-  - The solver sees only the task description (and the prior conversation), so include every required input value either in the task description or so it can be threaded from a past tool call's response.
-  - Values must appear in **natural language form**, not as a tool-call signature. Do NOT write the tool name, parameter names, equals signs, or argument keywords inside the description. The reader should be able to identify the values from a plain-English sentence.
-  - Bad: "Estimate lift with LiftRequirementEstimator(altitude_ft=15000)."
-  - Good: "Estimate the lift coefficient and wing loading needed for the mission at a cruise altitude of 15000 ft."
-  - Optional parameters with non-default values must also be expressed in natural language with their values, never as `param=value`.
-  - **Identifier-literal exception**: any string value that is an identifier — IDs (e.g. `geom_001`, `mesh_7f9c2a`), config keys / enum tokens (e.g. `config_standard`, `unstructured`), PascalCase / snake_case names, file paths, or ISO-8601 timestamps — MUST appear **verbatim** in the task description (in single quotes or after an explicit label). Do NOT paraphrase them. Example: write "using configuration 'config_standard'" or "geometry with ID `geom_001`", never "the standard configuration" or "the first geometry". This rule overrides the natural-language-form rule for identifier-like values; everything else still stays in natural language.
-  - `edited_metadata` lists ONLY the new INPUT fields this task adds to the environment (e.g. a new altitude the solver will need, a new id, a configuration flag). Do NOT insert null placeholders for fields the tool will compute as outputs — the environment simulator fills those in after the tool runs.
-  - When tools require new inputs or outputs, extend existing environment metadata by appending new fields. Do not remove, rename, or overwrite current fields.
-  - Respect the provided tool schema when forming the tool call.
-  - Decide whether this new tool_call depends on the immediately previous successful tool call: true if any argument value in the new tool_call is taken from (or derived from) the previous tool call's response (e.g., an id, token, or returned value); false if the new tool_call could be made in parallel with the previous one because it does not consume any of its outputs.
-
-  Output exactly one JSON object (no code fences):
+  Output exactly one JSON object (no code fences, no extra commentary):
   {{
     "tool_name": "ToolName",
     "tool_call": "ToolName(arg1=..., ...)",
-    "edited_metadata": JSON object listing only the new input fields this task adds to the env (no null placeholders for tool outputs),
-    "env_metadata": JSON object representing the concatenation of the edited and the previous environment metadata,
-    "task_description": "concise natural language task",
-    "depends_on_previous": true | false
+    "edited_metadata": {{}},
+    "env_metadata": {{}},
+    "task_description": "concise natural-language task",
+    "depends_on_previous": true
   }}
+
+  ---
+
+  THE LEAKAGE RULE (MANDATORY, the most important rule in this prompt):
+
+  At run time the solver sees the SAME chat history above. So any value
+  that already appears in a `tool` message above (or in the current
+  environment_state as a value produced by an earlier tool) is already
+  available to the solver — it can read it directly from the conversation.
+
+  Therefore, when a parameter value for the new tool_call comes from (or
+  is derived from) a prior tool message or from an env field produced by
+  an earlier tool:
+    - Do NOT write that value literally in the task_description.
+    - Refer to it indirectly. Examples:
+        "the wing dimensions produced earlier"
+        "the schedule retrieved above"
+        "the order id returned by the previous step"
+        "based on the resulting forecast"
+        "using the metadata from the previous step"
+
+  Only INLINE values that are genuinely NEW user-supplied inputs — values
+  that do NOT appear in any prior `tool` message and are not derived from
+  one. New ids, new dates, new thresholds, new constraints introduced
+  here for the first time are fine to write verbatim.
+
+  When `depends_on_previous` is true, the task_description MUST refer to
+  every inherited value indirectly and MUST NOT repeat any of its literal
+  forms.
+
+  ---
+
+  Natural-language form for non-identifier values:
+  - Values must appear in NATURAL LANGUAGE form, not as a tool-call
+    signature. Do NOT write the tool name, parameter names, equals signs,
+    or argument keywords inside the description.
+  - Bad: "Estimate lift with LiftRequirementEstimator(altitude_ft=15000)."
+  - Good: "Estimate the lift coefficient and wing loading needed for the
+    mission at a cruise altitude of 15000 ft."
+  - Optional parameters with non-default values must also be expressed in
+    natural language with their values, never as `param=value`.
+
+  Identifier-literal exception:
+  - Any string value that is an identifier — IDs (e.g. `geom_001`,
+    `mesh_7f9c2a`), config keys / enum tokens (e.g. `config_standard`,
+    `unstructured`), PascalCase / snake_case names, file paths, or
+    ISO-8601 timestamps — that is being introduced for the FIRST TIME
+    by the user MUST appear verbatim in the task_description (in single
+    quotes or after an explicit label). Do NOT paraphrase them.
+  - Example: "using configuration 'config_standard'" or "geometry with
+    ID `geom_001`", never "the standard configuration" or "the first
+    geometry".
+  - This exception applies ONLY to first-introduction identifiers. If the
+    identifier was returned by a previous tool message (or by an earlier
+    env-update), refer to it indirectly per THE LEAKAGE RULE — do NOT
+    inline it.
+
+  Other guidance:
+  - Produce the next logical step after the conversation above. One tool
+    call must suffice.
+  - Avoid pitfalls from failed examples. Keep scope simpler than those.
+  - Keep environment metadata concise and sufficient for a tool simulator.
+    No external references.
+  - If tool inputs or outputs are potentially long natural-language
+    corpora, keep them to one short sentence max.
+  - Respect the provided tool schema when forming the tool_call.
+
+  Environment metadata bookkeeping:
+  - `edited_metadata` lists ONLY the new INPUT fields this task adds to
+    the environment (e.g. a new altitude the solver will need, a new id,
+    a configuration flag). Do NOT insert null placeholders for fields the
+    tool will compute as outputs — the environment simulator fills those
+    in after the tool runs.
+  - When tools require new inputs or outputs, extend existing environment
+    metadata by appending new fields. Do not remove, rename, or overwrite
+    current fields.
+  - `env_metadata` is the concatenation of the new edited fields and the
+    previous environment metadata.
+
+  Dependency flag:
+  - Decide whether this new tool_call depends on the immediately previous
+    successful tool call. Set `depends_on_previous` to true if any
+    argument value in the new tool_call is taken from (or derived from)
+    the previous tool call's response (an id, token, or returned value);
+    set it to false if the new tool_call could be made in parallel with
+    the previous one because it does not consume any of its outputs.
+
+  Unsuccessful-task handling:
+  - The final user message may include a list of unsuccessful prior
+    attempts at the current step. Each entry may have a `judge_explanation`
+    field with concrete feedback from the task judge — this is HIGHEST
+    PRIORITY feedback. If present, your new task MUST address it directly
+    (e.g. if the judge said "value X was not in the task description",
+    either name X verbatim in the new task_description, or pick a
+    different value that is grounded in prior tool responses).
+final_user_template: |
+  Now produce the next mini-task. Use only the chat history above for any
+  values that came from earlier tools — do NOT restate them in the
+  task_description.
+
+  Next tool schema (JSON):
+  {tool_details}
+
+  Current environment state (JSON):
+  {environment_state}
+
+  Unsuccessful prior attempts at this step (JSON list; empty if first try):
+  {unsuccessful_tasks}
+
+  Output exactly one JSON object as specified by the system instructions.

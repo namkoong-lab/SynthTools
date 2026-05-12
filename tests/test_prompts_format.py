@@ -30,11 +30,20 @@ TEMPLATE_PATHS = list(_all_templates())
 assert TEMPLATE_PATHS, f"No templates found under {PROMPT_ROOT}"
 
 
-def _load_template(path: Path):
+def _load_templates(path: Path):
+    """Return every templated string in the YAML as a list of (label, text).
+
+    Most files have a single `template:` field. Some (e.g. the chat-format
+    task_evolver t1 template) define multiple named fields like
+    `system_template` and `final_user_template`. We validate each.
+    """
     data = yaml.safe_load(path.read_text())
-    if isinstance(data, dict) and "template" in data:
-        return data["template"], data.get("schema", {}).get("properties", {}) or {}
-    return data, {}
+    out = []
+    if isinstance(data, dict):
+        for key in ("template", "system_template", "final_user_template"):
+            if key in data and isinstance(data[key], str):
+                out.append((key, data[key]))
+    return out
 
 
 def _placeholders(template: str):
@@ -60,16 +69,18 @@ def _placeholders(template: str):
 
 @pytest.mark.parametrize("path", TEMPLATE_PATHS, ids=[str(p.relative_to(PROMPT_ROOT)) for p in TEMPLATE_PATHS])
 def test_template_format_renders(path: Path):
-    template, _ = _load_template(path)
-    if not isinstance(template, str):
-        pytest.skip(f"non-string template in {path.name}")
-    names = _placeholders(template)
-    kwargs = {n: f"<{n}>" for n in names}
-    try:
-        rendered = template.format(**kwargs)
-    except (KeyError, IndexError, ValueError) as e:
-        pytest.fail(f"Template {path.relative_to(PROMPT_ROOT)} failed .format(): {e}")
-    assert "{{" not in rendered and "}}" not in rendered or True  # {{/}} collapses to {/} — legit JSON closers fine
+    templates = _load_templates(path)
+    if not templates:
+        pytest.skip(f"no string templates in {path.name}")
+    for label, template in templates:
+        names = _placeholders(template)
+        kwargs = {n: f"<{n}>" for n in names}
+        try:
+            template.format(**kwargs)
+        except (KeyError, IndexError, ValueError) as e:
+            pytest.fail(
+                f"Template {path.relative_to(PROMPT_ROOT)} (key={label}) failed .format(): {e}"
+            )
 
 
 @pytest.mark.parametrize("path", TEMPLATE_PATHS, ids=[str(p.relative_to(PROMPT_ROOT)) for p in TEMPLATE_PATHS])
