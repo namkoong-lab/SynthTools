@@ -9,6 +9,8 @@ schema:
       type: string
     meta_data:
       type: string
+    failure_mode:
+      type: string
 template: |
   You are a judge for a API tool simulator.
 
@@ -20,7 +22,7 @@ template: |
     - Tool name, 
     - Description: what the tool does,
     - Parameters Schema: all required parameters, their types, and constraints,
-    - Error messages: complete list of possible errors, each with guidance on how to avoid it.
+    - Error messages: examples of typical errors and guidance on how to avoid them. They define the categories of errors that can occur. The simulator may paraphrase these messages as long as the meaning matches the category.
     - Usage: how to use the tool. 
     - Output format: schema of keys and value types for successful execution. 
 
@@ -37,7 +39,11 @@ template: |
   
 
   If the tool call is actually``fully-correct``, then **Return data (output_details)** is supposed to satisfy following conditions: 
-    - Return data should only contain the keys specified in ``output_details``of Tool Details, with their corresponding values. Return data is located in the "return_data" field of the Tool call response, which is in the "response" field.
+    - Return data should only contain the keys specified in ``output_details``of Tool Details, with their corresponding values.
+
+  For judging, treat the JSON object inside the Response field as the return data.
+
+  If the Response object contains an inner return_data field, then treat that inner object as the return data instead.
     - Return data should include all keys listed in ``output_details``, using the exact key names.
     - Each value must match the type defined in ``output_details``.
     - Allowed types: string, number, integer, boolean, array. (Objects are not allowed.)
@@ -51,29 +57,56 @@ template: |
         - Calculated values should match their inputs
         - Related metrics should have logical relationships
         - Time series data should follow realistic patterns 
+
+  When judging correctness, schema and rule compliance come first. Only mark a response incorrect for data realism or consistency issues if the problem is clear and major, for example:
+    - A value that violates an obvious invariant implied by the parameters
+    - A numeric field that is completely out of any plausible range for the domain
+
+  Do not mark responses incorrect for minor or subjective realism issues if the structure, types, and constraints are correct.
+
       - **Response Completeness**: Populate every key specified in ``output_details`` with meaningful values.
 
-  The overall tool response should contain the following things:
-    - Status: [PASS/FAIL]
-    - Status Code: [If FAIL, provide the appropriate status code. If PASS, return 200]
-    - Error Message: [If FAIL, provide a clear, specific error message, with the first error detected (not all of them!). Use the provided error messages when applicable. If PASS, return null]
-    - Response: [Valid JSON matching the Example Return Data structure]
+  The tool simulator output has the following top level fields:
+    - Status Code: HTTP status code that indicates success or error
+    - Response: JSON body that should match the Example Return Data structure
+    - Explanation: a brief natural language explanation of why that status code and body were returned
+
+  For judging, treat any status code in the 200 to 299 range as a simulator attempt to return a successful tool response. Treat any status code in the 400 to 599 range as a simulator attempt to return an error.
+
+  For the purposes of this judgment:
+    - If Status Code is between 200 and 299, treat the simulator response as a PASS attempt.
+    - If Status Code is 400 or higher, treat the simulator response as a FAIL attempt.
+
+  Your labels should_success_got_error and should_error_got_success compare the simulator's attempt (derived from the status code) to what should have happened according to the Tool Details.
   
   Following are the rules for the tool response:
-    - If FAIL, it should provide a clear, specific error message, with the first error detected (not all of them!). For example, 
-     - Incorrect tool name: Return only “Invalid tool name: <name>.” Even if other errors exist, report this one first.
+    - If error (status code 400+), it should provide a clear, specific error message, with the first error detected (not all of them!). For example, 
+     - Incorrect tool name: Return only "Invalid tool name: <name>." Even if other errors exist, report this one first.
      - Correct tool name, but bad parameter:
-        - If a parameter name is unknown, return “Unknown parameter: <param>.”
-        - If a parameter value has the wrong type, return “Invalid type for <param>: expected <type>.”
+        - If a parameter name is unknown, return "Unknown parameter: <param>."
+        - If a parameter value has the wrong type, return "Invalid type for <param>: expected <type>."
+        - Use the provided error messages as templates for the error category. Exact wording is not required, but the message must clearly match the intended category.
         - If multiple issues are present, report only the first one found.
+
+  When deciding what the "first error" is, assume this fixed validation order:
+    1. Tool name
+    2. Missing required parameters (in Parameter Schema order)
+    3. Unknown parameter names
+    4. Invalid parameter types
+    5. Invalid parameter formats and ranges
+    6. Violations of rules and constraints described in usage or error_messages
+
+  If there are several violations, the correct simulator error must correspond to the earliest failing step in this list. Any later error category should be treated as incorrect, even if it is also true.
     - Status Code is decided as follows:
       - Missing required parameters → Status Code: 400
       - Invalid parameter types or formats → Status Code: 400  
       - Rule violations → Status Code: 400
       - Resource not found (if applicable) → Status Code: 404
       - System constraints violated → Status Code: 500
-    - If tool call is incorrect: "Response" must be null.
-    - If tool call is fully-correct: "Error Message" must be null and "Status" must be "PASS" with Status Code 200.
+    - If the tool call is incorrect, the status code must be an error code (400 or higher). The Response body may be null, or it may contain a JSON error representation, but it must not pretend that the call succeeded.
+
+  When judging correctness, do not mark a response wrong only because the Response field is non null on error. Focus on whether the status code and the error information correctly match the first actual error according to the Tool Details.
+    - If tool call is fully-correct: Status Code must be in the 200-299 range.
     - Response has the following structure:
       - {{
         "key1": "Value of key1",
@@ -106,24 +139,24 @@ template: |
         - Range underflow/overflow; string too short/long; enum invalid value; regex mismatch.
         - Arrays: mixed types; empty when not allowed; size out of bounds.
       - Tool simulator response:
-        - Status / Status-code / Error-message is wrong: should be "FAIL" with the appropriate status code and error message, but instead it is "PASS" or "FAIL" with the wrong status code and error message.
+        - Status-code / Error-message is wrong: should be an error status code (400+) with appropriate error message, but instead it is a success status code (200-299) or wrong error status code/message.
         - Tool gives a response/output which can only be given when the correct tool call is made
 
   (2) **Failure mode 2** — Schema correct but violates documented error rule; simulator mishandles
       - Correct tool call (but contradicting error rules):
-        - Violating cross-field dependencies (e.g., start < end, “if A=true then B required/forbidden”).
+        - Violating cross-field dependencies (e.g., start < end, "if A=true then B required/forbidden").
         - Mutually exclusive options used together.
-        - Quotas/limits from error messages (e.g., “max 100 items”) while still schema-valid.
+        - Quotas/limits from error messages (e.g., "max 100 items") while still schema-valid.
         - Rate/temporal rules (e.g., date in the past) if specified.
       - Tool simulator response:
-        - Status / Status-code / Error-message is wrong
+        - Status-code / Error-message is wrong
         - Tool gives a response/output which can only be given when the correct tool call is made
 
   (3) **Failure mode 3** — Fully correct call; simulator output wrong
       - Correct tool call satisfying all error rules (happy paths).
       - Tool simulator response:
-        - Status / Status-code is wrong
-        - Tool gives an error message
+        - Status-code is wrong (should be 200-299 but is error code, or wrong success code)
+        - Tool gives an error message or wrong status code
         - Tool gives an incorrect output which does not satisfy the output_details provided in the Tool Details.
         - Tool gives a response/output that is not consistent with the tool call made.
 
@@ -136,30 +169,33 @@ template: |
         - Arrays: mixed types; empty when not allowed; size out of bounds.
         - Arrays of objects
       - Tool simulator response:
-        - Correct Status / Status-code / Error-message
+        - Correct Status-code / Error-message
         - Response/Output is None
 
   (5) **Success mode 2** — Correct call that triggers documented error; simulator handles correctly
       - Correct tool call (contradicting error rules):
-        - Violating cross-field dependencies (e.g., start < end, “if A=true then B required/forbidden”).
+        - Violating cross-field dependencies (e.g., start < end, "if A=true then B required/forbidden").
         - Mutually exclusive options used together.
-        - Quotas/limits from error messages (e.g., “max 100 items”) while still schema-valid.
+        - Quotas/limits from error messages (e.g., "max 100 items") while still schema-valid.
         - Rate/temporal rules (e.g., date in the past) if specified.
       - Tool simulator response:
-        - Correct Status / Status-code / Error-message
+        - Correct Status-code / Error-message
         - Response/Output is None
 
   (6) **Success mode 3** — Fully correct call; simulator responds correctly
       - Correct tool call satisfying all error rules.
       - Tool simulator response:
-        - Correct Status / Status-code 
-        - Error message is None
+        - Correct Status-code (200-299)
+        - No error message
         - Correct output which satisfies the output_details provided in the Tool Details.
         - Output return data matches the structure, types, and semantic meaning of the examples provided in the meta data, with values that are contextually appropriate and logically consistent with the tool's purpose.
         - Output is consistent with the tool call made.
 
 
   TOOL DETAILS: {tool_details}
+
+  EXPECTED FAILURE MODE FOR THIS TEST CASE: {failure_mode}
+  (This is the specific test scenario the tool call was generated to exercise. Use it to calibrate what the correct simulator behaviour should be: e.g. fm1/fm2 test cases expect an error response, fm3 test cases expect a valid success response. If failure_mode is empty or "none", judge solely from the tool details and response.)
 
   TOOL CALL: {message}
 

@@ -1,0 +1,86 @@
+schema:
+  type: object
+  properties:
+    tasks:
+      type: array
+      items:
+        type: string
+    tool_calls:
+      type: array
+      items:
+        type: string
+    tool_responses:
+      type: array
+      items:
+        type: string
+template: |
+  You are a Task Summarizer.
+
+  You are given a synthetic multi-step trajectory. Your job is to write a SINGLE
+  task description — a request that an end-user might realistically pose — such
+  that an agent given access to a suitable set of tools could fulfil it by
+  performing the same chain of operations as the trajectory.
+
+  IMPORTANT framing: the agent will OBTAIN intermediate facts by calling tools
+  itself. So the description must give the agent everything it needs to START
+  the work, but must NOT pre-supply values that the agent is expected to
+  retrieve, compute, or synthesise via tool calls. The mini-tasks describe the
+  user's intent at each step; the tool responses are intermediate results that
+  the agent reproduces at execution time.
+
+  Inputs:
+  - Mini-tasks in chronological order (JSON list of strings): {tasks}
+  - Tool calls used to solve them in chronological order (JSON list of strings): {tool_calls}
+  - Tool responses returned in chronological order (JSON list of strings): {tool_responses}
+
+  Requirements:
+
+  1. Coverage of mini-task content (MANDATORY).
+     - Every concrete piece of information that appears in the mini-tasks MUST
+       appear in the merged task description. Do not drop any number, date,
+       ID, coordinate, name, file path, unit, enum value, threshold, list,
+       constraint, percentage, or note.
+     - Identifier-literals (IDs, filenames, enum tokens, ISO 8601 timestamps,
+       PascalCase domain names if the user themselves would say them) appear
+       VERBATIM — never paraphrased.
+     - Preserve units and formats exactly (mm, USD, ha, %, ISO 8601, etc.).
+
+  2. Exclusion of tool-response content (MANDATORY).
+     - Do NOT include any value that originates in a tool response and is not
+       independently stated in a mini-task. The agent will derive those values
+       by calling the tools itself; pre-supplying them would short-circuit the
+       work.
+     - Concretely: if value V first appears in a tool response and is then
+       threaded into a later mini-task or tool call, OMIT V from the
+       description. Refer to it indirectly ("based on the resulting forecast",
+       "using the retrieved schedule", "from the produced metadata").
+     - If a value appears BOTH in a mini-task and in a tool response, treat
+       it as user-supplied and KEEP it (the mini-task is authoritative).
+
+  3. Voice, shape, and unification.
+     - Write ONE flowing user-facing request in natural language. It must read
+       like a goal a person describes — not a checklist, not an enumeration of
+       steps, not an internal procedure.
+     - Use connective prose ("and then", "using", "based on", "for", commas,
+       semicolons). Do NOT number, bullet, or label the steps.
+     - Do NOT phrase as "First do X, then do Y, finally do Z". Describe the
+       OUTCOME the user wants and the inputs they supply; the choice of
+       intermediate operations is implicit.
+     - Aim for a tight paragraph (a few sentences for short trajectories, up
+       to one dense paragraph for long ones).
+
+  4. No tool names anywhere in the description.
+     - No PascalCase tool identifiers (e.g. "WeatherDataRetriever",
+       "ScenarioComparator"), no snake_case parameter names, no equals-signs,
+       no fence-style "(arg=value)" formatting.
+     - Refer to operations by what they DO in plain English ("retrieve the
+       weather forecast", "compare the two scenarios"), never by tool name.
+     - If a tool name appears in the inputs as the value of a `tool_schema` /
+       `target` argument or inside a quoted note, preserve it ONLY when it is
+       genuinely a domain identifier the user themselves would specify;
+       otherwise omit it.
+
+  Output exactly one JSON object (no code fences, no extra text, no commentary):
+  {{
+    "task_summarized": ""
+  }}

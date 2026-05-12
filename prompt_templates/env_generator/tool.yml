@@ -1,0 +1,368 @@
+schema:
+  type: object
+  properties:
+    field_name:
+      type: string
+    subfield_name:
+      type: string
+    task_name:
+      type: string
+template: |
+  You design composable tools for LLM agents.
+  
+  You will be given: 
+  (1) a Field name that represents a broad area of study or industry,
+
+  (2) a subfield within that field, 
+
+  (3) a specific task within that subfield.
+  
+  Your job is to propose a set of tools that could be used to accomplish this task. Note that these tools will be simulated by another LLM; therefore, their inputs, outputs, and internal functioning should be designed to be compatible with the LLM tool simulator.
+
+
+  This step is part of a hierarchical domain evolution pipeline, which proceeds as follows:
+  
+  (1) From field → sub-domains
+  (2) From sub-domains → tasks (within that sub-domain)
+  (3) From task → tools (needed to accomplish those tasks)
+  
+  You are only responsible only for Step 3: suggesting a collection of tools that can be used to accomplish the given task. 
+
+
+  Hint for generating tools:
+  
+  (1) Think about different workflows that exist in the task, divide it into sub-tasks to be accomplished by executable tools. 
+
+  (2) Tools should be realistic and non overlapping.
+
+
+  Guidelines:
+
+  (1) Follow the following procedure:
+  
+      - STEP 1 — Rate task difficulty
+        - Briefly (1–2 sentences) assess the task's difficulty as easy / medium / hard using: scope/breadth of subproblems, ambiguity or unknowns, coordination & dependencies, risk or impact of errors, data or infra requirements.
+        
+      - STEP 2 — Set a tool budget (more complex implies more tools)
+        - Map the difficulty to a target range: easy implies 5–10 tools, medium implies 10–15 tools, hard implies 15–20 tools. Pick a concrete target within the range and aim ±2 tools if needed for coherence.
+
+      - STEP 3 — List all the tool names and advertise upstream dependencies (what it consumes) and downstream affordances (what it produces) 
+      
+      - STEP 4 — List some multi-tool plans involving all or subset of tools. Include multiple tool-plans of simple, medium and complex difficulty (atleast two of each category), and describe the corresponding tasks they accomplish.
+        
+      - STEP 5 — Produce tools (small, focused, diverse).
+  
+  (2) For each tool include:
+      - Tool name: PascalCase identifier (valid Python identifier). MUST NOT contain spaces, hyphens, punctuation, or any character outside `[A-Za-z0-9_]`. Keep it specific to the function and no longer than roughly 4 concatenated words. E.g. `ToolName` or `ToolNameVariant` — never `Tool Name`, `Tool-Name`, or `tool_name`.
+      
+      - Description: what the tool does.
+      
+      - Parameters Schema: all required parameters, their types, and constraints.
+      
+      - Error messages: complete list of possible errors, each with guidance on how to avoid it.
+      
+      - Usage: how to use the tool. 
+      
+      - Output format: schema of keys and value types for successful execution.
+    
+  (3) Rules:
+      - Favor multiple small, orthogonal tools over mega-tools.
+      
+      - Tools must be composable with no overlapping functionality.
+      
+      - Tools must NOT require ANY mathematical computations of any kind (no arithmetic operations, no statistical calculations, no numerical transformations, no algebraic manipulations, no trigonometric functions, no matrix operations, no integrals, derivatives, or any other mathematical operations). Tools should focus on logical operations, data transformations, decision-making, or information retrieval that can be simulated by LLMs without requiring actual numerical computation.
+
+      - Tools must NOT involve fetching or processing large datasets. Avoid large arrays as inputs or outputs (i.e. no CSV files or JSON files). Keep data volumes small and manageable.
+      
+      - Parameter counts should vary:
+        - At least 5 tools with 2 to 4 parameters
+        - At least 5 tools with 4 to 8 parameters
+        - No tool may have zero parameters.
+
+      - Parameter types must also vary across the tool set:
+        - Every allowed type (`string`, `integer`, `float`, `boolean`, `array`, `object`) should appear in at least 2 tools.
+        - Each individual tool with 3+ parameters should use at least 2 different parameter types (not all-string).
+        - Prefer `integer` or `float` when the value is genuinely numeric (counts, ranges, rates, ratios, coordinates). Do not default to `string` for numeric inputs.
+
+      - All required information (when the tool is called) must come from parameters only (no external state or environment variables).
+
+      - **Cross-parameter constraints (for semantic reliability coverage)**: at least **one third of the tools you emit** must document in the `usage` field at least ONE cross-parameter rule — a constraint that relates two or more parameters to each other, or restricts a parameter's value based on another. Examples: "if `priority='urgent'`, `deadline_hours` must be <= 24", "`end_time` must be strictly after `start_time`", "sum of the `allocations` array must equal 100", "when `mesh_type='structured'`, `refinement_levels` must be 0", "`max_results` must be <= 1000 when `include_archived=false`". Phrase these rules in plain English inside `usage`; do NOT encode them in the JSON schema. These rules are what lets downstream evaluation generate semantic-rule-violation tests — tools without any such rule get poorer audit coverage.
+
+      - Include all the error messages that could specify the complete functioning of the tool. Make sure error messages also provide information on how to avoid the error.
+      
+      - Tool description will also contain format of the output: this format would be a schema with key-names (that indicates what is being returned) and their corresponding value types. 
+      
+      - Constraints for parameters:
+          1. If a parameter is optional, provide its default value. If no default value applies, explicitly specify None.
+          2. Allowed types:
+              - `string`  - text value
+              - `integer` - whole number
+              - `float`   - real number with a fractional part. Use this for decimals, ratios, probabilities, temperatures, rates, coefficients - anything that can be non-integer.
+              - `boolean` - true/false
+              - `array`   - homogeneous list; you MUST specify the element type via `items` (e.g. `"items": {{"type": "string"}}`)
+              - `object`  - structured sub-object; you MUST specify its shape via `properties` (each property itself having a `type`) and optionally a `required` list. Keep nesting shallow (no deeper than 2 levels of objects).
+                Even if an `object` parameter is intended to be "passed through" from an upstream tool's output, you MUST still declare its `properties` inline here. The tool simulator evaluates each tool schema independently and has no visibility into upstream outputs.
+                Bad (shape not declared, simulator cannot ground it):
+                  `{{"type": "object", "description": "Mission profile info."}}`
+                Good (shape fully declared):
+                  `{{"type": "object", "required": ["range_km", "payload_kg"], "properties": {{"range_km": {{"type": "float"}}, "payload_kg": {{"type": "float"}}, "cruise_kt": {{"type": "float"}}}}}}`
+             Do NOT use `number` - it is ambiguous and downstream validators map it to integer, so floats would fail. Pick `integer` or `float` explicitly.
+          3. Arrays must contain items of a single type (one of: string, integer, float, boolean, object). Arrays of arrays are not allowed.
+          4. When input required is Dates/times: represent them as strings with format `date-time`.
+          5. Avoid parameters that are large chunks of natural language text. Keep text inputs concise and structured.
+          6. Tool calls will be executed as Python function calls against your schema, so every parameter value must be expressible as a Python literal: string (quoted), integer, float, `True`/`False`/`None`, list `[...]`, or dict `{{...}}`. Do not design parameters that require callables, custom types, or anything outside standard Python literal syntax.
+
+      - Constraints for the details of the output:
+          1. For each key in the output format - its value type should be one of: string, integer, float, boolean, array, object. Same rules and rationale as parameters above (avoid `number`; objects declare `properties`; arrays declare `items`).
+          2. Arrays must contain items of a single type (string, integer, float, boolean, or object). Arrays of arrays are not allowed.
+          3. When value is Dates/times: represent as strings with format `date-time`.
+          4. **Outputs must be inherently short.** Tools are simulated by an LLM with a finite context, so any tool whose correct response is long is not viable.
+              - Total output payload should fit in ~30 lines of JSON (roughly 200-400 tokens).
+              - String fields: at most ~1-2 short sentences (e.g. summaries, labels, status text). No full documents, transcripts, articles, or long-form text.
+              - Array fields: declare an explicit upper bound via `maxItems`, and keep it small (≤ 10 items). Do not design arrays whose natural size is "many" (e.g. "all historical rows", "every transaction", "full price history"). If the task needs such a view, return a compact summary or top-N instead.
+              - Object fields: keep them flat and small (≤ 8 keys; nesting depth ≤ 2). Do not return nested collections of records.
+          5. Do not design tools whose correct output would be inherently unbounded (e.g. "return all records", "list every entry", "fetch the full dataset"). Prefer aggregated/summary/top-N variants. If you catch yourself about to specify such a tool, replace it with a filtered or paginated version that takes explicit `limit` / `filter` parameters and documents the cap in both the parameter description and the output schema.
+          6. Avoid outputs that are large chunks of natural language text. Keep text outputs concise and structured.
+
+
+  Output format requirement: 
+   - Write STEP 1, STEP 2, STEP 3, STEP 4 as plain text. 
+   
+   - For STEP 5, output each tool as a standalone fenced code block containing a JSON object (one object per tool).
+   
+   - Do not wrap the tools in an array.
+   
+   - Do not add extra prose or headings between or after the tool JSON objects.
+   
+   - For example:
+
+  ```json
+  {{
+    "tool_name": "ExampleTool",
+    "tool_description": "This tool does X, Y, and Z to help with the task.",
+    "parameters": {{
+      "parameter1": {{
+        "type": "string",
+        "required": true,
+        "description": "A brief description of parameter1"
+      }},
+      "parameter2": {{
+        "type": "integer",
+        "required": false,
+        "description": "A brief description of parameter2"
+        "default": "default value of the parameter"
+      }}
+    }},
+    "error_messages": [
+      "Error message 1: Description of when this error occurs.",
+      "Error message 2: Description of when this error occurs.",
+      "Error message 3: Description of when this error occurs."
+    ],
+    "usage": "Instructions on how to use the tool effectively.",
+    "output_details": {{
+      "key1": {{
+        "type": "string",
+        "description": "A brief description of key1"
+      }},
+      "key2": {{
+        "type": "integer",
+        "description": "A brief description of key2"
+      }},
+      "key3": {{
+        "type": "array",
+        "items": {{
+        "type": "string"
+        }},
+        "description": "A brief description of key3"
+      }} 
+    }}
+  }}
+  ```
+
+  Field Name: Financial Trading
+  Subfield Name: Algorithmic Trading
+  Task Name: Develop trading algorithms based on historical data
+  ```json
+  {{
+    "tool_name": "SecondTool",
+    "tool_description": "Generates and evaluates trading signals from historical market data using a chosen strategy family, with optional risk controls and sizing.",
+    "parameters": {{
+      "ticker_symbol": {{
+        "type": "string",
+        "required": true,
+        "description": "Provide the ticker symbol of the stock to be analyzed."
+      }},
+      "start_time": {{
+        "type": "string",
+        "required": true,
+        "description": "Start of the time range (UTC, ISO 8601).",
+        "format": "date-time"
+      }},
+      "end_time": {{
+        "type": "string",
+        "required": true,
+        "description": "End of the time range (UTC, ISO 8601).",
+        "format": "date-time"
+      }},
+      "bar_freq": {{
+        "type": "string",
+        "required": false,
+        "description": "Bar frequency, e.g., 1m, 5m, 1h, 1d."
+      }},
+      "strategy": {{
+        "type": "string",
+        "required": true,
+        "description": "Strategy family to apply: mean reversion, momentum, trend following, pullback, event driven."
+      }},
+      "stop_loss": {{
+        "type": "number",
+        "required": false,
+        "description": "Stop-loss percentage (0.25–5).",
+        "default": 1
+      }},
+      "take_profit": {{
+        "type": "number",
+        "required": false,
+        "description": "Take-profit percentage (1–5)."
+        "default": 2
+      }},
+      "position_size_pct": {{
+        "type": "number",
+        "required": false,
+        "description": "Maximum position size as a percentage of equity (e.g., 2 means 2%)."
+        "default": None
+      }}
+    }},
+    "error_messages": [
+      "Missing or invalid time range: Provide valid ISO 8601 start_time and end_time with start_time < end_time.",
+      "Unsupported strategy: Use one of [mean reversion, momentum, trend following, pullback, event driven].",
+      "Invalid bar frequency: Use a supported value such as 1m, 5m, 1h, 1d.",
+      "Incorrect parameter value: stop_loss must be within [0.25–5], take_profit must be within [1–5], position_size_pct must be within [0.1–5].",
+      "Ticker not found: The provided ticker symbol is not recognized."
+    ],
+    "usage": "Provide ticker_symbol, start_time, end_time, and strategy; optionally set bar_freq, stop_loss, take_profit, and position_size_pct. The tool returns timestamped signals plus summary performance for the requested interval.",
+    "output_details": {{
+      "summary": {{
+        "type": "string",
+        "description": "Provides a summary of the results."
+      }},
+      "time_stamps": {{
+        "type": "array",
+        "items": {{
+        "type": "string"
+        }},
+        "description": "An array of date-time strings for which the market data is being reported."
+      }} 
+      "signals": {{
+        "type": "array",
+        "items": {{
+        "type": "string"
+        }},
+        "description": "An array of market-data signal strings."
+      }} 
+    }}
+  }}
+  ```
+  
+  Field Name: Machine Learning
+  Subfield Name: Supervised Learning
+  Task Name: Model selection and training
+  ```json
+  {{
+    "tool_name": "ThirdTool",
+    "tool_description": "A tool that assists in selecting, training, and evaluating machine learning models for supervised learning tasks.",
+    "parameters": {{
+      "training_data_path": {{
+        "type": "string",
+        "required": true,
+        "description": "Provide the path to the dataset file."
+      }},
+      "feature_columns": {{
+        "type": "array",
+        "required": true,
+        "description": "Provide the names of feature columns.",
+        "items": {{ "type": "string" }},
+        "minItems": 1,
+        "maxItems": 100
+      }},
+      "label_column": {{
+        "type": "string",
+        "required": true,
+        "description": "Name of the label column."
+      }},
+      "model_type": {{
+        "type": "string",
+        "required": true,
+        "description": "Model family, e.g., linear regression, logistic regression, decision tree, gradient boosting, neural network, transformer, LSTM."
+      }},
+      "learning_rate": {{
+        "type": "number",
+        "required": false,
+        "description": "Optimizer step size (> 0)."
+        "default": 0.01
+      }},
+      "weight_decay": {{
+        "type": "number",
+        "required": false,
+        "description": "L2 penalty strength (> 0)."
+        "default": 0.1
+      }},
+      "optimizer": {{
+        "type": "string",
+        "required": false,
+        "description": "Optimizer name, either Adam or SGD."
+        "default": Adam
+      }},
+      "epochs": {{
+        "type": "integer",
+        "required": false,
+        "description": "Number of training epochs (>= 1)."
+        "default": 1000
+      }}
+    }},
+    "error_messages": [
+      "Insufficient training data: Ensure the dataset has enough samples for training.",
+      "Invalid training data format: Ensure the data is in the correct format (Feature1, Feature2, ..., FeatureN, Label).",
+      "Invalid model type: Use one of [linear regression, logistic regression, decision tree, gradient boosting, neural network, transformer, LSTM].",
+      "Incorrect hyperparameter value: learning_rate and weight_decay must be greater than 0; optimizer must be either Adam or SGD; epochs must be an integer >= 1."
+    ],
+    "usage": "Provide training_data_path, feature_columns, label_column, and model_type; optionally set learning_rate, weight_decay, optimizer, and epochs. The tool returns training metrics and an artifacts summary.",
+    "output_details": {{
+      "summary": "string",
+      "training_loss": "array",
+      "test_loss": "array",
+      "final_training_loss": "number",
+      "final_test_loss": "number"
+      "summary": {{
+        "type": "string",
+        "description": "Provides a summary of the results."
+      }},
+      "training_loss": {{
+        "type": "array",
+        "items": {{
+        "type": "number"
+        }},
+        "description": "An array reporting the training loss at end of each epoch."
+      }} 
+      "test_loss": {{
+        "type": "array",
+        "items": {{
+        "type": "number"
+        }},
+        "description": "An array reporting the test loss at end of each epoch."
+      }},
+      "final_trainig_loss": {{
+        "type": "string",
+        "description": "The training loss at the end of training."
+      }},
+      "final_test_loss": {{
+        "type": "number",
+        "description": "The test loss at the end of training."
+      }} 
+    }}
+  }}
+  ```
+
+  Field Name: {field_name}
+  Subfield Name: {subfield_name}
+  Task Name: {task_name}

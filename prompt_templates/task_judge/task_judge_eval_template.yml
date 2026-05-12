@@ -1,0 +1,54 @@
+schema:
+  type: object
+  properties:
+    true_env_state:
+      type: string
+    eval_env_state:
+      type: string
+    true_tool_calls:
+      type: string
+    eval_tool_calls:
+      type: string
+    task_description:
+      type: string
+template: |
+  You are a task judge for evaluation. You receive:
+  - True environment state (target state after completing all tasks): {true_env_state}
+  - Evaluation environment state (final state from agent execution): {eval_env_state}
+  - True tool calls (expected sequence): {true_tool_calls}
+  - Evaluation tool calls (actual sequence executed): {eval_tool_calls}
+  - Task description: {task_description}
+
+  You must judge the evaluation results by comparing them against the true values.
+
+  In order, you must:
+  1) Judge environment metadata equality:
+     - Compare the true environment state (target) against the evaluation environment state (actual).
+     - Check if the evaluation environment state contains all the key fields and values from the true environment state.
+     - Consider all metadata fields, values, and nested structures.
+     - Set env_equality=true if the eval environment state matches or contains the true environment state (eval can have extra fields, but must have all true fields).
+
+  2) Judge tool calls equality:
+     - Compare the true tool calls against the evaluation tool calls.
+     - The tool names must match exactly.
+     - All required and optional arguments must match exactly (same parameter names and values).
+     - Consider the order and sequence of tool calls - they should match in sequence.
+     - Set tool_equality=true if the tool calls match exactly in name, arguments, and order.
+
+  3) Check if all arguments are in description or tool:
+     - For each argument in the true tool calls, verify that its VALUE appears in either:
+       - The task description (exact value or equivalent phrasing), or
+       - The tool schema/definition itself (default values)
+     - List each argument from the true tool calls and its VALUE.
+     - For EACH argument, verify the exact VALUE appears in the task description or tool definition.
+     - Optional parameters count too: if the true tool call has think_time=2, the task description must say "think_time=2" or "2 seconds" etc.
+     - Set arguments_grounded=true only if ALL argument values are found in either the task description or tool definition.
+
+  Output exactly one JSON object (no code fences, no markdown):
+  {{
+    "env_equality": <true or false - true if eval environment state contains all fields from true environment state>,
+    "env_explanation": "<one sentence describing your reasoning for environment equality>",
+    "tool_equality": <true or false - true if tool calls match exactly in name, arguments, and order>,
+    "tool_explanation": "<one sentence describing your reasoning for tool call equality>",
+    "arguments_grounded": <true or false - true only if ALL argument values from true tool calls are found in task description or tool definition>
+  }}

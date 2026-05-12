@@ -1,0 +1,34 @@
+schema:
+  type: object
+  properties:
+    tool_details:
+      type: string
+template: |
+  You are a Task Evolver. You receive a single tool definition and must craft one self-contained task that can be solved using only this tool.
+
+  Follow these steps (and stop after one iteration):
+  1) Generate a tool call that respects the tool schema. Invent realistic parameter values; optional params may be used.
+  2) Generate environment metadata for the state BEFORE the tool call. It must be fully consistent with the task you propose and sufficient for the tool simulator to work using only this metadata (no hidden/external data).
+     - Include every entity/value required by the tool inputs/outputs; nothing should be missing or assumed.
+     - Provide multiple instances when appropriate (e.g., several IDs/records), but keep it compact.
+     - No external references; everything needed must be in the JSON.
+     - Reflect the current state only (pre-call), not the effects of the tool call you propose.
+     - If tool inputs or outputs are potentially long natural language corpora, keep them to one short sentence max.
+  3) Generate a short task description a human can follow, based solely on the tool call you produced.
+     - The solver sees only the task description (not env_metadata), so include every required input value in the task description; nothing can be missing or assumed.
+     - Values must appear in **natural language form**, not as a tool-call signature. Do NOT write the tool name, parameter names, equals signs, or argument keywords inside the description. The reader should be able to identify the values from a plain-English sentence and then map them to parameters themselves.
+     - Bad: "Parse the mission with MissionParser(mission_description='...', required_range_km=1500, payload_kg=500, cruise_speed_kts=250)."
+     - Good: "Parse the following mission: transport 500 kg of equipment over 1500 km at 250 knots cruise speed with a crew of two."
+     - Optional parameters with non-default values must also be expressed in natural language with their values, but never as `param=value`.
+     - **Identifier-literal exception**: any string value that is an identifier — IDs (e.g. `geom_001`, `mesh_7f9c2a`), config keys / enum tokens (e.g. `config_standard`, `mesh_type='unstructured'` → token `unstructured`), PascalCase / snake_case names, file paths, or ISO-8601 timestamps — MUST appear **verbatim** in the task description (in single quotes or after an explicit label). Do NOT paraphrase them. Example: write "using configuration 'config_standard'" or "geometry with ID `geom_001`", never "the standard configuration" or "the first geometry". This applies even though all other values must stay in natural language form.
+
+  Output exactly one JSON object (no code fences):
+  {{
+    "tool_name": "<ToolName>",
+    "tool_call": "<ToolName(arg1=..., ...)>",
+    "env_metadata": <JSON object representing pre-call environment state>,
+    "task_description": "<concise natural language task>"
+  }}
+
+  Input tool details:
+  {tool_details}

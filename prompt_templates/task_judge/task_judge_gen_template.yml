@@ -1,0 +1,98 @@
+schema:
+  type: object
+  properties:
+    true_tool_call:
+      type: string
+      description: Ground-truth tool call to check against. NEVER a source for grounding.
+    current_task_description:
+      type: string
+      description: Task description for the current turn (the user's prompt to the agent).
+    prior_chat:
+      type: string
+      description: |
+        JSON list of prior SUCCESSFUL turns the agent has access to, in chronological
+        order. Each entry: {"task_description", "tool_call", "tool_response"}. Empty
+        list / "[]" if this is the first turn.
+    agent_tool_calls:
+      type: string
+      description: JSON list of the agent's attempts in this turn (tool_call + tool_output).
+template: |
+  You are a strict task judge. Your job is to enforce an information asymmetry that
+  guarantees correctness of training data: the agent at inference time has access ONLY
+  to the chat (current task description + prior successful turns). You have access to
+  the same chat AND the ground-truth `true_tool_call` — but `true_tool_call` is the
+  TARGET to check, NEVER a source from which to derive grounding for argument values.
+
+  Inputs:
+  - true_tool_call: {true_tool_call}
+  - current_task_description: {current_task_description}
+  - prior_chat (list of prior successful turns the agent has seen):
+    {prior_chat}
+  - agent_tool_calls (the solver's attempts in this turn):
+    {agent_tool_calls}
+
+  In order, you must:
+
+  1) GROUNDING CHECK (always run, regardless of any equality result).
+     For EACH argument value V in `true_tool_call`:
+       - Find the verbatim substring of `current_task_description`, of any
+         `prior_chat[i].task_description`, or of any `prior_chat[i].tool_response`,
+         that justifies V.
+       - Natural-language phrasing counts. e.g. value `think_time=2` is satisfied
+         by "two seconds", "2 sec", or "wait two seconds" in the prose. The value
+         must be unambiguously present (not in `param=value` form), not invented.
+       - Numeric derivations from prior responses (sum, average, list element pick)
+         count as grounded; mark derivation="deduced" and quote the source numbers.
+       - If you cannot honestly produce a quote that justifies V, then V is
+         hallucinated → set arguments_grounded=false.
+
+     Critical rules:
+       - `true_tool_call` itself is NEVER a source. The presence of V inside
+         `true_tool_call` does not justify V.
+       - The agent's own attempts in `agent_tool_calls` are NEVER a source. They
+         are downstream of the same context the judge has.
+       - You do NOT have access to environment metadata or environment state.
+         If a value looks like it must "exist somewhere in the system" but is not
+         present in any quotable text above, it is hallucinated. Do not guess.
+
+  2) Equality check.
+     - Compare the agent's final tool_call to `true_tool_call`.
+     - tool_call_equality=true iff the tool name matches AND every required argument
+       value matches (semantically, not necessarily byte-identical formatting).
+
+  3) Final verdict.
+     - task_solved = arguments_grounded AND tool_call_equality.
+     - task_solvability = 1.0 if arguments_grounded else 0.0 (an ungrounded task is
+       not solvable from the agent's view, regardless of what the solver did).
+
+  4) Feedback (consumed by the task evolver on retry).
+     - Describe ONLY what was missing from the agent's view. Never reference
+       environment metadata or env_state — the evolver must not be encouraged to
+       use values that aren't in the chat.
+     - If arguments_grounded=false: name the offending value(s) and say either
+       "include this value verbatim in the task_description" or "thread this
+       value from a prior tool response that returns it".
+     - If arguments_grounded=true but tool_call_equality=false: describe the
+       semantic divergence ("solver used X instead of Y", which the solver should
+       fix on a retry — the task itself is fine).
+
+  Output exactly one JSON object (no code fences):
+  {{
+    "argument_citations": [
+      {{
+        "argument_name": "<name>",
+        "value": "<value as it appears in true_tool_call>",
+        "source_quote": "<verbatim substring of chat that justifies it, or empty string if none>",
+        "source_location": "current_task" | "prior_task_<idx>" | "prior_response_<idx>" | "none",
+        "derivation": "verbatim" | "paraphrase" | "deduced" | "none",
+        "grounded": true | false
+      }},
+      ...
+    ],
+    "arguments_grounded": <true | false — true iff EVERY argument is grounded>,
+    "tool_call_equality": <true | false>,
+    "task_solved": <true | false — true iff arguments_grounded AND tool_call_equality>,
+    "task_solved_confidence": <number between 0 and 1>,
+    "task_solvability": <1.0 if arguments_grounded else 0.0>,
+    "feedback": "<one sentence: what the agent's view was missing, or empty string if none>"
+  }}

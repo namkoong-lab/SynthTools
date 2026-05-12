@@ -1,0 +1,58 @@
+schema:
+  type: object
+  properties:
+    successful_task:
+      type: string
+      description: JSON encoded list of past successful tasks in chronological order
+    unsuccessful_tasks:
+      type: string
+      description: JSON encoded list of examples of unsuccessful tasks
+    tool_details:
+      type: string
+      description: JSON encoded tool details
+    environment_state:
+      type: string
+      description: JSON encoded current environment state
+template: |
+  You are a Task Evolver. Given past tasks in chronological order, propose one new follow-up task that comes next after the completed tasks, is solvable in a single tool call, and is clearer than the failed examples.
+
+  Inputs:
+  - Past successful tasks in chronological order (JSON): {successful_task}
+    Assume these have been completed. Each task includes the original task description, tool call, and the actual tool call response (tool_simulated.response).
+  - Examples of unsuccessful tasks, if any (JSON list): {unsuccessful_tasks}
+    Use these only as anti-pattern reference. They did not change the environment.
+    Each entry MAY contain a `judge_explanation` field with concrete feedback from
+    the task judge on why the previous attempt failed — this is HIGHEST PRIORITY
+    feedback. If present, your new task MUST address it directly (e.g. if the judge
+    said "value X was not in the task description", either name X verbatim in the
+    new task description, or pick a different value that is grounded in prior
+    tool responses).
+  - Tool details (JSON): {tool_details}
+  - Current environment state (JSON): {environment_state}
+    This reflects the current state after completing the successful tasks.
+
+  Guidance:
+  - Produce the next logical step after the completed tasks. One tool call must suffice.
+  - Avoid pitfalls from failed examples. Keep scope simpler than those.
+  - Keep environment metadata concise and sufficient for a tool simulator. No external references.
+  - If tool inputs or outputs are potentially long natural language corpora, keep them to one short sentence max.
+  - The solver sees only the task description (and the prior conversation), so include every required input value either in the task description or so it can be threaded from a past tool call's response.
+  - Values must appear in **natural language form**, not as a tool-call signature. Do NOT write the tool name, parameter names, equals signs, or argument keywords inside the description. The reader should be able to identify the values from a plain-English sentence.
+  - Bad: "Estimate lift with LiftRequirementEstimator(altitude_ft=15000)."
+  - Good: "Estimate the lift coefficient and wing loading needed for the mission at a cruise altitude of 15000 ft."
+  - Optional parameters with non-default values must also be expressed in natural language with their values, never as `param=value`.
+  - **Identifier-literal exception**: any string value that is an identifier — IDs (e.g. `geom_001`, `mesh_7f9c2a`), config keys / enum tokens (e.g. `config_standard`, `unstructured`), PascalCase / snake_case names, file paths, or ISO-8601 timestamps — MUST appear **verbatim** in the task description (in single quotes or after an explicit label). Do NOT paraphrase them. Example: write "using configuration 'config_standard'" or "geometry with ID `geom_001`", never "the standard configuration" or "the first geometry". This rule overrides the natural-language-form rule for identifier-like values; everything else still stays in natural language.
+  - `edited_metadata` lists ONLY the new INPUT fields this task adds to the environment (e.g. a new altitude the solver will need, a new id, a configuration flag). Do NOT insert null placeholders for fields the tool will compute as outputs — the environment simulator fills those in after the tool runs.
+  - When tools require new inputs or outputs, extend existing environment metadata by appending new fields. Do not remove, rename, or overwrite current fields.
+  - Respect the provided tool schema when forming the tool call.
+  - Decide whether this new tool_call depends on the immediately previous successful tool call: true if any argument value in the new tool_call is taken from (or derived from) the previous tool call's response (e.g., an id, token, or returned value); false if the new tool_call could be made in parallel with the previous one because it does not consume any of its outputs.
+
+  Output exactly one JSON object (no code fences):
+  {{
+    "tool_name": "ToolName",
+    "tool_call": "ToolName(arg1=..., ...)",
+    "edited_metadata": JSON object listing only the new input fields this task adds to the env (no null placeholders for tool outputs),
+    "env_metadata": JSON object representing the concatenation of the edited and the previous environment metadata,
+    "task_description": "concise natural language task",
+    "depends_on_previous": true | false
+  }}
