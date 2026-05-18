@@ -10,9 +10,8 @@ Expected template files dict keys:
 """
 
 import json
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List
-
-import yaml
 
 from . import Role
 from utils import parse_list, extract_json_objects
@@ -101,14 +100,7 @@ class EnvironmentGenerator(Role):
                 unique_items.append(item)
         return unique_items
 
-    @staticmethod
-    def _load_prompts(template_files: Dict[str, str]) -> Dict[str, str]:
-        prompts: Dict[str, str] = {}
-        for key, path in template_files.items():
-            with open(path, "r") as f:
-                loaded = yaml.safe_load(f)
-            if isinstance(loaded, dict) and "template" in loaded:
-                prompts[key] = loaded["template"]
-            else:
-                prompts[key] = loaded
-        return prompts
+    @classmethod
+    def _load_prompts(cls, template_files: Dict[str, str]) -> Dict[str, str]:
+        return {key: cls._load_single_template(Path(path))
+                for key, path in template_files.items()}

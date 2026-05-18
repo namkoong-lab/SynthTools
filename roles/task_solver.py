@@ -7,8 +7,6 @@ from typing import Callable, Dict, Any
 import json
 from pathlib import Path
 
-import yaml
-
 from . import Role
 from utils import extract_json_objects
 
@@ -111,26 +109,10 @@ class TaskSolver(Role):
             raise ValueError(f"Unsupported action '{action}'. Valid: {list(actions)}")
         return actions[action](**kwargs)
 
-    @staticmethod
-    def _fmt(obj: Any) -> str:
-        if isinstance(obj, str):
-            return obj
-        try:
-            return json.dumps(obj, ensure_ascii=False)
-        except Exception:
-            return str(obj)
-
-    @staticmethod
-    def _load_prompts() -> Dict[str, str]:
-        def load_template(path: Path) -> str:
-            with open(path, "r") as f:
-                data = yaml.safe_load(f)
-            if isinstance(data, dict) and "template" in data:
-                return data["template"]
-            raise ValueError(f"Template missing or invalid in {path}")
-
+    @classmethod
+    def _load_prompts(cls) -> Dict[str, str]:
         return {
-            "task_solver_gen": load_template(TASK_SOLVER_TEMPLATE_FILE),
-            "task_solver_eval": load_template(TASK_SOLVER_EVAL_TEMPLATE_FILE),
-            "task_solver_trajectory": load_template(TASK_SOLVER_TRAJECTORY_TEMPLATE_FILE),
+            "task_solver_gen": cls._load_single_template(TASK_SOLVER_TEMPLATE_FILE),
+            "task_solver_eval": cls._load_single_template(TASK_SOLVER_EVAL_TEMPLATE_FILE),
+            "task_solver_trajectory": cls._load_single_template(TASK_SOLVER_TRAJECTORY_TEMPLATE_FILE),
         }

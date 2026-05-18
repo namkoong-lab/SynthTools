@@ -7,11 +7,7 @@ Expected hard-coded template file:
 """
 
 from typing import Callable, Dict, Any, Optional
-import json
 from pathlib import Path
-import re
-
-import yaml
 
 from . import Role
 from utils import extract_json_objects
@@ -57,26 +53,10 @@ class EnvironmentSimulator(Role):
             raise ValueError(f"Unsupported action '{action}'. Valid: {list(actions)}")
         return actions[action](**kwargs)
 
-    @staticmethod
-    def _fmt(obj: Any) -> str:
-        if isinstance(obj, str):
-            return obj
-        try:
-            return json.dumps(obj, ensure_ascii=False)
-        except Exception:
-            return str(obj)
-
-    @staticmethod
-    def _load_prompts() -> Dict[str, str]:
-        def load_template(path: Path) -> str:
-            with open(path, "r") as f:
-                data = yaml.safe_load(f)
-            if isinstance(data, dict) and "template" in data:
-                return data["template"]
-            raise ValueError(f"Template missing or invalid in {path}")
-
+    @classmethod
+    def _load_prompts(cls) -> Dict[str, str]:
         return {
-            "update_environment": load_template(ENV_SIM_TEMPLATE_FILE),
+            "update_environment": cls._load_single_template(ENV_SIM_TEMPLATE_FILE),
         }
 
     def _update_environment_raw(

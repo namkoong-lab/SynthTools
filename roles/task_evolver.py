@@ -18,8 +18,6 @@ from typing import Callable, Dict, Any, List
 import json
 from pathlib import Path
 
-import yaml
-
 from . import Role
 from utils import extract_json_objects
 
@@ -155,41 +153,13 @@ class TaskEvolver(Role):
     # Misc helpers
     # -----------------------------------------------------------------
 
-    @staticmethod
-    def _fmt(obj: Any) -> str:
-        if isinstance(obj, str):
-            return obj
-        try:
-            return json.dumps(obj, ensure_ascii=False)
-        except Exception:
-            return str(obj)
-
-    @staticmethod
-    def _load_prompts() -> Dict[str, str]:
-        def load_yaml(path: Path) -> dict:
-            with open(path, "r") as f:
-                data = yaml.safe_load(f)
-            if not isinstance(data, dict):
-                raise ValueError(f"Template root is not a mapping in {path}")
-            return data
-
-        t0 = load_yaml(TASK_EVOLVER_T0_TEMPLATE_FILE)
-        if "template" not in t0:
-            raise ValueError(
-                f"Task-evolver t0 template missing `template` field: {TASK_EVOLVER_T0_TEMPLATE_FILE}"
-            )
-
-        t1 = load_yaml(TASK_EVOLVER_T1_TEMPLATE_FILE)
-        missing = [k for k in ("system_template", "final_user_template") if k not in t1]
-        if missing:
-            raise ValueError(
-                f"Task-evolver t1 template missing required fields {missing} "
-                f"(expected both `system_template` and `final_user_template`): "
-                f"{TASK_EVOLVER_T1_TEMPLATE_FILE}"
-            )
-
+    @classmethod
+    def _load_prompts(cls) -> Dict[str, str]:
+        t1 = cls._load_chat_template(
+            TASK_EVOLVER_T1_TEMPLATE_FILE, "system_template", "final_user_template"
+        )
         return {
-            "task_evolver_t0": t0["template"],
+            "task_evolver_t0": cls._load_single_template(TASK_EVOLVER_T0_TEMPLATE_FILE),
             "task_evolver_t1_system": t1["system_template"],
             "task_evolver_t1_final_user": t1["final_user_template"],
         }

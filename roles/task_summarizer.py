@@ -12,8 +12,6 @@ from typing import Callable, Dict, Any, List
 import json
 from pathlib import Path
 
-import yaml
-
 from . import Role
 from utils import extract_json_objects
 
@@ -117,33 +115,11 @@ class TaskSummarizer(Role):
         except Exception:
             return str(obj)
 
-    @staticmethod
-    def _fmt(obj: Any) -> str:
-        """Back-compat helper kept for callers that still pre-format inputs."""
-        if isinstance(obj, str):
-            return obj
-        try:
-            return json.dumps(obj, ensure_ascii=False)
-        except Exception:
-            return str(obj)
-
-    @staticmethod
-    def _load_prompts() -> Dict[str, str]:
-        def load_yaml(path: Path) -> dict:
-            with open(path, "r") as f:
-                data = yaml.safe_load(f)
-            if not isinstance(data, dict):
-                raise ValueError(f"Template root is not a mapping in {path}")
-            return data
-
-        data = load_yaml(TASK_SUMMARIZER_TEMPLATE_FILE)
-        missing = [k for k in ("system_template", "final_user_template") if k not in data]
-        if missing:
-            raise ValueError(
-                f"Task-summarizer template missing required fields {missing} "
-                f"(expected both `system_template` and `final_user_template`): "
-                f"{TASK_SUMMARIZER_TEMPLATE_FILE}"
-            )
+    @classmethod
+    def _load_prompts(cls) -> Dict[str, str]:
+        data = cls._load_chat_template(
+            TASK_SUMMARIZER_TEMPLATE_FILE, "system_template", "final_user_template"
+        )
         return {
             "task_summarizer_system": data["system_template"],
             "task_summarizer_final_user": data["final_user_template"],
