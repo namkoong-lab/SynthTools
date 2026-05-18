@@ -21,6 +21,7 @@ from pathlib import Path
 # Make sibling packages importable when run as `python -m task_audit.run`.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from config import DEFAULT_MODEL
 from llm import LLM, MODEL_REGISTRY
 from task_audit.summarize import summarize_trajectories
 
@@ -34,7 +35,7 @@ def main():
         help="Directory containing task JSONs",
     )
     parser.add_argument(
-        "--model", default="GPT-OSS-120B", choices=list(MODEL_REGISTRY),
+        "--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY),
         help="LLM to use for summarization",
     )
 

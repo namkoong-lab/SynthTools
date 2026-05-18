@@ -14,6 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from config import DEFAULT_MODEL
 from llm import LLM, MODEL_REGISTRY
 from env_generation.generate import generate_environments
 
@@ -23,7 +24,7 @@ def main():
     parser.add_argument("--fields", required=True,
                         help="Comma-separated field names (e.g. 'Aerospace and Defense,Healthcare')")
     parser.add_argument("--output-dir", type=Path, required=True, help="Output directory for JSON spec files")
-    parser.add_argument("--model", default="GPT-OSS-120B", choices=list(MODEL_REGISTRY))
+    parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY))
     parser.add_argument("--max-subfields", type=int, default=1)
     parser.add_argument("--max-tasks-per-subfield", type=int, default=1)
     args = parser.parse_args()

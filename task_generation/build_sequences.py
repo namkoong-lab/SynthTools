@@ -50,6 +50,7 @@ from typing import Any, Dict, List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from config import DEFAULT_MIN_RELIABILITY, DEFAULT_MODEL, DEFAULT_N_SEQUENCES, DEFAULT_SEQ_LENGTH
 from env_audit.utils import model_config_for, now_iso, write_env_spec
 from llm import LLM, MODEL_REGISTRY
 from roles.env_generator import EnvironmentGenerator
@@ -189,9 +190,9 @@ def build_sequences(
     llm,
     spec_path: Optional[Path] = None,
     field: Optional[str] = None,
-    n_sequences: int = 10,
-    seq_length: int = 8,
-    min_reliability: float = 0.0,
+    n_sequences: int = DEFAULT_N_SEQUENCES,
+    seq_length: int = DEFAULT_SEQ_LENGTH,
+    min_reliability: float = DEFAULT_MIN_RELIABILITY,
     eval_only: bool = True,
 ) -> List[Dict[str, Any]]:
     """Populate the `sequences` block for one or more env_specs.
@@ -330,13 +331,13 @@ def main():
     parser = argparse.ArgumentParser(description="Generate tool sequences for env_specs after audit.")
     parser.add_argument("--env-specs-dir", type=Path, required=True,
                         help="Directory containing env_spec JSON files")
-    parser.add_argument("--model", default="GPT-OSS-120B", choices=list(MODEL_REGISTRY))
+    parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY))
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--env-spec", type=Path, help="Path to a single env_spec JSON")
     target.add_argument("--field", type=str, help="Field name: process every matching scenario")
-    parser.add_argument("--n-sequences", type=int, default=10)
-    parser.add_argument("--seq-length", type=int, default=8)
-    parser.add_argument("--min-reliability", type=float, default=0.0,
+    parser.add_argument("--n-sequences", type=int, default=DEFAULT_N_SEQUENCES)
+    parser.add_argument("--seq-length", type=int, default=DEFAULT_SEQ_LENGTH)
+    parser.add_argument("--min-reliability", type=float, default=DEFAULT_MIN_RELIABILITY,
                         help="Drop tools below this reliability threshold")
     parser.add_argument("--no-eval-only", dest="eval_only", action="store_false",
                         help="Include tools without audit data (default: exclude them)")

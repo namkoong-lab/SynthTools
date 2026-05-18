@@ -20,6 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from config import DEFAULT_MODEL
 from llm import LLM, MODEL_REGISTRY
 from env_audit.generate import audit_tools
 
@@ -36,7 +37,7 @@ def main():
                         help="Path to tools_dataset.jsonl (read + rewrite in place)")
     parser.add_argument("--eval-logs-dir", type=Path, required=True,
                         help="Directory for per-tool eval JSON logs")
-    parser.add_argument("--model", default="GPT-OSS-120B", choices=list(MODEL_REGISTRY))
+    parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY))
     parser.add_argument("--fields", type=_csv, default=None,
                         help="Comma-separated field names to include (build + evaluate)")
     parser.add_argument("--ids", type=_csv, default=None,

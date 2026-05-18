@@ -43,7 +43,7 @@ from typing import Any, Dict, List, Optional
 
 from env_audit.utils import model_config_for, now_iso
 from roles.task_summarizer import TaskSummarizer
-from utils import batch_call, extract_json_objects, get_logger, usage_to_dict
+from utils import batch_call, extract_json_objects, get_logger, usage_to_dict, write_json_atomic
 
 logger = get_logger("synthtools")
 
@@ -186,15 +186,8 @@ def _iter_trajectory_paths(
 
 
 # ---------------------------------------------------------------------------
-# Atomic file writers
+# Debug-log append helper (atomic write via utils.write_json_atomic)
 # ---------------------------------------------------------------------------
-
-def _atomic_write_json(path: Path, payload: Any) -> None:
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with open(tmp, "w") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False, default=str)
-    tmp.replace(path)
-
 
 def _append_debug_event(debug_path: Path, event: Dict[str, Any]) -> bool:
     """Append to `events[]` in a debug log if it exists. Returns True on append."""
@@ -207,7 +200,7 @@ def _append_debug_event(debug_path: Path, event: Dict[str, Any]) -> bool:
         return False
     events = debug.setdefault("events", [])
     events.append(event)
-    _atomic_write_json(debug_path, debug)
+    write_json_atomic(debug, debug_path)
     return True
 
 
@@ -329,7 +322,7 @@ def summarize_trajectories(
                 "usage": usage_dict,
             }
             task["summary"] = summary_block
-            _atomic_write_json(path, task)
+            write_json_atomic(task, path)
             logger.info(
                 f"  {task_id}: summarized {item['n_subtasks']} subtasks "
                 f"(usage: {usage_dict})"

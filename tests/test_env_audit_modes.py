@@ -232,7 +232,7 @@ def test_invalid_mode_raises(fake_llm, env_audit_env):
 
 def test_write_jsonl_tmp_is_pid_suffixed(tmp_path, monkeypatch):
     """Concurrent writers to same target must not collide on `.tmp` filename."""
-    from env_audit.utils import write_jsonl, _pid_tmp
+    from env_audit.utils import write_jsonl
     target = tmp_path / "out.jsonl"
     # Simulate a second writer leaving a stale .tmp with a different PID
     stale = target.with_suffix(target.suffix + ".tmp.99999")
@@ -244,8 +244,6 @@ def test_write_jsonl_tmp_is_pid_suffixed(tmp_path, monkeypatch):
     # Stale tmp from the "other pid" is untouched — no collision.
     assert stale.exists()
     assert stale.read_text() == "garbage-from-other-process\n"
-    # Verify our own tmp path was unique
-    assert _pid_tmp(target).name.endswith(f".tmp.{__import__('os').getpid()}")
 
 
 def test_save_eval_log_atomic_and_resilient(tmp_path):

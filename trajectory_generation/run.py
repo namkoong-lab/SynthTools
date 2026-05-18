@@ -36,6 +36,7 @@ from typing import Any, Dict, List, Optional
 # Make synthtools_nips26 importable when running as `python -m trajectory_generation.run`.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from config import DEFAULT_CONCURRENCY, DEFAULT_MODEL                  # noqa: E402
 from llm import LLM, MODEL_REGISTRY                                # noqa: E402
 from trajectory_generation.loader import Task, iter_tasks, load_task   # noqa: E402
 from trajectory_generation.orchestrator import generate_trajectory     # noqa: E402
@@ -148,7 +149,7 @@ def main():
                         help=f"Parquet of tasks (default: {DEFAULT_DATASET})")
     parser.add_argument("--output-dir", type=Path, required=True,
                         help="Where trajectory JSONs (and debug logs) are written.")
-    parser.add_argument("--model", default="Qwen3-32B", choices=list(MODEL_REGISTRY))
+    parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY))
     parser.add_argument("--max-solver-turns", type=int, default=12,
                         help="Cap on the agent's loop (default 12).")
     parser.add_argument("--no-judge", action="store_true",
@@ -158,7 +159,7 @@ def main():
     parser.add_argument("--server-url", type=str, default=None,
                         help="OpenAI-compatible base URL (e.g. http://localhost:8765/v1). "
                              "Required for --concurrency > 1.")
-    parser.add_argument("--concurrency", type=int, default=1,
+    parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY,
                         help="Number of tasks to roll out in parallel. Requires --server-url > 1.")
 
     selection = parser.add_mutually_exclusive_group()

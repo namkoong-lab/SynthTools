@@ -48,6 +48,7 @@ from typing import Any, Dict, List
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from config import DEFAULT_CONCURRENCY, DEFAULT_MAX_RETRIES, DEFAULT_MAX_SOLVER_TURNS, DEFAULT_MODEL
 from llm import LLM, MODEL_REGISTRY
 from task_generation.generate import (
     WorkItem,
@@ -138,15 +139,15 @@ def main():
     parser = argparse.ArgumentParser(description="Generate tasks from tool sequences.")
     parser.add_argument("--dataset", type=Path, required=True, help="Path to tools_dataset.jsonl")
     parser.add_argument("--output-dir", type=Path, required=True, help="Output directory")
-    parser.add_argument("--model", default="Qwen3-32B", choices=list(MODEL_REGISTRY))
-    parser.add_argument("--max-solver-turns", type=int, default=5)
-    parser.add_argument("--max-retries", type=int, default=5)
+    parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY))
+    parser.add_argument("--max-solver-turns", type=int, default=DEFAULT_MAX_SOLVER_TURNS)
+    parser.add_argument("--max-retries", type=int, default=DEFAULT_MAX_RETRIES)
     parser.add_argument("--verifiable", action="store_true", help="Enable task judging")
     parser.add_argument("--no-debug", action="store_true", help="Disable debug event log")
     parser.add_argument("--server-url", type=str, default=None,
                         help="OpenAI-compatible base URL (e.g. http://localhost:8765/v1). "
                              "When set, all LLM calls go over HTTP instead of loading vLLM in-process.")
-    parser.add_argument("--concurrency", type=int, default=1,
+    parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY,
                         help="Number of tasks to generate in parallel. Requires --server-url "
                              "when > 1 (multiple in-process vLLM engines would OOM the GPUs).")
 

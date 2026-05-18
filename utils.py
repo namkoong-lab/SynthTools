@@ -20,9 +20,29 @@ def write_json_atomic(obj: Any, path: Path) -> Path:
 
     Matches the existing dump flags used across the codebase: indent=2,
     ensure_ascii=False, default=str.
+
+    NOT safe for two processes writing to the SAME `path` simultaneously
+    (deterministic `.tmp` filename → collision). For that case use
+    `write_json_atomic_pid_safe`.
     """
     path = Path(path)
     tmp = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp, "w") as f:
+        json.dump(obj, f, indent=2, ensure_ascii=False, default=str)
+    os.replace(tmp, path)
+    return path
+
+
+def write_json_atomic_pid_safe(obj: Any, path: Path) -> Path:
+    """Same as `write_json_atomic` but the temp filename includes the writer's
+    PID, so multiple processes writing to the same target on a shared
+    filesystem (e.g. Lustre) won't clobber each other's temp files.
+
+    Used by env_audit, where parallel field-evaluator processes may write
+    to disjoint eval-log files inside the same directory.
+    """
+    path = Path(path)
+    tmp = path.with_suffix(path.suffix + f".tmp.{os.getpid()}")
     with open(tmp, "w") as f:
         json.dump(obj, f, indent=2, ensure_ascii=False, default=str)
     os.replace(tmp, path)

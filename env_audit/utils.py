@@ -11,11 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
-def _pid_tmp(path: Path) -> Path:
-    """Return a PID-suffixed `.tmp` path so concurrent writers to the same
-    target don't collide on the staging filename."""
-    return path.with_suffix(path.suffix + f".tmp.{os.getpid()}")
+from utils import write_json_atomic, write_json_atomic_pid_safe
 
 
 # ---------------------------------------------------------------------------
@@ -53,9 +49,13 @@ def load_jsonl(path: Path) -> List[Dict]:
 
 def write_jsonl(path: Path, rows: List[Dict]) -> None:
     """Atomic jsonl write — PID-suffixed `.tmp` + rename. Safe under concurrent
-    writers to the same target file."""
+    writers to the same target file.
+
+    Implemented locally (not via utils.write_json_atomic*) because the format
+    is line-delimited JSON, not a single JSON document.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = _pid_tmp(path)
+    tmp = path.with_suffix(path.suffix + f".tmp.{os.getpid()}")
     with open(tmp, "w") as f:
         for row in rows:
             f.write(json.dumps(row, ensure_ascii=False, default=str) + "\n")
@@ -79,13 +79,9 @@ def load_eval_log(path: Path) -> Optional[Dict]:
 
 
 def save_eval_log(path: Path, payload: Dict) -> None:
-    """Atomic per-tool log write — PID-suffixed `.tmp` + rename. Safe under
-    concurrent writers (disjoint tool_ids) and clean on SIGKILL mid-save."""
+    """Atomic per-tool log write — PID-safe so disjoint writers don't collide."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = _pid_tmp(path)
-    with open(tmp, "w") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False, default=str)
-    tmp.replace(path)
+    write_json_atomic_pid_safe(payload, path)
 
 
 # ---------------------------------------------------------------------------
@@ -113,15 +109,11 @@ def read_env_spec(env_specs_dir: Path, spec_id: str) -> Dict[str, Any]:
 
 
 def write_env_spec(env_specs_dir: Path, spec: Dict[str, Any]) -> Path:
-    """Write a spec JSON atomically (temp file + rename)."""
+    """Write a spec JSON atomically."""
     spec_id = spec["spec_id"]
     final = find_env_spec_path(env_specs_dir, spec_id)
-    tmp = final.with_suffix(".json.tmp")
     final.parent.mkdir(parents=True, exist_ok=True)
-    with open(tmp, "w") as f:
-        json.dump(spec, f, indent=2, ensure_ascii=False, default=str)
-    tmp.replace(final)
-    return final
+    return write_json_atomic(spec, final)
 
 
 def refresh_env_spec_audit(
