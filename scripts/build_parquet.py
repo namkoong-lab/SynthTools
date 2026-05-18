@@ -1,9 +1,9 @@
-"""Build a parquet dataset from cleaned + summarised tasks.
+"""Build a parquet dataset from summarised tasks.
 
 One row per fresh task (legacy imports are dropped). Columns:
   id              - task_id (e.g. "aerospace_and_defense_spec_007_seq11")
   field           - human-readable field (e.g. "Aerospace and Defense")
-  summary         - task_summarized from summary_clean.v1
+  summary         - task_summarized produced by task_audit.summarize
   tools           - list of full tool schemas (JSON strings) for tools actually used
   gt_tool_calls   - per-turn successful tool calls the agent made
                     (the same calls fed to the summariser)
@@ -12,7 +12,7 @@ One row per fresh task (legacy imports are dropped). Columns:
 
 Usage:
   python scripts/build_parquet.py \\
-      --tasks-dir     /pscratch/.../tasks_clean \\
+      --tasks-dir     /pscratch/.../tasks \\
       --env-specs-dir /pscratch/.../env_specs \\
       --output        /pscratch/.../tasks.parquet \\
       [--limit N]    # for testing
@@ -34,9 +34,9 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 
-# Re-use the same call/response extractor as summary_clean.py for consistency.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from summary_clean import _successful_call_and_response  # noqa: E402
+# Re-use the call/response extractor from task_audit.summarize for consistency.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from task_audit.summarize import _successful_call_and_response  # noqa: E402
 
 
 def _to_json_str(obj: Any) -> Optional[str]:
@@ -63,12 +63,9 @@ def extract_row(args: Tuple[str, str]) -> Optional[Dict[str, Any]]:
     if _is_legacy(traj):
         return None
 
-    # Must have a fresh summary
+    # Must have a non-empty summary
     summary_block = traj.get("summary") or {}
     if not isinstance(summary_block, dict):
-        return None
-    src = summary_block.get("source") or ""
-    if not src.startswith("summary_clean"):
         return None
     summary_text = (summary_block.get("parsed") or {}).get("task_summarized") or ""
     if not summary_text:

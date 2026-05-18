@@ -368,3 +368,61 @@ def test_summarize_strips_explanation_from_tool_response(fake_llm, tmp_output):
     assert "simulator internal notes" not in prompt_text
     # But the rest of the response should still be there
     assert "status_code" in prompt_text
+
+
+# ---------------------------------------------------------------------------
+# 11 — tool_call source comes from the AGENT's chat, NOT expected_tool_call
+# ---------------------------------------------------------------------------
+
+def test_summarize_uses_agent_call_from_chat_not_expected_tool_call(fake_llm, tmp_output):
+    """The evolver's `expected_tool_call` is what was PROPOSED; the agent's
+    actual successful call (in `chat[i].assistant`) is what worked. The
+    summariser must use the AGENT's call."""
+    # Build a turn where expected_tool_call != the agent's chat call
+    turn = _turn(0,
+                 task_description="Compute X using the right tool",
+                 tool_call="EVOLVER_PROPOSED_CALL(x=1)")  # both expected and chat set to this
+    # Now override the chat's assistant message to a DIFFERENT call
+    turn["chat"][1]["content"] = json.dumps({
+        "reason": "I corrected the format",
+        "tool_call": "AGENT_REAL_CALL(x=1)",
+    })
+    path = _write_trajectory(tmp_output, _make_trajectory(turns=[turn]))
+
+    fake_llm.queue(_summary_response())
+    summarize_trajectories(tasks_dir=tmp_output, llm=fake_llm, task_path=path)
+
+    prompt_text = _all_content(fake_llm.calls[0]["messages"])
+    assert "AGENT_REAL_CALL(x=1)" in prompt_text, \
+        "summariser must use the agent's chat tool_call"
+    assert "EVOLVER_PROPOSED_CALL" not in prompt_text, \
+        "summariser must NOT use the evolver's expected_tool_call"
+
+
+# ---------------------------------------------------------------------------
+# 12 — within-turn 400 → fix → 200: only the 200 exchange is used
+# ---------------------------------------------------------------------------
+
+def test_summarize_takes_only_last_2xx_exchange_within_turn(fake_llm, tmp_output):
+    """A turn may contain a 400 failure then a 200 retry inside the same
+    attempt. The summariser must take only the FINAL 200 exchange (call +
+    response), ignoring the earlier failed call."""
+    turn = _turn(0, task_description="Compute Y")
+    # Replace the chat with: 400 attempt, then 200 retry
+    turn["chat"] = [
+        {"role": "user", "content": "Compute Y"},
+        {"role": "assistant", "content": json.dumps({"reason": "first", "tool_call": "FAILED_FIRST(z=0)"})},
+        {"role": "tool", "content": json.dumps({"status_code": 400, "response": "bad arg"})},
+        {"role": "assistant", "content": json.dumps({"reason": "fixed", "tool_call": "SUCCEEDED_SECOND(z=1)"})},
+        {"role": "tool", "content": json.dumps({"status_code": 200, "response": {"value": 42}})},
+    ]
+    path = _write_trajectory(tmp_output, _make_trajectory(turns=[turn]))
+
+    fake_llm.queue(_summary_response())
+    summarize_trajectories(tasks_dir=tmp_output, llm=fake_llm, task_path=path)
+
+    prompt_text = _all_content(fake_llm.calls[0]["messages"])
+    assert "SUCCEEDED_SECOND" in prompt_text, "must include the successful call"
+    assert "FAILED_FIRST" not in prompt_text, "must NOT include the failed call"
+    assert "bad arg" not in prompt_text, "must NOT include the failed response"
+    assert "42" in prompt_text, "must include the successful response"

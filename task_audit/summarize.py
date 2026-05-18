@@ -35,18 +35,13 @@ Usage:
     )
 """
 
-import argparse
 import json
-import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 from env_audit.utils import model_config_for, now_iso
-from llm import LLM, MODEL_REGISTRY
 from roles.task_summarizer import TaskSummarizer
 from utils import batch_call, extract_json_objects, get_logger, usage_to_dict
 
@@ -57,40 +52,64 @@ logger = get_logger("synthtools")
 # Extraction helpers
 # ---------------------------------------------------------------------------
 
-def _last_tool_response_from_chat(chat: List[Dict[str, Any]]) -> Any:
-    """Return the last `role: tool` message's content, parsed as JSON.
-
-    The legacy `scripts/task_summary.py` drops the `explanation` key before
-    handing the tool response to the summarizer — keep that behaviour so the
-    summarizer sees grounded tool outputs rather than the simulator's prose.
-    """
-    last = None
-    for msg in chat or []:
-        if msg.get("role") == "tool":
-            last = msg.get("content")
-    if last is None:
-        return None
+def _parse_tool_msg(content: str):
+    """Parse a `role: tool` message content as JSON; fall back to the raw string."""
     try:
-        parsed = json.loads(last)
+        return json.loads(content or "")
     except (TypeError, json.JSONDecodeError):
-        return last
+        return content
+
+
+def _agent_tool_call_str(asst_content: str) -> str:
+    """Solver emits {"reason": ..., "tool_call": "ToolName(...)"} as JSON;
+    return the tool_call string verbatim (or "" on parse failure)."""
+    try:
+        obj = json.loads(asst_content or "")
+        tc = obj.get("tool_call") if isinstance(obj, dict) else None
+        if isinstance(tc, str):
+            return tc
+        if tc is not None:
+            return json.dumps(tc, ensure_ascii=False)
+    except (TypeError, json.JSONDecodeError):
+        pass
+    return ""
+
+
+def _successful_call_and_response(chat: List[Dict[str, Any]]):
+    """Within a turn (which may have within-attempt 400 → fix → 200 recovery),
+    return (agent_tool_call_str, last_tool_response_str) for the FINAL
+    successful exchange. Strips the simulator's `explanation` from the tool
+    response.
+
+    Critical: the tool_call returned here is the AGENT'S actual successful
+    call (from its assistant message), NOT `turn.task.expected_tool_call`
+    (the evolver's proposed call). The agent's real call is what training
+    should learn from."""
+    if not chat:
+        return "", ""
+    last_tool_i = None
+    for i in range(len(chat) - 1, -1, -1):
+        m = chat[i]
+        if m.get("role") != "tool":
+            continue
+        parsed = _parse_tool_msg(m.get("content", ""))
+        sc = parsed.get("status_code") if isinstance(parsed, dict) else None
+        if isinstance(sc, int) and 200 <= sc < 300:
+            last_tool_i = i
+            break
+    if last_tool_i is None:
+        return "", ""
+    asst_content = ""
+    for j in range(last_tool_i - 1, -1, -1):
+        if chat[j].get("role") == "assistant":
+            asst_content = chat[j].get("content", "") or ""
+            break
+    tool_str = chat[last_tool_i].get("content", "") or ""
+    parsed = _parse_tool_msg(tool_str)
     if isinstance(parsed, dict) and "explanation" in parsed:
         parsed = {k: v for k, v in parsed.items() if k != "explanation"}
-    return parsed
-
-
-def _last_tool_call_from_chat(chat: List[Dict[str, Any]]) -> Optional[str]:
-    """Find the assistant message that produced a `tool_call` — fall back when
-    `turn.task.expected_tool_call` is missing."""
-    for msg in reversed(chat or []):
-        if msg.get("role") != "assistant":
-            continue
-        content = msg.get("content") or ""
-        objs = extract_json_objects(content)
-        if objs and isinstance(objs[0], dict) and "tool_call" in objs[0]:
-            call = objs[0]["tool_call"]
-            return call if isinstance(call, str) else json.dumps(call, ensure_ascii=False)
-    return None
+        tool_str = json.dumps(parsed, ensure_ascii=False)
+    return _agent_tool_call_str(asst_content), tool_str
 
 
 def _extract_successful_turns(task: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -112,23 +131,22 @@ def _extract_successful_turns(task: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def _triples_for_summarizer(successful: List[Dict[str, Any]]) -> Dict[str, List[str]]:
-    """Build the three parallel lists the TaskSummarizer template expects."""
+    """Build the three parallel lists the TaskSummarizer template expects.
+
+    tool_calls come from the agent's last successful assistant message in
+    `turn.chat` (see `_successful_call_and_response`), NOT from the
+    evolver's `turn.task.expected_tool_call`. tool_responses come from the
+    matching last 2xx tool message, with `explanation` stripped.
+    """
     tasks: List[str] = []
     tool_calls: List[str] = []
     tool_responses: List[str] = []
     for turn in successful:
         task_block = turn.get("task") or {}
         tasks.append(task_block.get("task_description") or "")
-        tc = task_block.get("expected_tool_call") or _last_tool_call_from_chat(turn.get("chat") or [])
-        if tc is None:
-            tc = ""
-        if not isinstance(tc, str):
-            tc = json.dumps(tc, ensure_ascii=False)
-        tool_calls.append(tc)
-        tr = _last_tool_response_from_chat(turn.get("chat") or [])
-        if not isinstance(tr, str):
-            tr = json.dumps(tr, ensure_ascii=False, default=str) if tr is not None else ""
-        tool_responses.append(tr)
+        call, resp = _successful_call_and_response(turn.get("chat") or [])
+        tool_calls.append(call)
+        tool_responses.append(resp)
     return {"tasks": tasks, "tool_calls": tool_calls, "tool_responses": tool_responses}
 
 
@@ -340,47 +358,3 @@ def summarize_trajectories(
         f"in {time.time() - start:.1f}s"
     )
     return updated
-
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Summarize tasks produced by task_generation.run."
-    )
-    parser.add_argument("--tasks-dir", type=Path, required=True,
-                        help="Directory containing task JSONs")
-    parser.add_argument("--model", default="GPT-OSS-120B", choices=list(MODEL_REGISTRY))
-
-    target = parser.add_mutually_exclusive_group()
-    target.add_argument("--task", type=Path,
-                        help="Path to a single task JSON")
-    target.add_argument("--field", type=str,
-                        help="Field name; requires --env-specs-dir")
-
-    parser.add_argument("--env-specs-dir", type=Path,
-                        help="env_specs directory — required with --field")
-    parser.add_argument("--no-debug", dest="write_debug", action="store_false",
-                        help="Skip appending to sibling .debug.json files")
-    parser.set_defaults(write_debug=True)
-
-    args = parser.parse_args()
-
-    if args.field and args.env_specs_dir is None:
-        parser.error("--field requires --env-specs-dir")
-
-    llm = LLM(args.model)
-    summarize_trajectories(
-        tasks_dir=args.tasks_dir,
-        llm=llm,
-        task_path=args.task,
-        field=args.field,
-        env_specs_dir=args.env_specs_dir,
-        write_debug=args.write_debug,
-    )
-
-
-if __name__ == "__main__":
-    main()

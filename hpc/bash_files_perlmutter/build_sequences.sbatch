@@ -30,7 +30,7 @@ build_sequences(
     env_specs_dir=ENV_SPECS,
     llm=llm,
     n_sequences=50,
-    seq_length=10,
+    seq_length=8,
     min_reliability=0.33,
     eval_only=True,
 )

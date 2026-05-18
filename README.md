@@ -78,9 +78,7 @@ you only need stage 5 plus the `roles/`, `prompt_templates/`, `llm.py`, and
 │   ├── task_summarizer/
 │   └── trajectory_judge/      # whole-rollout judge prompt
 ├── scripts/
-│   ├── build_parquet.py       # cleaned trajectories → tasks.parquet
-│   ├── clean_tasks.py         # judge-based per-turn filter
-│   └── summary_clean.py       # batched summarisation pass
+│   └── build_parquet.py       # summarised tasks → tasks.parquet
 ├── tests/                     # ~200 pytest tests across all stages
 ├── llm.py                     # vLLM in-process or HTTP client (uniform API)
 ├── utils.py                   # atomic JSON writes, batched LLM calls, logging
