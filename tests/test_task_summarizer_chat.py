@@ -151,5 +151,5 @@ def test_load_prompts_accepts_current_yaml():
     s = TaskSummarizer(lambda x: "")
     assert "task_summarizer_system" in s.prompts
     assert "task_summarizer_final_user" in s.prompts
-    assert "Task Summarizer" in s.prompts["task_summarizer_system"]
+    assert "Task Author" in s.prompts["task_summarizer_system"]
     assert "single user-facing request" in s.prompts["task_summarizer_final_user"].lower()

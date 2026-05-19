@@ -10,7 +10,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from trajectory_generation.judge import (   # noqa: E402
+from roles.trajectory_judge import (   # noqa: E402
     TRAJECTORY_JUDGE_TEMPLATE_FILE,
     TrajectoryJudge,
 )

@@ -15,7 +15,25 @@ from pathlib import Path
 
 import pytest
 
-from task_audit.summarize import summarize_trajectories
+from task_audit.summarize import summarize_trajectories as _raw_summarize_trajectories
+
+
+def summarize_trajectories(*, tasks_dir, llm, env_specs_dir=None, task_content_path=None, **kwargs):
+    """Test wrapper: supplies the new required env_specs_dir and
+    task_content_path defaults so existing call sites keep working
+    unchanged. Tests that exercise the release JSONL pass these
+    explicitly."""
+    if env_specs_dir is None:
+        env_specs_dir = tasks_dir
+    if task_content_path is None:
+        task_content_path = tasks_dir / "task_content.jsonl"
+    return _raw_summarize_trajectories(
+        tasks_dir=tasks_dir,
+        llm=llm,
+        env_specs_dir=env_specs_dir,
+        task_content_path=task_content_path,
+        **kwargs,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -24,6 +42,25 @@ from task_audit.summarize import summarize_trajectories
 
 def _summary_response(text: str = "Merged task description.") -> str:
     return "```json\n" + json.dumps({"task_summarized": text}) + "\n```"
+
+
+def _summary_response_v2(
+    text: str = "Merged task description.",
+    user_supplied_values=None,
+    tool_produced_values=None,
+    spillover=None,
+) -> str:
+    """The current production prompt emits a 4-field JSON: the three
+    show-your-work fields plus task_summarized. The pipeline must
+    handle this shape without losing the summary string and must
+    preserve the extra fields in the task's parsed-summary block."""
+    payload = {
+        "user_supplied_values": user_supplied_values or [],
+        "tool_produced_values": tool_produced_values or [],
+        "spillover": spillover or [],
+        "task_summarized": text,
+    }
+    return "```json\n" + json.dumps(payload) + "\n```"
 
 
 def _all_content(prompt) -> str:
@@ -426,3 +463,97 @@ def test_summarize_takes_only_last_2xx_exchange_within_turn(fake_llm, tmp_output
     assert "FAILED_FIRST" not in prompt_text, "must NOT include the failed call"
     assert "bad arg" not in prompt_text, "must NOT include the failed response"
     assert "42" in prompt_text, "must include the successful response"
+
+
+# ---------------------------------------------------------------------------
+# 13 — Production 4-field response: pipeline plucks task_summarized and
+# preserves the show-your-work fields end-to-end (task JSON + release JSONL).
+# ---------------------------------------------------------------------------
+
+def test_summarize_handles_four_field_response_end_to_end(
+    fake_llm, tmp_output, tmp_path
+):
+    """The production prompt now emits a 4-field JSON:
+        user_supplied_values, tool_produced_values, spillover, task_summarized.
+    The pipeline must:
+      - Pick up `task_summarized` correctly (as it always has).
+      - Preserve the other three fields in the task's parsed-summary block.
+      - Write the release JSONL with only the string `summary` column
+        (the show-your-work fields are not in the release schema)."""
+
+    # Build a task with a spec_id-compatible task_id and a matching env_spec
+    # so _extract_release_row actually emits a row.
+    env_specs_dir = tmp_path / "env_specs"
+    env_specs_dir.mkdir()
+    (env_specs_dir / "mock_spec_1.json").write_text(json.dumps({
+        "spec_id": "mock_spec_1",
+        "field": "Mock Field",
+        "tools": [{"tool_name": "ToolA", "tool_description": "..."},
+                  {"tool_name": "ToolB", "tool_description": "..."}],
+    }))
+
+    task = _make_trajectory()
+    path = _write_trajectory(tmp_output, task)
+
+    fake_llm.queue(_summary_response_v2(
+        text="Process the refund for order 1234.",
+        user_supplied_values=["order 1234", "damaged"],
+        tool_produced_values=["delivered", "89.50", "ret_77a3"],
+        spillover=[],
+    ))
+
+    task_content_path = tmp_path / "task_content.jsonl"
+    summarize_trajectories(
+        tasks_dir=tmp_output,
+        llm=fake_llm,
+        env_specs_dir=env_specs_dir,
+        task_content_path=task_content_path,
+        task_path=path,
+    )
+
+    # 1. The task JSON keeps the FULL parsed dict — show-your-work
+    # fields survive into the on-disk summary block (debug / inspection).
+    saved = _read(path)
+    parsed = saved["summary"]["parsed"]
+    assert parsed["task_summarized"] == "Process the refund for order 1234."
+    assert parsed["user_supplied_values"] == ["order 1234", "damaged"]
+    assert parsed["tool_produced_values"] == ["delivered", "89.50", "ret_77a3"]
+    assert parsed["spillover"] == []
+
+    # 2. The release JSONL gets only the `summary` string — no leak of
+    # the show-your-work fields into the released schema.
+    rows = [json.loads(line) for line in task_content_path.read_text().splitlines() if line.strip()]
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["summary"] == "Process the refund for order 1234."
+    assert "user_supplied_values" not in row
+    assert "tool_produced_values" not in row
+    assert "spillover" not in row
+    # Spot-check the rest of the row schema.
+    assert row["id"] == task["task_id"]
+    assert row["field"] == "Mock Field"
+    assert isinstance(row["tools"], list)
+    assert isinstance(row["gt_tool_calls"], list)
+
+
+# ---------------------------------------------------------------------------
+# 14 — Empty / malformed model output: pipeline degrades gracefully when
+# the model fails to emit the 4-field JSON.
+# ---------------------------------------------------------------------------
+
+def test_summarize_tolerates_malformed_response(fake_llm, tmp_output):
+    """If the model returns garbage that doesn't contain a JSON object,
+    `parsed` is None and the summary block is still written (no crash).
+    Downstream code reading `parsed.task_summarized` should default to
+    empty without raising."""
+    task = _make_trajectory()
+    path = _write_trajectory(tmp_output, task)
+
+    fake_llm.queue("I tried but I couldn't produce structured output.")
+    summarize_trajectories(tasks_dir=tmp_output, llm=fake_llm, task_path=path)
+
+    saved = _read(path)
+    assert "summary" in saved
+    assert saved["summary"]["parsed"] is None
+    # `_extract_release_row` reads parsed.task_summarized; with None it
+    # falls back to "" and the row is skipped (no `summary` text → drop).
