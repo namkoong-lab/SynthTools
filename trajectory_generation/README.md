@@ -1,39 +1,38 @@
 # Stage 5 — trajectory_generation
 
-Given a verifiable task from `tasks.parquet`, this stage rolls out an LLM
-agent against the existing tool simulator, saves the full trajectory, and
-runs a trajectory-level judge that compares the rollout against the
+Given a verifiable task from `task_content.jsonl`, this stage rolls out an
+LLM agent against the existing tool simulator, saves the full trajectory,
+and runs a trajectory-level judge that compares the rollout against the
 ground-truth call sequence and final state.
 
 ```
 env_generation → env_audit → task_generation.build_sequences →
-task_generation.run → task_audit.summarize → trajectory_generation.run  ← this
+task_generation.run → task_audit.run → trajectory_generation.run  ← this
 ```
 
-Where stages 1–4 *produce* the dataset, this stage *consumes* it: every row
-of `tasks.parquet` is a task this orchestrator can roll out.
+Stages 1–4 *produce* the dataset; this stage *consumes* it. Every row of
+`task_content.jsonl` is a task this orchestrator can roll out.
 
 ## Inputs
 
-A parquet file (default: `<repo>/tasks.parquet`). If the default path is
-missing, `run.py` downloads the parquet automatically from the Hugging Face
-dataset repository
-[`SynthTools/SynthTools-Tasks`](https://huggingface.co/datasets/SynthTools/SynthTools-Tasks)
-on the first invocation and caches it locally; subsequent invocations read
-the cached file. To use a different parquet (e.g. a custom slice), pass it
-explicitly with `--dataset <path>`.
+The JSONL file produced by `task_audit.run` (default path:
+`/pscratch/sd/t/tcaste/tool_content/task_content.jsonl`). Override with
+`--dataset <path>` for a custom slice. The file is one JSON object per
+line with these fields:
 
-Columns:
-
-| column          | type           | description                                              |
+| field           | type           | description                                              |
 |-----------------|----------------|----------------------------------------------------------|
 | `id`            | `string`       | task identifier                                          |
 | `field`         | `string`       | application domain                                       |
 | `summary`       | `string`       | natural-language task description                        |
-| `tools`         | `list[string]` | JSON-encoded tool schemas the agent has access to        |
+| `tools`         | `list[dict]`   | tool schemas the agent has access to                     |
 | `gt_tool_calls` | `list[string]` | ground-truth ordered call sequence                       |
-| `initial_state` | `string`       | JSON env state at the start                              |
-| `final_state`   | `string`       | JSON env state after the ground-truth solution           |
+| `initial_state` | `dict \| null` | env state at the start                                   |
+| `final_state`   | `dict \| null` | env state after the ground-truth solution                |
+
+If `task_audit.run` was invoked with `--resummarize`, the JSONL may contain
+multiple rows for the same id (the resummarize flow appends new rows
+alongside old ones); the loader deduplicates last-write-wins.
 
 CLI:
 ```bash
@@ -58,11 +57,11 @@ skipped.
 
 For each task, in order:
 
-1. **Load** the task row (`loader.Task` dataclass; parses the JSON-encoded
-   `tools`, `initial_state`, `final_state` columns).
-2. **Initialise the rolling chat** with the multi-turn solver system prompt
-   (`task_solver_trajectory_template.yml`) and one user message: the task
-   `summary` plus the full tool catalogue.
+1. **Load** the task row (`loader.Task` dataclass; tools and state come
+   in pre-parsed from the JSONL).
+2. **Initialise the rolling chat** with the multi-turn solver system
+   prompt (`task_solver_trajectory_template.yml`) and one user message:
+   the task `summary` plus the full tool catalogue.
 3. **Solver loop** (up to `--max-solver-turns`):
    - LLM emits `{reason, tool_call}`.
    - Empty / unparseable call → user nudge, retry.
@@ -131,10 +130,11 @@ to emit a parseable call after the nudge).
 ```
 trajectory_generation/
   __init__.py
-  loader.py          # parquet → Task dataclass; load_task / iter_tasks / list_task_ids
+  loader.py          # JSONL → Task dataclass; load_task / iter_tasks / list_task_ids
   orchestrator.py    # generate_trajectory(task, llm, ...)
-  judge.py           # TrajectoryJudge role
   run.py             # CLI
+roles/
+  trajectory_judge.py    # TrajectoryJudge role (shared Role base)
 prompt_templates/
   task_solver/
     task_solver_trajectory_template.yml   # multi-turn solver prompt
@@ -152,12 +152,10 @@ tests/
 |------------------------|---------------------------------------------------------|
 | Tool agent             | `roles.task_solver.TaskSolver(llm, mode="trajectory")`  |
 | Tool simulator         | `roles.tool_simulator.ToolSimulator`                    |
+| Trajectory judge       | `roles.trajectory_judge.TrajectoryJudge`                |
 | LLM client             | `llm.LLM`                                               |
 | Atomic JSON write etc. | `utils.write_json_atomic`, `RunLog`, `UsageTracker`,    |
 |                        | `extract_json_objects`, `to_llm_messages`               |
-
-The only NEW LLM role is `TrajectoryJudge` (`trajectory_generation/judge.py`)
-plus its prompt template.
 
 ## Trajectory-judge prompt
 
@@ -179,7 +177,7 @@ plus its prompt template.
 ## Tests
 
 ```bash
-pytest tests/test_trajectory_loader.py        # 8 round-trip tests
-pytest tests/test_trajectory_orchestrator.py  # 4 FakeLLM end-to-end tests
-pytest tests/test_trajectory_judge_prompt.py  # 4 prompt-format / role tests
+pytest tests/test_trajectory_loader.py        # JSONL round-trip
+pytest tests/test_trajectory_orchestrator.py  # FakeLLM end-to-end
+pytest tests/test_trajectory_judge_prompt.py  # prompt-format / role
 ```

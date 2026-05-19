@@ -1,18 +1,20 @@
-"""Load verifiable tasks from a parquet file.
+"""Load verifiable tasks from `task_content.jsonl`.
 
-Schema of `tasks.parquet`:
-  id            string
-  field         string
-  summary       string
-  tools         list[string]   (each item is a JSON-encoded tool schema)
-  gt_tool_calls list[string]   (raw call strings)
-  initial_state string         (JSON-encoded dict, may be null)
-  final_state   string         (JSON-encoded dict, may be null)
+The release JSONL is produced by `task_audit.run` and is the canonical input
+to trajectory_generation. One row per line; each line is a JSON object with
+the seven release columns:
 
-Use `load_task(path, task_id)` for a single row, `iter_tasks(path, ...)` for streaming,
-and `list_task_ids(path, ...)` to enumerate IDs without parsing JSON columns.
+  id              string
+  field           string
+  summary         string
+  tools           list[dict]              (parsed tool schemas)
+  gt_tool_calls   list[string]            (raw call strings)
+  initial_state   dict | null             (env state at the start)
+  final_state     dict | null             (env state after the ground truth)
 
-This module reads parquet via pyarrow only (no pandas dependency).
+Use `load_task(path, task_id)` for a single row, `iter_tasks(path, ...)` for
+streaming, and `list_task_ids(path, ...)` to enumerate ids without parsing
+the full payload.
 """
 
 from __future__ import annotations
@@ -22,10 +24,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
-import pyarrow as pa
-import pyarrow.compute as pc
-import pyarrow.parquet as pq
-
 
 @dataclass
 class Task:
@@ -33,8 +31,8 @@ class Task:
     id: str
     field: str
     summary: str
-    tools: List[Dict[str, Any]]            # parsed from JSON strings
-    gt_tool_calls: List[str]               # ground-truth call strings, in order
+    tools: List[Dict[str, Any]]
+    gt_tool_calls: List[str]
     initial_state: Optional[Dict[str, Any]]
     final_state: Optional[Dict[str, Any]]
 
@@ -42,6 +40,8 @@ class Task:
 # --- internal parse helpers ---
 
 def _parse_state(raw: Any) -> Optional[Dict[str, Any]]:
+    """Accept either a dict (JSONL native) or a JSON-encoded string.
+    Returns None for null/empty/invalid input."""
     if raw is None or raw == "":
         return None
     if isinstance(raw, dict):
@@ -55,6 +55,8 @@ def _parse_state(raw: Any) -> Optional[Dict[str, Any]]:
 
 
 def _parse_tools(rows: Any) -> List[Dict[str, Any]]:
+    """Accept either a list of dicts (JSONL native) or a list of JSON-encoded
+    strings. Skip anything that can't be parsed."""
     if rows is None:
         return []
     out: List[Dict[str, Any]] = []
@@ -82,51 +84,82 @@ def _row_to_task(row: Dict[str, Any]) -> Task:
     )
 
 
-REQUIRED_COLUMNS = ["id", "field", "summary", "tools", "gt_tool_calls",
-                    "initial_state", "final_state"]
-
-
-def _read_table(parquet_path: Path, columns: Optional[List[str]] = None):
-    return pq.read_table(Path(parquet_path), columns=columns or REQUIRED_COLUMNS)
+def _iter_rows(jsonl_path: Path) -> Iterator[Dict[str, Any]]:
+    """Stream JSON objects from the JSONL file, skipping blank/invalid lines."""
+    with Path(jsonl_path).open() as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(obj, dict):
+                yield obj
 
 
 # --- public API ---
 
-def load_task(parquet_path: Path, task_id: str) -> Task:
-    """Load a single task by id. Raises KeyError if not found."""
-    table = _read_table(parquet_path)
-    mask = pc.equal(table["id"], task_id)
-    matches = table.filter(mask)
-    if matches.num_rows == 0:
-        raise KeyError(f"task_id {task_id!r} not found in {parquet_path}")
-    if matches.num_rows > 1:
-        raise KeyError(f"task_id {task_id!r} matched {matches.num_rows} rows in {parquet_path}")
-    rows = matches.to_pylist()
-    return _row_to_task(rows[0])
+def load_task(jsonl_path: Path, task_id: str) -> Task:
+    """Load a single task by id. Raises KeyError if not found.
+
+    Latest occurrence wins if the JSONL contains multiple rows with the same
+    id (e.g. after a `--resummarize` run that left duplicate rows; consumers
+    deduplicate last-write-wins by convention)."""
+    last_row: Optional[Dict[str, Any]] = None
+    for row in _iter_rows(jsonl_path):
+        if row.get("id") == task_id:
+            last_row = row
+    if last_row is None:
+        raise KeyError(f"task_id {task_id!r} not found in {jsonl_path}")
+    return _row_to_task(last_row)
 
 
 def iter_tasks(
-    parquet_path: Path,
+    jsonl_path: Path,
     field: Optional[str] = None,
     limit: Optional[int] = None,
     ids: Optional[List[str]] = None,
 ) -> Iterator[Task]:
-    """Yield tasks from the parquet file, optionally filtered by field or explicit ids."""
-    table = _read_table(parquet_path)
-    if field is not None:
-        table = table.filter(pc.equal(table["field"], field))
-    if ids is not None:
-        table = table.filter(pc.is_in(table["id"], value_set=pa.array(list(ids))))
-    if limit is not None:
-        table = table.slice(0, int(limit))
-    for row in table.to_pylist():
-        yield _row_to_task(row)
+    """Yield tasks from the JSONL, optionally filtered by field or explicit ids.
+
+    Duplicate-id rows are deduplicated last-write-wins (matching `load_task`).
+    """
+    id_filter = set(ids) if ids is not None else None
+    by_id: Dict[str, Dict[str, Any]] = {}
+    order: List[str] = []
+    for row in _iter_rows(jsonl_path):
+        tid = row.get("id")
+        if not tid:
+            continue
+        if field is not None and row.get("field") != field:
+            continue
+        if id_filter is not None and tid not in id_filter:
+            continue
+        if tid not in by_id:
+            order.append(tid)
+        by_id[tid] = row
+
+    n = 0
+    for tid in order:
+        if limit is not None and n >= int(limit):
+            return
+        yield _row_to_task(by_id[tid])
+        n += 1
 
 
-def list_task_ids(parquet_path: Path, field: Optional[str] = None) -> List[str]:
-    """Return every task id (optionally filtered by field) without parsing JSON columns."""
-    cols = ["id"] if field is None else ["id", "field"]
-    table = _read_table(parquet_path, columns=cols)
-    if field is not None:
-        table = table.filter(pc.equal(table["field"], field))
-    return table["id"].to_pylist()
+def list_task_ids(jsonl_path: Path, field: Optional[str] = None) -> List[str]:
+    """Return every task id (optionally filtered by field), deduplicated and
+    in chronological JSONL order (first occurrence wins for ordering)."""
+    seen: set = set()
+    out: List[str] = []
+    for row in _iter_rows(jsonl_path):
+        tid = row.get("id")
+        if not tid or tid in seen:
+            continue
+        if field is not None and row.get("field") != field:
+            continue
+        seen.add(tid)
+        out.append(tid)
+    return out

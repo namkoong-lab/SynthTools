@@ -1,21 +1,24 @@
 """CLI entry point for trajectory_generation.
 
-Loads tasks from `tasks.parquet`, runs an agent end-to-end against the tool
-simulator, judges the rollout, and writes one trajectory JSON per task.
+Loads tasks from `task_content.jsonl` (produced by `task_audit.run`), runs an
+agent end-to-end against the tool simulator, judges the rollout, and writes
+one trajectory JSON per task.
 
 Three input modes (mutually exclusive):
 
   --task-id ID                     # one task by id
   --field "Investment Banking"     # every task in a field, optionally capped by --limit
-  (default)                        # walk every task in the parquet, optionally capped by --limit
+  (default)                        # walk every task in the JSONL, optionally capped by --limit
 
 Examples:
   python -m trajectory_generation.run \\
       --task-id aerospace_and_defense_spec_007_seq11 \\
+      --dataset /pscratch/.../tool_content/task_content.jsonl \\
       --output-dir /tmp/traj_smoke
 
   python -m trajectory_generation.run \\
       --field "Investment Banking" --limit 50 \\
+      --dataset /pscratch/.../tool_content/task_content.jsonl \\
       --server-url http://localhost:8765/v1 --concurrency 4 \\
       --output-dir /path/to/data/trajectories_rollout
 
@@ -32,7 +35,7 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Make synthtools_nips26 importable when running as `python -m trajectory_generation.run`.
+# Make sibling packages importable when running as `python -m trajectory_generation.run`.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cli_args import add_model_arg, add_server_url_arg                  # noqa: E402
@@ -44,44 +47,9 @@ from utils import get_logger, run_parallel                          # noqa: E402
 
 logger = get_logger("synthtools.trajectory_generation.run")
 
-# The parquet ships at the repo root; this is the default --dataset.
-DEFAULT_DATASET = Path(__file__).resolve().parent.parent / "tasks.parquet"
-
-# Hugging Face fallback used by `_ensure_dataset_present` when the local
-# `--dataset` path does not exist.
-HF_DATASET_REPO = "SynthTools/SynthTools-Tasks"
-HF_DATASET_FILE = "tasks.parquet"
-
-
-def _ensure_dataset_present(path: Path) -> Path:
-    """If `path` is missing, download the parquet from the SynthTools dataset
-    repository on Hugging Face into `path`. Returns the resolved local path.
-    """
-    path = Path(path)
-    if path.exists():
-        return path
-    try:
-        from huggingface_hub import hf_hub_download
-    except ImportError as exc:
-        raise SystemExit(
-            f"{path} is missing and `huggingface_hub` is not installed; "
-            "either install it (`uv pip install huggingface_hub`) or place "
-            "tasks.parquet at the path manually."
-        ) from exc
-    logger.info(f"{path} not found locally — downloading from "
-                f"https://huggingface.co/datasets/{HF_DATASET_REPO}")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    cached = hf_hub_download(
-        repo_id=HF_DATASET_REPO,
-        filename=HF_DATASET_FILE,
-        repo_type="dataset",
-    )
-    # The HF cache stores files under its own tree; copy into the requested
-    # location so subsequent runs find it without hitting the network again.
-    import shutil
-    shutil.copy2(cached, path)
-    logger.info(f"saved dataset to {path}")
-    return path
+# Default JSONL path — kept symmetrical with task_audit's default
+# (<tasks-dir>/../task_content.jsonl).
+DEFAULT_DATASET = Path("/pscratch/sd/t/tcaste/tool_content/task_content.jsonl")
 
 
 # --- worker for parallel mode ---
@@ -146,7 +114,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET,
-                        help=f"Parquet of tasks (default: {DEFAULT_DATASET})")
+                        help=f"JSONL of tasks (default: {DEFAULT_DATASET})")
     parser.add_argument("--output-dir", type=Path, required=True,
                         help="Where trajectory JSONs (and debug logs) are written.")
     add_model_arg(parser)
@@ -180,8 +148,12 @@ def main():
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Auto-download tasks.parquet from Hugging Face if the local file is missing.
-    args.dataset = _ensure_dataset_present(args.dataset)
+    if not args.dataset.exists():
+        parser.error(
+            f"--dataset {args.dataset} does not exist. Produce it by running "
+            f"task_audit (writes <tasks-dir>/../task_content.jsonl), or pass "
+            f"--dataset explicitly."
+        )
 
     # Resolve the task set
     if args.task_id:

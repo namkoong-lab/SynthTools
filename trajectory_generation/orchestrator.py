@@ -1,8 +1,8 @@
 """Roll out an LLM agent against a single Task, save the trajectory, and judge it.
 
 Reuses the existing TaskSolver (in trajectory mode) and ToolSimulator from
-synthtools_nips26.roles. Drops TaskEvolver/per-turn TaskJudge/EnvironmentSimulator —
-the parquet already supplies the ground truth and the new TrajectoryJudge runs
+roles/. Drops TaskEvolver/per-turn TaskJudge/EnvironmentSimulator — the
+release JSONL already supplies the ground truth and TrajectoryJudge runs
 once at the end.
 """
 
@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from roles.task_solver import TaskSolver
 from roles.tool_simulator import ToolSimulator
-from trajectory_generation.judge import TrajectoryJudge
+from roles.trajectory_judge import TrajectoryJudge
 from trajectory_generation.loader import Task
 from utils import (
     RunLog,
