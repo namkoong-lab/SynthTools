@@ -44,7 +44,7 @@ checkpoints.
 |---|---------------|----------------------------------------------|----------|
 | 1 | Build         | walk env_specs, append rows to `tools_dataset.jsonl`, seed eval logs | — |
 | 2 | Metadata      | `EnvironmentGenerator.generate_metadata`     | yes      |
-| 3 | Test calls    | `tool_simulator/test_calls.yml`              | yes      |
+| 3 | Test calls    | `tool_simulator/tool_simulator_test_calls_template.yml` | yes |
 | 4 | Param check   | `ToolSimulator.parameter_check`              | yes      |
 | 5 | Simulate      | `ToolSimulator.simulate_raw` (only PASSed pairs) | yes  |
 | 6 | Judge         | `JudgeSimulator.judge(... failure_mode=...)` | yes      |

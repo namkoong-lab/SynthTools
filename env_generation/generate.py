@@ -375,8 +375,8 @@ def _parse_tools(response: str) -> List[Dict]:
 def _default_template_files() -> Dict[str, str]:
     base = Path(__file__).resolve().parent.parent / "prompt_templates" / "env_generator"
     return {
-        "subfield":  str(base / "subfield.yml"),
-        "task":      str(base / "task.yml"),
-        "tool":      str(base / "tool.yml"),
-        "sequences": str(base / "sequences.yml"),
+        "subfield":  str(base / "env_generator_subfield_template.yml"),
+        "task":      str(base / "env_generator_task_template.yml"),
+        "tool":      str(base / "env_generator_tool_template.yml"),
+        "sequences": str(base / "env_generator_sequences_template.yml"),
     }

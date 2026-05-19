@@ -50,9 +50,10 @@ from typing import Any, Dict, List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import DEFAULT_MIN_RELIABILITY, DEFAULT_MODEL, DEFAULT_N_SEQUENCES, DEFAULT_SEQ_LENGTH
+from cli_args import add_model_arg
+from config import DEFAULT_MIN_RELIABILITY, DEFAULT_N_SEQUENCES, DEFAULT_SEQ_LENGTH
 from env_audit.utils import model_config_for, now_iso, write_env_spec
-from llm import LLM, MODEL_REGISTRY
+from llm import LLM
 from roles.env_generator import EnvironmentGenerator
 from utils import batch_call, extract_json_objects, get_logger, usage_to_dict
 
@@ -160,10 +161,10 @@ def filter_tools_by_reliability(
 def _default_template_files() -> Dict[str, str]:
     base = Path(__file__).resolve().parent.parent / "prompt_templates" / "env_generator"
     return {
-        "subfield":  str(base / "subfield.yml"),
-        "task":      str(base / "task.yml"),
-        "tool":      str(base / "tool.yml"),
-        "sequences": str(base / "sequences.yml"),
+        "subfield":  str(base / "env_generator_subfield_template.yml"),
+        "task":      str(base / "env_generator_task_template.yml"),
+        "tool":      str(base / "env_generator_tool_template.yml"),
+        "sequences": str(base / "env_generator_sequences_template.yml"),
     }
 
 
@@ -331,7 +332,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate tool sequences for env_specs after audit.")
     parser.add_argument("--env-specs-dir", type=Path, required=True,
                         help="Directory containing env_spec JSON files")
-    parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY))
+    add_model_arg(parser)
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--env-spec", type=Path, help="Path to a single env_spec JSON")
     target.add_argument("--field", type=str, help="Field name: process every matching scenario")

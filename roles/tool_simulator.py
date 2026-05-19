@@ -3,8 +3,8 @@ ToolSimulator agent: loads simulator prompts from hard-coded template paths, run
 and performs parameter validation before simulation.
 
 Expected hard-coded template files:
-- simulate: prompt_templates/tool_simulator/tool_simulator_template_metadata.yml
-- parameter_check: prompt_templates/tool_simulator/parameter_check.yml
+- simulate: prompt_templates/tool_simulator/tool_simulator_simulate_template.yml
+- parameter_check: prompt_templates/tool_simulator/tool_simulator_parameter_check_template.yml
 """
 
 from typing import Callable, Dict, Any, Optional
@@ -14,8 +14,8 @@ from . import Role
 from utils import extract_json_objects
 
 PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompt_templates" / "tool_simulator"
-SIMULATOR_TEMPLATE_FILE = PROMPT_DIR / "tool_simulator_template_metadata.yml"
-PARAMETER_CHECK_TEMPLATE_FILE = PROMPT_DIR / "parameter_check.yml"
+SIMULATOR_TEMPLATE_FILE = PROMPT_DIR / "tool_simulator_simulate_template.yml"
+PARAMETER_CHECK_TEMPLATE_FILE = PROMPT_DIR / "tool_simulator_parameter_check_template.yml"
 
 
 class ToolSimulator(Role):

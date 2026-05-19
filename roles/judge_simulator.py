@@ -2,7 +2,7 @@
 JudgeSimulator agent: loads judge prompt from hard-coded template and returns cleaned JSON judgment.
 
 Expected hard-coded template file:
-- judge: prompt_templates/judge_simulator/judge_template.yml
+- judge: prompt_templates/judge_simulator/judge_simulator_template.yml
 """
 
 from typing import Callable, Dict, Any, Optional
@@ -12,7 +12,7 @@ from . import Role
 from utils import extract_json_objects
 
 PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompt_templates" / "judge_simulator"
-JUDGE_TEMPLATE_FILE = PROMPT_DIR / "judge_template.yml"
+JUDGE_TEMPLATE_FILE = PROMPT_DIR / "judge_simulator_template.yml"
 
 
 class JudgeSimulator(Role):

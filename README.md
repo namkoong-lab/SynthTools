@@ -68,9 +68,9 @@ you only need stage 5 plus the `roles/`, `prompt_templates/`, `llm.py`, and
 │   ├── task_judge.py          # per-turn judge of solver output
 │   └── task_summarizer.py     # merges per-turn tasks into one description
 ├── prompt_templates/
-│   ├── env_generator/         # subfield.yml, task.yml, tool.yml, sequences.yml, metadata.yml
+│   ├── env_generator/         # env_generator_{subfield,task,tool,sequences,metadata}_template.yml
 │   ├── env_simulator/
-│   ├── tool_simulator/        # parameter_check.yml, test_calls.yml, simulate template
+│   ├── tool_simulator/        # tool_simulator_{parameter_check,test_calls,simulate}_template.yml
 │   ├── judge_simulator/       # validator prompt
 │   ├── task_evolver/          # t0 / t1 prompts
 │   ├── task_solver/           # gen, eval, and the new multi-turn trajectory prompt

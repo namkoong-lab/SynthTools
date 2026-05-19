@@ -852,16 +852,16 @@ def _env_generator_template_files() -> Dict[str, str]:
     return {
         # Only need metadata for env_audit; placeholders for the other keys so
         # EnvironmentGenerator can still instantiate cleanly if callers dispatch.
-        "subfield":  str(base / "subfield.yml"),
-        "task":      str(base / "task.yml"),
-        "tool":      str(base / "tool.yml"),
-        "sequences": str(base / "sequences.yml"),
-        "metadata":  str(base / "metadata.yml"),
+        "subfield":  str(base / "env_generator_subfield_template.yml"),
+        "task":      str(base / "env_generator_task_template.yml"),
+        "tool":      str(base / "env_generator_tool_template.yml"),
+        "sequences": str(base / "env_generator_sequences_template.yml"),
+        "metadata":  str(base / "env_generator_metadata_template.yml"),
     }
 
 
 def _load_tool_tester_template() -> str:
-    path = Path(__file__).resolve().parent.parent / "prompt_templates" / "tool_simulator" / "test_calls.yml"
+    path = Path(__file__).resolve().parent.parent / "prompt_templates" / "tool_simulator" / "tool_simulator_test_calls_template.yml"
     import yaml
     with open(path) as f:
         data = yaml.safe_load(f)
