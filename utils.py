@@ -442,3 +442,58 @@ def batch_call(llm, prompts) -> List[Dict[str, Any]]:
         n = len(responses)
         split = [Usage(total.prompt_tokens // n, total.completion_tokens // n) for _ in range(n)]
     return [{"response": r, "usage": u} for r, u in zip(responses, split)]
+
+
+# ---------------------------------------------------------------------------
+# Process-pool concurrency helper
+# ---------------------------------------------------------------------------
+
+def run_parallel(items, worker, concurrency: int, on_result=None) -> List[Any]:
+    """Run `worker(item)` for each `item`, in a process pool of `concurrency`.
+
+    Bind side-args into `worker` with `functools.partial` before passing.
+    Results are returned in completion order (NOT input order).
+
+    Args:
+        items: iterable of work items.
+        worker: callable taking ONE item, returning a result (any type).
+        concurrency: pool size. If <= 1 the items run serially in this
+            process (useful for tests + small jobs).
+        on_result: optional callback `on_result(done_count, total, result)`
+            invoked once per completed item. Use for progress logging.
+
+    Returns:
+        List of results, in completion order. An item that raises has
+        its exception swallowed and a dict `{"error": "...", "item": "..."}`
+        substituted in its slot (so the pool doesn't crash the parent).
+    """
+    items = list(items)
+    n = len(items)
+    if n == 0:
+        return []
+    results: List[Any] = []
+
+    if concurrency <= 1:
+        for i, item in enumerate(items, 1):
+            try:
+                r = worker(item)
+            except Exception as exc:
+                r = {"error": f"{type(exc).__name__}: {exc}", "item": str(item)}
+            results.append(r)
+            if on_result is not None:
+                on_result(i, n, r)
+        return results
+
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+    with ProcessPoolExecutor(max_workers=concurrency) as ex:
+        futures = {ex.submit(worker, item): item for item in items}
+        for fut in as_completed(futures):
+            item = futures[fut]
+            try:
+                r = fut.result()
+            except Exception as exc:
+                r = {"error": f"{type(exc).__name__}: {exc}", "item": str(item)}
+            results.append(r)
+            if on_result is not None:
+                on_result(len(results), n, r)
+    return results

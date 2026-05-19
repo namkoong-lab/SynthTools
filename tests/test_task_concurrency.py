@@ -240,14 +240,14 @@ def test_run_concurrency_zero_rejected(tmp_path: Path, capsys):
 
 
 def test_concurrency_one_uses_serial_path(tmp_path: Path):
-    """With --concurrency 1, ProcessPoolExecutor is never instantiated."""
+    """With --concurrency 1, the serial path is taken (no run_parallel call)."""
     spec_path = tmp_path / "spec.json"
     _write_spec(spec_path, "ab_spec_000", "AB", {"seq1": ["X"]})
     dataset = tmp_path / "tools.jsonl"
     dataset.write_text("")
     out_dir = tmp_path / "out"
 
-    with patch("task_generation.run.ProcessPoolExecutor") as mock_pool, \
+    with patch("task_generation.run.run_parallel") as mock_parallel, \
          patch("task_generation.run.LLM") as mock_llm, \
          patch("task_generation.run.generate_trajectories_for_spec") as mock_gen:
         mock_gen.return_value = []
@@ -258,7 +258,7 @@ def test_concurrency_one_uses_serial_path(tmp_path: Path):
             "--env-spec", str(spec_path),
             "--concurrency", "1",
         ])
-    assert mock_pool.call_count == 0
+    assert mock_parallel.call_count == 0
     # Serial path goes through generate_trajectories_for_spec
     assert mock_gen.call_count == 1
 
