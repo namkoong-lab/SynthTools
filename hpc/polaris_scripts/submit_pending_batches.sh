@@ -22,8 +22,8 @@ set -uo pipefail
 # ---------------------------------------------------------------------------
 # Tunables (env-overridable)
 # ---------------------------------------------------------------------------
-REPO=${REPO:-/home/tommicaste/projects/burn-gpu}
-SCRIPTS_DIR=${SCRIPTS_DIR:-$REPO/polaris_scripts}
+REPO=${REPO:-/home/tommicaste/projects/SynthTools}
+SCRIPTS_DIR=${SCRIPTS_DIR:-$REPO/hpc/polaris_scripts}
 LIB=${LIB:-$SCRIPTS_DIR/lib}
 GENERATED=${GENERATED:-$SCRIPTS_DIR/generated_pbs}
 

@@ -25,7 +25,11 @@ export MODEL=GPT-OSS-120B
 LOG_DIR=/global/homes/t/tcaste/projects/logs
 mkdir -p "$LOG_DIR"
 
-# Last 20 fields (#17..#36 of the 36 with existing trajectories), split 10/10.
+# IMPORTANT: this is a HARDCODED slice of 20 fields, split 10/10 across the
+# 2 allocated nodes. If new fields appear in env_specs/ (currently 100 fields
+# total) this script will SILENTLY miss them. Update the two FIELDS_NODE_*
+# arrays below to keep coverage. A future helper could derive these from
+# `ls env_specs/*_spec_000.json` — for now they're frozen by hand.
 FIELDS_NODE_A=(
   "Investment Banking"
   "Legal Services"
