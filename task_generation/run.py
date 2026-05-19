@@ -41,15 +41,16 @@ each env_spec.
 
 import argparse
 import logging
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import DEFAULT_CONCURRENCY, DEFAULT_MAX_RETRIES, DEFAULT_MAX_SOLVER_TURNS, DEFAULT_MODEL
-from llm import LLM, MODEL_REGISTRY
+from cli_args import add_model_arg, add_server_url_arg
+from config import DEFAULT_CONCURRENCY, DEFAULT_MAX_RETRIES, DEFAULT_MAX_SOLVER_TURNS
+from llm import LLM
 from task_generation.generate import (
     WorkItem,
     generate_trajectory,
@@ -58,7 +59,7 @@ from task_generation.generate import (
     list_pending_work_for_spec,
     list_pending_work_for_field,
 )
-from utils import get_logger, redirect_synthtools_logger_to_file
+from utils import get_logger, redirect_synthtools_logger_to_file, run_parallel
 
 logger = get_logger("task_generation.run")
 
@@ -101,7 +102,7 @@ def _worker(item: WorkItem, llm_kwargs: Dict[str, Any], task_kwargs: Dict[str, A
 
 def _run_parallel(items: List[WorkItem], llm_kwargs: Dict[str, Any], task_kwargs: Dict[str, Any],
                   tools_dataset_path: Path, output_dir: Path, concurrency: int) -> List[Dict[str, Any]]:
-    """Submit all WorkItems to a ProcessPoolExecutor; drain results as they complete."""
+    """Dispatch all WorkItems to a process pool via utils.run_parallel."""
     if not items:
         logger.info("No pending work — all tasks already exist.")
         return []
@@ -109,25 +110,26 @@ def _run_parallel(items: List[WorkItem], llm_kwargs: Dict[str, Any], task_kwargs
     log_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Submitting {len(items)} tasks to a pool of {concurrency} workers.")
     logger.info(f"Per-worker logs: {log_dir}/<task_id>.log  (tail -f any to follow)")
-    results: List[Dict[str, Any]] = []
-    with ProcessPoolExecutor(max_workers=concurrency) as ex:
-        futures = {
-            ex.submit(_worker, item, llm_kwargs, task_kwargs,
-                      str(tools_dataset_path), str(output_dir)): item
-            for item in items
-        }
-        for fut in as_completed(futures):
-            item = futures[fut]
-            try:
-                summary = fut.result()
-                results.append(summary)
-                logger.info(
-                    f"[{len(results)}/{len(items)}] done {summary['task_id']} "
-                    f"in {summary.get('generation_time_s')}s"
-                )
-            except Exception as e:
-                logger.error(f"Worker failed for {item.task_id}: {type(e).__name__}: {e}")
-    logger.info(f"Pool finished: {len(results)}/{len(items)} succeeded.")
+
+    bound_worker = partial(
+        _worker,
+        llm_kwargs=llm_kwargs,
+        task_kwargs=task_kwargs,
+        tools_dataset_path=str(tools_dataset_path),
+        output_dir=str(output_dir),
+    )
+
+    def _log(done: int, total: int, r: Dict[str, Any]) -> None:
+        if "error" in r:
+            logger.error(f"[{done}/{total}] worker failed: {r['error']}")
+        else:
+            logger.info(
+                f"[{done}/{total}] done {r['task_id']} in {r.get('generation_time_s')}s"
+            )
+
+    results = run_parallel(items, bound_worker, concurrency, on_result=_log)
+    n_ok = sum(1 for r in results if "error" not in r)
+    logger.info(f"Pool finished: {n_ok}/{len(items)} succeeded.")
     return results
 
 
@@ -139,14 +141,12 @@ def main():
     parser = argparse.ArgumentParser(description="Generate tasks from tool sequences.")
     parser.add_argument("--dataset", type=Path, required=True, help="Path to tools_dataset.jsonl")
     parser.add_argument("--output-dir", type=Path, required=True, help="Output directory")
-    parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY))
+    add_model_arg(parser)
     parser.add_argument("--max-solver-turns", type=int, default=DEFAULT_MAX_SOLVER_TURNS)
     parser.add_argument("--max-retries", type=int, default=DEFAULT_MAX_RETRIES)
     parser.add_argument("--verifiable", action="store_true", help="Enable task judging")
     parser.add_argument("--no-debug", action="store_true", help="Disable debug event log")
-    parser.add_argument("--server-url", type=str, default=None,
-                        help="OpenAI-compatible base URL (e.g. http://localhost:8765/v1). "
-                             "When set, all LLM calls go over HTTP instead of loading vLLM in-process.")
+    add_server_url_arg(parser)
     parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY,
                         help="Number of tasks to generate in parallel. Requires --server-url "
                              "when > 1 (multiple in-process vLLM engines would OOM the GPUs).")

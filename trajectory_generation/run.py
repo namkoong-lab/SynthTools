@@ -28,7 +28,6 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -36,11 +35,12 @@ from typing import Any, Dict, List, Optional
 # Make synthtools_nips26 importable when running as `python -m trajectory_generation.run`.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import DEFAULT_CONCURRENCY, DEFAULT_MODEL                  # noqa: E402
-from llm import LLM, MODEL_REGISTRY                                # noqa: E402
+from cli_args import add_model_arg, add_server_url_arg                  # noqa: E402
+from config import DEFAULT_CONCURRENCY                                  # noqa: E402
+from llm import LLM                                                # noqa: E402
 from trajectory_generation.loader import Task, iter_tasks, load_task   # noqa: E402
 from trajectory_generation.orchestrator import generate_trajectory     # noqa: E402
-from utils import get_logger                                       # noqa: E402
+from utils import get_logger, run_parallel                          # noqa: E402
 
 logger = get_logger("synthtools.trajectory_generation.run")
 
@@ -130,14 +130,14 @@ def _run_parallel(
         run_judge=run_judge,
         llm_kwargs=llm_kwargs,
     )
-    n = len(tasks)
-    logger.info(f"dispatching {n} tasks to {concurrency} workers")
-    with ProcessPoolExecutor(max_workers=concurrency) as ex:
-        futs = {ex.submit(work, t): t for t in tasks}
-        for i, fut in enumerate(as_completed(futs), 1):
-            r = fut.result()
-            if i % 10 == 0 or r.get("status") != "ok":
-                logger.info(f"[{i}/{n}] {r}")
+    logger.info(f"dispatching {len(tasks)} tasks to {concurrency} workers")
+
+    def _log(done: int, total: int, r: Dict[str, Any]) -> None:
+        # Log every 10th success, and EVERY non-ok result.
+        if done % 10 == 0 or r.get("status") != "ok":
+            logger.info(f"[{done}/{total}] {r}")
+
+    run_parallel(tasks, work, concurrency, on_result=_log)
 
 
 # --- CLI ---
@@ -149,16 +149,14 @@ def main():
                         help=f"Parquet of tasks (default: {DEFAULT_DATASET})")
     parser.add_argument("--output-dir", type=Path, required=True,
                         help="Where trajectory JSONs (and debug logs) are written.")
-    parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY))
+    add_model_arg(parser)
     parser.add_argument("--max-solver-turns", type=int, default=12,
                         help="Cap on the agent's loop (default 12).")
     parser.add_argument("--no-judge", action="store_true",
                         help="Skip the TrajectoryJudge pass.")
     parser.add_argument("--no-debug", action="store_true",
                         help="Skip writing the per-LLM-call event log.")
-    parser.add_argument("--server-url", type=str, default=None,
-                        help="OpenAI-compatible base URL (e.g. http://localhost:8765/v1). "
-                             "Required for --concurrency > 1.")
+    add_server_url_arg(parser)
     parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY,
                         help="Number of tasks to roll out in parallel. Requires --server-url > 1.")
 

@@ -21,8 +21,8 @@ from pathlib import Path
 # Make sibling packages importable when run as `python -m task_audit.run`.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import DEFAULT_MODEL
-from llm import LLM, MODEL_REGISTRY
+from cli_args import add_model_arg, add_server_url_arg
+from llm import LLM
 from task_audit.summarize import summarize_trajectories
 
 
@@ -34,10 +34,7 @@ def main():
         "--tasks-dir", type=Path, required=True,
         help="Directory containing task JSONs",
     )
-    parser.add_argument(
-        "--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY),
-        help="LLM to use for summarization",
-    )
+    add_model_arg(parser)
 
     target = parser.add_mutually_exclusive_group()
     target.add_argument(
@@ -53,11 +50,7 @@ def main():
         "--env-specs-dir", type=Path,
         help="env_specs directory — required with --field",
     )
-    parser.add_argument(
-        "--server-url", type=str, default=None,
-        help="vLLM HTTP server URL (e.g. http://localhost:8765/v1). "
-             "If unset, loads the model in-process.",
-    )
+    add_server_url_arg(parser)
     parser.add_argument(
         "--no-debug", dest="write_debug", action="store_false",
         help="Skip appending to sibling .debug.json files",

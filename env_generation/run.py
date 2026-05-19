@@ -14,24 +14,24 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import DEFAULT_MODEL
-from llm import LLM, MODEL_REGISTRY
+from cli_args import add_model_arg
+from llm import LLM
 from env_generation.generate import generate_environments
 
 
 def main():
     parser = argparse.ArgumentParser(description="Generate environment specs for one or more fields.")
-    parser.add_argument("--fields", required=True,
-                        help="Comma-separated field names (e.g. 'Aerospace and Defense,Healthcare')")
+    parser.add_argument("--field", action="append", required=True, dest="fields",
+                        help="Field name (repeatable: --field 'Aerospace and Defense' --field 'Healthcare')")
     parser.add_argument("--output-dir", type=Path, required=True, help="Output directory for JSON spec files")
-    parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY))
+    add_model_arg(parser)
     parser.add_argument("--max-subfields", type=int, default=1)
     parser.add_argument("--max-tasks-per-subfield", type=int, default=1)
     args = parser.parse_args()
 
-    fields = [f.strip() for f in args.fields.split(",") if f.strip()]
+    fields = [f.strip() for f in (args.fields or []) if f and f.strip()]
     if not fields:
-        parser.error("At least one field name is required")
+        parser.error("At least one --field is required")
 
     llm = LLM(args.model)
     generate_environments(

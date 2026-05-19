@@ -1,8 +1,9 @@
 """CLI entry point for environment audit.
 
 One CLI runs both stages (build → evaluate). Filters:
-  --fields  applies to BOTH build (skip specs with non-matching field) AND evaluate.
-  --ids     applies to evaluate only (intersected with --fields if both given).
+  --field   applies to BOTH build (skip specs with non-matching field) AND evaluate.
+            Repeatable: --field "Aerospace and Defense" --field "Healthcare".
+  --ids     applies to evaluate only (intersected with --field if both given).
 
 Usage:
     python -m env_audit.run \
@@ -10,7 +11,7 @@ Usage:
         --dataset-path tool_content/tools_dataset.jsonl \
         --eval-logs-dir tool_content/tool_eval_logs \
         --model GPT-OSS-120B \
-        [--fields "Aerospace and Defense,Healthcare"] \
+        [--field "Aerospace and Defense" --field "Healthcare"] \
         [--ids "id1,id2,id3"]
 """
 
@@ -20,8 +21,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import DEFAULT_MODEL
-from llm import LLM, MODEL_REGISTRY
+from cli_args import add_model_arg
+from llm import LLM
 from env_audit.generate import audit_tools
 
 
@@ -37,11 +38,11 @@ def main():
                         help="Path to tools_dataset.jsonl (read + rewrite in place)")
     parser.add_argument("--eval-logs-dir", type=Path, required=True,
                         help="Directory for per-tool eval JSON logs")
-    parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODEL_REGISTRY))
-    parser.add_argument("--fields", type=_csv, default=None,
-                        help="Comma-separated field names to include (build + evaluate)")
+    add_model_arg(parser)
+    parser.add_argument("--field", action="append", default=None, dest="fields",
+                        help="Field name (repeatable). Applies to build + evaluate.")
     parser.add_argument("--ids", type=_csv, default=None,
-                        help="Comma-separated tool ids to include (evaluate only; intersected with --fields)")
+                        help="Comma-separated tool ids to include (evaluate only; intersected with --field)")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--build-only", action="store_true",
                       help="Phase 1 only. No LLM. Seeds dataset + eval_logs. Run once before parallel evaluate jobs.")

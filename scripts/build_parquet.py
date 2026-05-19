@@ -16,7 +16,7 @@ Usage:
       --env-specs-dir /pscratch/.../env_specs \\
       --output        /pscratch/.../tasks.parquet \\
       [--limit N]    # for testing
-      [--workers N]  # default 16
+      [--concurrency N]  # default 16
 """
 
 from __future__ import annotations
@@ -136,7 +136,8 @@ def main():
     p.add_argument("--env-specs-dir",    type=Path, required=True)
     p.add_argument("--output",           type=Path, required=True)
     p.add_argument("--limit", type=int, default=None)
-    p.add_argument("--workers", type=int, default=16)
+    p.add_argument("--concurrency", type=int, default=16,
+                   help="Number of parallel extraction workers (default 16).")
     args = p.parse_args()
 
     files = sorted(p_ for p_ in args.tasks_dir.iterdir()
@@ -149,13 +150,13 @@ def main():
     n_legacy = n_skipped = 0
     work = [(str(p_), str(args.env_specs_dir)) for p_ in files]
 
-    if args.workers <= 1:
+    if args.concurrency <= 1:
         for w in work:
             r = extract_row(w)
             if r is None: n_skipped += 1
             else: rows.append(r)
     else:
-        with ProcessPoolExecutor(max_workers=args.workers) as ex:
+        with ProcessPoolExecutor(max_workers=args.concurrency) as ex:
             futs = [ex.submit(extract_row, w) for w in work]
             for i, fut in enumerate(as_completed(futs), 1):
                 r = fut.result()
