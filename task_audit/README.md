@@ -5,7 +5,8 @@ description suitable as a single user request. The output is written back
 into the task JSON as a top-level `summary` field.
 
 This is the stage that turns the per-step micro-tasks produced by
-`task_generation/` into the unified `summary` column of `tasks.parquet`.
+`task_generation/` into the unified `summary` field of `task_content.jsonl`
+(the release JSONL consumed by `trajectory_generation/`).
 
 ## Inputs
 
