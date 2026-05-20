@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -t 06:00:00
+#SBATCH -t 08:00:00
 #SBATCH --account=m5091
 #SBATCH --job-name=ta-resum
 #SBATCH --output=/global/homes/t/tcaste/projects/logs/ta_resum_%A_%a.out
@@ -67,6 +67,7 @@ READY_TIMEOUT=${READY_TIMEOUT:-1800}
 MODEL=${MODEL:-GPT-OSS-120B}
 NUM_SHARDS=5
 SHARD=${SLURM_ARRAY_TASK_ID:-0}
+export TASK_AUDIT_CONCURRENCY=${TASK_AUDIT_CONCURRENCY:-256}
 
 # --- env ---
 cd "$REPO"

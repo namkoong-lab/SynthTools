@@ -13,14 +13,14 @@ exercising synthetic tool-use environments at scale. It produces, end-to-end:
 - a **Tool Simulator** + **Tool Validator** that emulates each tool's
   responses and filters tools that cannot be reliably emulated,
 - **79,925 verifiable tasks** with ground-truth tool-call sequences and
-  initial / final environment state (released as `tasks.parquet` in this
-  repository),
+  initial / final environment state (released as `task_content.jsonl` in
+  this repository),
 - a **Trajectory Generator** that runs an LLM agent against the tool simulator
   for any task and verifies the rollout with a trajectory-level judge.
 
-The dataset of verifiable tasks is shipped at `tasks.parquet`. The pipeline
-that produced it, and the trajectory generator that consumes it, both live in
-this repository.
+The dataset of verifiable tasks is shipped at `task_content.jsonl` (one row
+per JSON line). The pipeline that produced it, and the trajectory generator
+that consumes it, both live in this repository.
 
 ---
 
@@ -35,8 +35,8 @@ stage *N + 1*.
 | 2 | `env_audit/` | Stress-tests every generated tool (parameter checks, error modes, happy paths), filters tools whose simulator behaviour is unstable, scores reliability. | `python -m env_audit.run` |
 | 3a | `task_generation/build_sequences.py` | Filters tools by reliability and asks the LLM to chain them into multi-step sequences per spec. | `python -m task_generation.build_sequences` |
 | 3b | `task_generation/run.py` | For each sequence, runs the per-step evolver → solver → simulator → judge → environment update loop and writes one task JSON. | `python -m task_generation.run` |
-| 4 | `task_audit/` | Merges each task's successful turns into one cohesive natural-language user request. | `python -m task_audit.summarize` |
-| 5 | `trajectory_generation/` | Loads a verifiable task from `tasks.parquet`, rolls out an agent against the tool simulator, and verifies the trajectory with a trajectory-level judge. | `python -m trajectory_generation.run` |
+| 4 | `task_audit/` | Merges each task's successful turns into one cohesive natural-language user request and appends a release row to `task_content.jsonl`. | `python -m task_audit.run` |
+| 5 | `trajectory_generation/` | Loads a verifiable task from `task_content.jsonl`, rolls out an agent against the tool simulator, and verifies the trajectory with a trajectory-level judge. | `python -m trajectory_generation.run` |
 
 Stages are independent: re-running any stage is safe (atomic writes,
 resume-safe pre-filters, idempotent overwrites).
@@ -52,11 +52,10 @@ you only need stage 5 plus the `roles/`, `prompt_templates/`, `llm.py`, and
 
 ```
 .
-├── tasks.parquet              # 79,925 verifiable tasks (released artefact)
 ├── env_generation/            # stage 1: field → tools
 ├── env_audit/                 # stage 2: tool simulator + validator
 ├── task_generation/           # stages 3a/3b: tool sequences → multi-turn tasks
-├── task_audit/                # stage 4: merge turns into one user request
+├── task_audit/                # stage 4: merge turns + write task_content.jsonl
 ├── trajectory_generation/     # stage 5: roll out an agent on a task and judge it
 ├── roles/                     # LLM role base class + concrete roles
 │   ├── env_generator.py       # generates subfields / tasks / tool schemas
@@ -66,7 +65,8 @@ you only need stage 5 plus the `roles/`, `prompt_templates/`, `llm.py`, and
 │   ├── task_evolver.py        # per-turn task + expected_tool_call generation
 │   ├── task_solver.py         # the agent (gen mode + trajectory mode)
 │   ├── task_judge.py          # per-turn judge of solver output
-│   └── task_summarizer.py     # merges per-turn tasks into one description
+│   ├── task_summarizer.py     # merges per-turn tasks into one description
+│   └── trajectory_judge.py    # whole-rollout judge (consumed by trajectory_generation)
 ├── prompt_templates/
 │   ├── env_generator/         # env_generator_{subfield,task,tool,sequences,metadata}_template.yml
 │   ├── env_simulator/
@@ -77,9 +77,7 @@ you only need stage 5 plus the `roles/`, `prompt_templates/`, `llm.py`, and
 │   ├── task_judge/            # gen + eval prompts
 │   ├── task_summarizer/
 │   └── trajectory_judge/      # whole-rollout judge prompt
-├── scripts/
-│   └── build_parquet.py       # summarised tasks → tasks.parquet
-├── tests/                     # ~200 pytest tests across all stages
+├── tests/                     # ~230 pytest tests across all stages
 ├── llm.py                     # vLLM in-process or HTTP client (uniform API)
 ├── utils.py                   # atomic JSON writes, batched LLM calls, logging
 └── pyproject.toml
@@ -92,21 +90,26 @@ you only need stage 5 plus the `roles/`, `prompt_templates/`, `llm.py`, and
 ```bash
 # 1) Set up the environment
 uv venv .venv && source .venv/bin/activate
-uv pip install -r requirements.txt    # pyarrow, pyyaml, huggingface_hub, vllm (optional), …
+uv pip install -r requirements.txt    # pyyaml, vllm (optional), …
 
-# 2) Run an agent on one verifiable task (in-process vLLM).
-#    The first call auto-downloads tasks.parquet from
-#    https://huggingface.co/datasets/SynthTools/SynthTools-Tasks if it is
-#    not already present at <repo>/tasks.parquet.
+# 2) Produce task_content.jsonl (or point --dataset at an existing one). It's
+#    written by stage 4 once the per-task summaries are in:
+#       python -m task_audit.run \
+#           --tasks-dir <tasks_dir> --env-specs-dir <env_specs_dir> \
+#           --model GPT-OSS-120B --server-url http://localhost:8765/v1
+
+# 3) Run an agent on one verifiable task.
 python -m trajectory_generation.run \
     --task-id aerospace_and_defense_spec_007_seq11 \
+    --dataset <path>/task_content.jsonl \
     --output-dir /tmp/traj_smoke \
     --model GPT-OSS-120B \
     --max-solver-turns 12
 
-# 3) Or roll out every task in a field, parallel against a vLLM HTTP server
+# 4) Or roll out every task in a field, parallel against a vLLM HTTP server
 python -m trajectory_generation.run \
     --field "Investment Banking" --limit 50 \
+    --dataset <path>/task_content.jsonl \
     --server-url http://localhost:8765/v1 --concurrency 4 \
     --output-dir /tmp/traj_field
 ```
@@ -116,25 +119,29 @@ README documents its inputs, outputs, and CLI.
 
 ---
 
-## Released dataset (`tasks.parquet`)
+## Released dataset (`task_content.jsonl`)
 
-79,925 rows. One row per *verifiable task*: a single user goal expressed in
-natural language, paired with the catalogue of tools an agent can invoke, the
-ground-truth tool-call sequence that solves it, and the initial / final
-environment state.
+79,925 rows. One JSON object per line. Each row is a *verifiable task*: a
+single user goal expressed in natural language, paired with the catalogue
+of tools an agent can invoke, the ground-truth tool-call sequence that
+solves it, and the initial / final environment state.
 
-| column          | type           | description                                              |
+| field           | type           | description                                              |
 |-----------------|----------------|----------------------------------------------------------|
 | `id`            | `string`       | task identifier                                          |
 | `field`         | `string`       | application domain (one of 100)                          |
 | `summary`       | `string`       | natural-language task description (the user request)     |
-| `tools`         | `list[string]` | JSON-encoded tool schemas the agent has access to        |
+| `tools`         | `list[dict]`   | tool schemas the agent has access to                     |
 | `gt_tool_calls` | `list[string]` | ground-truth ordered tool-call sequence                  |
-| `initial_state` | `string`       | JSON env state before the first tool call                |
-| `final_state`   | `string`       | JSON env state after the ground-truth solution           |
+| `initial_state` | `dict \| null` | env state before the first tool call                     |
+| `final_state`   | `dict \| null` | env state after the ground-truth solution                |
 
-`tools`, `initial_state`, and `final_state` are JSON-serialised; parse with
-`json.loads`. Mean ≈ 9.6 tools per task; range 2–15.
+`tools`, `initial_state`, and `final_state` are native JSON (not strings).
+Mean ≈ 9.6 tools per task; range 2–15.
+
+If the file contains multiple rows for the same `id` (a consequence of
+re-running `task_audit.run --resummarize`), the trajectory loader
+deduplicates last-write-wins.
 
 ---
 

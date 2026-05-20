@@ -146,7 +146,7 @@ class LLM:
         def call_one(msgs):
             return self._http_chat(client, msgs)
 
-        with ThreadPoolExecutor(max_workers=min(len(messages), 16)) as pool:
+        with ThreadPoolExecutor(max_workers=min(len(messages), 256)) as pool:
             results = list(pool.map(call_one, messages))
         outputs = [t for t, _ in results]
         per = [u for _, u in results]
