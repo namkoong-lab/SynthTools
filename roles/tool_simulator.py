@@ -7,6 +7,8 @@ Expected hard-coded template files:
 - parameter_check: prompt_templates/tool_simulator/tool_simulator_parameter_check_template.yml
 """
 
+import ast
+import json
 from typing import Callable, Dict, Any, Optional
 from pathlib import Path
 
@@ -16,6 +18,38 @@ from utils import extract_json_objects
 PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompt_templates" / "tool_simulator"
 SIMULATOR_TEMPLATE_FILE = PROMPT_DIR / "tool_simulator_simulate_template.yml"
 PARAMETER_CHECK_TEMPLATE_FILE = PROMPT_DIR / "tool_simulator_parameter_check_template.yml"
+
+
+def _resolve_ast_value(node: ast.AST) -> Any:
+    try:
+        return ast.literal_eval(node)
+    except (ValueError, SyntaxError, TypeError):
+        try:
+            return ast.unparse(node)
+        except Exception:
+            return None
+
+
+def _parse_call(call_str: str) -> Dict[str, Any]:
+    """Parse a tool call into {parse_status, parsed_call?|error_message?, raw_call?}."""
+    try:
+        tree = ast.parse(call_str or "", mode="eval")
+    except SyntaxError as e:
+        return {"parse_status": "syntax_error",
+                "error_message": e.msg or "syntax error",
+                "raw_call": call_str}
+    body = tree.body
+    if not isinstance(body, ast.Call) or not isinstance(body.func, ast.Name):
+        return {"parse_status": "syntax_error",
+                "error_message": "expected a single ToolName(...) call",
+                "raw_call": call_str}
+    arguments: Dict[str, Any] = {}
+    for kw in body.keywords:
+        if kw.arg is None:
+            continue
+        arguments[kw.arg] = _resolve_ast_value(kw.value)
+    return {"parse_status": "ok",
+            "parsed_call": {"name": body.func.id, "arguments": arguments}}
 
 
 class ToolSimulator(Role):
@@ -31,30 +65,30 @@ class ToolSimulator(Role):
         metadata: Any = None,
     ) -> Dict[str, Any]:
         """
-        Run parameter check first; if PASS, simulate the tool.
-        Returns standard {prompt, response, parsed, usage} dict.
+        Compute ast_result, ALWAYS pass it to the parameter-check LLM, and
+        if it returns PASS, pass the same ast_result to the simulator LLM.
         """
-        # Step 1: parameter check
-        check_prompt, check_resp = self._parameter_check(tool_data, tool_call_message)
+        ast_result = _parse_call(tool_call_message)
+
+        check_prompt, check_resp = self._parameter_check(tool_data, tool_call_message, ast_result)
         check_usage = self._get_usage()
         objs = extract_json_objects(check_resp)
         check_json = objs[0] if objs else None
 
-        # Determine pass/fail — JSON-based with text fallback
         passed = False
         if isinstance(check_json, dict):
             passed = (check_json.get("status") == "PASS" or check_json.get("status_code") == 200)
         if not passed:
             passed = ("Status: PASS" in check_resp or "Status Code: 200" in check_resp)
 
-        # Step 2: simulate (only if param check passed)
         simulation_json = None
         simulation_prompt = None
         simulation_resp = None
         sim_usage = None
         if passed:
             simulation_prompt, simulation_resp = self._simulate_raw(
-                tool_data, tool_call_message=tool_call_message, metadata=metadata
+                tool_data, tool_call_message=tool_call_message,
+                ast_result=ast_result, metadata=metadata,
             )
             sim_usage = self._get_usage()
             sobjs = extract_json_objects(simulation_resp)
@@ -69,6 +103,7 @@ class ToolSimulator(Role):
                 "simulation": simulation_json,
                 "simulation_prompt": simulation_prompt,
                 "simulation_response": simulation_resp,
+                "ast_result": ast_result,
             },
             "usage": {
                 "check": check_usage,
@@ -78,7 +113,8 @@ class ToolSimulator(Role):
 
     def parameter_check(self, tool_data: Dict[str, Any], tool_call_message: str) -> Dict[str, Any]:
         """Run only the parameter-check LLM step. Returns {prompt, response, parsed, usage}."""
-        prompt, raw = self._parameter_check(tool_data, tool_call_message)
+        ast_result = _parse_call(tool_call_message)
+        prompt, raw = self._parameter_check(tool_data, tool_call_message, ast_result)
         usage = self._get_usage()
         objs = extract_json_objects(raw)
         parsed = objs[0] if objs else None
@@ -87,7 +123,8 @@ class ToolSimulator(Role):
             passed = (parsed.get("status") == "PASS" or parsed.get("status_code") == 200)
         if not passed:
             passed = ("Status: PASS" in raw or "Status Code: 200" in raw)
-        return {"prompt": prompt, "response": raw, "parsed": parsed, "passed": passed, "usage": usage}
+        return {"prompt": prompt, "response": raw, "parsed": parsed, "passed": passed,
+                "usage": usage, "ast_result": ast_result}
 
     def simulate_raw(
         self,
@@ -95,15 +132,15 @@ class ToolSimulator(Role):
         tool_call_message: str,
         metadata: Any = None,
     ) -> Dict[str, Any]:
-        """Run only the simulation LLM step (assumes param check already passed).
-
-        Returns {prompt, response, parsed, usage}.
-        """
-        prompt, raw = self._simulate_raw(tool_data, tool_call_message=tool_call_message, metadata=metadata)
+        """Run only the simulation LLM step (assumes param check already passed)."""
+        ast_result = _parse_call(tool_call_message)
+        prompt, raw = self._simulate_raw(tool_data, tool_call_message=tool_call_message,
+                                          ast_result=ast_result, metadata=metadata)
         usage = self._get_usage()
         objs = extract_json_objects(raw)
         parsed = objs[0] if objs else None
-        return {"prompt": prompt, "response": raw, "parsed": parsed, "usage": usage}
+        return {"prompt": prompt, "response": raw, "parsed": parsed, "usage": usage,
+                "ast_result": ast_result}
 
     def run(self, action: str, **kwargs):
         actions = {
@@ -126,6 +163,7 @@ class ToolSimulator(Role):
         self,
         tool_data: Dict[str, Any],
         tool_call_message: str,
+        ast_result: Dict[str, Any],
         metadata: Any = None,
     ) -> tuple[str, str]:
         if not tool_data.get("output_details"):
@@ -139,12 +177,18 @@ class ToolSimulator(Role):
             usage=self._fmt(tool_data.get("usage", "")),
             initial_config=self._fmt(tool_data.get("initial_config", {})),
             tool_call=self._fmt(tool_data.get("tool_call", {}) or tool_call_message),
+            ast_result=json.dumps(ast_result, indent=2, ensure_ascii=False, default=str),
             output_details=self._fmt(tool_data.get("output_details", {})),
             metadata=self._fmt(metadata or {}),
         )
         return prompt, self.runner(prompt)
 
-    def _parameter_check(self, tool_data: Dict[str, Any], tool_call_message: str) -> tuple[str, str]:
+    def _parameter_check(
+        self,
+        tool_data: Dict[str, Any],
+        tool_call_message: str,
+        ast_result: Dict[str, Any],
+    ) -> tuple[str, str]:
         prompt = self.get_prompt(
             "parameter_check",
             tool_name=tool_data.get("tool_name", ""),
@@ -152,6 +196,6 @@ class ToolSimulator(Role):
             parameters=self._fmt(tool_data.get("parameters", {})),
             error_messages=self._fmt(tool_data.get("error_messages", [])),
             usage=self._fmt(tool_data.get("usage", "")),
+            ast_result=json.dumps(ast_result, indent=2, ensure_ascii=False, default=str),
         )
-        prompt = prompt + "\n" + tool_call_message
         return prompt, self.runner(prompt)

@@ -39,6 +39,7 @@ import fcntl
 import json
 import re
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -169,16 +170,26 @@ def _extract_release_row(
     without re-parsing. Returns None for legacy imports, missing summaries,
     or tasks whose id does not match the *_spec_NNN_* convention.
 
+    `tools` and `gt_tool_calls` are derived from the SAME turn filter
+    the summarizer uses (`_extract_successful_turns`), so the released
+    chain matches what was actually fed to the LLM that produced
+    `summary` — only env-advancing turns, deduplicated per `tool_idx`
+    keeping the last successful attempt.
+
     Columns:
       id              - task_id
       field           - spec.field
       summary         - summary.parsed.task_summarized
-      tools           - list of tool schemas (dicts) actually used, in
-                        invocation order, deduplicated by tool_name
-      gt_tool_calls   - per-turn AGENT successful tool call (string)
+      tools           - tool schemas (dicts) used in invocation order,
+                        deduplicated by tool_name
+      gt_tool_calls   - the agent's actual successful call from chat,
+                        in tool_idx order (expected_tool_call only as
+                        fallback when chat call is unparseable)
       initial_state   - turn 0 edited_metadata or env_metadata (dict|None)
       final_state     - last turn env_state_after (dict|None)
     """
+    from task_audit.checks import audit_task_pre_summarize, any_block
+
     if task.get("imported_from"):
         return None
     summary_block = task.get("summary") or {}
@@ -201,9 +212,13 @@ def _extract_release_row(
         spec = {}
     field = spec.get("field") or ""
 
+    clean, issues = audit_task_pre_summarize(task, spec)
+    if any_block(issues) or not clean:
+        return None
+
     used_names: List[str] = []
     seen: Set[str] = set()
-    for t in task.get("turns") or []:
+    for t in clean:
         nm = (t.get("tool_id") or "").split(".")[-1]
         if nm and nm not in seen:
             seen.add(nm)
@@ -212,17 +227,19 @@ def _extract_release_row(
     tools = [by_name[n] for n in used_names if n in by_name]
 
     gt_tool_calls: List[str] = []
-    for turn in task.get("turns") or []:
+    for turn in clean:
         call, _ = _successful_call_and_response(turn.get("chat") or [])
-        gt_tool_calls.append(call or "")
+        if not call:
+            call = (turn.get("task") or {}).get("expected_tool_call") or ""
+        if call:
+            gt_tool_calls.append(call)
 
-    turns = task.get("turns") or []
-    initial_state: Optional[Dict[str, Any]] = None
-    if turns:
-        t0 = turns[0].get("task") or {}
-        initial_state = t0.get("edited_metadata") or t0.get("env_metadata")
+    t0 = (clean[0].get("task") or {}) if clean else {}
+    initial_state: Optional[Dict[str, Any]] = (
+        t0.get("edited_metadata") or t0.get("env_metadata")
+    )
     final_state: Optional[Dict[str, Any]] = (
-        turns[-1].get("env_state_after") if turns else None
+        clean[-1].get("env_state_after") if clean else None
     )
 
     return {
@@ -359,6 +376,104 @@ def _append_debug_event(debug_path: Path, event: Dict[str, Any]) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Audit-only walker (no LLM)
+# ---------------------------------------------------------------------------
+
+def audit_corpus(
+    tasks_dir: Path,
+    env_specs_dir: Path,
+    report_path: Path,
+    task_path: Optional[Path] = None,
+    field: Optional[str] = None,
+    shard: int = 0,
+    num_shards: int = 1,
+) -> Dict[str, int]:
+    """Run all three audits (A pre-summarize, B post-summarize, C release-row)
+    on every in-scope task. No LLM calls; nothing on disk is modified.
+
+    Writes one JSONL line per task that produced at least one issue to
+    `report_path`. Returns a Counter of issue codes (also logged).
+    """
+    from task_audit.checks import (
+        audit_task_pre_summarize, audit_summary_output, audit_release_row, BLOCK,
+    )
+
+    tasks_dir = Path(tasks_dir)
+    env_specs_dir = Path(env_specs_dir)
+    report_path = Path(report_path)
+
+    if task_path is not None:
+        target_paths = [Path(task_path)]
+    else:
+        target_paths = _iter_trajectory_paths(tasks_dir, field, env_specs_dir)
+        if num_shards > 1:
+            target_paths = target_paths[shard::num_shards]
+    logger.info(f"audit_corpus: {len(target_paths)} task file(s) in scope")
+
+    audit_counter: Counter = Counter()
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    n_blocked = n_warned = n_clean = 0
+
+    with report_path.open("w") as out:
+        for path in target_paths:
+            try:
+                task = json.loads(path.read_text())
+            except (OSError, json.JSONDecodeError) as exc:
+                audit_counter["PRE_unreadable"] += 1
+                out.write(json.dumps({
+                    "task_id": path.stem,
+                    "issues": [{"level": BLOCK, "code": "PRE_unreadable",
+                                "where": "file", "message": str(exc)}],
+                }) + "\n")
+                n_blocked += 1
+                continue
+
+            task_id = task.get("task_id") or path.stem
+            m = _SPEC_ID_RE.match(task_id) if isinstance(task_id, str) else None
+            spec: Dict[str, Any] = {}
+            if m:
+                try:
+                    spec = json.loads((env_specs_dir / f"{m.group(1)}.json").read_text())
+                except (OSError, json.JSONDecodeError):
+                    spec = {}
+
+            issues: List[Dict[str, Any]] = []
+            clean, pre = audit_task_pre_summarize(task, spec)
+            for i in pre:
+                audit_counter[f"PRE_{i.code}"] += 1
+                issues.append(i.to_dict())
+
+            parsed = ((task.get("summary") or {}).get("parsed")
+                      if isinstance(task.get("summary"), dict) else None)
+            if parsed is not None:
+                for i in audit_summary_output(parsed):
+                    audit_counter[f"POST_{i.code}"] += 1
+                    issues.append(i.to_dict())
+
+            row = _extract_release_row(task, env_specs_dir) if clean else None
+            if row is not None:
+                for i in audit_release_row(row):
+                    audit_counter[f"ROW_{i.code}"] += 1
+                    issues.append(i.to_dict())
+
+            if not issues:
+                n_clean += 1
+                continue
+            if any(i["level"] == BLOCK for i in issues):
+                n_blocked += 1
+            else:
+                n_warned += 1
+            out.write(json.dumps({"task_id": task_id, "issues": issues}) + "\n")
+
+    logger.info(f"audit summary: clean={n_clean}  warn={n_warned}  blocked={n_blocked}")
+    logger.info("audit issues by code:")
+    for code, n in sorted(audit_counter.items(), key=lambda kv: -kv[1]):
+        logger.info(f"  {code}: {n}")
+    logger.info(f"wrote {report_path}")
+    return dict(audit_counter)
+
+
+# ---------------------------------------------------------------------------
 # Main orchestrator
 # ---------------------------------------------------------------------------
 
@@ -414,6 +529,11 @@ def summarize_trajectories(
         scope FOR THIS SHARD, with their `summary` field populated
         where applicable.
     """
+    from task_audit.checks import (
+        audit_task_pre_summarize, audit_summary_output, audit_release_row,
+        any_block, BLOCK, WARN,
+    )
+
     if task_path is not None and field is not None:
         raise ValueError("task_path and field are mutually exclusive")
     if not (0 <= shard < num_shards):
@@ -440,13 +560,15 @@ def summarize_trajectories(
     start = time.time()
     updated: List[Dict[str, Any]] = []
     to_process: List[Dict[str, Any]] = []
+    audit_counter: Counter = Counter()
 
-    # Phase 1: load each task, filter, build prompt (no LLM).
+    # Phase 1: load each task, audit, filter, build prompt (no LLM).
     for path in target_paths:
         try:
             task = json.loads(path.read_text())
         except (OSError, json.JSONDecodeError) as exc:
             logger.warning(f"  {path.name}: unreadable ({exc}) — skipping")
+            audit_counter["PRE_unreadable"] += 1
             continue
         task_id = task.get("task_id") or path.stem
 
@@ -455,13 +577,27 @@ def summarize_trajectories(
             updated.append(task)
             continue
 
-        successful = _extract_successful_turns(task)
-        if not successful:
-            logger.warning(f"  {task_id}: 0 successful turns — skipping")
-            updated.append(task)
+        # Load env_spec for the pre-summarize audit.
+        m = _SPEC_ID_RE.match(task_id)
+        if m:
+            try:
+                spec = json.loads((env_specs_dir / f"{m.group(1)}.json").read_text())
+            except (OSError, json.JSONDecodeError):
+                spec = {}
+        else:
+            spec = {}
+
+        clean, issues = audit_task_pre_summarize(task, spec)
+        for iss in issues:
+            audit_counter[f"PRE_{iss.code}"] += 1
+        if any_block(issues):
+            logger.warning(f"  {task_id}: BLOCKed by pre-audit ({[i.code for i in issues if i.level==BLOCK]})")
+            continue
+        if not clean:
+            logger.warning(f"  {task_id}: 0 successful turns after pre-audit — skipping")
             continue
 
-        triples = _triples_for_summarizer(successful)
+        triples = _triples_for_summarizer(clean)
         prompt = role.build_messages(
             tasks=triples["tasks"],
             tool_calls=triples["tool_calls"],
@@ -472,7 +608,7 @@ def summarize_trajectories(
             "task_id": task_id,
             "task": task,
             "prompt": prompt,
-            "n_subtasks": len(successful),
+            "n_subtasks": len(clean),
         })
 
     # Phase 2: one batched LLM call across every task that needs it.
@@ -490,6 +626,16 @@ def summarize_trajectories(
 
             objs = extract_json_objects(response)
             parsed = objs[0] if objs and isinstance(objs[0], dict) else None
+
+            post_issues = audit_summary_output(parsed)
+            for iss in post_issues:
+                audit_counter[f"POST_{iss.code}"] += 1
+            if any_block(post_issues):
+                logger.warning(
+                    f"  {task_id}: post-audit BLOCKed summary "
+                    f"({[i.code for i in post_issues if i.level==BLOCK]}) — not writing"
+                )
+                continue
 
             generated_at = now_iso()
             usage_dict = usage_to_dict(usage)
@@ -531,8 +677,18 @@ def summarize_trajectories(
     release_rows: List[Dict[str, Any]] = []
     for task in updated:
         row = _extract_release_row(task, env_specs_dir)
-        if row is not None:
-            release_rows.append(row)
+        if row is None:
+            continue
+        row_issues = audit_release_row(row)
+        for iss in row_issues:
+            audit_counter[f"ROW_{iss.code}"] += 1
+        if any_block(row_issues):
+            logger.warning(
+                f"  {row.get('id')}: release-row BLOCKed "
+                f"({[i.code for i in row_issues if i.level==BLOCK]})"
+            )
+            continue
+        release_rows.append(row)
     if release_rows:
         counters = _flush_release_rows(task_content_path, release_rows, resummarize=resummarize)
         logger.info(
@@ -541,6 +697,11 @@ def summarize_trajectories(
         )
     else:
         logger.info(f"task_content: no eligible rows in scope -> {task_content_path} unchanged")
+
+    if audit_counter:
+        logger.info("audit issues by code:")
+        for code, n in sorted(audit_counter.items(), key=lambda kv: -kv[1]):
+            logger.info(f"  {code}: {n}")
 
     logger.info(
         f"summarize_trajectories: processed {len(updated)} task/ies "

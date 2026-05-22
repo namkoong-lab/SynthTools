@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cli_args import add_model_arg, add_server_url_arg
 from llm import LLM
-from task_audit.summarize import summarize_trajectories
+from task_audit.summarize import audit_corpus, summarize_trajectories
 
 
 def main():
@@ -88,6 +88,17 @@ def main():
         help="Skip appending to sibling .debug.json files",
     )
     parser.set_defaults(write_debug=True)
+    parser.add_argument(
+        "--audit-only", action="store_true",
+        help="Run audit checks across the in-scope tasks and write a JSONL "
+             "report to --audit-report; do NOT call the LLM or modify any "
+             "task file.",
+    )
+    parser.add_argument(
+        "--audit-report", type=Path, default=None,
+        help="Output path for --audit-only manifest "
+             "(default: <tasks-dir>/../audit_report.jsonl)",
+    )
 
     args = parser.parse_args()
 
@@ -95,6 +106,19 @@ def main():
         parser.error(f"--shard must be in [0, --num-shards) — got shard={args.shard}, num_shards={args.num_shards}")
 
     task_content_path = args.task_content or (args.tasks_dir.parent / "task_content.jsonl")
+
+    if args.audit_only:
+        report_path = args.audit_report or (args.tasks_dir.parent / "audit_report.jsonl")
+        audit_corpus(
+            tasks_dir=args.tasks_dir,
+            env_specs_dir=args.env_specs_dir,
+            report_path=report_path,
+            task_path=args.task,
+            field=args.field,
+            shard=args.shard,
+            num_shards=args.num_shards,
+        )
+        return
 
     llm = LLM(args.model, server_url=args.server_url)
     summarize_trajectories(

@@ -1,19 +1,15 @@
 #!/bin/bash
 #SBATCH -t 04:00:00
 #SBATCH --account=m5091
-#SBATCH --job-name=ta-resum-10n
-#SBATCH --output=/global/homes/t/tcaste/projects/logs/ta_resum_10n_%j.out
-#SBATCH --error=/global/homes/t/tcaste/projects/logs/ta_resum_10n_%j.err
-#SBATCH --nodes=10
+#SBATCH --job-name=ta-resum-20n
+#SBATCH --output=/global/homes/t/tcaste/projects/logs/ta_resum_20n_%j.out
+#SBATCH --error=/global/homes/t/tcaste/projects/logs/ta_resum_20n_%j.err
+#SBATCH --nodes=20
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=32
 #SBATCH --gpus-per-node=4
 #SBATCH --constraint "gpu&hbm40g"
 #SBATCH --qos=premium
-
-# 10-node single-job version: each node runs vLLM locally + one shard of
-# task_audit.run. All 10 shards append to the same task_content.jsonl
-# under fcntl.flock. Walltime 4h to fit before the 8am SF maintenance.
 
 set -euo pipefail
 
@@ -37,17 +33,17 @@ DTYPE=${DTYPE:-bfloat16}
 READY_TIMEOUT=${READY_TIMEOUT:-1800}
 MODEL=${MODEL:-GPT-OSS-120B}
 
-NUM_SHARDS=10
+NUM_SHARDS=20
 
 NODES=($(scontrol show hostnames "$SLURM_JOB_NODELIST"))
 echo "=========================================="
-echo "task_audit resummarize — 10 nodes, 1 shard per node"
+echo "task_audit resummarize — 20 nodes, 1 shard per node"
 echo "started  : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "job id   : $SLURM_JOB_ID"
 echo "nodes    : ${NODES[*]}"
 echo "tasks    : $TASKS_DIR"
 echo "envspecs : $ENV_SPECS_DIR"
-echo "output   : $TASK_CONTENT (all 10 shards append here)"
+echo "output   : $TASK_CONTENT (all 20 shards append here)"
 echo "=========================================="
 
 run_shard_on_node () {
@@ -75,7 +71,7 @@ run_shard_on_node () {
     source "$venv"
     module load cudatoolkit/12.9
 
-    local vllm_log="$log_dir/ta_resum_10n_${SLURM_JOB_ID}_shard${shard}_vllm.log"
+    local vllm_log="$log_dir/ta_resum_20n_${SLURM_JOB_ID}_shard${shard}_vllm.log"
 
     cleanup () {
         if [[ -n "${VLLM_PID:-}" ]] && kill -0 "$VLLM_PID" 2>/dev/null; then
@@ -136,7 +132,7 @@ run_shard_on_node () {
 PIDS=()
 for i in $(seq 0 $((NUM_SHARDS - 1))); do
     NODE="${NODES[$i]}"
-    NODE_LOG="$LOG_DIR/ta_resum_10n_${SLURM_JOB_ID}_shard${i}.log"
+    NODE_LOG="$LOG_DIR/ta_resum_20n_${SLURM_JOB_ID}_shard${i}.log"
     srun --nodes=1 --ntasks=1 --cpus-per-task=32 --gpus-per-node=4 \
          --nodelist="$NODE" --exclusive \
          --output="$NODE_LOG" \
