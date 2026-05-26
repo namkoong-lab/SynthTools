@@ -1,10 +1,5 @@
 # SynthTools
 
-> Reference implementation for the NeurIPS 2026 submission **"SynthTools: A
-> Framework for Scaling Synthetic Tools for Agent Development"**. This
-> repository is provided as anonymous supplementary material; it contains no
-> author identifying information.
-
 SynthTools is a fully LLM-based pipeline for building, validating, and
 exercising synthetic tool-use environments at scale. It produces, end-to-end:
 
