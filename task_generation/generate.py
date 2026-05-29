@@ -392,7 +392,10 @@ def generate_trajectory(
             turn["judge"] = judge_parsed if verifiable else None
 
             # --- Step 4: Environment Update ---
-            if task_solved and last_tool_call and last_tool_output:
+            # env advances only on a real 2xx; a 4xx/5xx/missing code never does.
+            last_sc = last_tool_output.get("status_code") if isinstance(last_tool_output, dict) else None
+            tool_succeeded = isinstance(last_sc, int) and 200 <= last_sc < 300
+            if task_solved and tool_succeeded and last_tool_call and last_tool_output:
                 env_result = env_simulator.update_environment(
                     tool_schema=tool_data,
                     tool_call_message=last_tool_call,

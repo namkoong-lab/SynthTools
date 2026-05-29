@@ -205,6 +205,59 @@ def test_non_2xx_simulator_response_is_not_success(fake_llm, tmp_output):
     assert t1["env_update"] is not None, "200 on retry should populate env_update"
 
 
+def test_verifiable_judge_solved_but_non_2xx_blocks_env_update(fake_llm, tmp_output):
+    """verifiable=True: even if the judge returns task_solved=True, a non-2xx
+    tool response (here 500) must NOT populate env_update. The deterministic
+    status-code gate overrides the LLM verdict."""
+    from task_generation.generate import generate_trajectory
+
+    dataset_path = tmp_output / "tools_dataset.jsonl"
+    with open(dataset_path, "w") as f:
+        f.write(json.dumps(_TOOL_SPEC) + "\n")
+    out_dir = tmp_output / "task_out"
+    out_dir.mkdir()
+
+    evolver = json.dumps({
+        "tool_name": "MockTool",
+        "tool_call": "MockTool(arg1='hello')",
+        "env_metadata": {"seed": "x"},
+        "task_description": "Invoke MockTool with arg1='hello'.",
+    })
+    solver = json.dumps({"reason": "direct call", "tool_call": "MockTool(arg1='hello')"})
+    param_check = json.dumps({"status": "PASS", "status_code": 200, "error_message": None})
+    sim_500 = json.dumps({"status_code": 500, "response": {"error": "server error"}, "explanation": "x"})
+    sim_200 = json.dumps({"status_code": 200, "response": {"result": "ok"}, "explanation": "x"})
+    judge_solved = json.dumps({
+        "argument_citations": [], "arguments_grounded": True, "tool_call_equality": True,
+        "tool_succeeded": True, "task_solved": True, "task_solved_confidence": 1.0,
+        "task_solvability": 1.0, "feedback": "",
+    })
+    env_update = json.dumps({"edited_metadata": {"seed": "x"}, "full_metadata": {"seed": "x"}})
+
+    # attempt 0: evolver, solver, param_check, sim_500, judge(solved=True) → gate blocks → re-roll
+    # attempt 1: evolver, solver, param_check, sim_200, judge(solved=True), env_update → solved
+    for r in [evolver, solver, param_check, sim_500, judge_solved,
+              evolver, solver, param_check, sim_200, judge_solved, env_update]:
+        fake_llm.queue(r)
+
+    task = generate_trajectory(
+        tool_ids=["mock_spec_1.MockTool"],
+        tools_dataset_path=dataset_path,
+        output_dir=out_dir,
+        llm=fake_llm,
+        max_solver_turns=5,
+        max_retries=5,
+        max_solver_retries_in_place=1,
+        verifiable=True,
+        debug=False,
+    )
+
+    assert len(task["turns"]) == 2
+    t0, t1 = task["turns"]
+    assert t0["env_update"] is None, "judge said solved but 500 must block env_update"
+    assert t1["env_update"] is not None, "200 + judge solved must populate env_update"
+
+
 def test_end_to_end_with_fake_llm(fake_llm, tmp_output):
     """Write a mock tools_dataset.jsonl, run one task, verify shape."""
     from task_generation.generate import generate_trajectory
