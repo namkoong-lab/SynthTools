@@ -63,10 +63,15 @@ class ToolSimulator(Role):
         tool_data: Dict[str, Any],
         tool_call_message: str,
         metadata: Any = None,
+        replay_examples: Any = None,
     ) -> Dict[str, Any]:
         """
         Compute ast_result, ALWAYS pass it to the parameter-check LLM, and
         if it returns PASS, pass the same ast_result to the simulator LLM.
+
+        replay_examples: optional list of recorded {tool_call, tool_output}
+        pairs for this tool. When provided, the simulator returns the recorded
+        output verbatim if the agent's call matches one.
         """
         ast_result = _parse_call(tool_call_message)
 
@@ -89,6 +94,7 @@ class ToolSimulator(Role):
             simulation_prompt, simulation_resp = self._simulate_raw(
                 tool_data, tool_call_message=tool_call_message,
                 ast_result=ast_result, metadata=metadata,
+                replay_examples=replay_examples,
             )
             sim_usage = self._get_usage()
             sobjs = extract_json_objects(simulation_resp)
@@ -131,11 +137,13 @@ class ToolSimulator(Role):
         tool_data: Dict[str, Any],
         tool_call_message: str,
         metadata: Any = None,
+        replay_examples: Any = None,
     ) -> Dict[str, Any]:
         """Run only the simulation LLM step (assumes param check already passed)."""
         ast_result = _parse_call(tool_call_message)
         prompt, raw = self._simulate_raw(tool_data, tool_call_message=tool_call_message,
-                                          ast_result=ast_result, metadata=metadata)
+                                          ast_result=ast_result, metadata=metadata,
+                                          replay_examples=replay_examples)
         usage = self._get_usage()
         objs = extract_json_objects(raw)
         parsed = objs[0] if objs else None
@@ -165,6 +173,7 @@ class ToolSimulator(Role):
         tool_call_message: str,
         ast_result: Dict[str, Any],
         metadata: Any = None,
+        replay_examples: Any = None,
     ) -> tuple[str, str]:
         if not tool_data.get("output_details"):
             raise ValueError("tool_data missing required 'output_details' for simulation prompt")
@@ -178,6 +187,7 @@ class ToolSimulator(Role):
             initial_config=self._fmt(tool_data.get("initial_config", {})),
             tool_call=self._fmt(tool_data.get("tool_call", {}) or tool_call_message),
             ast_result=json.dumps(ast_result, indent=2, ensure_ascii=False, default=str),
+            replay_examples=self._fmt(replay_examples) if replay_examples else "[]",
             output_details=self._fmt(tool_data.get("output_details", {})),
             metadata=self._fmt(metadata or {}),
         )
