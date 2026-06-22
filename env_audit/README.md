@@ -20,9 +20,32 @@ python -m env_audit.run \
     --dataset-path  <tools_dataset.jsonl> \
     --eval-logs-dir <tool_eval_logs_dir> \
     --model GPT-OSS-120B \
-    [--fields "Aerospace and Defense,Healthcare"]
-    [--ids "spec_id.ToolName,..."]
+    [--field "Aerospace and Defense" --field "Healthcare"] \
+    [--ids "spec_id.ToolName,..."] \
+    [--build-only | --evaluate-only | --sweep-only]
 ```
+
+`--field` is repeatable (applies to BOTH build and evaluate). `--ids`
+is a comma-separated list of tool ids (evaluate only, intersected with
+`--field` if both given). `--model` is restricted to entries of
+`llm.MODEL_REGISTRY` (see `cli_args.add_model_arg`).
+
+### Operating modes
+
+The three mode flags are mutually exclusive; omitting all of them runs
+the full pipeline (`mode="full"`, behaviour unchanged from earlier
+versions). They exist to safely shard a large run across parallel sbatch
+jobs.
+
+- `--build-only`: phase 1 only, no LLM calls. Walks existing env_specs
+  and seeds rows in `tools_dataset.jsonl` plus per-tool eval-log stubs
+  at `phase_completed == 1`. Run once before parallel evaluate jobs.
+- `--evaluate-only`: phases 2 through 6 plus the per-spec audit refresh
+  (always runs phase 1 first; it is cheap and idempotent). SKIPS the
+  global `tools_dataset.jsonl` rewrite and the end-of-run sweep. Safe
+  for concurrent jobs with disjoint `--field` lists.
+- `--sweep-only`: no LLM calls. Rebuilds `tools_dataset.jsonl` from the
+  per-tool eval logs and refreshes every env_spec's audit block.
 
 ## Outputs
 
@@ -33,6 +56,19 @@ python -m env_audit.run \
    response, the judge verdict per call.
 3. An `audit` block folded into each owning `env_spec` JSON, summarising
    `n_tools`, `mean_reliability`, and `usage_total` for that spec.
+
+Embeddings (`<embeddings_dir>/<spec_id>.<ToolName>.npz`) are produced
+by a SEPARATE CLI invocation:
+
+```bash
+python -m env_audit.embed_tools \
+    --dataset-path <tools_dataset.jsonl> \
+    --output-dir   <embeddings_dir>
+```
+
+Run it after `env_audit.run` finishes; it consumes the validated tools
+in `tools_dataset.jsonl` and writes one `.npz` per `(spec_id, ToolName)`
+pair under `<embeddings_dir>/`.
 
 ## Pipeline (7 phases)
 
@@ -52,18 +88,17 @@ checkpoints.
 
 ### Test-call modes
 
-The test-call generator produces 5–10 calls per tool, labelled by mode:
+The test-call generator produces 5 to 10 calls per tool, labelled by
+mode. The classifier (`_classify_failure_mode` at `generate.py:299-314`)
+emits exactly three labels:
 
-- **fm1 (schema/type/range violation)** — missing required param, wrong type,
-  bad enum, etc. Expected sim behaviour: 400.
-- **fm2 (semantic-rule violation)** — schema-valid call that violates a
-  documented cross-field or quota rule. Expected sim behaviour: 400 after
-  consulting metadata.
-- **fm3 (happy path)** — nominal valid call. Expected sim behaviour: 200
+- **fm1 (schema/type/range violation)**: missing required param, wrong
+  type, bad enum, etc. Expected sim behaviour: 400.
+- **fm2 (semantic-rule violation)**: schema-valid call that violates a
+  documented cross-field or quota rule. Expected sim behaviour: 400
+  after consulting metadata.
+- **fm3 (happy path)**: nominal valid call. Expected sim behaviour: 200
   with output matching `output_details`.
-- **fm4 (happy path with metadata-pinned output)** — like fm3 but the
-  expected response is fully determined by the test-call generator's
-  metadata, so correctness can be verified programmatically.
 
 ### Judge verdict
 

@@ -19,13 +19,15 @@ import pytest
 
 from env_audit.generate import audit_tools
 
-# Reuse the same helpers + fixtures as the main test file.
-from tests.test_env_audit import (
+# Reuse the same helpers + fixtures as the main test file. tests/ is on
+# sys.path via conftest.py, so the bare module import works without a
+# tests package (there is no `tests/__init__.py`).
+from test_env_audit import (
     _make_tool,
     _make_env_spec,
     _write_env_spec,
     _queue_full_happy_path,
-    env_audit_env,  # fixture re-export via import — pytest picks it up
+    env_audit_env,  # fixture re-export via import (pytest picks it up)
 )
 
 
@@ -147,7 +149,7 @@ def test_two_evaluate_only_then_sweep_matches_full(fake_llm, env_audit_env, tmp_
     _write_env_spec(baseline["env_specs_dir"], spec_a)
     _write_env_spec(baseline["env_specs_dir"], spec_b)
 
-    from tests.conftest import FakeLLM
+    from conftest import FakeLLM
     baseline_llm = FakeLLM()
     _queue_full_happy_path(baseline_llm, n_tools=2,
                            test_calls_per_tool=[_TC("Alpha"), _TC("Beta")])
@@ -277,3 +279,113 @@ def test_build_dataset_noop_skips_write(fake_llm, env_audit_env):
 
     assert mtime_after_first == mtime_after_second, \
         "build_dataset rewrote the dataset even though no new rows were added"
+
+
+# --- 8. CLI argparse smoke tests (Stage 2 doc-drift fix) -------------------
+
+import sys
+
+
+def _cli_args(tmp_path):
+    """Return the minimum required CLI args as a list, pointed at tmp_path."""
+    return [
+        "run.py",
+        "--env-specs-dir", str(tmp_path / "specs"),
+        "--dataset-path", str(tmp_path / "dataset.jsonl"),
+        "--eval-logs-dir", str(tmp_path / "logs"),
+        "--model", "GPT-OSS-120B",
+    ]
+
+
+def _patch_run(monkeypatch):
+    """Stub LLM constructor and audit_tools so main() returns without real work.
+
+    Returns (run_mod, captured) where captured is a dict populated with the
+    args audit_tools was called with.
+    """
+    import env_audit.run as run_mod
+
+    captured: Dict = {}
+    monkeypatch.setattr(run_mod, "LLM", lambda *_a, **_k: object())
+    monkeypatch.setattr(run_mod, "audit_tools", lambda **kw: (captured.update(kw), {})[1])
+    return run_mod, captured
+
+
+def test_cli_field_repeatable(monkeypatch, tmp_path):
+    """`--field A --field B` collects both into args.fields."""
+    run_mod, captured = _patch_run(monkeypatch)
+    argv = _cli_args(tmp_path) + ["--field", "Aerospace", "--field", "Healthcare"]
+    monkeypatch.setattr(sys, "argv", argv)
+    run_mod.main()
+    assert captured["fields"] == ["Aerospace", "Healthcare"]
+    assert captured["mode"] == "full"
+
+
+def test_cli_rejects_legacy_fields_comma_form(monkeypatch, tmp_path):
+    """The old README form `--fields A,B` is not a valid flag."""
+    import env_audit.run as run_mod
+    argv = _cli_args(tmp_path) + ["--fields", "Aerospace,Healthcare"]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit):
+        run_mod.main()
+
+
+def test_cli_build_only_mode(monkeypatch, tmp_path):
+    """`--build-only` parses and reaches audit_tools as mode='build'."""
+    run_mod, captured = _patch_run(monkeypatch)
+    argv = _cli_args(tmp_path) + ["--build-only"]
+    monkeypatch.setattr(sys, "argv", argv)
+    run_mod.main()
+    assert captured["mode"] == "build"
+
+
+def test_cli_evaluate_only_mode(monkeypatch, tmp_path):
+    """`--evaluate-only` parses and reaches audit_tools as mode='evaluate'."""
+    run_mod, captured = _patch_run(monkeypatch)
+    argv = _cli_args(tmp_path) + ["--evaluate-only"]
+    monkeypatch.setattr(sys, "argv", argv)
+    run_mod.main()
+    assert captured["mode"] == "evaluate"
+
+
+def test_cli_sweep_only_mode(monkeypatch, tmp_path):
+    """`--sweep-only` parses and reaches audit_tools as mode='sweep'."""
+    run_mod, captured = _patch_run(monkeypatch)
+    argv = _cli_args(tmp_path) + ["--sweep-only"]
+    monkeypatch.setattr(sys, "argv", argv)
+    run_mod.main()
+    assert captured["mode"] == "sweep"
+
+
+def test_cli_modes_are_mutually_exclusive(monkeypatch, tmp_path):
+    """Specifying two mode flags together should be rejected by argparse."""
+    import env_audit.run as run_mod
+    argv = _cli_args(tmp_path) + ["--build-only", "--evaluate-only"]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit):
+        run_mod.main()
+
+
+def test_cli_invalid_model_rejected(monkeypatch, tmp_path):
+    """`--model BOGUS` is rejected (MODEL_REGISTRY choices)."""
+    import env_audit.run as run_mod
+    argv = _cli_args(tmp_path)
+    # Swap the model arg to an invalid value.
+    argv = [a if a != "GPT-OSS-120B" else "BOGUS_MODEL" for a in argv]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit):
+        run_mod.main()
+
+
+def test_cli_env_specs_dir_required(monkeypatch, tmp_path):
+    """Omitting `--env-specs-dir` is a hard error."""
+    import env_audit.run as run_mod
+    argv = [
+        "run.py",
+        "--dataset-path", str(tmp_path / "dataset.jsonl"),
+        "--eval-logs-dir", str(tmp_path / "logs"),
+        "--model", "GPT-OSS-120B",
+    ]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit):
+        run_mod.main()
