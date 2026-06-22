@@ -49,7 +49,12 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cli_args import add_model_arg, add_server_url_arg
-from config import DEFAULT_CONCURRENCY, DEFAULT_MAX_RETRIES, DEFAULT_MAX_SOLVER_TURNS
+from config import (
+    DEFAULT_CONCURRENCY,
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_MAX_SOLVER_RETRIES_IN_PLACE,
+    DEFAULT_MAX_SOLVER_TURNS,
+)
 from llm import LLM
 from task_generation.generate import (
     WorkItem,
@@ -142,8 +147,15 @@ def main():
     parser.add_argument("--dataset", type=Path, required=True, help="Path to tools_dataset.jsonl")
     parser.add_argument("--output-dir", type=Path, required=True, help="Output directory")
     add_model_arg(parser)
-    parser.add_argument("--max-solver-turns", type=int, default=DEFAULT_MAX_SOLVER_TURNS)
-    parser.add_argument("--max-retries", type=int, default=DEFAULT_MAX_RETRIES)
+    parser.add_argument("--max-solver-turns", type=int, default=DEFAULT_MAX_SOLVER_TURNS,
+                        help="Solver turns inside a single in-place attempt.")
+    parser.add_argument("--max-solver-retries-in-place", type=int,
+                        default=DEFAULT_MAX_SOLVER_RETRIES_IN_PLACE,
+                        help="In-place solver retry budget per attempt. "
+                             "Each retry runs up to --max-solver-turns turns; "
+                             "if it still fails the outer --max-retries reroll kicks in.")
+    parser.add_argument("--max-retries", type=int, default=DEFAULT_MAX_RETRIES,
+                        help="Outer evolver-reroll budget per (spec, sequence) attempt.")
     parser.add_argument("--verifiable", action="store_true", help="Enable task judging")
     parser.add_argument("--no-debug", action="store_true", help="Disable debug event log")
     add_server_url_arg(parser)
@@ -174,6 +186,7 @@ def main():
 
     task_kwargs = dict(
         max_solver_turns=args.max_solver_turns,
+        max_solver_retries_in_place=args.max_solver_retries_in_place,
         max_retries=args.max_retries,
         verifiable=args.verifiable,
         debug=not args.no_debug,

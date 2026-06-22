@@ -17,6 +17,7 @@ DEFAULT_MIN_RELIABILITY = 0.33
 # Per-task generation loop (task_generation/run).
 DEFAULT_MAX_SOLVER_TURNS = 5
 DEFAULT_MAX_RETRIES = 5
+DEFAULT_MAX_SOLVER_RETRIES_IN_PLACE = 2
 
 # Batched LLM calls (task_audit/summarize, env_audit phases 2+).
 DEFAULT_BATCH_SIZE = 64

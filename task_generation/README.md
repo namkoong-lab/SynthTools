@@ -79,13 +79,21 @@ python -m task_generation.run \
 
 Shared flags:
 ```
-[--max-solver-turns 5]    # per-tool retries on bad output
-[--max-retries 5]         # per-tool restarts (evolver proposes a new task)
-[--verifiable]            # run TaskJudge after each solving loop
-[--no-debug]              # skip the per-LLM-call event log
-[--server-url URL]        # OpenAI-compatible HTTP endpoint
-[--concurrency N]         # parallel workers; requires --server-url
+[--max-solver-turns 5]             # solver turns inside a single in-place attempt
+[--max-solver-retries-in-place 2]  # in-place solver retry budget per attempt
+[--max-retries 5]                  # outer evolver-reroll budget (new task proposed)
+[--verifiable]                     # run TaskJudge after each solving loop
+[--no-debug]                       # skip the per-LLM-call event log
+[--server-url URL]                 # OpenAI-compatible HTTP endpoint
+[--concurrency N]                  # parallel workers; requires --server-url
 ```
+
+Retry budget hierarchy (innermost first):
+1. A solver attempt runs up to `--max-solver-turns` LLM turns.
+2. If the attempt fails (parse / judge), the in-place loop retries up to
+   `--max-solver-retries-in-place` times, reusing the same proposed task.
+3. If every in-place retry fails, the outer evolver-reroll loop kicks in
+   up to `--max-retries` times, asking the evolver to propose a new task.
 
 Files are named `{spec_id}_{seq_key}.json`. If the file already exists, the
 `(spec, sequence)` pair is skipped — runs are resume-safe.
