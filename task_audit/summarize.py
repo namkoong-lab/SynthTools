@@ -133,13 +133,33 @@ def _extract_successful_turns(task: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [successful_by_idx[i] for i in sorted(successful_by_idx)]
 
 
-def _triples_for_summarizer(successful: List[Dict[str, Any]]) -> Dict[str, List[str]]:
-    """Build the three parallel lists the TaskSummarizer template expects.
+def _trim_tool_schema(tool: Dict[str, Any]) -> Dict[str, Any]:
+    """Reduce a spec tool entry to the fields a rollout agent would see."""
+    return {
+        "tool_name": tool.get("tool_name"),
+        "tool_description": tool.get("tool_description"),
+        "parameters": tool.get("parameters"),
+        "output_details": tool.get("output_details"),
+    }
+
+
+def _triples_for_summarizer(
+    successful: List[Dict[str, Any]],
+    spec: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Build the parallel lists the TaskSummarizer template expects, plus
+    the trimmed tool schemas for tools that appear in the chain.
 
     tool_calls come from the agent's last successful assistant message in
     `turn.chat` (see `_successful_call_and_response`), NOT from the
     evolver's `turn.task.expected_tool_call`. tool_responses come from the
     matching last 2xx tool message, with `explanation` stripped.
+
+    When `spec` is given, `tools` carries the trimmed tool schemas
+    (name, description, parameters, output_details) for the tools that
+    actually appear in the chain, in invocation order, deduped by name.
+    These match what the rollout agent would see, so feeding them to the
+    summarizer preserves information symmetry.
     """
     tasks: List[str] = []
     tool_calls: List[str] = []
@@ -150,7 +170,23 @@ def _triples_for_summarizer(successful: List[Dict[str, Any]]) -> Dict[str, List[
         call, resp = _successful_call_and_response(turn.get("chat") or [])
         tool_calls.append(call)
         tool_responses.append(resp)
-    return {"tasks": tasks, "tool_calls": tool_calls, "tool_responses": tool_responses}
+
+    tools: List[Dict[str, Any]] = []
+    if spec is not None:
+        by_name = {t.get("tool_name"): t for t in (spec.get("tools") or [])}
+        seen: Set[str] = set()
+        for turn in successful:
+            nm = (turn.get("tool_id") or "").split(".")[-1]
+            if nm and nm not in seen and nm in by_name:
+                seen.add(nm)
+                tools.append(_trim_tool_schema(by_name[nm]))
+
+    return {
+        "tasks": tasks,
+        "tool_calls": tool_calls,
+        "tool_responses": tool_responses,
+        "tools": tools,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -597,11 +633,12 @@ def summarize_trajectories(
             logger.warning(f"  {task_id}: 0 successful turns after pre-audit — skipping")
             continue
 
-        triples = _triples_for_summarizer(clean)
+        triples = _triples_for_summarizer(clean, spec=spec)
         prompt = role.build_messages(
             tasks=triples["tasks"],
             tool_calls=triples["tool_calls"],
             tool_responses=triples["tool_responses"],
+            tools=triples["tools"],
         )
         to_process.append({
             "path": path,

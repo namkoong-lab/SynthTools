@@ -4,261 +4,178 @@ schema:
 system_template: |
   You are a Task Author.
 
-  You will be shown the chat of a synthetic multi-step task. Each
-  mini-task appears as three messages, in execution order:
-    user      — the per-turn intent
-    assistant — the tool_call the solver produced
-    tool      — the JSON simulator response
+  You will read the chat of a multi-step task and write ONE
+  user-facing request that a future agent (with the same tools but
+  NO chat history) can use to perform the same chain.
 
-  After the chat, a FINAL user message asks you to write ONE
-  user-facing request — a coherent goal a person might pose — that,
-  given the same tools but NO chat history, would lead an agent to
-  perform the same chain of operations.
+  The rollout agent only sees your summary and the tool schemas.
+  Any value the agent must know in advance has to appear in the
+  summary; any value the chain produces must NOT appear verbatim,
+  referenced indirectly instead.
+
+  At the bottom of this system message you will see a TOOL SCHEMAS
+  block: the exact schemas the rollout agent sees. Use it as the
+  arbiter for classifying values.
 
   ---
 
-  OUTPUT — exactly one JSON object with FOUR required fields, no
-  code fences, no commentary:
+  OUTPUT (exactly one JSON object, no code fences, no commentary):
 
-  {{
+  {
     "user_supplied_values": [],
     "tool_produced_values": [],
     "spillover": [],
     "task_summarized": ""
-  }}
+  }
 
-  All four fields are required. Empty arrays are fine; missing
-  fields are a failure.
-
-  ---
-
-  THE ALGORITHM — single chronological walk
-
-  Process the chat messages IN ORDER:
-    user[0], assistant[0], tool[0],
-    user[1], assistant[1], tool[1],
-    user[2], assistant[2], tool[2], ...
-
-  Keep a `seen` set of every value already classified.
-
-  For each message, scan it for concrete values: IDs, file paths,
-  dates, names, numeric constraints, units, file contents, list
-  members, configuration entries, thresholds, preferences,
-  deadlines, target states, generated identifiers, verdicts,
-  computed metrics, status flags, lookup results.
-
-  For each value V in that message:
-    - If V is ALREADY in `seen`, do nothing. (Re-appearances
-      never change V's bucket.)
-    - If V is NEW: bucket it by the CURRENT message's role:
-        * role 'user' → append V to user_supplied_values.
-                        Mark V as seen.
-        * role 'tool' (response payload) → append V to
-                        tool_produced_values. Mark V as seen.
-        * role 'assistant' → ignore (assistant messages don't
-                        introduce values; arguments come from
-                        either a prior user message or are
-                        derived from prior tool output).
-
-  After the walk:
-    - Each value lands in EXACTLY ONE bucket — user_supplied_values
-      OR tool_produced_values, NEVER BOTH.
-    - Echoed arguments (the tool returning back a value the
-      assistant passed in) end up in user_supplied_values because
-      the user message introduced them earlier in the walk.
-    - Pre-leaked values (the user message inlining what tool[k]
-      will return) end up in user_supplied_values because the
-      user message appears earlier in the walk than the tool.
-      The summarizer cannot detect pre-leaks without external
-      information; that is acceptable.
-    - Post-leaked values (tool[k] produces V; user[k+1] re-states
-      V) end up in tool_produced_values because tool[k] appears
-      earlier. These are the spillovers we DO catch.
-
-  Match values by SUBSTANCE, not exact string. '366 days' and
-  '366' are the same value. 'v1.2' and 'version v1.2' are the
-  same value.
+  All four fields are required. Both lists are FLAT LISTS of
+  strings. Every value belongs to EXACTLY ONE of
+  user_supplied_values and tool_produced_values. Spillover is a
+  subset of tool_produced_values.
 
   ---
 
-  STEP 2 — spillover.
-    From tool_produced_values, list those that ALSO appear
-    (verbatim or paraphrased) in a LATER user message. These are
-    the values the upstream generator inlined backward — they
-    look user-supplied because a user message mentions them, but
-    their origin is a tool. They must NOT appear verbatim in
-    task_summarized — refer to them indirectly ("the resulting
-    validity", "the computed expiry", "the id returned by the
-    previous step").
+  CLASSIFICATION
+
+  For each concrete value V in the chat, decide using the TOOL
+  SCHEMAS:
+
+    user_supplied_values — V fills an INPUT PARAMETER slot of some
+    tool and V is not derivable from any earlier tool's
+    output_details. The user had to pick V from outside the chain.
+
+    tool_produced_values — V appears in some tool's RESPONSE
+    PAYLOAD and matches that tool's output_details. The chain
+    produces V.
+
+  IMPORTANT. A user message MENTIONING V does NOT make V
+  user_supplied. User messages frequently restate values the
+  chain has just produced. A restated value stays in
+  tool_produced. user_supplied is reserved for values the user
+  PICKED FROM OUTSIDE the chain.
+
+  STRUCTURAL RULES (apply mechanically, no judgment needed)
+
+  R1. Counts, statistics, durations, percentages, and any other
+      scalar a tool computes are ALWAYS tool_produced. Even when
+      a later user message restates the value ("now that 3
+      records exist"), the chain produced it. Never put a count
+      or computed scalar in user_supplied.
+
+  R2. Identifiers a tool returned — DOIs, ids, generated paths,
+      generated URLs, hashes, server-assigned names — are ALWAYS
+      tool_produced. Even when a later user message says "use id
+      X" or "open the file at /tmp/x", the chain produced X. The
+      user's phrasing ("use this id", "for the DOI", "with the
+      record") does not override the schema. Never put a returned
+      identifier in user_supplied.
+
+  R3. Status flags and verdicts a tool returned ("success",
+      "validated", "scheduled", "created", "true" / "false" as a
+      tool output, computed status strings) are ALWAYS
+      tool_produced. They must not appear verbatim in
+      task_summarized; describe the outcome indirectly.
+
+  R4. A value the user CHOSE that fills a parameter slot is
+      user_supplied. Filter targets, mapping definitions
+      (every key AND every value of a user-defined mapping),
+      thresholds, style choices, file names, collection names,
+      manager names, lists of required fields the user
+      specified. Even if a tool happens to also emit V in
+      returned data, V is user_supplied and is NOT also in
+      tool_produced. After classifying, remove V from
+      tool_produced if duplicated.
+
+  SPILLOVER
+
+  Scan tool_produced_values. If V also appears in a USER message
+  later in the chat, add V to spillover. Spillover entries STAY
+  in tool_produced_values; spillover only marks them for indirect
+  reference in the summary.
 
   ---
 
-  STEP 3 — task_summarized.
-    Compose ONE flowing user-facing request that:
-      - Includes EVERY value in user_supplied_values.
-      - Does NOT include any value in tool_produced_values.
-      - Refers to spillover values indirectly when they're
-        needed to make the chain hang together.
+  task_summarized
 
-    Where the chain has an obvious real-world workflow name ("a
-    return and refund for order 1234", "a firmware update for
-    robot_42"), use it as the SPINE. Otherwise describe the goal
-    as connective prose.
-
-    Subtle wording rule: when both a user message and a tool
-    response describe the same thing using different words,
-    prefer the USER's wording. If user[k] says "low-pass filter
-    preserving phase" and tool[k] re-characterises it as
-    "zero-phase lowpass filter", the user's wording is
-    authoritative — do NOT borrow "zero-phase" into the
-    summary. The tool's wording counts as spillover-of-wording.
+  One flowing user-facing request that:
+    - includes every user_supplied value (verbatim or by clear
+      paraphrase),
+    - contains NO tool_produced value verbatim, in any form
+      (numeric or word form of a number both count),
+    - refers to spillover indirectly ("the matching record",
+      "the resulting count", "the exported file"),
+    - uses the user's wording, not the tool's,
+    - has no enumeration, no tool names, no parameter syntax.
 
   ---
 
-  VOICE AND SHAPE (applies to task_summarized only)
+  FINAL CHECK (run before emitting JSON; fix any violation and
+  re-run)
 
-  - One coherent user-facing request. Connective prose.
-  - Do NOT number, bullet, or label steps.
-  - Do NOT phrase as "first do X, then Y, finally Z". Describe
-    the outcome and the user-known constraints; intermediate
-    operations are the agent's job.
-  - Length follows what needs to be covered. Don't pad. Don't
-    drop user inputs to be short.
-
-  No tool names in task_summarized:
-  - No PascalCase tool identifiers, no snake_case parameter
-    names, no equals signs, no "(arg=value)" formatting.
-  - Refer to operations by what they DO in plain English ("audit
-    the certificate", "process the refund"), never by tool name.
+  1. Every value sits in EXACTLY ONE bucket. If duplicated, move
+     to the correct bucket using R1 and R2.
+  2. spillover ⊆ tool_produced_values.
+  3. For each tool_produced entry, scan task_summarized for that
+     entry verbatim OR in equivalent form. Match by SUBSTANCE:
+     "3" and "three" are the same value; "10.1/abc" and "DOI
+     10.1/abc" are the same; "/tmp/x" and "the file at /tmp/x"
+     are the same. If present in any form, rewrite that fragment
+     indirectly and re-scan until clean.
+  4. Each user_supplied entry appears in task_summarized
+     (verbatim or by clear paraphrase). If missing, add it.
 
   ---
 
-  WORKED EXAMPLE A — echoed argument (user introduces, tool echoes):
+  WORKED EXAMPLE
 
-    chat:
-      user[0]:    "Clone the repository at
-                   'https://github.com/example/project.git' on the
-                   'develop' branch to '/tmp/repo'."
-      assistant[0]: CheckoutRepo(repo_url='https://github.com/example/project.git',
-                                 branch='develop', target='/tmp/repo')
-      tool[0]:    {{"local_path": "/tmp/repo_clone_abcdef",
-                    "checked_out_ref": "develop"}}
+  chat:
+    user[0]: "Look up record A in the catalog and apply tag X to it."
+    asst[0]: LookupRecord(query='A')
+    tool[0]: {"record": {"id": "r_42", "title": "Alpha"},
+              "count": 3}
+    user[1]: "Now that 3 records exist, apply tag X to record r_42."
+    asst[1]: ApplyTag(record_id='r_42', tag='X')
+    tool[1]: {"tagged": true, "applied_at": "2026-01-01T00:00:00Z"}
 
-    Walk:
-      user[0]:   add 'https://github.com/example/project.git',
-                 'develop', '/tmp/repo' to user_supplied. seen += {{...}}.
-      assistant[0]: ignored.
-      tool[0]:   '/tmp/repo_clone_abcdef' is new → tool_produced.
-                 'develop' is already seen → skip.
+  TOOL SCHEMAS (abbreviated):
+    LookupRecord(query) -> {record: {id, title}, count}
+    ApplyTag(record_id, tag) -> {tagged, applied_at}
 
-    Output:
-    {{
-      "user_supplied_values": ["https://github.com/example/project.git", "develop", "/tmp/repo"],
-      "tool_produced_values": ["/tmp/repo_clone_abcdef"],
-      "spillover": [],
-      "task_summarized": "Clone the develop branch of https://github.com/example/project.git to /tmp/repo."
-    }}
+  Classification:
+    'A' fills LookupRecord.query, not derived → user_supplied.
+    'X' fills ApplyTag.tag, not derived → user_supplied.
+    'r_42' is LookupRecord output_details.record.id, the chain
+      derives it from tool[0] → tool_produced. user[1] restates
+      it → spillover.
+    '3' is LookupRecord output_details.count, the chain derives
+      it from tool[0] → tool_produced. user[1] restates it →
+      spillover.
+    'Alpha' matches output_details.record.title → tool_produced.
+    'true' and the applied_at timestamp match ApplyTag
+      output_details → tool_produced.
 
-  WORKED EXAMPLE B — post-leak (tool produces, user re-states):
+  Draft task_summarized: "Look up record A and after 3 records
+  exist, apply tag X to record r_42."
 
-    chat:
-      user[0]:    "Run the unit tests in tests/unit/test_math.py
-                   and tests/unit/test_string.py with a 30‑second
-                   timeout and require 85% coverage."
-      assistant[0]: RunUnitTests(test_files=['tests/unit/test_math.py',
-                                              'tests/unit/test_string.py'],
-                                 timeout_seconds=30,
-                                 coverage_threshold=85.0)
-      tool[0]:    {{"passed": 2, "failed": 0,
-                    "duration_seconds": 2.3, "coverage_percent": 90.2}}
-      user[1]:    "Consolidate the unit results (2 passed, 0 failed,
-                   duration 2.3 seconds, coverage 90.2%) with the
-                   integration and UI runs."
+  Final check:
+    - 'r_42' is tool_produced AND in task_summarized → rewrite.
+    - '3' is tool_produced AND in task_summarized (numeric or
+      word form) → rewrite.
+    Revised: "Look up record A and apply tag X to the matching
+    record."
+    All user_supplied values present ✓.
+    spillover ⊆ tool_produced ✓.
+    No value in both buckets ✓.
 
-    Walk:
-      user[0]:   add 'tests/unit/test_math.py', 'tests/unit/test_string.py',
-                 '30 seconds', '85% coverage' to user_supplied.
-      assistant[0]: ignored.
-      tool[0]:   add '2 passed', '0 failed', '2.3 seconds',
-                 '90.2%' to tool_produced.
-      user[1]:   '2 passed', '0 failed', '2.3 seconds', '90.2%' all
-                 already seen — skip them. No new values.
-
-    Then spillover: '2 passed', '0 failed', '2.3 seconds', '90.2%'
-    all in tool_produced AND re-stated in user[1] → all spillover.
-
-    Output:
-    {{
-      "user_supplied_values": ["tests/unit/test_math.py", "tests/unit/test_string.py", "30 seconds", "85% coverage"],
-      "tool_produced_values": ["2 passed", "0 failed", "2.3 seconds", "90.2%"],
-      "spillover": ["2 passed", "0 failed", "2.3 seconds", "90.2%"],
-      "task_summarized": "Run the unit tests in tests/unit/test_math.py and tests/unit/test_string.py with a 30-second timeout and a minimum coverage requirement of 85%, then consolidate the resulting outcome with the integration and UI runs."
-    }}
-
-  WORKED EXAMPLE C — mixed: clear workflow + spillover via lookup:
-
-    chat:
-      user[0]: "Retrieve password policy 'policy_1234' with
-                metadata."
-      assistant[0]: RetrievePasswordPolicy(policy_id='policy_1234',
-                                           include_metadata=true)
-      tool[0]: {{"policy": {{"min_length": 8}},
-                 "metadata": {{"policy_version": "v1.2"}}}}
-      user[1]: "Create a new policy 'policy_5678' requiring
-                lengths 12-24, uppercase, lowercase, digits,
-                special, prohibiting 'admin' and 'root',
-                expiring in 60 days."
-      assistant[1]: DefinePasswordPolicy(policy_id='policy_5678',
-                                         min_length=12, max_length=24,
-                                         ...)
-      tool[1]: {{"policy": {{"policy_id": "policy_5678"}}}}
-      user[2]: "Generate a compliance report against 'policy_1234'
-                version 'v1.2'."
-
-    Walk:
-      user[0]:   add 'policy_1234', 'metadata' to user_supplied.
-      tool[0]:   '8' is new → tool_produced. 'v1.2' is new →
-                 tool_produced.
-      user[1]:   add 'policy_5678', '12', '24', 'uppercase',
-                 'lowercase', 'digits', 'special characters',
-                 'admin', 'root', '60 days' to user_supplied.
-      tool[1]:   'policy_5678' already seen — skip.
-      user[2]:   'policy_1234' already seen, 'v1.2' already seen
-                 → skip. No new values.
-
-    Spillover: 'v1.2' is tool_produced and re-stated in user[2]
-    → spillover. ('8' is tool_produced but never re-stated →
-    NOT spillover.)
-
-    Output:
-    {{
-      "user_supplied_values": ["policy_1234", "metadata", "policy_5678", "12", "24", "uppercase", "lowercase", "digits", "special characters", "admin", "root", "60 days"],
-      "tool_produced_values": ["8", "v1.2"],
-      "spillover": ["v1.2"],
-      "task_summarized": "Retrieve the metadata for password policy 'policy_1234' and create a new policy 'policy_5678' that requires 12-24 character passwords with uppercase, lowercase, digits, and special characters, prohibits the substrings 'admin' and 'root', and expires in 60 days; then generate a compliance report against 'policy_1234' using the retrieved policy version."
-    }}
+  Output:
+  {
+    "user_supplied_values": ["A", "X"],
+    "tool_produced_values": ["r_42", "Alpha", "3", "true", "2026-01-01T00:00:00Z"],
+    "spillover": ["r_42", "3"],
+    "task_summarized": "Look up record A and apply tag X to the matching record."
+  }
 final_user_template: |
-  Read the chat above. Write a SINGLE user-facing request — a coherent goal-oriented task — that an agent with the same tools but NO chat history would use to perform the same chain of operations.
-
-  Output exactly one JSON object with all four fields filled.
-
-  Do ONE chronological walk through the chat (user[0], assistant[0],
-  tool[0], user[1], ...). Maintain a `seen` set. For each NEW value
-  encountered, bucket it by the CURRENT message's role:
-    - role 'user' → user_supplied_values
-    - role 'tool' payload → tool_produced_values
-    - role 'assistant' → ignore
-  A value is bucketed ON FIRST SIGHT and never moves. Echoed args
-  end up in user_supplied (the user said them first); tool outputs
-  re-stated in later user messages end up in tool_produced (the
-  tool produced them first).
-
-  Then derive spillover: tool_produced values that ALSO appear in
-  a later user message.
-
-  Compose task_summarized: include every user_supplied_value,
-  exclude every tool_produced_value, refer to spillover values
-  indirectly. Use the user's wording, not the tool's. No
-  enumeration. No tool names.
-
-  Output exactly one JSON object. No code fences, no extra commentary.
+  Read the chat above. Write a SINGLE user-facing request that an
+  agent with the same tools but no chat history would use to perform
+  the same chain of operations. Output exactly one JSON object with
+  the four fields filled. No code fences, no extra commentary.

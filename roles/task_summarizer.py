@@ -34,15 +34,14 @@ class TaskSummarizer(Role):
         tasks: Any,
         tool_calls: Any,
         tool_responses: Any,
+        tools: Any = None,
     ) -> Dict[str, Any]:
         """Summarize a sequence of mini-tasks into one user-facing request."""
-        messages = self.build_messages(tasks, tool_calls, tool_responses)
+        messages = self.build_messages(tasks, tool_calls, tool_responses, tools=tools)
         response = self.runner(messages)
         usage = self._get_usage()
         objs = extract_json_objects(response)
         parsed = objs[0] if objs else None
-        # Persist the full chat in the `prompt` slot so the debug log /
-        # summary block captures exactly what the LLM saw.
         prompt_for_record = json.dumps(messages, ensure_ascii=False, default=str)
         return {"prompt": prompt_for_record, "response": response, "parsed": parsed, "usage": usage}
 
@@ -51,6 +50,7 @@ class TaskSummarizer(Role):
         tasks: Any,
         tool_calls: Any,
         tool_responses: Any,
+        tools: Any = None,
     ) -> List[Dict[str, str]]:
         """Build the (system, prior turns, final user) chat.
 
@@ -65,8 +65,20 @@ class TaskSummarizer(Role):
         resps_l = self._coerce_to_list(tool_responses)
         n = max(len(tasks_l), len(calls_l), len(resps_l))
 
+        system_content = self.prompts["task_summarizer_system"]
+        tools_l = self._coerce_to_list(tools) if tools is not None else []
+        if tools_l:
+            system_content = (
+                system_content
+                + "\n\nTOOL SCHEMAS (the same schemas the rollout agent will see; "
+                "use these to reason about which values a tool can produce versus "
+                "which values the user must specify):\n"
+                + json.dumps(tools_l, ensure_ascii=False, default=str, indent=2)
+                + "\n"
+            )
+
         msgs: List[Dict[str, str]] = [
-            {"role": "system", "content": self.prompts["task_summarizer_system"]},
+            {"role": "system", "content": system_content},
         ]
         for i in range(n):
             td = self._stringify(tasks_l[i] if i < len(tasks_l) else "")

@@ -118,7 +118,6 @@ def test_summarize_tasks_calls_runner_with_list():
     sent = runner.calls[0]
     assert isinstance(sent, list), f"runner should get a list, got {type(sent).__name__}"
     assert all(isinstance(m, dict) and "role" in m and "content" in m for m in sent)
-    # The persisted `prompt` is the JSON-encoded message list — round-trip it.
     assert isinstance(result["prompt"], str)
     decoded = json.loads(result["prompt"])
     assert decoded == sent
