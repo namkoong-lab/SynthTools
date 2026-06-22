@@ -16,40 +16,78 @@ A list of field names (free-form English).
 CLI:
 ```bash
 python -m env_generation.run \
-    --fields "Aerospace and Defense" "Healthcare" \
+    --field "Aerospace and Defense" --field "Healthcare" \
     --output-dir <env_specs_dir> \
-    --model GPT-OSS-120B
+    --model GPT-OSS-120B \
+    [--max-subfields 1] [--max-tasks-per-subfield 1]
 ```
+
+`--field` is repeatable. Re-running on a field that already has specs is
+a no-op until you raise `--max-subfields` or `--max-tasks-per-subfield`;
+the stage tops up to `max_subfields * max_tasks_per_subfield` specs per
+field (counted by existing `{field_slug}_spec_NNN.json` files).
 
 ## Outputs
 
-For each `(field, subfield, task)` triple, one JSON file at
-`<env_specs_dir>/<spec_id>.json` containing:
+Three artifacts per run, all under `<env_specs_dir>/`.
+
+### 1. Per-scenario spec: `<spec_id>.json`
+
+One JSON file per `(field, subfield, task)` triple, written atomically
+(tmp + `os.replace`) so a killed writer leaves no half-file on disk.
 
 ```
 {
-  "spec_id":     "<field-slug>_spec_<NNN>",
-  "field":       "...",
-  "subfield":    "...",
-  "task":        "<one-line task family description>",
+  "schema_version":  "env_spec.v1",
+  "spec_id":         "<field_slug>_spec_<NNN>",
+  "field":           "...",
+  "subfield":        "...",
+  "task":            "<one-line task family description>",
+  "generated_at":    "<ISO-8601 UTC>",
+  "model":           "<model name>",
+  "model_config":    {"temperature": ..., "top_p": ..., "max_tokens": ...},
   "tools": [
     {
-      "tool_name":     "PascalCase",
+      "tool_name":        "PascalCase",
       "tool_description": "...",
-      "parameters":    {<param>: {type, required, description}, ...},
-      "usage":         "<free-text usage hint>",
-      "failure_modes": [...],
-      "output_details": {<field>: {type, description}, ...}
+      "parameters":       {<param>: {type, required, description}, ...},
+      "usage":            "<free-text usage hint>",
+      "error_messages":   [...],
+      "output_details":   {<field>: {type, description}, ...}
     },
     ...
   ],
-  "sequences":   {}   # populated later by task_generation/build_sequences.py
+  "sequences":        {},   # populated later by task_generation/build_sequences.py
+  "generation_log":   [{"phase": "subfields"|"tasks"|"tools", ...}, ...],
+  "usage":            {"prompt_tokens": ..., "completion_tokens": ..., "total_tokens": ...},
+  "field_elapsed_s":  <float>
 }
 ```
 
-The `sequences` block is initially empty — sequences are built post-audit so
-they only chain tools whose simulator behaviour has been verified
+The `sequences` block is initially empty: sequences are built post-audit
+so they only chain tools whose simulator behaviour has been verified
 (stage 3a).
+
+### 2. Shared per-field log: `<field_slug>_field_gen.json`
+
+One per field, accumulating phase-1 (subfields) and phase-2 (tasks) LLM
+prompts and responses across all runs. Scenario JSONs reference it by
+filename via `generation_log[*].shared_with_field_log`, so it must not be
+overwritten on re-run; append-merge is built into `_save_field_log`.
+
+### 3. Run manifest: `manifest.jsonl`
+
+Append-only JSONL, one line per saved scenario. Used by downstream
+auditors as a fast index without scanning all scenario JSONs.
+
+```
+{"schema_version": "env_manifest.v1",
+ "spec_id": "<field_slug>_spec_<NNN>",
+ "field": "...", "subfield": "...", "task": "...",
+ "n_tools": <int>, "n_sequences": 0,
+ "generated_at": "<ISO-8601 UTC>", "model": "...",
+ "usage": {"prompt_tokens": ..., ...}}
+```
 
 ## Pipeline
 
@@ -63,14 +101,16 @@ task) item goes through vLLM in one `engine.chat(...)` call).
 | 3 | task → tool schemas | `EnvironmentGenerator.generate_tools` | N_subfields × M_tasks per field |
 
 Targeted prompting at each level controls diversity, parameter complexity,
-and I/O behaviour. The output is always a tool tuple
-`(name, description, parameters, usage, failure_modes, output_schema)`.
+and I/O behaviour. Each tool emitted by phase 3 carries the fields
+`tool_name`, `tool_description`, `parameters`, `usage`, `error_messages`,
+`output_details`.
 
 ## Files
 
-- `run.py` — CLI entry point.
-- `generate.py` — `generate_environments`, `_generate_for_field`.
-- Prompt templates: `../prompt_templates/env_generator/{subfield,task,tool,sequences,metadata}.yml`.
+- `run.py`: CLI entry point.
+- `generate.py`: `generate_environments`, `_generate_for_field`,
+  `_append_manifest`, `_existing_spec_count` (drives top-up re-run).
+- Prompt templates: `../prompt_templates/env_generator/{subfield,task,tool}.yml`.
 - Role: `../roles/env_generator.py`.
 
 ## Tests

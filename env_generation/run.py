@@ -2,7 +2,7 @@
 
 Usage:
     python -m env_generation.run \
-        --fields "Aerospace and Defense,Healthcare" \
+        --field "Aerospace and Defense" --field "Healthcare" \
         --output-dir tool_content/env_specs \
         --model GPT-OSS-120B \
         [--max-subfields 1] [--max-tasks-per-subfield 1]

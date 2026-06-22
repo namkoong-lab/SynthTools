@@ -30,6 +30,7 @@ phase-1 and phase-2 LLM calls, so scenarios don't duplicate those strings.
 """
 
 import json
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,6 +45,7 @@ from utils import (
     parse_list,
     UsageTracker,
     usage_to_dict,
+    write_json_atomic,
 )
 
 logger = get_logger("synthtools")
@@ -103,6 +105,14 @@ def _append_manifest(output_dir: Path, entry: Dict[str, Any]) -> None:
         f.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
 
 
+def _existing_spec_count(output_dir: Path, field_slug: str) -> int:
+    """Count `{field_slug}_spec_NNN.json` files already on disk for top-up re-runs."""
+    if not output_dir.exists():
+        return 0
+    pattern = re.compile(rf"^{re.escape(field_slug)}_spec_(\d+)\.json$")
+    return sum(1 for p in output_dir.iterdir() if pattern.match(p.name))
+
+
 # ---------------------------------------------------------------------------
 # Main orchestrator
 # ---------------------------------------------------------------------------
@@ -159,6 +169,16 @@ def _generate_for_field(
 ) -> List[Dict]:
     field_slug = _slug(field)
     logger.info(f"Field: {field}")
+
+    existing_count = _existing_spec_count(output_dir, field_slug)
+    target_count = max_subfields * max_tasks_per_subfield
+    if existing_count >= target_count:
+        logger.info(f"  {existing_count} existing specs >= target {target_count}; skipping field")
+        return []
+    to_generate = target_count - existing_count
+    if existing_count > 0:
+        logger.info(f"  found {existing_count} existing specs; topping up to {target_count} ({to_generate} more)")
+
     usage_tracker = UsageTracker()
     field_log: List[Dict[str, Any]] = []
     start = time.time()
@@ -195,6 +215,9 @@ def _generate_for_field(
     for s_idx, (subfield, tasks) in enumerate(zip(subfields, tasks_per_subfield)):
         for task in tasks:
             scenarios.append({"subfield_idx": s_idx, "subfield": subfield, "task": task})
+    if len(scenarios) > to_generate:
+        scenarios = scenarios[:to_generate]
+        logger.info(f"  trimmed scenarios to {to_generate} (top-up cap)")
     logger.info(f"  scenarios: {len(scenarios)}")
 
     if not scenarios:
@@ -278,8 +301,7 @@ def _generate_for_field(
             "field_elapsed_s": round(elapsed, 2),
         }
         path = output_dir / f"{spec_id}.json"
-        with open(path, "w") as f:
-            json.dump(scenario_payload, f, indent=2, ensure_ascii=False, default=str)
+        write_json_atomic(scenario_payload, path)
         logger.info(f"Saved scenario: {path}")
         _append_manifest(output_dir, {
             "schema_version": MANIFEST_SCHEMA_VERSION,

@@ -214,12 +214,14 @@ def test_partial_skip_keeps_healthy_scenarios(fake_llm, tmp_output):
 
 
 def test_field_log_appends_across_reruns(fake_llm, tmp_output):
-    """Re-running env_generation for the same field merges phase-1/phase-2 entries.
+    """Re-running env_generation for a field that needs MORE specs merges phase-1/phase-2 entries.
 
     Scenario files from the first run reference `{field_slug}_field_gen.json` via
     `shared_with_field_log`, so overwriting it would lose the prompts they point to.
+    Re-run semantics: run 2 raises the target (`max_subfields=2`) so top-up kicks in
+    and actually does LLM work; the field log must accumulate, not overwrite.
     """
-    # Run 1 — 1 subfield × 1 task
+    # Run 1: target = 1*1 = 1 spec
     fake_llm.queue(_subfields_response(["S_R1"]))
     fake_llm.queue(_tasks_response(["T_R1"]))
     fake_llm.queue(_tools_response([_make_tool("X")]))
@@ -237,10 +239,89 @@ def test_field_log_appends_across_reruns(fake_llm, tmp_output):
     run1_usage_p = run1["usage"]["prompt_tokens"]
     run1_usage_c = run1["usage"]["completion_tokens"]
 
-    # Run 2 — 1 more subfield × 1 task
-    fake_llm.queue(_subfields_response(["S_R2"]))
-    fake_llm.queue(_tasks_response(["T_R2"]))
-    fake_llm.queue(_tools_response([_make_tool("Y")]))
+    # Run 2: target = 2*1 = 2 (1 existing, 1 to generate via top-up)
+    fake_llm.queue(_subfields_response(["S_R2a", "S_R2b"]))
+    fake_llm.queue_batch([_tasks_response(["T_R2a"]), _tasks_response(["T_R2b"])])
+    fake_llm.queue(_tools_response([_make_tool("Y")]))  # 1 scenario after trim -> single call
+    generate_environments(
+        fields=["F"],
+        output_dir=tmp_output,
+        llm=fake_llm,
+        max_subfields=2,
+        max_tasks_per_subfield=1,
+    )
+
+    run2 = json.loads(log_path.read_text())
+    # Run 1 entries preserved (1 subfields + 1 tasks);
+    # Run 2 appended (1 subfields + 2 tasks for 2 subfields) -> 5 total
+    phases = [e["phase"] for e in run2["generation_log"]]
+    assert phases == ["subfields", "tasks", "subfields", "tasks", "tasks"]
+    # Usage accumulated across runs
+    assert run2["usage"]["prompt_tokens"] > run1_usage_p
+    assert run2["usage"]["completion_tokens"] > run1_usage_c
+    # Elapsed accumulated across runs
+    assert run2["elapsed_s"] >= run1["elapsed_s"]
+    # Exactly two spec files now exist (run 1 wrote 000, run 2 topped up with 001)
+    spec_files = sorted(p.name for p in tmp_output.iterdir() if p.name.startswith("f_spec_"))
+    assert spec_files == ["f_spec_000.json", "f_spec_001.json"]
+
+
+def test_topup_at_target_is_noop(fake_llm, tmp_output):
+    """M >= target: no LLM calls, no new spec files, no field log update."""
+    # Pre-seed 2 spec files for field `Field`. Pattern: `{field_slug}_spec_NNN.json`.
+    (tmp_output / "field_spec_000.json").write_text(json.dumps({"spec_id": "field_spec_000"}))
+    (tmp_output / "field_spec_001.json").write_text(json.dumps({"spec_id": "field_spec_001"}))
+    calls_before = len(fake_llm.calls)
+
+    # Target = 2*1 = 2; M = 2; should no-op.
+    saved = generate_environments(
+        fields=["Field"],
+        output_dir=tmp_output,
+        llm=fake_llm,
+        max_subfields=2,
+        max_tasks_per_subfield=1,
+    )
+
+    assert saved == []
+    assert len(fake_llm.calls) == calls_before, "no LLM calls expected on no-op"
+    # No new spec files written; field log not created.
+    spec_files = sorted(p.name for p in tmp_output.iterdir() if p.name.startswith("field_spec_"))
+    assert spec_files == ["field_spec_000.json", "field_spec_001.json"]
+    assert not (tmp_output / "field_field_gen.json").exists()
+
+
+def test_topup_partial_fills_remainder(fake_llm, tmp_output):
+    """M=1, target=2 (max_subfields=2, max_tasks=1): generate exactly 1 more, scenarios trimmed."""
+    (tmp_output / "field_spec_000.json").write_text(json.dumps({"spec_id": "field_spec_000"}))
+
+    # Phase 1 returns 2 subfields, phase 2 returns 1 task each (would naturally yield 2
+    # scenarios); top-up must trim to 1 before phase 3, so phase 3 is a 1-item batch.
+    fake_llm.queue(_subfields_response(["Sa", "Sb"]))
+    fake_llm.queue_batch([_tasks_response(["Ta"]), _tasks_response(["Tb"])])
+    fake_llm.queue(_tools_response([_make_tool("Tool")]))  # 1 scenario -> single call
+
+    saved = generate_environments(
+        fields=["Field"],
+        output_dir=tmp_output,
+        llm=fake_llm,
+        max_subfields=2,
+        max_tasks_per_subfield=1,
+    )
+
+    assert len(saved) == 1
+    # Pre-seeded spec untouched, new spec at index 001.
+    spec_files = sorted(p.name for p in tmp_output.iterdir() if p.name.startswith("field_spec_"))
+    assert spec_files == ["field_spec_000.json", "field_spec_001.json"]
+    pre = json.loads((tmp_output / "field_spec_000.json").read_text())
+    assert pre == {"spec_id": "field_spec_000"}
+
+
+def test_scenario_save_is_atomic_no_tmp_leftover(fake_llm, tmp_output):
+    """write_json_atomic should leave no `.tmp` file behind on a successful save."""
+    fake_llm.queue(_subfields_response(["S"]))
+    fake_llm.queue(_tasks_response(["T"]))
+    fake_llm.queue(_tools_response([_make_tool("X")]))
+
     generate_environments(
         fields=["F"],
         output_dir=tmp_output,
@@ -249,15 +330,10 @@ def test_field_log_appends_across_reruns(fake_llm, tmp_output):
         max_tasks_per_subfield=1,
     )
 
-    run2 = json.loads(log_path.read_text())
-    # Run 1 entries preserved; Run 2 entries appended → 4 total
-    phases = [e["phase"] for e in run2["generation_log"]]
-    assert phases == ["subfields", "tasks", "subfields", "tasks"]
-    # Usage accumulated across runs
-    assert run2["usage"]["prompt_tokens"] > run1_usage_p
-    assert run2["usage"]["completion_tokens"] > run1_usage_c
-    # Elapsed accumulated across runs
-    assert run2["elapsed_s"] >= run1["elapsed_s"]
+    spec_files = list(tmp_output.glob("f_spec_*.json"))
+    assert len(spec_files) == 1
+    tmp_files = list(tmp_output.glob("*.tmp"))
+    assert tmp_files == [], f"unexpected .tmp leftovers: {tmp_files}"
 
 
 def test_spec_id_advances_when_output_dir_has_existing(fake_llm, tmp_output):
