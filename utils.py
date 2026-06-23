@@ -1,3 +1,4 @@
+import ast
 import json
 import logging
 import os
@@ -119,6 +120,49 @@ def _find_json_objects(text: str) -> list:
         else:
             i += 1
     return candidates
+
+
+_CALL_BAREWORDS = {"true": True, "false": False, "null": None}
+
+
+class _LiteralRewriter(ast.NodeTransformer):
+    def __init__(self) -> None:
+        self.hits = 0
+
+    def visit_Name(self, node: ast.Name):
+        if node.id in _CALL_BAREWORDS:
+            self.hits += 1
+            return ast.copy_location(ast.Constant(value=_CALL_BAREWORDS[node.id]), node)
+        return node
+
+
+def normalize_call_literals(call: str) -> str:
+    """Rewrite JSON-style bareword literals in a Python tool-call string to
+    Python literals: true->True, false->False, null->None.
+
+    Tool calls are parsed with Python's ast (mode='eval'); a bareword `true`
+    parses as a Name, not a boolean, and fails downstream type checks. Only
+    Name nodes are rewritten, so `true` inside a quoted string is preserved.
+    Calls with no bareword (or that do not parse) are returned unchanged. This
+    is the canonical normalizer used wherever a model-emitted call is captured
+    as ground truth, so any recompute stays Python-literal."""
+    if not isinstance(call, str) or not call.strip():
+        return call
+    if not any(w in call for w in _CALL_BAREWORDS):
+        return call
+    try:
+        tree = ast.parse(call, mode="eval")
+    except SyntaxError:
+        return call
+    rw = _LiteralRewriter()
+    new_tree = rw.visit(tree)
+    if rw.hits == 0:
+        return call
+    ast.fix_missing_locations(new_tree)
+    try:
+        return ast.unparse(new_tree)
+    except Exception:
+        return call
 
 
 def extract_json_objects(text: str) -> list:
