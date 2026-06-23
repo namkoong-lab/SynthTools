@@ -63,6 +63,14 @@ def _last_tool_payload(sim_parsed: Dict[str, Any]) -> Any:
     return sim_parsed.get("parameter_check")
 
 
+def _strip_explanation(payload: Any) -> Any:
+    """Drop the simulator's internal 'explanation' (backend reasoning the agent
+    must never see) from a response payload."""
+    if isinstance(payload, dict) and "explanation" in payload:
+        return {k: v for k, v in payload.items() if k != "explanation"}
+    return payload
+
+
 # --- main orchestrator ---
 
 def generate_trajectory(
@@ -74,20 +82,26 @@ def generate_trajectory(
     run_judge: bool = True,
     judge_llm = None,
     nudge_on_no_call: bool = True,
+    rollout_tag: str = "",
 ) -> Dict[str, Any]:
     """Run the agent against `task`, save the trajectory JSON, optionally judge.
 
     Returns the trajectory dict (with the judge verdict if run_judge).
     Output schema is structurally compatible with task_generation/generate.py:457.
+
+    `rollout_tag` is appended to the output stem (e.g. ".s5"), so the same
+    task can be rolled out multiple times (different seeds) without the
+    trajectory and debug files colliding.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"{task.id}.json"
+    stem = f"{task.id}{rollout_tag}"
+    output_path = output_dir / f"{stem}.json"
 
     solver = TaskSolver(runner=llm, mode="trajectory")
     simulator = ToolSimulator(runner=llm)
 
-    event_log = RunLog(task.id) if debug else None
+    event_log = RunLog(stem) if debug else None
     usage_tracker = UsageTracker()
     start = time.time()
 
@@ -176,12 +190,20 @@ def generate_trajectory(
             })
             continue
 
-        # 5) Simulate (parameter check + simulate).
-        sim_res = simulator.simulate(tool_data, tool_call, metadata=task.initial_state)
+        # 5) Simulate (parameter check + simulate). Thread the evolving state:
+        # the simulator sees the initial state PLUS every prior successful
+        # call/response, so resources created mid-rollout exist on later turns
+        # (mirrors what the evolver/env_simulator give task generation).
+        sim_metadata = {
+            "initial_state": task.initial_state,
+            "previous_tool_calls": observed_calls,
+        }
+        sim_res = simulator.simulate(tool_data, tool_call, metadata=sim_metadata)
         _record("ToolSimulator", "simulate", turn_ref, sim_res)
         sim_parsed = sim_res.get("parsed") or {}
         passed = bool(sim_parsed.get("passed"))
-        payload = _last_tool_payload(sim_parsed)
+        # Strip the simulator's 'explanation' before the agent sees it.
+        payload = _strip_explanation(_last_tool_payload(sim_parsed))
         chat.append({"role": "tool", "content": json.dumps(payload, ensure_ascii=False, default=str)})
         turns.append({
             "turn_idx": turn_idx,
@@ -189,12 +211,15 @@ def generate_trajectory(
             "tool_call": tool_call,
             "param_check": sim_parsed.get("parameter_check"),
             "passed": passed,
-            "tool_output": sim_parsed.get("simulation"),
+            # Record what the agent actually received: the simulation on a
+            # pass, else the parameter_check payload (a 400) on failure. These
+            # were previously dropped to None, hiding the real status_code.
+            "tool_output": payload,
         })
         if passed:
             observed_calls.append({
                 "tool_call": tool_call,
-                "tool_output": sim_parsed.get("simulation"),
+                "tool_output": _strip_explanation(sim_parsed.get("simulation")),
             })
 
     elapsed = round(time.time() - start, 2)

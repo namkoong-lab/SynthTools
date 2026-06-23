@@ -165,6 +165,28 @@ def test_unknown_tool_call_records_error_and_continues(tmp_path):
     assert out["turns"][0]["passed"] is False
 
 
+def test_param_check_failure_records_400_in_tool_output(tmp_path):
+    """When parameter_check fails, tool_output must carry the 400 payload the
+    agent actually received, not None. simulate_raw is never called on a fail,
+    so the simulator contributes exactly one (param_check) LLM response."""
+    hello = json.dumps({"reason": "bad args", "tool_call": "Hello(name=123)"})
+    pc_fail = json.dumps({"status": "FAIL", "status_code": 400,
+                          "error_message": "Invalid type for name: expected string."})
+    stop = json.dumps({"reason": "give up", "tool_call": "<STOP>"})
+    responses = [hello, pc_fail, stop]
+
+    llm = FakeLLM(responses)
+    task = _toy_task()
+    out = generate_trajectory(task, llm, output_dir=tmp_path,
+                              max_solver_turns=5, debug=False, run_judge=False)
+
+    t0 = out["turns"][0]
+    assert t0["passed"] is False
+    assert t0["tool_output"] is not None, "param-fail tool_output must not be None"
+    assert t0["tool_output"].get("status_code") == 400
+    assert "error_message" in t0["tool_output"]
+
+
 def test_stop_reason_max_turns_when_no_stop(tmp_path):
     """If the agent never emits <STOP>, the loop terminates on the turn budget."""
     # Three valid Hello calls in a row, no STOP — budget=3 so we stop at the limit.
