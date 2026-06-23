@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -t 04:00:00
+#SBATCH -t 12:00:00
 #SBATCH --account=m5091
 #SBATCH --job-name=ta-resum-20n
 #SBATCH --output=/global/homes/t/tcaste/projects/logs/ta_resum_20n_%j.out
@@ -159,5 +159,33 @@ echo "all shards exited at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "overall rc: $overall_rc"
 echo "task_content rows: $(wc -l < "$TASK_CONTENT" 2>/dev/null || echo 0)"
 echo "=========================================="
+
+# On success, chain the trajectory-generation jobs. Premium QOS allows 5
+# concurrent submitted jobs; this summary job still occupies 1 slot while it
+# submits, so we submit 4 trajectory jobs (1 + 4 = 5). The 4 jobs total 50
+# nodes (1 x 20 nodes + 3 x 10 nodes) = 50 independent rollout streams, each
+# with a distinct JOB_SEED so per-node seeds never collide.
+#
+# SUBMIT_TRAJ=0 skips chaining. TRAJ_SUBMIT_CMD=echo prints the submissions
+# without submitting (dry-run the chaining).
+SUBMIT_TRAJ=${SUBMIT_TRAJ:-1}
+TRAJ_SUBMIT_CMD=${TRAJ_SUBMIT_CMD:-sbatch}
+TRAJ_SBATCH=${TRAJ_SBATCH:-$REPO/hpc/bash_files_perlmutter/trajectory_generation_premium.sbatch}
+TRAJ_OUTPUT_DIR=${TRAJ_OUTPUT_DIR:-/pscratch/sd/t/tcaste/tool_content/trajectories}
+
+if [[ "$overall_rc" -eq 0 && "$SUBMIT_TRAJ" -eq 1 ]]; then
+    mkdir -p "$TRAJ_OUTPUT_DIR"
+    echo "chaining trajectory jobs -> $TRAJ_OUTPUT_DIR"
+    common_export="ALL,OUTPUT_DIR=${TRAJ_OUTPUT_DIR},DATASET=${TASK_CONTENT}"
+    # job 1: 20 nodes, seed base 1 (node seeds 1000..1019)
+    $TRAJ_SUBMIT_CMD --nodes=20 --export="${common_export},JOB_SEED=1" "$TRAJ_SBATCH"
+    # jobs 2-4: 10 nodes each, seed bases 2..4 (node seeds 2000.., 3000.., 4000..)
+    for seed in 2 3 4; do
+        $TRAJ_SUBMIT_CMD --nodes=10 --export="${common_export},JOB_SEED=${seed}" "$TRAJ_SBATCH"
+    done
+    echo "submitted 4 trajectory jobs (20+10+10+10 = 50 nodes)"
+else
+    echo "skipping trajectory chaining (overall_rc=$overall_rc, SUBMIT_TRAJ=$SUBMIT_TRAJ)"
+fi
 
 exit $overall_rc
