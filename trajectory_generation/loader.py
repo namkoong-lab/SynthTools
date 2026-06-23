@@ -20,6 +20,7 @@ the full payload.
 from __future__ import annotations
 
 import json
+import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
@@ -147,6 +148,26 @@ def iter_tasks(
             return
         yield _row_to_task(by_id[tid])
         n += 1
+
+
+def select_random_ids(
+    ids: List[str],
+    seed: int,
+    sample: Optional[int] = None,
+) -> List[str]:
+    """Deterministically shuffle `ids` by `seed` and take the first `sample`.
+
+    Pure and reproducible: the same (ids, seed) always yields the same order,
+    so distinct seeds across jobs/nodes draw distinct (overlapping) subsets.
+    `sample=None` returns a full permutation. `sample` larger than the input
+    just returns the whole permutation.
+    """
+    rng = random.Random(seed)
+    shuffled = list(ids)
+    rng.shuffle(shuffled)
+    if sample is None:
+        return shuffled
+    return shuffled[: max(0, int(sample))]
 
 
 def list_task_ids(jsonl_path: Path, field: Optional[str] = None) -> List[str]:
