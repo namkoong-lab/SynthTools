@@ -46,7 +46,10 @@ from typing import Any, Dict, List, Optional, Set
 
 from env_audit.utils import model_config_for, now_iso
 from roles.task_summarizer import TaskSummarizer
-from utils import batch_call, extract_json_objects, get_logger, usage_to_dict, write_json_atomic
+from utils import (
+    batch_call, extract_json_objects, get_logger, normalize_call_literals,
+    usage_to_dict, write_json_atomic,
+)
 
 logger = get_logger("synthtools")
 
@@ -112,7 +115,10 @@ def _successful_call_and_response(chat: List[Dict[str, Any]]):
     if isinstance(parsed, dict) and "explanation" in parsed:
         parsed = {k: v for k, v in parsed.items() if k != "explanation"}
         tool_str = json.dumps(parsed, ensure_ascii=False)
-    return _agent_tool_call_str(asst_content), tool_str
+    # Canonicalize the call to Python literals (true->True etc.) so every
+    # recompute of gt_tool_calls / summarizer triples stays Python-style
+    # regardless of what the source chat emitted.
+    return normalize_call_literals(_agent_tool_call_str(asst_content)), tool_str
 
 
 def _extract_successful_turns(task: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -266,7 +272,9 @@ def _extract_release_row(
     for turn in clean:
         call, _ = _successful_call_and_response(turn.get("chat") or [])
         if not call:
-            call = (turn.get("task") or {}).get("expected_tool_call") or ""
+            call = normalize_call_literals(
+                (turn.get("task") or {}).get("expected_tool_call") or ""
+            )
         if call:
             gt_tool_calls.append(call)
 
