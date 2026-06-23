@@ -41,6 +41,13 @@ template: |
     "tool_call": "<ToolName(param=..., ...)>"
   }}
 
+  The tool_call is a PYTHON call expression, parsed with Python's ast.
+  Write every value as a Python literal: True / False for booleans
+  (never true / false), None for null (never null), and wrap every
+  string in quotes. A bareword like `true` parses as a name, not a
+  boolean, and the call will be rejected. Example:
+  ToolName(active=True, name='alice', limit=5, note=None).
+
   When the task is finished and there is nothing left to call, output:
   {{
     "reason": "<one short paragraph: what you accomplished, why we are done>",
@@ -72,6 +79,15 @@ template: |
     "reason": "Validator confirmed RET-0001 is eligible for SKU-ABC-001. Next sub-goal: generate the prepaid return label so the customer can ship the item back...",
     "tool_call": "ReturnLabelGenerator(return_request_id='RET-0001', carrier='ups')"
   }}
+
+  If a call is invalid, the tool message is a FAILURE of this shape (note
+  the "FAIL" status and the "error_message"):
+
+  [tool]
+  {{"status": "FAIL", "status_code": 400, "error_message": "Invalid type for carrier: expected string."}}
+
+  Read the error_message, fix exactly what it names, and retry with a
+  corrected call. Do not resend the same call unchanged.
 
   ... and so on, one tool per turn, until the task is complete:
 
