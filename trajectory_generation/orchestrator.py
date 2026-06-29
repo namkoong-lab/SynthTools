@@ -231,6 +231,8 @@ def generate_trajectory(
             "max_solver_turns": max_solver_turns,
             "run_judge":         run_judge,
             "stop_reason":       stop_reason,
+            "temperature":       getattr(llm, "temperature", None),
+            "top_p":             getattr(llm, "top_p", None),
         },
         "tool_ids": [t.get("tool_name") for t in task.tools],
         "tools":    task.tools,

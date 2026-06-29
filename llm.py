@@ -83,12 +83,18 @@ class LLM:
         gpu_memory_utilization: float = 0.85,
         max_model_len: int = 32768,
         server_url: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
     ):
         if model not in MODEL_REGISTRY:
             raise ValueError(f"Unknown model '{model}'. Available: {list(MODEL_REGISTRY)}")
 
         self.model = model
         self.cfg = MODEL_REGISTRY[model]
+        # Optional per-instance sampling overrides; fall back to the registry
+        # defaults (temperature 0.2, top_p 0.95) when not given.
+        self.temperature = temperature if temperature is not None else self.cfg.temperature
+        self.top_p = top_p if top_p is not None else self.cfg.top_p
         self.max_tokens = max_tokens
         self.tensor_parallel_size = tensor_parallel_size
         self.gpu_memory_utilization = gpu_memory_utilization
@@ -163,8 +169,8 @@ class LLM:
             model=self.cfg.model_id,
             messages=messages,
             max_tokens=self.max_tokens,
-            temperature=self.cfg.temperature,
-            top_p=self.cfg.top_p,
+            temperature=self.temperature,
+            top_p=self.top_p,
         )
         msg = resp.choices[0].message
         # When the server is launched with --reasoning-parser openai_gptoss,
@@ -233,6 +239,6 @@ class LLM:
         from vllm import SamplingParams
         return SamplingParams(
             max_tokens=self.max_tokens,
-            temperature=self.cfg.temperature,
-            top_p=self.cfg.top_p,
+            temperature=self.temperature,
+            top_p=self.top_p,
         )

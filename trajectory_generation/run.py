@@ -126,6 +126,11 @@ def main():
     add_model_arg(parser)
     parser.add_argument("--max-solver-turns", type=int, default=12,
                         help="Cap on the agent's loop (default 12).")
+    parser.add_argument("--temperature", type=float, default=None,
+                        help="Sampling temperature override (default: registry 0.2). "
+                             "gpt-oss spec is 1.0 for diverse rollouts.")
+    parser.add_argument("--top-p", type=float, default=None,
+                        help="top_p override (default: registry 0.95). gpt-oss spec is 1.0.")
     parser.add_argument("--no-judge", action="store_true",
                         help="Skip the TrajectoryJudge pass.")
     parser.add_argument("--no-debug", action="store_true",
@@ -219,6 +224,10 @@ def main():
     llm_kwargs = dict(model=args.model)
     if args.server_url:
         llm_kwargs["server_url"] = args.server_url
+    if args.temperature is not None:
+        llm_kwargs["temperature"] = args.temperature
+    if args.top_p is not None:
+        llm_kwargs["top_p"] = args.top_p
 
     if args.concurrency == 1:
         # Serial path — single LLM, single trajectory at a time.

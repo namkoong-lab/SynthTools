@@ -10,6 +10,7 @@
 #SBATCH --gpus-per-node=4
 #SBATCH --constraint "gpu&hbm40g"
 #SBATCH --qos=premium
+#SBATCH --no-kill
 
 # Trajectory generation, no judge. Each node is an INDEPENDENT rollout
 # stream: it launches its own vLLM and processes its own random permutation
@@ -40,7 +41,9 @@ OUTPUT_DIR=${OUTPUT_DIR:?set OUTPUT_DIR}
 JOB_SEED=${JOB_SEED:?set JOB_SEED}
 SAMPLE=${SAMPLE:-}
 CONCURRENCY=${CONCURRENCY:-16}
-MAX_SOLVER_TURNS=${MAX_SOLVER_TURNS:-12}
+MAX_SOLVER_TURNS=${MAX_SOLVER_TURNS:-20}
+TEMPERATURE=${TEMPERATURE:-0.2}
+TOP_P=${TOP_P:-0.95}
 
 LOG_DIR=/global/homes/t/tcaste/projects/logs
 mkdir -p "$LOG_DIR"
@@ -67,7 +70,7 @@ echo "job seed  : $JOB_SEED  (node seeds: $((JOB_SEED*1000))..$((JOB_SEED*1000+N
 echo "nodes     : ${NODES[*]}"
 echo "dataset   : $DATASET"
 echo "output    : $OUTPUT_DIR"
-echo "sample    : ${SAMPLE:-<uncapped>}   concurrency: $CONCURRENCY   max_turns: $MAX_SOLVER_TURNS"
+echo "sample    : ${SAMPLE:-<uncapped>}   concurrency: $CONCURRENCY   max_turns: $MAX_SOLVER_TURNS   temperature: $TEMPERATURE   top_p: $TOP_P"
 echo "=========================================="
 
 run_stream_on_node () {
@@ -90,6 +93,8 @@ run_stream_on_node () {
     local reasoning_parser=${17}
     local dtype=${18}
     local ready_timeout=${19}
+    local temperature=${20}
+    local top_p=${21}
 
     cd "$repo"
     # shellcheck disable=SC1090
@@ -153,6 +158,8 @@ run_stream_on_node () {
         --server-url    "http://localhost:${port}/v1" \
         --concurrency   "$concurrency" \
         --max-solver-turns "$max_solver_turns" \
+        --temperature   "$temperature" \
+        --top-p         "$top_p" \
         --no-judge \
         --seed          "$node_seed" \
         "${sample_arg[@]}"
@@ -175,7 +182,7 @@ for i in $(seq 0 $((NUM_NODES - 1))); do
                                      '$LOG_DIR' '$MODEL' \
                                      '$SERVE_MODEL' '$PORT' '$TP' '$MAX_MODEL_LEN' \
                                      '$GPU_MEM_UTIL' '$REASONING_PARSER' '$DTYPE' \
-                                     '$READY_TIMEOUT'" &
+                                     '$READY_TIMEOUT' '$TEMPERATURE' '$TOP_P'" &
     PIDS+=($!)
 done
 
