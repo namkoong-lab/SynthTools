@@ -195,7 +195,14 @@ def _extract_release_row(
     summary_block = task.get("summary") or {}
     if not isinstance(summary_block, dict):
         return None
-    summary_text = (summary_block.get("parsed") or {}).get("task_summarized") or ""
+    # Prefer the deterministic running_summary path. Fall back to the legacy
+    # parsed.task_summarized for tasks generated with the old summarizer
+    # (still on disk in the original SynthTools worktree).
+    summary_text = (
+        summary_block.get("running_summary")
+        or (summary_block.get("parsed") or {}).get("task_summarized")
+        or ""
+    )
     if not summary_text:
         return None
     task_id = task.get("task_id")
@@ -251,6 +258,29 @@ def _extract_release_row(
         "initial_state": initial_state,
         "final_state": final_state,
     }
+
+
+def _extract_final_running_summary(task: Dict[str, Any]) -> str:
+    """Return the running_summary from the last accepted turn.
+
+    "Accepted" means `env_update` is populated (the env_simulator advanced
+    state for that turn). Falls back to any turn carrying a non-empty
+    running_summary if nothing is marked accepted (e.g. non-verifiable runs
+    where env_update is always None but a final summary still exists).
+    Returns "" if nothing usable found.
+    """
+    turns = task.get("turns") or []
+    for turn in reversed(turns):
+        if turn.get("env_update") is None:
+            continue
+        running = ((turn.get("task") or {}).get("running_summary") or "").strip()
+        if running:
+            return running
+    for turn in reversed(turns):
+        running = ((turn.get("task") or {}).get("running_summary") or "").strip()
+        if running:
+            return running
+    return ""
 
 
 def _existing_release_ids(jsonl_path: Path) -> Set[str]:
@@ -597,63 +627,47 @@ def summarize_trajectories(
             logger.warning(f"  {task_id}: 0 successful turns after pre-audit — skipping")
             continue
 
-        triples = _triples_for_summarizer(clean)
-        prompt = role.build_messages(
-            tasks=triples["tasks"],
-            tool_calls=triples["tool_calls"],
-            tool_responses=triples["tool_responses"],
-        )
         to_process.append({
             "path": path,
             "task_id": task_id,
             "task": task,
-            "prompt": prompt,
             "n_subtasks": len(clean),
         })
 
-    # Phase 2: one batched LLM call across every task that needs it.
+    # Phase 2: deterministic running_summary extraction. No LLM call: the
+    # cumulative summary is already on disk in each task's last accepted
+    # turn (built incrementally during task_generation).
     if to_process:
-        prompts = [item["prompt"] for item in to_process]
-        logger.info(f"summarize: batched LLM call for {len(prompts)} task/ies")
-        results = batch_call(llm, prompts)
-
-        for item, r in zip(to_process, results):
+        logger.info(f"summarize: lifting running_summary for {len(to_process)} task/ies")
+        for item in to_process:
             task = item["task"]
             path: Path = item["path"]
             task_id = item["task_id"]
-            response = r["response"]
-            usage = r["usage"]
 
-            objs = extract_json_objects(response)
-            parsed = objs[0] if objs and isinstance(objs[0], dict) else None
-
-            post_issues = audit_summary_output(parsed)
-            for iss in post_issues:
-                audit_counter[f"POST_{iss.code}"] += 1
-            if any_block(post_issues):
+            running_summary = _extract_final_running_summary(task)
+            if not running_summary:
+                audit_counter["POST_no_running_summary"] += 1
                 logger.warning(
-                    f"  {task_id}: post-audit BLOCKed summary "
-                    f"({[i.code for i in post_issues if i.level==BLOCK]}) — not writing"
+                    f"  {task_id}: no running_summary on any accepted turn — not writing"
                 )
                 continue
 
             generated_at = now_iso()
-            usage_dict = usage_to_dict(usage)
             summary_block = {
                 "generated_at": generated_at,
-                "model": getattr(llm, "model", None),
-                "model_config": model_config_for(llm),
+                "model": getattr(llm, "model", None) if llm is not None else None,
+                "model_config": model_config_for(llm) if llm is not None else None,
                 "n_subtasks": item["n_subtasks"],
-                "prompt": item["prompt"],
-                "response": response,
-                "parsed": parsed,
-                "usage": usage_dict,
+                "running_summary": running_summary,
+                # Backward-compat mirror so consumers reading
+                # summary.parsed.task_summarized keep working.
+                "parsed": {"task_summarized": running_summary},
+                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
             }
             task["summary"] = summary_block
             write_json_atomic(task, path)
             logger.info(
-                f"  {task_id}: summarized {item['n_subtasks']} subtasks "
-                f"(usage: {usage_dict})"
+                f"  {task_id}: lifted running_summary ({item['n_subtasks']} subtasks)"
             )
 
             if write_debug:
@@ -661,12 +675,9 @@ def summarize_trajectories(
                 event = {
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "agent": "TaskSummarizer",
-                    "action": "summarize",
+                    "action": "lift_running_summary",
                     "turn_ref": None,
-                    "prompt": item["prompt"],
-                    "response": response,
-                    "parsed": parsed,
-                    "usage": usage_dict,
+                    "running_summary": running_summary,
                 }
                 appended = _append_debug_event(debug_path, event)
                 if not appended:

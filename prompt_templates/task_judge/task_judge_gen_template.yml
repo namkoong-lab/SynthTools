@@ -16,6 +16,14 @@ schema:
     agent_tool_calls:
       type: string
       description: JSON list of the agent's attempts in this turn (tool_call + tool_output).
+    running_summary:
+      type: string
+      description: |
+        Cumulative natural-language user request after this step (the evolver's
+        running_summary field). Represents what a ROLLOUT agent would see at test
+        time, with NO chat history. Empty string if not yet produced. The judge
+        verifies every value in true_tool_call is grounded in running_summary
+        INDEPENDENTLY of the chat-grounding check.
 template: |
   You are a strict task judge. Your job is to enforce an information asymmetry that
   guarantees correctness of training data: the agent at inference time has access ONLY
@@ -30,10 +38,13 @@ template: |
     {prior_chat}
   - agent_tool_calls (the solver's attempts in this turn):
     {agent_tool_calls}
+  - running_summary (cumulative user request a rollout agent would read,
+    with no chat history):
+    {running_summary}
 
   In order, you must:
 
-  1) GROUNDING CHECK (always run, regardless of any equality result).
+  1a) CHAT GROUNDING CHECK (always run, regardless of any equality result).
      For EACH argument value V in `true_tool_call`:
        - Find the verbatim substring of `current_task_description`, of any
          `prior_chat[i].task_description`, or of any `prior_chat[i].tool_response`,
@@ -55,6 +66,24 @@ template: |
          If a value looks like it must "exist somewhere in the system" but is not
          present in any quotable text above, it is hallucinated. Do not guess.
 
+  1b) RUNNING-SUMMARY GROUNDING CHECK (always run, INDEPENDENT of 1a).
+     For EACH argument value V in `true_tool_call`:
+       - Find the verbatim substring of `running_summary` that justifies V.
+       - Natural-language phrasing counts (same rule as 1a). The value must be
+         unambiguously present in `running_summary` itself; chat sources do NOT
+         count here. `running_summary` is what a rollout agent will read in
+         isolation with no chat history.
+       - Numeric derivations: if V is derivable from earlier values that ARE in
+         running_summary (e.g. "sum of the three quantities you found earlier"),
+         count it as grounded with derivation="deduced".
+       - If `running_summary` is empty, treat as ungrounded (running_summary_grounded=false).
+       - If you cannot produce a quote from running_summary that justifies V,
+         set running_summary_grounded=false.
+
+     The point of this check: at rollout, the agent gets ONLY the final
+     running_summary, no chat. If V doesn't appear here, the rollout chain
+     cannot be reproduced. This is the Issue-2 detector.
+
   2) Equality check.
      - Compare the agent's final tool_call to `true_tool_call`.
      - tool_call_equality=true iff the tool name matches AND every required argument
@@ -67,17 +96,23 @@ template: |
        call means the environment did not advance, so the task cannot be
        considered solved — no matter how good the agent's call was on paper.
      - task_solved = arguments_grounded AND tool_call_equality AND tool_succeeded.
-     - task_solvability = 1.0 if arguments_grounded else 0.0 (an ungrounded task is
-       not solvable from the agent's view, regardless of what the solver did).
+     - task_solvability = 1.0 if (arguments_grounded AND running_summary_grounded)
+       else 0.0. A task is fully solvable only when both the chat and the
+       running_summary independently support every GT argument.
 
   4) Feedback (consumed by the task evolver on retry).
-     - Describe ONLY what was missing from the agent's view. Never reference
-       environment metadata or env_state — the evolver must not be encouraged to
-       use values that aren't in the chat.
+     - Describe ONLY what was missing from the agent's view (chat) or from the
+       running_summary. Never reference environment metadata or env_state — the
+       evolver must not be encouraged to use values that aren't visible to a
+       solver or a rollout agent.
      - If arguments_grounded=false: name the offending value(s) and say either
        "include this value verbatim in the task_description" or "thread this
        value from a prior tool response that returns it".
-     - If arguments_grounded=true but tool_call_equality=false: describe the
+     - If arguments_grounded=true but running_summary_grounded=false: name the
+       value(s) missing from running_summary and say "name this value verbatim
+       in running_summary so a rollout agent without chat history can recover
+       it". This is the rollout-leakage case.
+     - If both groundings are true but tool_call_equality=false: describe the
        semantic divergence ("solver used X instead of Y", which the solver should
        fix on a retry — the task itself is fine).
 
@@ -90,14 +125,17 @@ template: |
         "source_quote": "<verbatim substring of chat that justifies it, or empty string if none>",
         "source_location": "current_task" | "prior_task_<idx>" | "prior_response_<idx>" | "none",
         "derivation": "verbatim" | "paraphrase" | "deduced" | "none",
-        "grounded": true | false
+        "grounded": true | false,
+        "running_summary_quote": "<verbatim substring of running_summary that justifies V, or empty string>",
+        "running_summary_grounded": true | false
       }},
       ...
     ],
-    "arguments_grounded": <true | false — true iff EVERY argument is grounded>,
+    "arguments_grounded": <true | false — true iff EVERY argument is chat-grounded>,
+    "running_summary_grounded": <true | false — true iff EVERY argument is running-summary-grounded>,
     "tool_call_equality": <true | false>,
-    "task_solved": <true | false — true iff arguments_grounded AND tool_call_equality AND tool_succeeded>,
+    "task_solved": <true | false — true iff arguments_grounded AND running_summary_grounded AND tool_call_equality AND tool_succeeded>,
     "task_solved_confidence": <number between 0 and 1>,
-    "task_solvability": <1.0 if arguments_grounded else 0.0>,
-    "feedback": "<one sentence: what the agent's view was missing, or empty string if none>"
+    "task_solvability": <1.0 if (arguments_grounded AND running_summary_grounded) else 0.0>,
+    "feedback": "<one sentence: what was missing from chat and/or running_summary, or empty string if none>"
   }}

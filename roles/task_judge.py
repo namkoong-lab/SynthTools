@@ -26,6 +26,7 @@ class TaskJudge(Role):
         current_task_description: Any,
         prior_chat: Any,
         agent_tool_calls: Any,
+        running_summary: str = "",
     ) -> Dict[str, Any]:
         """
         Judge whether the agent's attempts solve the task AND whether every argument
@@ -33,6 +34,12 @@ class TaskJudge(Role):
         description + prior_chat). The judge has the SAME world-information as the
         agent (no env_state / env_metadata) — this asymmetry is the correctness
         guarantee.
+
+        Also runs a second INDEPENDENT grounding check against `running_summary`:
+        the cumulative natural-language user request a rollout agent would read at
+        test time WITHOUT chat history. Both `arguments_grounded` (chat) and
+        `running_summary_grounded` (rollout) must be true for a task to be
+        considered solvable end-to-end.
 
         prior_chat: list of {"task_description", "tool_call", "tool_response"} from
                     prior SUCCESSFUL turns, in chronological order. Empty list for
@@ -46,6 +53,7 @@ class TaskJudge(Role):
             current_task_description=self._fmt(current_task_description),
             prior_chat=self._fmt(prior_chat if prior_chat is not None else []),
             agent_tool_calls=self._fmt(agent_tool_calls),
+            running_summary=running_summary or "",
         )
         response = self.runner(prompt)
         usage = self._get_usage()

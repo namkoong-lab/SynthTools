@@ -173,6 +173,10 @@ def generate_trajectory(
     solver_messages: List[Dict[str, str]] = [
         {"role": "system", "content": task_solver.system_prompt()}
     ]
+    # Cumulative natural-language user request after the last accepted turn.
+    # Grows monotonically; the final value lands in task_content.jsonl as the
+    # row's `summary` (no separate summarizer pass).
+    running_summary_prev: str = ""
     usage_tracker = UsageTracker()
 
     def _record(agent_name, action, turn_ref, result):
@@ -223,6 +227,7 @@ def generate_trajectory(
                     unsuccessful_tasks=unsuccessful_tasks_list,
                     tool_details=tool_data,
                     environment_state=env_state,
+                    running_summary_prev=running_summary_prev,
                 )
             _record("TaskEvolver", "evolve_task", turn_ref, task_result)
 
@@ -231,6 +236,10 @@ def generate_trajectory(
             expected_tool_call = task_parsed.get("tool_call")
             env_metadata = task_parsed.get("env_metadata")
             edited_metadata = task_parsed.get("edited_metadata")
+            # Cumulative user request. At step 0 evolver should emit
+            # running_summary == task_description; on later steps it should
+            # carry every value from running_summary_prev plus the new step.
+            running_summary = task_parsed.get("running_summary") or task_description or ""
             # t0 has no predecessor; for t1 trust the evolver's self-report, default to True if missing.
             depends_on_previous = (
                 False if tool_idx == 0
@@ -243,6 +252,7 @@ def generate_trajectory(
                 "env_metadata": env_metadata,
                 "edited_metadata": edited_metadata,
                 "depends_on_previous": depends_on_previous,
+                "running_summary": running_summary,
             }
 
             env_state_after_task = env_metadata or env_state
@@ -266,6 +276,7 @@ def generate_trajectory(
             # outer max_retries evolver loop is the only retry mechanism).
             in_place_budget = max_solver_retries_in_place if verifiable else 1
             arguments_grounded = True   # default for non-verifiable mode
+            running_summary_grounded = True   # default for non-verifiable mode
             task_solved = False
             judge_parsed = None
             attempt_chat = []
@@ -363,24 +374,32 @@ def generate_trajectory(
                         current_task_description=task_description,
                         prior_chat=prior_chat,
                         agent_tool_calls=judge_input,
+                        running_summary=running_summary,
                     )
                     _record("TaskJudge", "judge", turn_ref, judge_result)
 
                     judge_parsed = judge_result.get("parsed") or {}
                     arguments_grounded = bool(judge_parsed.get("arguments_grounded", True))
+                    running_summary_grounded = bool(
+                        judge_parsed.get("running_summary_grounded", True)
+                    )
                     task_solved = bool(judge_parsed.get("task_solved", False))
                     logger.info(
-                        f"Judge: arguments_grounded={arguments_grounded}, task_solved={task_solved}"
+                        f"Judge: arguments_grounded={arguments_grounded}, "
+                        f"running_summary_grounded={running_summary_grounded}, "
+                        f"task_solved={task_solved}"
                     )
                 else:
                     status_code = last_tool_output.get("status_code") if isinstance(last_tool_output, dict) else None
                     task_solved = last_tool_call is not None and isinstance(status_code, int) and 200 <= status_code < 300
                     arguments_grounded = True   # we don't probe this without the judge
+                    running_summary_grounded = True   # we don't probe this without the judge
                     logger.info(f"Skipping judge (verifiable=False). status_code={status_code} task_solved={task_solved}")
 
-                # Bail out of the in-place solver loop on either success or
-                # ungrounded (the outer evolver-reroll loop handles ungrounded).
-                if task_solved or not arguments_grounded:
+                # Bail out of the in-place solver loop on either success or any
+                # ungrounded signal (the outer evolver-reroll loop handles
+                # both arguments_grounded=False and running_summary_grounded=False).
+                if task_solved or not arguments_grounded or not running_summary_grounded:
                     break
                 if solver_attempt + 1 < in_place_budget:
                     logger.info(
@@ -421,6 +440,10 @@ def generate_trajectory(
                         "response": last_tool_output.get("response"),
                     } if isinstance(last_tool_output, dict) else last_tool_output,
                 })
+                # Lock in the accepted running summary so the next turn's
+                # evolver builds on it (and the final value lands in
+                # task_content.jsonl as the row's `summary`).
+                running_summary_prev = running_summary
                 unsuccessful_tasks_list = []
                 if last_assistant_msg and last_tool_msg:
                     historical_user = {"role": "user", "content": task_description or ""}

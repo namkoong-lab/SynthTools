@@ -10,6 +10,13 @@ schema:
     unsuccessful_tasks:
       type: string
       description: JSON encoded list of unsuccessful prior attempts at the current step
+    running_summary_prev:
+      type: string
+      description: |
+        Cumulative natural-language user request after the LAST successful step.
+        At step 0 this is empty; otherwise it's the running_summary emitted by
+        the previous evolver call. The NEW running_summary you emit must
+        contain everything in this string verbatim plus the new step's intent.
 system_template: |
   You are a Task Evolver. You are given a chat history of past successful
   mini-tasks for a multi-step pipeline. Each past step appears as three
@@ -31,8 +38,18 @@ system_template: |
     "edited_metadata": {{}},
     "env_metadata": {{}},
     "task_description": "concise natural-language task",
+    "running_summary": "cumulative user request covering all steps so far",
     "depends_on_previous": true
   }}
+
+  IMPORTANT distinction between `task_description` and `running_summary`:
+  - `task_description` is what the CONSTRUCTION-TIME solver sees in the
+    chat right now. The LEAKAGE RULE below applies to it.
+  - `running_summary` is what a ROLLOUT agent sees at test time. The
+    rollout agent gets NO chat history. So `running_summary` must NAME
+    EVERY concrete value used by the chain so far, including values
+    that originally came from prior tool messages. The LEAKAGE RULE does
+    NOT apply to `running_summary`.
 
   ---
 
@@ -128,10 +145,36 @@ system_template: |
     (e.g. if the judge said "value X was not in the task description",
     either name X verbatim in the new task_description, or pick a
     different value that is grounded in prior tool responses).
+
+  Running-summary rules (apply to the `running_summary` field only):
+  - Start from `running_summary_prev` verbatim. Every word and value in
+    it must appear in your output `running_summary` (paraphrase is
+    allowed only if completely unambiguous).
+  - Append the new step's intent in coherent prose. Use connectives like
+    "then", "next", "after that", "and" to keep it readable.
+  - For EVERY argument value V in the new `tool_call`:
+      - If V is a NEW user-supplied value, name V verbatim in the
+        appended prose (same identifier-literal rules as task_description).
+      - If V was surfaced by a PRIOR tool message (so the LEAKAGE RULE
+        keeps it out of `task_description`), name V VERBATIM in the
+        appended running_summary prose anyway. The rollout agent does
+        not have the chat history, so the only way V can survive to
+        rollout is by being literally present in running_summary.
+  - Do NOT include parameter names, equals signs, the tool name, or
+    `param=value` shapes in `running_summary`. Same natural-language
+    constraint as `task_description`.
+  - `running_summary` must be self-contained: a fresh reader with no
+    chat history must be able to recover every concrete value the chain
+    has used so far from the prose alone.
 final_user_template: |
   Now produce the next mini-task. Use only the chat history above for any
   values that came from earlier tools — do NOT restate them in the
-  task_description.
+  task_description. They MUST, however, be named verbatim in
+  `running_summary` (which a rollout agent will read without the chat).
+
+  Cumulative running summary so far (carries every value used by every
+  prior step; empty string at step 0):
+  {running_summary_prev}
 
   Next tool schema (JSON):
   {tool_details}

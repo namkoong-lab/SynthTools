@@ -51,6 +51,7 @@ class TaskEvolver(Role):
         unsuccessful_tasks: Any,
         tool_details: Any,
         environment_state: Any,
+        running_summary_prev: str = "",
     ) -> Dict[str, Any]:
         """Generate a follow-up task using past successes/failures as a chat.
 
@@ -64,12 +65,15 @@ class TaskEvolver(Role):
           [user]
             "Now produce the next mini-task" + tool_details + environment_state
             + unsuccessful_tasks (any prior failed attempts at THIS step)
+            + running_summary_prev (cumulative user request; the emitted
+              running_summary must contain everything in it verbatim)
         """
         messages = self._build_t1_messages(
             successful_task=successful_task,
             unsuccessful_tasks=unsuccessful_tasks,
             tool_details=tool_details,
             environment_state=environment_state,
+            running_summary_prev=running_summary_prev,
         )
         response = self.runner(messages)
         usage = self._get_usage()
@@ -99,6 +103,7 @@ class TaskEvolver(Role):
         unsuccessful_tasks: Any,
         tool_details: Any,
         environment_state: Any,
+        running_summary_prev: str = "",
     ) -> List[Dict[str, str]]:
         """Build the (system, prior turns, final user) chat for the t1 evolver.
 
@@ -114,6 +119,7 @@ class TaskEvolver(Role):
             tool_details=self._fmt(tool_details),
             environment_state=self._fmt(environment_state),
             unsuccessful_tasks=self._fmt(unsuccessful_tasks if unsuccessful_tasks is not None else []),
+            running_summary_prev=running_summary_prev or "",
         )
         final_user_msg = {"role": "user", "content": final_user_content}
         return [system_msg, *history_msgs, final_user_msg]
