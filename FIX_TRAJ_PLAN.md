@@ -769,7 +769,7 @@ run. Format:
 ### 2026-07-28 `judge investigation: corpus profile, blind cross-labeling, calibration protocol`
 
 - Setup: read-only investigation of the bulk corpus now at
-  `/shared/share_mala/tc3527/tool_content_full/` (Globus transfer complete;
+  `/shared/share_mala/tc3527/synthtools/tool_content_full/` (Globus transfer complete;
   the old `tool_content/` path is gone). Five parallel agents: a code map of
   judging at HEAD; a 3,000-file corpus profile; a hands-on evaluation of 14
   trajectories + one 6-seed group; and **two independent BLIND labelers on
