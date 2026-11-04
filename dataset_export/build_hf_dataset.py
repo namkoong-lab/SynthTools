@@ -11,8 +11,9 @@ Inputs: `<labels-dir>/trajectories.successful.jsonl` (task_id, seed, path) and
 `<trajectories-dir>/<basename of path>`; the directory is never listed. Records are sorted by
 (task_id, seed) and cut into shards; each shard is one worker job (`assemble` + `count_tokens`).
 
-Output: `<out>/data/train-XXXXX-of-NNNNN.parquet` and `<out>/manifest.json` (inputs with sha256, git
-commit, tokenizer, counts, drop reasons, token totals). Run on a CPU node with the SynthTools venv and
+Output: `<out>/data/train-XXXXX-of-NNNNN.parquet` (written with `datasets`, so `load_dataset` decodes
+`tools` and `tool_calls`) and `<out>/manifest.json` (inputs with sha256, git commit, tokenizer, counts,
+drop reasons, token totals). Run on a CPU node with the SynthTools venv and
 `HF_HOME` pointing at the cache that holds the tokenizer (`HF_HUB_OFFLINE=1`). A full build of
 210,925 records takes about four minutes on 24 workers; verify it with `verify_hf_dataset`.
 """
@@ -33,7 +34,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from dataset_export import tokens
 from dataset_export.assemble import assemble
-from dataset_export.row_schema import arrow_schema, make_row
+from dataset_export.row_schema import COLUMNS, features, make_row
 
 LABELS_FILE = "trajectories.successful.jsonl"
 TASK_CONTENT_FILE = "task_content.valid.jsonl"
@@ -88,8 +89,7 @@ def shard_name(index: int, total: int) -> str:
 
 def build_shard(job: Tuple[int, int, list, str, str]) -> Dict[str, Any]:
     """One shard: convert its records, write the parquet file atomically, return the stats."""
-    import pyarrow as pa
-    import pyarrow.parquet as pq
+    from datasets import Dataset
 
     index, n_shards, records, out, traj_dir = job
     rows: List[Dict[str, Any]] = []
@@ -116,7 +116,8 @@ def build_shard(job: Tuple[int, int, list, str, str]) -> Dict[str, Any]:
     data_dir.mkdir(parents=True, exist_ok=True)
     name = shard_name(index, n_shards)
     tmp = data_dir / (name + ".tmp")
-    pq.write_table(pa.Table.from_pylist(rows, schema=arrow_schema()), tmp, compression="zstd")
+    columns = {c: [r[c] for r in rows] for c in COLUMNS}
+    Dataset.from_dict(columns, features=features()).to_parquet(tmp)   # datasets' own writer (snappy)
     os.replace(tmp, data_dir / name)
     return {
         "shard": name,

@@ -63,21 +63,26 @@ copied.
 |---|---|
 | `id` | `<task_id>.s<seed>`, the rollout file stem (`task_id`, `seed` = split at `.s`) |
 | `field` | from `task_content.valid.jsonl` |
-| `gt_tool_calls` | JSON list of the task's ground-truth calls, as released |
+| `gt_tool_calls` | list of the task's ground-truth calls, as released (Python call strings) |
 | `n_target_tokens`, `n_target_tokens_nothink`, `n_total_tokens` | Qwen3 tokens of all assistant blocks (thinking on / off) and of the whole thinking-on render; assistant block = from after `<|im_start|>assistant\n` up to and including `<|im_end|>\n`, the definition behind the EnvScaler / Toucan budget numbers |
 | `tools` | JSON string: `[{"type":"function","function":{"name","description","parameters":<JSON Schema>}}]` |
-| `messages` | JSON string: user (task summary), then `(assistant tool_calls, tool)` pairs, then the final answer |
+| `messages` | HF conversational format: user (task summary), then `(assistant tool_calls, tool)` pairs, then the final answer; `function.arguments` is a JSON string (OpenAI convention); `reasoning_content` and `tool_calls` are null where absent |
 
-`tools` and `messages` are JSON strings because their nested keys differ per row.
+The parquet files carry `datasets` features (`row_schema.features`), so `load_dataset` returns typed
+messages. `tools` and `arguments` are JSON strings because their nested keys differ per row and the
+`datasets.Json` feature decodes floats imprecisely (ujson: 0.6 → 0.6000000000000001 on load), which
+would alter call arguments. The Qwen3 template renders string arguments verbatim, byte-identical to
+dict arguments.
 
 ```python
-import json, pyarrow.parquet as pq
+import json
+from datasets import load_dataset
 from dataset_export.row_schema import strip_reasoning
-table = pq.read_table("<out>/data")          # or datasets.load_dataset("parquet", data_dir="<out>/data")
-row = table.slice(0, 1).to_pylist()[0]
-messages, tools = json.loads(row["messages"]), json.loads(row["tools"])
-text = tokenizer.apply_chat_template(messages, tools=tools, tokenize=False)
-text_nothink = tokenizer.apply_chat_template(strip_reasoning(messages), tools=tools, tokenize=False)
+ds = load_dataset("parquet", data_dir="<out>/data", split="train")
+row = ds[0]
+tools = json.loads(row["tools"])
+text = tokenizer.apply_chat_template(row["messages"], tools=tools, tokenize=False)
+text_nothink = tokenizer.apply_chat_template(strip_reasoning(row["messages"]), tools=tools, tokenize=False)
 ```
 
 ## Commands

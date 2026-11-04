@@ -8,8 +8,9 @@ class FakeTok:
         out = ["<|im_start|>system\n" + json.dumps(tools) + "<|im_end|>\n"]
         for m in messages:
             if m["role"] == "assistant":
-                body = ("<think>\n" + m["reasoning_content"] + "\n</think>\n\n") if "reasoning_content" in m else ""
-                body += m.get("content", "") + "".join("<tool_call>\n" + json.dumps(tc["function"]) + "\n</tool_call>" for tc in m.get("tool_calls", []))
+                # keys may be absent (fresh rows) or None (rows read back through `datasets`)
+                body = ("<think>\n" + m["reasoning_content"] + "\n</think>\n\n") if m.get("reasoning_content") is not None else ""
+                body += (m.get("content") or "") + "".join("<tool_call>\n" + json.dumps(tc["function"]) + "\n</tool_call>" for tc in (m.get("tool_calls") or []))
                 out.append("<|im_start|>assistant\n" + body + "<|im_end|>\n")
             elif m["role"] == "tool":   # Qwen wraps replies in a user turn with <tool_response>
                 out.append("<|im_start|>user\n<tool_response>\n" + m["content"] + "\n</tool_response><|im_end|>\n")

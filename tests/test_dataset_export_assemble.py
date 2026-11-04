@@ -21,7 +21,7 @@ def test_happy_path():
     assert roles == ["user", "assistant", "tool", "assistant", "tool", "assistant"]
     assert row["messages"][0]["content"] == "Do it."
     assert row["messages"][1] == {"role": "assistant", "content": "", "reasoning_content": "search",
-                                  "tool_calls": [{"type": "function", "function": {"name": "Search", "arguments": {"q": "x"}}}]}
+                                  "tool_calls": [{"type": "function", "function": {"name": "Search", "arguments": '{"q": "x"}'}}]}
     assert row["messages"][-1] == {"role": "assistant", "content": "Done: saved a."}
     assert [t["function"]["name"] for t in row["tools"]] == ["Search", "Save"]
 

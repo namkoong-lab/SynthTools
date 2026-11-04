@@ -19,13 +19,23 @@ from dataset_export import tokens
 from dataset_export.row_schema import COLUMNS
 
 
+def load_rows(out: Path):
+    """The dataset as `datasets` returns it, read straight from the parquet files."""
+    import pyarrow.parquet as pq
+    from datasets import Dataset
+    return Dataset(pq.read_table(str(out / "data")))
+
+
 def row_problems(row: Dict[str, Any]) -> List[str]:
-    """The invariants of one row; empty list when it is well formed."""
+    """The invariants of one row (as `datasets` returns it); empty list when it is well formed."""
     problems = []
     if any(c not in row for c in COLUMNS):
         return ["missing columns"]
-    msgs = json.loads(row["messages"])
-    tools = json.loads(row["tools"])
+    msgs = row["messages"]
+    try:
+        tools = json.loads(row["tools"])
+    except (TypeError, ValueError):
+        return ["tools is not a JSON string"]
     names = {t["function"]["name"] for t in tools}
     roles = [m["role"] for m in msgs]
     if not tools:
@@ -34,7 +44,7 @@ def row_problems(row: Dict[str, Any]) -> List[str]:
         problems.append("first message is not a non-empty user message")
     if len(msgs) < 4 or len(msgs) % 2:
         problems.append("message count is not user + pairs + answer")
-    if not (roles[-1] == "assistant" and "tool_calls" not in msgs[-1] and msgs[-1]["content"].strip()):
+    if not (roles[-1] == "assistant" and not msgs[-1].get("tool_calls") and msgs[-1]["content"].strip()):
         problems.append("last message is not a non-empty final answer")
     for i in range(1, len(msgs) - 1, 2):
         a, t = msgs[i], msgs[i + 1] if i + 1 < len(msgs) - 1 else None
@@ -42,8 +52,12 @@ def row_problems(row: Dict[str, Any]) -> List[str]:
             problems.append(f"message {i} is not a tool-call turn")
             continue
         fn = a["tool_calls"][0]["function"]
-        if fn["name"] not in names or not isinstance(fn["arguments"], dict):
-            problems.append(f"message {i}: unknown tool or non-dict arguments")
+        try:
+            arguments = json.loads(fn["arguments"])
+        except (TypeError, ValueError):
+            arguments = None
+        if fn["name"] not in names or not isinstance(arguments, dict):
+            problems.append(f"message {i}: unknown tool or arguments not a JSON object string")
         if t is None or t["role"] != "tool":
             problems.append(f"message {i + 1} is not a tool reply")
             continue
@@ -54,7 +68,7 @@ def row_problems(row: Dict[str, Any]) -> List[str]:
             continue
         if not isinstance(payload, dict) or not isinstance(payload.get("status_code"), int) or "explanation" in payload:
             problems.append(f"message {i + 1}: reply without int status_code or with explanation")
-    if not (isinstance(json.loads(row["gt_tool_calls"]), list) and json.loads(row["gt_tool_calls"])):
+    if not (isinstance(row["gt_tool_calls"], list) and row["gt_tool_calls"]):
         problems.append("gt_tool_calls is not a non-empty list")
     if ".s" not in row["id"]:
         problems.append("id is not <task_id>.s<seed>")
@@ -64,28 +78,24 @@ def row_problems(row: Dict[str, Any]) -> List[str]:
 
 
 def verify(out: Path, sample: int = 50, tokenizer: Optional[str] = None) -> Dict[str, Any]:
-    import pyarrow.compute as pc
-    import pyarrow.dataset as ds
-
     manifest = json.loads((out / "manifest.json").read_text())
     counts = manifest["counts"]
     problems: List[str] = []
     if counts["records"] != counts["written"] + sum(counts["dropped"].values()):
         problems.append("manifest: records != written + dropped")
-    dataset = ds.dataset(str(out / "data"), format="parquet")
-    ids = dataset.to_table(columns=["id"])["id"].to_pylist()
+    dataset = load_rows(out)
+    ids = dataset["id"]
     if not (len(ids) == counts["written"] == len(set(ids))):
         problems.append("row count or id uniqueness does not match the manifest")
     invalid = 0
     fields = set()
     sums = {"n_target_tokens": 0, "n_target_tokens_nothink": 0, "n_total_tokens": 0}
-    for batch in dataset.to_batches(batch_size=2000):
-        for row in batch.to_pylist():
-            fields.add(row["field"])
-            for k in sums:
-                sums[k] += row[k]
-            if row_problems(row):
-                invalid += 1
+    for row in dataset:
+        fields.add(row["field"])
+        for k in sums:
+            sums[k] += row[k]
+        if row_problems(row):
+            invalid += 1
     if invalid:
         problems.append(f"{invalid} rows violate the row invariants")
     if sums != manifest["tokens"]:
@@ -93,9 +103,9 @@ def verify(out: Path, sample: int = 50, tokenizer: Optional[str] = None) -> Dict
     mismatches = 0
     if sample and ids:
         tok = tokens.load_tokenizer(tokenizer or manifest["tokenizer"])
-        chosen = sorted(random.Random(0).sample(ids, min(sample, len(ids))))
-        for row in dataset.to_table(filter=pc.field("id").isin(chosen)).to_pylist():
-            msgs, tools = json.loads(row["messages"]), json.loads(row["tools"])
+        chosen = sorted(random.Random(0).sample(range(len(ids)), min(sample, len(ids))))
+        for row in dataset.select(chosen):
+            msgs, tools = row["messages"], json.loads(row["tools"])
             n_asst = sum(1 for m in msgs if m["role"] == "assistant")
             text = tok.apply_chat_template(msgs, tools=tools, tokenize=False)
             same_counts = tokens.count_tokens(tok, msgs, tools) == {k: row[k] for k in sums}
