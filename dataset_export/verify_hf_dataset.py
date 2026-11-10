@@ -1,5 +1,6 @@
-"""Verify a built dataset: manifest arithmetic, the invariants of every row, token counts and render
-structure recomputed on a random sample with the real tokenizer.
+"""Verify a built dataset: manifest arithmetic, the invariants of every row, the split (no task in both
+splits, held-out fields only in test, per-split counts), token counts and render structure recomputed
+on a random sample with the real tokenizer.
 
     python -m dataset_export.verify_hf_dataset --out <dataset dir> [--sample 50]
 
@@ -19,11 +20,17 @@ from dataset_export import tokens
 from dataset_export.row_schema import COLUMNS
 
 
-def load_rows(out: Path):
-    """The dataset as `datasets` returns it, read straight from the parquet files."""
+SPLITS = ("train", "test")
+
+
+def load_rows(out: Path, split: str = "train"):
+    """One split as `datasets` returns it, read straight from its parquet files."""
     import pyarrow.parquet as pq
     from datasets import Dataset
-    return Dataset(pq.read_table(str(out / "data")))
+    files = sorted(str(p) for p in (out / "data").glob(f"{split}-*.parquet"))
+    if not files:
+        raise FileNotFoundError(f"no {split} shards in {out / 'data'}")
+    return Dataset(pq.read_table(files))
 
 
 def row_problems(row: Dict[str, Any]) -> List[str]:
@@ -80,26 +87,46 @@ def row_problems(row: Dict[str, Any]) -> List[str]:
 def verify(out: Path, sample: int = 50, tokenizer: Optional[str] = None) -> Dict[str, Any]:
     manifest = json.loads((out / "manifest.json").read_text())
     counts = manifest["counts"]
+    holdout = set(manifest["split"]["holdout_fields"])
     problems: List[str] = []
     if counts["records"] != counts["written"] + sum(counts["dropped"].values()):
         problems.append("manifest: records != written + dropped")
-    dataset = load_rows(out)
-    ids = dataset["id"]
-    if not (len(ids) == counts["written"] == len(set(ids))):
+    if counts["written"] != sum(counts["written_by_split"].values()):
+        problems.append("manifest: written != sum over splits")
+    datasets = {s: load_rows(out, s) for s in SPLITS}
+    ids = {s: list(datasets[s]["id"]) for s in SPLITS}
+    all_ids = ids["train"] + ids["test"]
+    if not (len(all_ids) == counts["written"] == len(set(all_ids))):
         problems.append("row count or id uniqueness does not match the manifest")
+    if any(len(ids[s]) != counts["written_by_split"][s] for s in SPLITS):
+        problems.append("per-split row counts do not match the manifest")
+    tasks = {s: {i.rsplit(".s", 1)[0] for i in ids[s]} for s in SPLITS}
+    if tasks["train"] & tasks["test"]:
+        problems.append(f"{len(tasks['train'] & tasks['test'])} tasks appear in both splits")
     invalid = 0
     fields = set()
     sums = {"n_target_tokens": 0, "n_target_tokens_nothink": 0, "n_total_tokens": 0}
-    for row in dataset:
-        fields.add(row["field"])
-        for k in sums:
-            sums[k] += row[k]
-        if row_problems(row):
-            invalid += 1
+    sums_by_split = {s: dict(sums) for s in SPLITS}
+    for s in SPLITS:
+        for row in datasets[s]:
+            fields.add(row["field"])
+            for k in sums:
+                sums[k] += row[k]
+                sums_by_split[s][k] += row[k]
+            if row_problems(row):
+                invalid += 1
+            if s == "train" and row["field"] in holdout:
+                problems.append(f"held-out field {row['field']!r} has a row in train")
+                break
     if invalid:
         problems.append(f"{invalid} rows violate the row invariants")
-    if sums != manifest["tokens"]:
+    if sums != manifest["tokens"] or sums_by_split != manifest["tokens_by_split"]:
         problems.append("token sums differ from the manifest")
+    missing = holdout - set(datasets["test"]["field"])
+    if missing:
+        problems.append(f"held-out fields absent from test: {sorted(missing)}")
+    dataset = datasets["train"]
+    ids = ids["train"]
     mismatches = 0
     if sample and ids:
         tok = tokens.load_tokenizer(tokenizer or manifest["tokenizer"])
@@ -116,7 +143,9 @@ def verify(out: Path, sample: int = 50, tokenizer: Optional[str] = None) -> Dict
                 mismatches += 1
         if mismatches:
             problems.append(f"{mismatches} sampled rows: token counts or render structure differ")
-    report = {"rows": len(ids), "invalid_rows": invalid, "fields": len(fields), "token_sums": sums,
+    report = {"rows": len(all_ids), "rows_by_split": {s: len(datasets[s]) for s in SPLITS},
+              "tasks_by_split": {s: len(tasks[s]) for s in SPLITS}, "tasks_in_both": len(tasks["train"] & tasks["test"]),
+              "holdout_fields": sorted(holdout), "invalid_rows": invalid, "fields": len(fields), "token_sums": sums,
               "sampled": min(sample, len(ids)), "sample_mismatches": mismatches, "problems": problems}
     return report
 

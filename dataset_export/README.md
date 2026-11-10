@@ -10,7 +10,7 @@ ACEBench-style per-task exporter and is unchanged.
 
 ```
 labels_20261029/trajectories.successful.jsonl  ─┐
-labels_20261029/task_content.valid.jsonl       ─┼─ build_hf_dataset ─► <out>/data/train-XXXXX-of-NNNNN.parquet
+labels_20261029/task_content.valid.jsonl       ─┼─ build_hf_dataset ─► <out>/data/{train,test}-XXXXX-of-NNNNN.parquet
 tool_content_full/trajectories/<id>.json       ─┘                      <out>/manifest.json
    per record:  assemble(traj)  =  utils.extract_json_objects  →  tool_calls.convert_call
                                    →  tool_schemas.tools_to_functions
@@ -36,6 +36,14 @@ Drop reasons (`assemble.DROP_REASONS`, counted in `manifest.json`): unreadable r
 `tool_call` (the orchestrator nudged), malformed call (syntax error, JSON bareword inside a dict,
 positional argument), unknown tool, null or status-less reply, no `<STOP>` (turn budget), `<STOP>`
 before any call, empty final answer.
+
+## The split
+
+Part of the dataset, unit = task: every rollout of a task is in one split. `test` = every task of the
+`--holdout-fields` (out-of-distribution fields, never trained on) plus `--test-fraction` of the other
+tasks, chosen by a stable hash of (`--split-seed`, task_id); the rest is `train`. The manifest records
+the parameters, counts and token totals per split; the verifier checks that no task is in both splits
+and that held-out fields occur only in test.
 
 ## Conversion rules
 
@@ -78,8 +86,8 @@ dict arguments.
 import json
 from datasets import load_dataset
 from dataset_export.row_schema import strip_reasoning
-ds = load_dataset("parquet", data_dir="<out>/data", split="train")
-row = ds[0]
+ds = load_dataset("parquet", data_dir="<out>/data")   # DatasetDict with train and test
+row = ds["train"][0]
 tools = json.loads(row["tools"])
 text = tokenizer.apply_chat_template(row["messages"], tools=tools, tokenize=False)
 text_nothink = tokenizer.apply_chat_template(strip_reasoning(row["messages"]), tools=tools, tokenize=False)
@@ -93,7 +101,9 @@ Run on a CPU node (researchgpu02) with the SynthTools venv; the tokenizer loads 
 ```bash
 L=/shared/share_mala/tc3527/synthtools/labels_20261029
 T=/shared/share_mala/tc3527/synthtools/tool_content_full/trajectories
-python -m dataset_export.build_hf_dataset  --labels-dir $L --trajectories-dir $T --out <out> --workers 24
+python -m dataset_export.build_hf_dataset  --labels-dir $L --trajectories-dir $T --out <out> --workers 24 \
+    --holdout-fields "Credit and Lending Services" "Sales and Crm" "Location Services" "Legal Services" \
+                     "Healthcare Medical" "Biotechnology Pharmaceuticals" --test-fraction 0.05
 python -m dataset_export.verify_hf_dataset --out <out>
 python -m dataset_export.corpus_checks calls    --labels-dir $L --trajectories-dir $T --unsuccessful --report-dir <dir>
 python -m dataset_export.corpus_checks schemas  --labels-dir $L --trajectories-dir $T --tools-dataset $T/../tools_dataset.jsonl
